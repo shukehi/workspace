@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单查询系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="main-header">
+            <h1>订单查询系统</h1>
+            <p class="subtitle">请输入订单号查询详细信息</p>
+        </header>
+
+        <div class="search-section">
+            <div class="input-group">
+                <input type="text" id="orderCodeInput" placeholder="输入订单号，例如 202408120023" value="202408120023">
+                <button id="searchBtn">
+                    <span class="btn-text">查询</span>
+                    <span class="btn-loader"></span>
+                </button>
+            </div>
+            <p id="errorMsg" class="error-message"></p>
+        </div>
+
+        <div id="resultContainer" class="result-container hidden">
+            <div class="order-summary-card">
+                <div class="card-header">
+                    <h2>订单概览</h2>
+                    <span id="orderStatusBadge" class="status-badge">已查询</span>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <label>客户名称</label>
+                        <span id="customerName"></span>
+                    </div>
+                    <div class="summary-item">
+                        <label>订单编号</label>
+                        <span id="orderCode"></span>
+                    </div>
+                    <div class="summary-item">
+                        <label>订单日期</label>
+                        <span id="orderDate"></span>
+                    </div>
+                    <div class="summary-item">
+                        <label>交货日期</label>
+                        <span id="advanceDate"></span>
+                    </div>
+                    <div class="summary-item full-width">
+                        <label>备注</label>
+                        <span id="orderRemark"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-details-card">
+                <div class="card-header">
+                    <h2>商品明细</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="details-table">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>产品名称</th>
+                                <th>规格</th>
+                                <th>颜色</th>
+                                <th>左数量</th>
+                                <th>右数量</th>
+                                <th>门板款式</th>
+                                <th>锁具</th>
+                                <th>详情</th>
+                                <th style="width: 80px; text-align: center;">允许合并</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailsTableBody">
+                            <!-- Rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="order-summary-card" id="packagingCard">
+                <div class="card-header">
+                    <h2>包装采购预览</h2>
+                    <div class="header-actions">
+                        <button id="previewBtn" class="sm-btn">打印采购单</button>
+                    </div>
+                </div>
+
+                <!-- Print Header (Hidden normally) -->
+                <div class="print-header hidden">
+                    <h1>包装采购订单</h1>
+                    <div class="print-meta">
+                        <span>供应商: <b id="printSupplier">美+C单</b></span>
+                        <span>日期: <span id="printDate"></span></span>
+                        <span>单号: <span id="printCode"></span></span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="details-table print-table">
+                        <thead>
+                            <tr>
+                                <th>包装厂家名称</th>
+                                <th>规格尺寸</th>
+                                <th>数量 (合计)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="packagingTableBody">
+                            <!-- Aggregated rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Print Footer (Hidden normally) -->
+                <div class="print-footer hidden">
+                    <div class="sign-box">
+                        <span>制单人:</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="sign-box">
+                        <span>审核人:</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="sign-box">
+                        <span>供应商签字:</span>
+                        <div class="line"></div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- Zoom Controls (Hidden normally) -->
+    <div id="zoomControls" class="zoom-controls hidden">
+        <span style="font-size: 0.85rem; color: #6B7280; margin-right: 4px;">缩放:</span>
+        <button id="zoom50" class="zoom-btn">50%</button>
+        <button id="zoom75" class="zoom-btn">75%</button>
+        <button id="zoom100" class="zoom-btn active">100%</button>
+        <button id="zoom125" class="zoom-btn">125%</button>
+    </div>
+
+    <!-- Print Output Container (Where generated pages go) -->
+    <div id="printOutput"></div>
+
+    <!-- Print Page Template -->
+    <template id="printPageTemplate">
+        <div class="print-page">
+            <div class="print-header">
+                <h1>包装采购订单</h1>
+
+                <div class="print-info-container">
+                    <!-- Top Columns Section -->
+                    <div class="print-info-top-columns">
+                        <!-- Column 1: Customer & Order Code -->
+                        <div class="print-col">
+                            <div class="info-item">
+                                <label>客户名称:</label> <span class="p-customer"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>订单号:</label> <span class="p-code"></span>
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Packaging Names -->
+                        <div class="print-col">
+                            <div class="info-item">
+                                <label>内部包装名称:</label> <span class="p-int-pkg"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>外协包装名称:</label> <span class="p-ext-pkg"></span>
+                            </div>
+                        </div>
+
+                        <!-- Column 3: Dates -->
+                        <div class="print-col">
+                            <div class="info-item">
+                                <label>制单日期:</label> <input type="date" class="p-date inline-date-input">
+                            </div>
+                            <div class="info-item">
+                                <label>交货日期:</label> <input type="date" class="p-delivery inline-date-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row: Supplier -->
+                    <div class="print-info-bottom-row">
+                        <div class="info-item">
+                            <label>供应商:</label> <span class="p-supplier"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <table class="print-table">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>产品名称</th>
+                        <th>规格尺寸</th>
+                        <th>门边</th>
+                        <th>左数量</th>
+                        <th>右数量</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody class="p-tbody">
+                    <!-- Rows injected here -->
+                </tbody>
+            </table>
+
+            <div class="print-footer">
+                <div class="sign-box">
+                    <span>制单人:</span>
+                    <div class="line"></div>
+                </div>
+                <div class="sign-box">
+                    <span>审核人:</span>
+                    <div class="line"></div>
+                </div>
+                <div class="sign-box">
+                    <span>供应商签字:</span>
+                    <div class="line"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
