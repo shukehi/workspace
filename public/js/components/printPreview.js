@@ -254,7 +254,7 @@ export function groupItemsByPackaging(items) {
     if (!items) return groups;
 
     items.forEach(item => {
-        const internalName = item.bz || "无包装名称";
+        const internalName = item.bz || "无名称";
         const mappings = PACKAGING_MAPPING.mappings || PACKAGING_MAPPING;
         const externalName = mappings[internalName] || "未匹配";
 

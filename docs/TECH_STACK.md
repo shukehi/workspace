@@ -2,10 +2,12 @@
 
 ## 项目概述
 
-**项目名称**：订单查询与库存管理系统
+**项目名称**：订单查询系统
 **开发模式**：个人开发
-**架构模式**：单体应用 + 职责分离
+**架构模式**：轻量级单页应用 + API 代理
 **开发时间**：2024年12月 - 持续迭代
+
+**当前版本**：v1.1.0（已移除库存管理模块）
 
 ---
 
@@ -30,13 +32,12 @@
 | **HTML5** | - | 页面结构 | 标准技术，无需学习 |
 | **CSS3** | - | 样式设计 | 原生 CSS，无预处理器 |
 | **JavaScript (ES6+)** | ES2020 | 业务逻辑 | 原生 JS，支持模块化 |
-| **Vue.js 3** | 3.4+ (CDN) | 响应式框架 | 轻量级，渐进式，无需构建 |
 
 **前端架构特点：**
 - ✅ 无构建工具（开发即生产）
-- ✅ CDN 引入 Vue.js（无需 npm 安装）
 - ✅ ES6 模块化（import/export）
-- ✅ 响应式数据管理（Vue 3 Composition API）
+- ✅ 组件化设计（search.js, orderDisplay.js 等）
+- ✅ 响应式布局（移动端适配）
 
 ### 后端技术
 
@@ -44,14 +45,19 @@
 |------|------|------|----------|
 | **Node.js** | 18.x LTS | 运行环境 | 长期支持版本 |
 | **Express.js** | ^4.18.2 | Web 框架 | 成熟稳定，中间件丰富 |
-| **Sequelize** | ^6.35.0 | ORM 框架 | 支持多数据库，文档完善 |
-| **SQLite** | ^3.45.0 | 数据库 | 零配置，单文件存储 |
+| **http-proxy-middleware** | ^2.0.6 | API 代理 | 转发请求到外部 ERP |
 
 **后端架构特点：**
-- ✅ 分层架构（Routes → Controllers → Services → Models）
-- ✅ RESTful API 设计
-- ✅ 异步/等待模式（async/await）
+- ✅ 轻量级架构（主要用于代理和静态文件服务）
+- ✅ API 代理模式（转发到外部系统）
+- ✅ CORS 支持（跨域访问）
 - ✅ 错误处理中间件
+
+**数据库配置（保留但未启用）：**
+| 技术 | 版本 | 状态 | 说明 |
+|------|------|------|------|
+| **Sequelize** | ^6.35.0 | 保留 | ORM 框架，未来可用于本地数据存储 |
+| **SQLite** | ^3.45.0 | 保留 | 轻量级数据库，配置文件已保留 |
 
 ### 开发工具
 
@@ -59,7 +65,6 @@
 |------|------|------|
 | **Git** | 2.x | 版本控制 |
 | **VS Code** | Latest | 代码编辑器 |
-| **Postman** | Latest | API 测试 |
 | **Chrome DevTools** | - | 前端调试 |
 
 ---
@@ -75,8 +80,7 @@
     "http-proxy-middleware": "^2.0.6",
     "sequelize": "^6.35.0",
     "sqlite3": "^5.1.7",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2"
+    "cors": "^2.8.5"
   }
 }
 ```
@@ -84,31 +88,23 @@
 **依赖说明：**
 
 1. **express** - Web 服务器框架
-   - 静态文件服务
-   - API 路由管理
+   - 静态文件服务（/public 目录）
+   - API 代理路由管理
    - 中间件支持
 
-2. **http-proxy-middleware** - API 代理（现有）
-   - 代理外部 API 请求
+2. **http-proxy-middleware** - API 代理
+   - 代理外部 ERP API 请求
    - CORS 处理
+   - 路径重写
 
-3. **sequelize** - ORM 框架
-   - 数据模型定义
-   - 数据库迁移
-   - 关系管理
+3. **sequelize** & **sqlite3** - 数据库相关（保留）
+   - 当前未启用，为未来扩展保留
+   - 可用于订单查询历史存储
+   - 可用于用户偏好设置存储
 
-4. **sqlite3** - SQLite 数据库驱动
-   - 轻量级数据库
-   - 单文件存储
-   - 支持 SQL 完整功能
-
-5. **cors** - 跨域资源共享
+4. **cors** - 跨域资源共享
    - 允许前端跨域请求
    - 配置安全策略
-
-6. **body-parser** - 请求体解析
-   - 解析 JSON 请求
-   - 解析表单数据
 
 ### 开发依赖
 
@@ -118,139 +114,94 @@
 
 ## 数据库设计
 
-### 数据库选择：SQLite
+### 数据库状态：保留配置，未启用
 
-**为什么选择 SQLite？**
-
-✅ **零配置** - 无需安装数据库服务
-✅ **单文件** - 数据库就是一个文件，易于备份
-✅ **足够性能** - 支持 10 万级数据，满足中小型应用
-✅ **完整 SQL** - 支持事务、索引、外键
-✅ **易迁移** - 将来可轻松迁移到 PostgreSQL/MySQL
-
-**数据库文件位置：**
+**数据库文件位置（已保留）：**
 ```
-/data/database.sqlite
+/data/database.sqlite （已删除数据）
+/server/db.js （配置文件保留）
 ```
 
-### 数据表设计（预览）
+**为什么保留数据库配置？**
 
-#### 1. 商品表 (products)
-- 商品基本信息（名称、编号、分类等）
-
-#### 2. 库存记录表 (inventory_records)
-- 库存变动记录（入库、出库、盘点）
-
-#### 3. 订单关联（未来扩展）
-- 订单与库存的关联关系
+✅ **未来扩展** - 可能需要存储订单查询历史
+✅ **用户数据** - 可能需要保存用户偏好设置
+✅ **离线功能** - 可能需要本地缓存订单数据
+✅ **易于启用** - 取消 server.js 中的注释即可使用
 
 ---
 
 ## 前端技术细节
 
-### Vue.js 使用方式
+### 模块化架构
 
-**引入方式：CDN**
-
-```html
-<!-- 开发环境 -->
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
-<!-- 生产环境 -->
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+**文件组织：**
 ```
-
-**为什么选择 CDN 而不是构建工具？**
-
-✅ **零配置** - 无需 Webpack/Vite
-✅ **快速开发** - 改代码刷新即可
-✅ **简单部署** - 复制文件即可
-✅ **易于调试** - 源码可读
-✅ **渐进式** - 可与原生 JS 共存
+public/
+├── index.html              # 订单查询主页
+├── css/
+│   └── style.css          # 全局样式
+├── js/
+│   ├── main.js            # 应用入口
+│   ├── api.js             # API 请求封装
+│   ├── config.js          # 配置管理
+│   ├── utils.js           # 工具函数
+│   └── components/        # 功能组件
+│       ├── search.js              # 订单搜索
+│       ├── orderDisplay.js        # 订单展示
+│       ├── packagingTable.js      # 包装汇总
+│       └── printPreview.js        # 打印预览
+└── data/
+    └── packaging-mapping.json     # 包装映射配置
+```
 
 ### 前端架构模式
 
+**组件化设计：**
 ```javascript
-// 使用 Vue 3 Composition API
-const { createApp, ref, computed, onMounted } = Vue;
-
-createApp({
-  setup() {
-    // 响应式数据
-    const items = ref([]);
-    const searchQuery = ref('');
-
-    // 计算属性
-    const filteredItems = computed(() => {
-      return items.value.filter(item =>
-        item.name.includes(searchQuery.value)
-      );
-    });
-
-    // 生命周期
-    onMounted(async () => {
-      const response = await fetch('/api/inventory');
-      items.value = await response.json();
-    });
-
-    return { items, searchQuery, filteredItems };
+// 使用 ES6 模块
+export class SearchComponent {
+  constructor() {
+    this.initEventListeners();
   }
-}).mount('#app');
+
+  async handleSearch(orderCode) {
+    const data = await api.fetchOrderDetail(orderCode);
+    this.displayResults(data);
+  }
+}
 ```
 
 ---
 
 ## 后端架构设计
 
-### 分层架构
+### 简化架构（V1.1.0）
 
 ```
-server/
-├── app.js              # Express 应用配置
-├── db.js               # 数据库连接
-├── routes/             # 路由层（URL 映射）
-│   ├── inventory.js
-│   └── order.js
-├── controllers/        # 控制器层（请求处理）
-│   └── inventoryController.js
-├── services/          # 服务层（业务逻辑）
-│   └── inventoryService.js
-└── models/            # 模型层（数据结构）
-    ├── Product.js
-    └── InventoryRecord.js
+项目根目录/
+├── server.js               # Express 应用主文件
+├── server/
+│   └── db.js              # 数据库配置（保留）
+├── public/                # 前端静态文件
+└── data/                  # 配置文件
 ```
 
 ### API 设计规范
 
-**RESTful API 风格：**
+**当前 API 端点：**
 
-| 方法 | 路径 | 功能 | 请求体 |
-|------|------|------|--------|
-| GET | /api/inventory | 获取库存列表 | - |
-| GET | /api/inventory/:id | 获取单个商品 | - |
-| POST | /api/inventory | 添加商品 | JSON |
-| PUT | /api/inventory/:id | 更新商品 | JSON |
-| DELETE | /api/inventory/:id | 删除商品 | - |
+| 方法 | 路径 | 功能 | 代理目标 |
+|------|------|------|---------|
+| GET | /api/getOutContractDetail | 查询订单详情 | http://47.98.198.45:8802 |
 
-**响应格式统一：**
+**响应格式：**
 
-```json
-{
-  "success": true,
-  "data": { ... },
-  "message": "操作成功"
-}
-```
-
-**错误响应：**
-
-```json
-{
-  "success": false,
-  "error": "错误信息",
-  "code": "ERROR_CODE"
-}
-```
+外部 ERP 系统返回的原始 JSON 数据，包含：
+- 订单基本信息（客户名、订单号、交期等）
+- 商品明细列表
+- 包装信息
+- 其他扩展字段
 
 ---
 
@@ -259,45 +210,54 @@ server/
 ### 开发环境
 
 ```bash
+# 安装依赖
+npm install
+
 # 启动服务器
 npm start
 
-# 服务器自动运行在
+# 服务器运行在
 http://localhost:3000
 ```
 
-### 生产环境（未来）
+### 生产环境
 
-**选项1：单机部署**
-- 服务器上运行 Node.js
-- 使用 PM2 进程管理
-- Nginx 反向代理
+**部署步骤：**
+1. 克隆代码到服务器
+2. 安装 Node.js 依赖：`npm install --production`
+3. 使用 PM2 管理进程：`pm2 start server.js --name order-query`
+4. 配置 Nginx 反向代理（可选）
 
-**选项2：Electron 桌面应用**
-- 打包成独立应用
-- 无需服务器
-- 跨平台支持
+**推荐配置：**
+- Node.js 18.x LTS
+- PM2 进程管理器
+- Nginx 反向代理（HTTPS 支持）
 
 ---
 
 ## 技术演进路线
 
-### 当前阶段（V1.0）
-- ✅ Vue.js CDN
-- ✅ SQLite 数据库
-- ✅ 无构建工具
-- ✅ 单体应用
+### 当前阶段（V1.1.0）
+- ✅ 订单查询系统（单一功能）
+- ✅ API 代理模式
+- ✅ 无数据库依赖
+- ✅ 轻量级部署
+
+### 版本历史
+- **V1.0.0** - 订单查询 + 库存管理双模块
+- **V1.1.0** - 移除库存管理，专注订单查询
 
 ### 未来升级（V2.0）
-- 🔄 Vite 构建工具
-- 🔄 TypeScript 支持
-- 🔄 PostgreSQL 数据库
-- 🔄 Electron 桌面应用
+- 🔄 订单查询历史记录（启用数据库）
+- 🔄 用户偏好设置存储
+- 🔄 打印模板自定义
+- 🔄 数据导出功能（Excel/PDF）
 
 ### 长期规划（V3.0）
-- ⏭ 前后端完全分离
-- ⏭ 微服务架构
-- ⏭ 移动端 APP
+- ⏭ 多用户权限管理
+- ⏭ 订单数据统计分析
+- ⏭ 移动端适配优化
+- ⏭ 离线模式支持
 
 ---
 
@@ -305,24 +265,24 @@ http://localhost:3000
 
 | 版本 | 日期 | 变更内容 |
 |------|------|----------|
-| 1.0.0 | 2024-12-29 | 初始版本，确定技术栈 |
+| 1.0.0 | 2024-12-29 | 初始版本，订单查询 + 库存管理 |
+| 1.1.0 | 2024-12-30 | 移除库存管理模块，保留数据库配置以备未来扩展 |
 
 ---
 
 ## 参考资料
 
-**Vue.js：**
-- 官方文档：https://cn.vuejs.org/
-- API 参考：https://cn.vuejs.org/api/
-
 **Express.js：**
 - 官方文档：https://expressjs.com/
 - 中文文档：https://www.expressjs.com.cn/
 
-**Sequelize：**
+**http-proxy-middleware：**
+- GitHub：https://github.com/chimurai/http-proxy-middleware
+
+**Sequelize（保留技术）：**
 - 官方文档：https://sequelize.org/
 - 中文文档：https://www.sequelize.cn/
 
-**SQLite：**
+**SQLite（保留技术）：**
 - 官方文档：https://www.sqlite.org/docs.html
 - 教程：https://www.runoob.com/sqlite/sqlite-tutorial.html
