@@ -11,7 +11,7 @@ export let PACKAGING_MAPPING = {};
  */
 export async function loadPackagingMapping() {
     try {
-        const response = await fetch('/packaging-mapping.json');
+        const response = await fetch('/data/packaging-mapping.json');
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

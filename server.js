@@ -5,8 +5,11 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// Host static files from current directory
-app.use(express.static(__dirname));
+// Host static files from public directory
+app.use(express.static('public'));
+
+// Host data files
+app.use('/data', express.static('data'));
 
 // Proxy API requests
 app.use('/api', createProxyMiddleware({

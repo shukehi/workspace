@@ -30,5 +30,17 @@ build/
 *.tmp
 .cache/
 
+# Backup files
+*.backup
+*.bak
+
+# Data files (uncomment if they contain sensitive information)
+# data/*.json
+
+# Database files (runtime data, should not be committed)
+data/*.sqlite
+data/*.sqlite-*
+data/*.db
+
 # Antigravity brain directory (optional - uncomment if you don't want to track it)
 # .gemini/
