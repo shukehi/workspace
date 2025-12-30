@@ -604,6 +604,22 @@ body.print-mode #printOutput {
     transform-origin: top center;
 }
 
+/* Navigation Link */
+.nav-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    background-color: #EFF6FF;
+    color: var(--primary-hover);
+}
+
 @media print {
     body.print-mode {
         background: none;

@@ -5,6 +5,7 @@
 
 const { Product, InventoryRecord } = require('../models');
 const { sequelize } = require('../db');
+const { Op } = require('sequelize');
 
 /**
  * 商品入库
@@ -295,7 +296,7 @@ exports.getStatistics = async (req, res) => {
         const lowStockCount = await Product.count({
             where: {
                 quantity: {
-                    [sequelize.Op.lt]: sequelize.col('minStock')
+                    [Op.lt]: sequelize.col('minStock')
                 },
                 status: 'active'
             }
@@ -305,7 +306,7 @@ exports.getStatistics = async (req, res) => {
         const where = {};
         if (startDate && endDate) {
             where.createdAt = {
-                [sequelize.Op.between]: [new Date(startDate), new Date(endDate)]
+                [Op.between]: [new Date(startDate), new Date(endDate)]
             };
         }
 

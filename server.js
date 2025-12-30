@@ -100,8 +100,8 @@ async function startServer() {
             console.log(`✅ 服务器运行中: http://localhost:${PORT}`);
             console.log('='.repeat(50));
             console.log('📋 可用的功能:');
-            console.log('  - 订单查询: http://localhost:${PORT}/');
-            console.log('  - 库存管理: http://localhost:${PORT}/inventory.html (待创建)');
+            console.log(`  - 订单查询: http://localhost:${PORT}/`);
+            console.log(`  - 库存管理: http://localhost:${PORT}/inventory.html`);
             console.log('\n📡 API 端点:');
             console.log('  - GET    /api/products          - 获取商品列表');
             console.log('  - POST   /api/products          - 创建商品');

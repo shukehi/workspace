@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>库存管理系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/inventory.css">
+</head>
+
+<body>
+    <div id="app" class="app-container">
+        <header class="main-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>库存管理系统</h1>
+                    <p class="subtitle">商品信息与库存操作</p>
+                </div>
+                <a href="/" class="nav-link">返回订单查询</a>
+            </div>
+        </header>
+
+        <!-- 搜索和操作栏 -->
+        <div class="search-section">
+            <div class="toolbar">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        v-model="searchKeyword"
+                        @input="searchProducts"
+                        placeholder="搜索商品编号、名称或分类">
+                    <button @click="searchProducts">搜索</button>
+                </div>
+                <div class="action-buttons">
+                    <button @click="showAddProductDialog" class="btn-primary">新增商品</button>
+                    <button @click="loadProducts" class="btn-secondary">刷新列表</button>
+                    <button @click="showLowStock" class="btn-warning">低库存预警</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-label">商品总数</div>
+                <div class="stat-value">{{ statistics.totalProducts || 0 }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">总库存量</div>
+                <div class="stat-value">{{ statistics.totalQuantity || 0 }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">总库存值</div>
+                <div class="stat-value">¥{{ formatNumber(statistics.totalValue) }}</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-label">低库存商品</div>
+                <div class="stat-value">{{ statistics.lowStockCount || 0 }}</div>
+            </div>
+        </div>
+
+        <!-- 商品列表 -->
+        <div class="order-details-card">
+            <div class="card-header">
+                <h2>商品列表</h2>
+                <span class="subtitle">共 {{ products.length }} 个商品</span>
+            </div>
+            <div class="table-responsive">
+                <table class="details-table">
+                    <thead>
+                        <tr>
+                            <th>商品编号</th>
+                            <th>商品名称</th>
+                            <th>分类</th>
+                            <th>单位</th>
+                            <th>单价</th>
+                            <th>当前库存</th>
+                            <th>最低库存</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="loading">
+                            <td colspan="9" style="text-align: center; padding: 40px;">
+                                加载中...
+                            </td>
+                        </tr>
+                        <tr v-else-if="products.length === 0">
+                            <td colspan="9" style="text-align: center; padding: 40px;">
+                                暂无商品数据
+                            </td>
+                        </tr>
+                        <tr v-else v-for="product in products" :key="product.id" :class="{'low-stock-row': product.quantity < product.minStock}">
+                            <td>{{ product.code }}</td>
+                            <td>{{ product.name }}</td>
+                            <td>{{ product.category || '-' }}</td>
+                            <td>{{ product.unit }}</td>
+                            <td>¥{{ formatNumber(product.price) }}</td>
+                            <td>
+                                <span :class="{'low-stock-badge': product.quantity < product.minStock}">
+                                    {{ product.quantity }}
+                                </span>
+                            </td>
+                            <td>{{ product.minStock }}</td>
+                            <td>
+                                <span :class="'status-badge-' + product.status">
+                                    {{ product.status === 'active' ? '启用' : '禁用' }}
+                                </span>
+                            </td>
+                            <td class="action-cell">
+                                <button @click="showStockInDialog(product)" class="btn-sm btn-success" title="入库">入库</button>
+                                <button @click="showStockOutDialog(product)" class="btn-sm btn-danger" title="出库">出库</button>
+                                <button @click="showEditDialog(product)" class="btn-sm" title="编辑">编辑</button>
+                                <button @click="viewDetails(product)" class="btn-sm" title="详情">详情</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 添加/编辑商品对话框 -->
+        <div v-if="dialogs.product" class="modal-overlay" @click.self="closeProductDialog">
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <h3>{{ isEditing ? '编辑商品' : '新增商品' }}</h3>
+                    <button class="close-btn" @click="closeProductDialog">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>商品编号 <span class="required">*</span></label>
+                        <input v-model="currentProduct.code" :disabled="isEditing" placeholder="例如: PKG001">
+                    </div>
+                    <div class="form-group">
+                        <label>商品名称 <span class="required">*</span></label>
+                        <input v-model="currentProduct.name" placeholder="例如: 纸箱">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>分类</label>
+                            <input v-model="currentProduct.category" placeholder="例如: 包装材料">
+                        </div>
+                        <div class="form-group">
+                            <label>单位</label>
+                            <input v-model="currentProduct.unit" placeholder="例如: 个">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>单价</label>
+                            <input type="number" v-model.number="currentProduct.price" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>最低库存</label>
+                            <input type="number" v-model.number="currentProduct.minStock" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group" v-if="!isEditing">
+                        <label>初始库存</label>
+                        <input type="number" v-model.number="currentProduct.quantity" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <textarea v-model="currentProduct.description" rows="3" placeholder="可选"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="closeProductDialog" class="btn-secondary">取消</button>
+                    <button @click="saveProduct" class="btn-primary">{{ isEditing ? '保存' : '创建' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 入库对话框 -->
+        <div v-if="dialogs.stockIn" class="modal-overlay" @click.self="closeStockInDialog">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-header">
+                    <h3>商品入库</h3>
+                    <button class="close-btn" @click="closeStockInDialog">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-row">
+                        <label>商品名称:</label>
+                        <span>{{ currentProduct.name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>当前库存:</label>
+                        <span>{{ currentProduct.quantity }} {{ currentProduct.unit }}</span>
+                    </div>
+                    <div class="form-group">
+                        <label>入库数量 <span class="required">*</span></label>
+                        <input type="number" v-model.number="stockOperation.quantity" min="1" placeholder="请输入入库数量">
+                    </div>
+                    <div class="form-group">
+                        <label>入库原因</label>
+                        <input v-model="stockOperation.reason" placeholder="例如: 采购入库">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="closeStockInDialog" class="btn-secondary">取消</button>
+                    <button @click="confirmStockIn" class="btn-success">确认入库</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 出库对话框 -->
+        <div v-if="dialogs.stockOut" class="modal-overlay" @click.self="closeStockOutDialog">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-header">
+                    <h3>商品出库</h3>
+                    <button class="close-btn" @click="closeStockOutDialog">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-row">
+                        <label>商品名称:</label>
+                        <span>{{ currentProduct.name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>当前库存:</label>
+                        <span>{{ currentProduct.quantity }} {{ currentProduct.unit }}</span>
+                    </div>
+                    <div class="form-group">
+                        <label>出库数量 <span class="required">*</span></label>
+                        <input type="number" v-model.number="stockOperation.quantity" :max="currentProduct.quantity" min="1" placeholder="请输入出库数量">
+                        <small v-if="stockOperation.quantity > currentProduct.quantity" class="error-text">
+                            出库数量不能大于当前库存
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>出库原因</label>
+                        <input v-model="stockOperation.reason" placeholder="例如: 生产领用">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="closeStockOutDialog" class="btn-secondary">取消</button>
+                    <button @click="confirmStockOut" class="btn-danger" :disabled="stockOperation.quantity > currentProduct.quantity">确认出库</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商品详情对话框 -->
+        <div v-if="dialogs.details" class="modal-overlay" @click.self="closeDetailsDialog">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-header">
+                    <h3>商品详情</h3>
+                    <button class="close-btn" @click="closeDetailsDialog">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-section">
+                        <h4>基本信息</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>商品编号:</label>
+                                <span>{{ currentProduct.code }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>商品名称:</label>
+                                <span>{{ currentProduct.name }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>分类:</label>
+                                <span>{{ currentProduct.category || '-' }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>单位:</label>
+                                <span>{{ currentProduct.unit }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>单价:</label>
+                                <span>¥{{ formatNumber(currentProduct.price) }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>当前库存:</label>
+                                <span>{{ currentProduct.quantity }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>最低库存:</label>
+                                <span>{{ currentProduct.minStock }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>状态:</label>
+                                <span>{{ currentProduct.status === 'active' ? '启用' : '禁用' }}</span>
+                            </div>
+                            <div class="detail-item full-width" v-if="currentProduct.description">
+                                <label>备注:</label>
+                                <span>{{ currentProduct.description }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-section" v-if="inventoryRecords.length > 0">
+                        <h4>最近库存记录</h4>
+                        <table class="details-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>类型</th>
+                                    <th>数量</th>
+                                    <th>变动前</th>
+                                    <th>变动后</th>
+                                    <th>原因</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="record in inventoryRecords" :key="record.id">
+                                    <td>{{ formatDate(record.createdAt) }}</td>
+                                    <td>
+                                        <span :class="'type-badge-' + record.type">
+                                            {{ formatRecordType(record.type) }}
+                                        </span>
+                                    </td>
+                                    <td>{{ record.quantity }}</td>
+                                    <td>{{ record.beforeQty }}</td>
+                                    <td>{{ record.afterQty }}</td>
+                                    <td>{{ record.reason }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="closeDetailsDialog" class="btn-secondary">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 消息提示 -->
+        <div v-if="message.show" :class="['message-toast', 'message-' + message.type]">
+            {{ message.text }}
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="js/inventory.js"></script>
+</body>
+
+</html>
