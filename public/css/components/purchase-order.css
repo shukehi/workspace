@@ -1,0 +1,99 @@
+/**
+ * Purchase Order Component Styles
+ * Styles for PO info panel and action buttons
+ */
+
+/* PO Info Panel */
+.po-info-panel {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.po-info-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.po-number-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.po-number-display label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+}
+
+.po-number {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: rgba(16, 185, 129, 0.1);
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.po-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Button Variants */
+.sm-btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.sm-btn-secondary:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Loading State for Export Button */
+.sm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .po-info-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .po-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .po-actions .sm-btn {
+        width: 100%;
+    }
+}

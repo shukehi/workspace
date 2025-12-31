@@ -9,7 +9,7 @@ import { loadPackagingMapping } from './config/index.js';
 import { initNavigation } from './components/navigation.js';
 import { initSearch } from './components/search.js';
 import { initOrderDisplay } from './components/orderDisplay.js';
-import { initPrintPreview } from './components/printPreview.js';
+import { initPOWorkflow } from './components/poWorkflow.js';
 
 /**
  * 应用初始化
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. 初始化各功能模块（顺序：核心组件 -> UI组件）
     initSearch();          // 搜索模块（触发事件）
     initOrderDisplay();    // 订单展示（监听事件）
-    initPrintPreview();    // 打印预览
+    initPOWorkflow();      // 采购单工作流（生成、打印、导出）
 
     console.log('✅ 应用初始化完成 - 所有组件已就绪');
 });

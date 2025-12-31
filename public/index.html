@@ -12,6 +12,8 @@
         rel="stylesheet">
     <!-- Modular CSS - Single Entry Point -->
     <link rel="stylesheet" href="css/main.css">
+    <!-- PDF Export Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- 导入导航组件 -->
     <script type="module" src="js/components/AppNavigation.js"></script>
 </head>
@@ -104,7 +106,22 @@
                         <div class="card-header">
                             <h2>包装采购预览</h2>
                             <div class="header-actions">
-                                <button id="previewBtn" class="sm-btn">打印采购单</button>
+                                <!-- Generate PO Button (shown initially) -->
+                                <button id="generatePOBtn" class="sm-btn">生成采购单</button>
+                            </div>
+                        </div>
+
+                        <!-- PO Info Panel (Hidden until PO is generated) -->
+                        <div id="poInfoPanel" class="po-info-panel hidden">
+                            <div class="po-info-content">
+                                <div class="po-number-display">
+                                    <label>采购单号:</label>
+                                    <span id="poNumberDisplay" class="po-number"></span>
+                                </div>
+                                <div class="po-actions">
+                                    <button id="printPOBtn" class="sm-btn">打印采购单</button>
+                                    <button id="exportPDFBtn" class="sm-btn sm-btn-secondary">导出 PDF</button>
+                                </div>
                             </div>
                         </div>
 

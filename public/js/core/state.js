@@ -22,6 +22,11 @@ class StateManager {
             // 合并状态（打印预览）
             mergeFlags: {},
 
+            // Purchase Order 状态
+            currentPO: null,           // 当前生成的采购单
+            poList: [],                // 所有采购单列表
+            poGenerating: false,       // 采购单生成中
+
             // 自定义初始状态
             ...initialState
         };
@@ -115,6 +120,9 @@ class StateManager {
             error: null,
             user: null,
             mergeFlags: {},
+            currentPO: null,
+            poList: [],
+            poGenerating: false,
             ...newState
         };
         this.notify();
