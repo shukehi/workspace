@@ -27,6 +27,22 @@ function loadPackagingConfig() {
     return packagingConfig;
 }
 
+// Load print CSS from frontend
+let printCSS = null;
+function loadPrintCSS() {
+    if (!printCSS) {
+        try {
+            const cssPath = path.join(__dirname, '../../public/css/pages/print.css');
+            printCSS = fs.readFileSync(cssPath, 'utf-8');
+            console.log('✅ Print CSS loaded from frontend');
+        } catch (error) {
+            console.warn('⚠️ Failed to load print CSS:', error.message);
+            printCSS = '/* CSS load failed */';
+        }
+    }
+    return printCSS;
+}
+
 /**
  * Generate PDF from order data
  * @param {Object} orderData - Order data including items list
@@ -127,6 +143,9 @@ function generatePrintHTML(orderData, poNumber) {
         return generatePageHTML(orderData, group, pkgName, today, poNumber, config);
     }).join('');
 
+    // Load CSS from frontend
+    const css = loadPrintCSS();
+
     return `
 <!DOCTYPE html>
 <html>
@@ -134,7 +153,7 @@ function generatePrintHTML(orderData, poNumber) {
     <meta charset="UTF-8">
     <title>${poNumber}</title>
     <style>
-        ${getPrintCSS()}
+        ${css}
     </style>
 </head>
 <body>
@@ -299,144 +318,6 @@ function parseQuantityPair(qtyString) {
     const right = parseInt(cleaned.substring(slashIndex + 1), 10) || 0;
 
     return { left, right };
-}
-
-/**
- * Get print CSS styles
- */
-function getPrintCSS() {
-    return `
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background: white;
-        }
-
-        .print-page {
-            background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 10mm;
-            page-break-after: always;
-        }
-
-        .print-page:last-child {
-            page-break-after: auto;
-        }
-
-        .print-header {
-            text-align: center;
-            border: 2px solid #000;
-            margin-bottom: 20px;
-            padding: 20px;
-        }
-
-        .print-header h1 {
-            font-size: 28px;
-            margin: 0 0 15px 0;
-            font-weight: 700;
-            color: #000;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        .print-info-top-columns {
-            display: flex;
-            justify-content: space-between;
-            gap: 30px;
-            margin-top: 20px;
-            text-align: left;
-            font-size: 12px;
-        }
-
-        .print-col {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .print-info-bottom-row {
-            margin-top: 8px;
-            text-align: left;
-            font-size: 13px;
-            padding-top: 8px;
-        }
-
-        .info-item {
-            display: flex;
-            gap: 4px;
-            align-items: baseline;
-        }
-
-        .info-item label {
-            font-weight: 700;
-            white-space: nowrap;
-            text-transform: uppercase;
-        }
-
-        .info-item span {
-            flex: 1;
-            font-weight: 500;
-        }
-
-        .print-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-            border: 2px solid #000;
-        }
-
-        .print-table th,
-        .print-table td {
-            border: 1px solid #000;
-            padding: 8px 4px;
-            text-align: center;
-        }
-
-        .print-table th {
-            background-color: #e8e8e8;
-            font-weight: 600;
-        }
-
-        .total-row {
-            font-weight: bold;
-            background-color: #f5f5f5;
-        }
-
-        .print-footer {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #000;
-        }
-
-        .sign-box {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-        }
-
-        .line {
-            border-bottom: 1.5px solid #000;
-            width: 90px;
-            height: 1px;
-        }
-
-        @media print {
-            @page {
-                size: A4 portrait;
-                margin: 0;
-            }
-        }
-    `;
 }
 
 module.exports = {
