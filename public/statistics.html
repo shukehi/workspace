@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据统计 - 订单管理系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/navigation.css">
+    <link rel="stylesheet" href="css/common.css">
+</head>
+
+<body>
+    <div class="page-wrapper">
+        <!-- 顶部导航栏 -->
+        <nav class="main-navigation">
+            <div class="nav-container">
+                <!-- Logo/品牌 -->
+                <a href="/index.html" class="nav-brand">
+                    <span class="nav-icon">📦</span>
+                    <span class="nav-title">订单管理系统</span>
+                </a>
+
+                <!-- 导航菜单 -->
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="/index.html" class="nav-link" data-page="orders">
+                            <span class="nav-icon">📋</span>
+                            <span>订单查询</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/inventory.html" class="nav-link" data-page="inventory">
+                            <span class="nav-icon">📊</span>
+                            <span>库存管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/procurement.html" class="nav-link" data-page="procurement">
+                            <span class="nav-icon">🛒</span>
+                            <span>采购管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/statistics.html" class="nav-link" data-page="statistics">
+                            <span class="nav-icon">📈</span>
+                            <span>数据统计</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 移动端菜单按钮 -->
+                <button class="nav-toggle" aria-label="切换菜单">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
+                <!-- 用户信息 -->
+                <div class="nav-user">
+                    <div class="user-avatar">👤</div>
+                    <span class="user-name">管理员</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 页面内容容器 -->
+        <div class="page-container">
+            <!-- 页面头部 -->
+            <div class="page-header">
+                <h1>数据统计</h1>
+                <p class="page-subtitle">查看销售数据和统计报表</p>
+            </div>
+
+            <!-- 页面内容 -->
+            <div class="page-content">
+                <!-- 空状态占位 -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">📈</div>
+                    <h3 class="empty-state-title">数据统计功能即将上线</h3>
+                    <p class="empty-state-description">
+                        该模块将提供完整的数据统计功能，包括：<br>
+                        销售数据分析、订单统计报表、数据可视化等
+                    </p>
+                    <a href="/index.html" class="empty-state-action">返回订单查询</a>
+                </div>
+            </div>
+
+        </div>
+        <!-- End: page-container -->
+
+        <!-- 页脚 -->
+        <footer class="main-footer">
+            <p>&copy; 2024 订单管理系统 | 技术支持</p>
+        </footer>
+
+    </div>
+    <!-- End: page-wrapper -->
+
+    <script type="module">
+        import { initNavigation } from './js/components/navigation.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initNavigation();
+            console.log('✅ 数据统计页面初始化完成');
+        });
+    </script>
+</body>
+
+</html>
