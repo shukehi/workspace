@@ -27,20 +27,28 @@ function loadPackagingConfig() {
     return packagingConfig;
 }
 
-// Load print CSS from frontend
-let printCSS = null;
+// Load CSS from frontend
+let cssCache = null;
 function loadPrintCSS() {
-    if (!printCSS) {
+    if (!cssCache) {
         try {
-            const cssPath = path.join(__dirname, '../../public/css/pages/print.css');
-            printCSS = fs.readFileSync(cssPath, 'utf-8');
-            console.log('✅ Print CSS loaded from frontend');
+            // Load variables.css for CSS variables (fonts, colors, etc.)
+            const variablesPath = path.join(__dirname, '../../public/css/core/variables.css');
+            const variablesCSS = fs.readFileSync(variablesPath, 'utf-8');
+
+            // Load print.css for print-specific styles
+            const printPath = path.join(__dirname, '../../public/css/pages/print.css');
+            const printCSS = fs.readFileSync(printPath, 'utf-8');
+
+            // Combine both CSS files
+            cssCache = `${variablesCSS}\n\n${printCSS}`;
+            console.log('✅ Print CSS loaded from frontend (with variables)');
         } catch (error) {
             console.warn('⚠️ Failed to load print CSS:', error.message);
-            printCSS = '/* CSS load failed */';
+            cssCache = '/* CSS load failed */';
         }
     }
-    return printCSS;
+    return cssCache;
 }
 
 /**
