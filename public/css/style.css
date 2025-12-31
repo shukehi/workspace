@@ -76,10 +76,11 @@ body {
     font-weight: 400;
 }
 
-/* Search Section */
+/* Search Section - Integrated Builder Style */
 .search-section {
-    max-width: 500px;
-    margin: 0 auto 56px;
+    max-width: 100%;
+    /* Go wider */
+    margin: 0 0 40px;
     position: relative;
     z-index: 10;
 }
@@ -192,49 +193,61 @@ button#searchBtn:active {
     }
 }
 
-/* Cards */
+/* Technical Slabs (Instead of Cards) */
 .order-summary-card,
 .order-details-card {
-    background: var(--card-bg);
-    border-radius: var(--radius-lg);
-    padding: 32px;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 32px;
-    border: 1px solid var(--border-color);
+    background: transparent;
+    border-radius: 0;
+    padding: 32px 0;
+    /* Vertical padding only */
+    box-shadow: none;
+    margin-bottom: 0;
+    border-top: 2px solid var(--border-color);
+    /* Strong horizontal divider */
+    position: relative;
 }
 
 .card-header {
-    display: flex;
-    justify-content: space-between;
+    display: inline-flex;
     align-items: center;
-    margin-bottom: 28px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 24px;
+    padding: 4px 12px;
+    background: var(--primary-color);
+    /* Black background for title */
+    color: white;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
 }
 
 .card-header h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-}
-
-/* Badges */
-.status-badge {
-    background-color: var(--success-bg);
-    color: var(--success-text);
-    padding: 6px 16px;
-    border-radius: 9999px;
     font-size: 0.85rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    color: white;
+}
+
+/* Technical Badges */
+.status-badge {
+    background-color: var(--text-primary);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 0;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 10px;
 }
 
 /* Summary Grid */
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 32px 24px;
+    gap: 0;
+    /* No gaps in blueprint style */
+    border: 1px solid var(--border-color);
+    /* Outer grid border */
 }
 
 @media (max-width: 768px) {
@@ -246,11 +259,19 @@ button#searchBtn:active {
 .summary-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
+    padding: 16px;
+    border-right: 1px solid var(--border-color);
+}
+
+.summary-item:last-child {
+    border-right: none;
 }
 
 .summary-item.full-width {
     grid-column: 1 / -1;
+    border-right: none;
+    border-top: 1px solid var(--border-color);
 }
 
 .summary-item label {
