@@ -1,0 +1,31 @@
+/**
+ * 环境变量配置
+ * Environment Configuration
+ */
+
+module.exports = {
+    // 服务器配置
+    server: {
+        port: process.env.PORT || 3000,
+        env: process.env.NODE_ENV || 'development'
+    },
+
+    // ERP API 配置
+    erp: {
+        baseUrl: process.env.ERP_BASE_URL || 'http://47.98.198.45:8802',
+        timeout: process.env.ERP_TIMEOUT || 30000
+    },
+
+    // 数据库配置
+    database: {
+        dialect: 'sqlite',
+        storage: './data/database.sqlite',
+        logging: process.env.NODE_ENV === 'development' ? console.log : false
+    },
+
+    // CORS 配置
+    cors: {
+        origin: process.env.CORS_ORIGIN || '*',
+        credentials: true
+    }
+};

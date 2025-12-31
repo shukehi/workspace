@@ -2,9 +2,10 @@
     "name": "order-search",
     "version": "1.0.0",
     "description": "Order search with proxy",
-    "main": "server.js",
+    "main": "server/index.js",
     "scripts": {
-        "start": "node server.js"
+        "start": "node server/index.js",
+        "dev": "NODE_ENV=development node server/index.js"
     },
     "dependencies": {
         "body-parser": "^2.2.1",
