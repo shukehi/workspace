@@ -192,6 +192,9 @@ function generatePageHTML(orderData, group, pkgName, date, poNumber, config) {
     // Generate table rows
     const rowsHTML = items.map((item, idx) => {
         const qty = parseQuantityPair(item.qty);
+        // Prefer explicit remark, then order-level remark, then long instructions truncated
+        const remarkSource = item.remark || orderData.remark || item.xsbz || item.fshz || '';
+        const remark = String(remarkSource || '').slice(0, 80);
         return `
             <tr>
                 <td>${idx + 1}</td>
@@ -200,7 +203,7 @@ function generatePageHTML(orderData, group, pkgName, date, poNumber, config) {
                 <td>${item.mb || '-'}</td>
                 <td>${qty.left}</td>
                 <td>${qty.right}</td>
-                <td></td>
+                <td>${remark}</td>
             </tr>
         `;
     }).join('');
