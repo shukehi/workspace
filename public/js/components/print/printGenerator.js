@@ -91,8 +91,7 @@ export async function generatePrintPages(order) {
                 const qtyPair = parseQuantityPair(item.qty);
                 pageLeftTotal += qtyPair.left;
                 pageRightTotal += qtyPair.right;
-                const remarkSource = item.remark || order.remark || item.xsbz || item.fshz || '';
-                const remark = String(remarkSource || '').slice(0, 80);
+                const remark = ''; // 留空备注，供手写/后续填写
 
                 const tr = document.createElement('tr');
                 const cells = [

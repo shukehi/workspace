@@ -257,8 +257,8 @@ function renderPagesFromTemplate(orderData, packageGroups, date, poNumber, confi
             const tbody = doc.querySelector('.p-tbody');
             pageItems.forEach((item, index) => {
                 const qty = parseQuantityPair(item.qty);
-                const remarkSource = item.remark || orderData.remark || item.xsbz || item.fshz || '';
-                const remark = escapeHTML(String(remarkSource || '').slice(0, 80));
+                // 留空备注，让用户手写
+                const remark = '';
 
                 const tr = doc.createElement('tr');
                 tr.innerHTML = `
