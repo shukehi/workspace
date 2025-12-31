@@ -8,7 +8,8 @@
 import { fetchOrderDetail } from '../api.js';
 import { eventBus } from '../core/eventBus.js';
 import { appState } from '../core/state.js';
-import { validateOrderData, formatError } from '../utils.js';
+import { validateOrderData } from '../utils/validation.js';
+import { formatError } from '../utils/formatters.js';
 
 /**
  * 初始化搜索功能

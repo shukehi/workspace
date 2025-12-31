@@ -5,7 +5,8 @@
  * ✨ 已重构：订阅事件总线，响应订单加载事件
  */
 
-import { setText, parseQuantityPair } from '../utils.js';
+import { setText } from '../utils/dom.js';
+import { parseQuantityPair } from '../utils/parsers.js';
 import { renderPackagingSummary } from './packagingTable.js';
 import { eventBus } from '../core/eventBus.js';
 

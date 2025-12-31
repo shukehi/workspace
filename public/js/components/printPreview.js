@@ -6,7 +6,7 @@
  */
 
 import { PACKAGING_MAPPING } from '../config.js';
-import { parseQuantityPair } from '../utils.js';
+import { parseQuantityPair } from '../utils/parsers.js';
 import { appState } from '../core/state.js';
 
 /**

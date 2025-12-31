@@ -4,7 +4,7 @@
  */
 
 import { PACKAGING_MAPPING } from '../config.js';
-import { parseQuantity } from '../utils.js';
+import { parseQuantity } from '../utils/parsers.js';
 
 /**
  * 渲染包装采购汇总表
