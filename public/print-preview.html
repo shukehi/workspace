@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打印预览 - 采购订单</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/core/reset.css">
+    <link rel="stylesheet" href="css/core/variables.css">
+    <link rel="stylesheet" href="css/core/utilities.css">
+    <link rel="stylesheet" href="css/pages/print.css">
+    <style>
+        body {
+            background-color: #525659;
+            margin: 0;
+            padding: 0;
+        }
+
+        #printOutput {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 40px 0;
+            width: 100%;
+        }
+
+        .print-page {
+            display: block;
+        }
+
+        .print-header {
+            display: block;
+        }
+
+        /* Top controls bar */
+        .controls-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 12px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .controls-bar h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #1F2937;
+        }
+
+        .controls-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #10B981;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: #6B7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4B5563;
+        }
+
+        /* Add top padding to account for fixed controls bar */
+        body {
+            padding-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+        <h2 id="poTitle">采购订单打印预览</h2>
+        <div class="controls-actions">
+            <button class="btn btn-primary" onclick="window.print()">打印</button>
+            <button class="btn btn-secondary" onclick="window.close()">关闭</button>
+        </div>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div id="zoomControls" class="zoom-controls">
+        <span style="font-size: 0.85rem; color: #6B7280; margin-right: 4px;">缩放:</span>
+        <button id="zoom50" class="zoom-btn">50%</button>
+        <button id="zoom75" class="zoom-btn">75%</button>
+        <button id="zoom100" class="zoom-btn active">100%</button>
+        <button id="zoom125" class="zoom-btn">125%</button>
+    </div>
+
+    <!-- Print Output Container -->
+    <div id="printOutput" class="zoom-100"></div>
+
+    <script type="module">
+        import { loadPackagingMapping } from './js/config/index.js';
+        import { generatePrintPages } from './js/components/print/printGenerator.js';
+        import { initZoomControls } from './js/components/print/printControls.js';
+
+        // Initialize print preview
+        async function initPrintPreview() {
+            // Load packaging mapping configuration first
+            await loadPackagingMapping();
+
+            // Get order data from localStorage (passed from parent window)
+            const orderData = JSON.parse(localStorage.getItem('_print_preview_data') || 'null');
+            const poNumber = localStorage.getItem('_print_preview_po_number') || '';
+
+            if (!orderData) {
+                alert('未找到订单数据');
+                window.close();
+                return;
+            }
+
+            // Update title (both page title and heading)
+            document.title = poNumber || '采购订单';
+            document.getElementById('poTitle').textContent = `采购订单 ${poNumber}`;
+
+            // Generate print pages
+            try {
+                await generatePrintPages(orderData);
+                console.log('✅ Print preview generated');
+
+                // Initialize zoom controls
+                const printOutput = document.getElementById('printOutput');
+                initZoomControls(printOutput);
+
+                // Clean up temporary data
+                localStorage.removeItem('_print_preview_data');
+                localStorage.removeItem('_print_preview_po_number');
+            } catch (error) {
+                console.error('❌ Failed to generate print preview:', error);
+                alert('打印预览生成失败');
+            }
+        }
+
+        // Start when DOM is ready
+        initPrintPreview();
+    </script>
+</body>
+</html>

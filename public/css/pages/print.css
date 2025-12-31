@@ -86,7 +86,7 @@ body.print-mode #printOutput {
 .print-info-top-columns {
     display: flex;
     justify-content: space-between;
-    gap: 30px;
+    gap: 15px;
     margin-top: 20px;
     text-align: left;
     font-size: 12px;
@@ -123,7 +123,8 @@ body.print-mode #printOutput {
 
 .info-item span {
     flex: 1;
-    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     color: #000;
     font-family: var(--font-sans);
     font-weight: 500;
@@ -202,12 +203,12 @@ body.print-mode #printOutput {
 
 /* 序号 */
 .print-table th:nth-child(1) {
-    width: 50px;
+    width: 40px;
 }
 
 /* 产品名称 */
 .print-table th:nth-child(2) {
-    width: 220px;
+    width: 180px;
 }
 
 /* 规格尺寸 */
@@ -217,22 +218,23 @@ body.print-mode #printOutput {
 
 /* 门边 */
 .print-table th:nth-child(4) {
-    width: 60px;
+    width: 55px;
 }
 
 /* 左数量 */
 .print-table th:nth-child(5) {
-    width: 50px;
+    width: 45px;
 }
 
 /* 右数量 */
 .print-table th:nth-child(6) {
-    width: 50px;
+    width: 45px;
 }
 
-/* 备注 (自动适应剩余空间) */
+/* 备注 (保证最小宽度) */
 .print-table th:nth-child(7) {
     width: auto;
+    min-width: 100px;
 }
 
 /* Ensure remarks wrap within the cell */
@@ -314,6 +316,18 @@ body.print-mode #printOutput {
 }
 
 @media print {
+    /* Hide all UI controls when printing */
+    .controls-bar,
+    .zoom-controls,
+    .preview-controls {
+        display: none !important;
+    }
+
+    body {
+        background: none;
+        padding-top: 0 !important;
+    }
+
     body.print-mode {
         background: none;
     }
@@ -329,9 +343,15 @@ body.print-mode #printOutput {
         display: none !important;
     }
 
+    #printOutput {
+        padding: 0 !important;
+        transform: none !important;
+    }
+
     .print-page {
         box-shadow: none;
         margin: 0;
+        padding: 0;
         page-break-after: always;
         width: 100%;
         height: auto;
@@ -349,4 +369,17 @@ body.print-mode #printOutput {
     @page {
         size: A4 portrait;
         margin: 10mm;
+        /* Try to hide browser default headers/footers (browser support varies) */
+        margin-top: 10mm;
+        margin-bottom: 10mm;
+    }
+
+    /* Additional attempts to suppress browser headers/footers */
+    @page {
+        @top-left { content: none; }
+        @top-center { content: none; }
+        @top-right { content: none; }
+        @bottom-left { content: none; }
+        @bottom-center { content: none; }
+        @bottom-right { content: none; }
     }

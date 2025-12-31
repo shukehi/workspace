@@ -8,8 +8,6 @@ import { eventBus } from '../core/eventBus.js';
 import { generatePurchaseOrder, getPurchaseOrder, updatePOStatus } from './purchaseOrder.js';
 import { aggregatePackaging } from './packagingTable.js';
 import { tryMergeItems } from './print/printMerge.js';
-import { generatePrintPages } from './print/printGenerator.js';
-import { initZoomControls } from './print/printControls.js';
 
 /**
  * Initialize PO workflow
@@ -20,10 +18,6 @@ export function initPOWorkflow() {
     const exportPDFBtn = document.getElementById('exportPDFBtn');
     const poInfoPanel = document.getElementById('poInfoPanel');
     const poNumberDisplay = document.getElementById('poNumberDisplay');
-    const printOutput = document.getElementById('printOutput');
-
-    // Initialize zoom controls
-    initZoomControls(printOutput);
 
     // ==================== Generate PO ====================
     generatePOBtn.addEventListener('click', async () => {
@@ -96,29 +90,39 @@ export function initPOWorkflow() {
         }
 
         try {
-            // Generate print pages from PO snapshot
-            // Reconstruct order object with items list
+            // Prepare order data for print preview
             const orderForPrint = {
                 ...currentPO.order,
                 list: currentPO.items
             };
-            await generatePrintPages(orderForPrint);
-            document.body.classList.add('print-mode');
 
-            // Show zoom controls
-            const zoomControls = document.getElementById('zoomControls');
-            if (zoomControls) {
-                zoomControls.classList.remove('hidden');
+            // Store data temporarily in localStorage for the new window to access
+            localStorage.setItem('_print_preview_data', JSON.stringify(orderForPrint));
+            localStorage.setItem('_print_preview_po_number', currentPO.poNumber);
+
+            // Open print preview in new window
+            const printWindow = window.open(
+                '/print-preview.html',
+                '_blank',
+                'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
+            );
+
+            if (!printWindow) {
+                alert('无法打开打印预览窗口，请检查浏览器弹窗拦截设置');
+                // Clean up temporary data
+                localStorage.removeItem('_print_preview_data');
+                localStorage.removeItem('_print_preview_po_number');
+                return;
             }
 
             // Update PO status
             updatePOStatus(currentPO.poNumber, 'printed');
 
-            console.log('📄 Print preview opened for:', currentPO.poNumber);
+            console.log('📄 Print preview opened in new window for:', currentPO.poNumber);
 
         } catch (error) {
-            console.error('❌ Print generation failed:', error);
-            alert('打印预览生成失败，请重试');
+            console.error('❌ Print preview failed:', error);
+            alert('打印预览失败，请重试');
         }
     });
 

@@ -42,17 +42,25 @@ function loadPackagingConfig() {
 // In development, always reload CSS to reflect changes immediately
 function loadPrintCSS() {
     try {
+        // Load reset.css for CSS reset
+        const resetPath = path.join(__dirname, '../../public/css/core/reset.css');
+        const resetCSS = fs.readFileSync(resetPath, 'utf-8');
+
         // Load variables.css for CSS variables (fonts, colors, etc.)
         const variablesPath = path.join(__dirname, '../../public/css/core/variables.css');
         const variablesCSS = fs.readFileSync(variablesPath, 'utf-8');
+
+        // Load utilities.css for utility classes
+        const utilitiesPath = path.join(__dirname, '../../public/css/core/utilities.css');
+        const utilitiesCSS = fs.readFileSync(utilitiesPath, 'utf-8');
 
         // Load print.css for print-specific styles
         const printPath = path.join(__dirname, '../../public/css/pages/print.css');
         const printCSS = fs.readFileSync(printPath, 'utf-8');
 
-        // Combine both CSS files
-        const cssContent = `${variablesCSS}\n\n${printCSS}`;
-        console.log('✅ Print CSS loaded from frontend (with variables)');
+        // Combine all CSS files in the same order as print-preview.html
+        const cssContent = `${resetCSS}\n\n${variablesCSS}\n\n${utilitiesCSS}\n\n${printCSS}`;
+        console.log('✅ Print CSS loaded from frontend (reset + variables + utilities + print)');
         return cssContent;
     } catch (error) {
         console.warn('⚠️ Failed to load print CSS:', error.message);
@@ -133,10 +141,10 @@ async function generatePurchaseOrderPDF(orderData, poNumber) {
             format: 'A4',
             printBackground: true,
             margin: {
-                top: '0mm',
-                right: '0mm',
-                bottom: '0mm',
-                left: '0mm'
+                top: '10mm',
+                right: '10mm',
+                bottom: '10mm',
+                left: '10mm'
             },
             preferCSSPageSize: true,
             displayHeaderFooter: false
@@ -194,6 +202,12 @@ function generatePrintHTML(orderData, poNumber) {
     <title>${poNumber}</title>
     <style>
         ${css}
+
+        /* Force remove padding for PDF generation */
+        .print-page {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
     </style>
 </head>
 <body>
