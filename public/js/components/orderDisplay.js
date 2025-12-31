@@ -1,16 +1,32 @@
 /**
  * 订单展示模块
  * 负责渲染订单概览和商品明细
+ *
+ * ✨ 已重构：订阅事件总线，响应订单加载事件
  */
 
 import { setText, parseQuantityPair } from '../utils.js';
 import { renderPackagingSummary } from './packagingTable.js';
+import { eventBus } from '../core/eventBus.js';
+
+/**
+ * 初始化订单展示功能
+ */
+export function initOrderDisplay() {
+    // 订阅订单加载事件
+    eventBus.on('order:loaded', (order) => {
+        renderOrder(order);
+        console.log('📦 订单展示已更新:', order.code);
+    });
+
+    console.log('✅ OrderDisplay 模块初始化完成');
+}
 
 /**
  * 渲染订单信息
  * @param {Object} order - 订单数据对象
  */
-export function renderOrder(order) {
+function renderOrder(order) {
     const resultContainer = document.getElementById('resultContainer');
     const detailsTableBody = document.getElementById('detailsTableBody');
 

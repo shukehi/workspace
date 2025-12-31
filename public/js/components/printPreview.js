@@ -1,10 +1,13 @@
 /**
  * 打印预览模块
  * 负责生成打印页面、合并逻辑和缩放控制
+ *
+ * ✨ 已重构：使用状态管理，移除全局变量依赖
  */
 
 import { PACKAGING_MAPPING } from '../config.js';
 import { parseQuantityPair } from '../utils.js';
+import { appState } from '../core/state.js';
 
 /**
  * 初始化打印预览功能
@@ -14,7 +17,9 @@ export function initPrintPreview() {
     const printOutput = document.getElementById('printOutput');
 
     previewBtn.addEventListener('click', () => {
-        if (!window.currentOrderData) {
+        const currentOrder = appState.get('currentOrder');
+
+        if (!currentOrder) {
             alert('请先查询订单');
             return;
         }
@@ -25,7 +30,7 @@ export function initPrintPreview() {
 
         // 2. Prepare Data for Print
         // Deep copy to avoid mutating original
-        const printData = JSON.parse(JSON.stringify(window.currentOrderData));
+        const printData = JSON.parse(JSON.stringify(currentOrder));
 
         // Tag items with merge flag
         if (printData.list) {
@@ -58,6 +63,8 @@ export function initPrintPreview() {
 
     // 初始化缩放控制
     initZoomControls(printOutput);
+
+    console.log('✅ PrintPreview 模块初始化完成');
 }
 
 /**
