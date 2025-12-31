@@ -34,7 +34,7 @@
 
                 <div class="search-section">
                     <div class="input-group">
-                        <input type="text" id="orderCodeInput" placeholder="输入订单号，例如 202408120023" value="202408120023">
+                        <input type="text" id="orderCodeInput" placeholder="输入订单号，例如 202512260034" value="202512260034">
                         <button id="searchBtn">
                             <span class="btn-text">查询</span>
                             <span class="btn-loader"></span>
@@ -176,88 +176,7 @@
         <!-- Print Output Container (Where generated pages go) -->
         <div id="printOutput"></div>
 
-        <!-- Print Page Template -->
-        <template id="printPageTemplate">
-            <div class="print-page">
-                <div class="print-header">
-                    <h1>包装采购订单</h1>
-
-                    <div class="print-info-container">
-                        <!-- Top Columns Section -->
-                        <div class="print-info-top-columns">
-                            <!-- Column 1: Customer & Order Code -->
-                            <div class="print-col">
-                                <div class="info-item">
-                                    <label>客户名称:</label> <span class="p-customer"></span>
-                                </div>
-                                <div class="info-item">
-                                    <label>订单号:</label> <span class="p-code"></span>
-                                </div>
-                            </div>
-
-                            <!-- Column 2: Packaging Names -->
-                            <div class="print-col">
-                                <div class="info-item">
-                                    <label>内部名称:</label> <span class="p-int-pkg"></span>
-                                </div>
-                                <div class="info-item">
-                                    <label>外协名称:</label> <span class="p-ext-pkg"></span>
-                                </div>
-                            </div>
-
-                            <!-- Column 3: Dates -->
-                            <div class="print-col">
-                                <div class="info-item">
-                                    <label>制单日期:</label> <input type="date" class="p-date inline-date-input">
-                                </div>
-                                <div class="info-item">
-                                    <label>交货日期:</label> <input type="date" class="p-delivery inline-date-input">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bottom Row: Supplier -->
-                        <div class="print-info-bottom-row">
-                            <div class="info-item">
-                                <label>供应商:</label> <span class="p-supplier"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <table class="print-table">
-                    <thead>
-                        <tr>
-                            <th>序号</th>
-                            <th>产品名称</th>
-                            <th>规格尺寸</th>
-                            <th>门边</th>
-                            <th>左数量</th>
-                            <th>右数量</th>
-                            <th>备注</th>
-                        </tr>
-                    </thead>
-                    <tbody class="p-tbody">
-                        <!-- Rows injected here -->
-                    </tbody>
-                </table>
-
-                <div class="print-footer">
-                    <div class="sign-box">
-                        <span>制单人:</span>
-                        <div class="line"></div>
-                    </div>
-                    <div class="sign-box">
-                        <span>审核人:</span>
-                        <div class="line"></div>
-                    </div>
-                    <div class="sign-box">
-                        <span>供应商签字:</span>
-                        <div class="line"></div>
-                    </div>
-                </div>
-            </div>
-        </template>
+        <!-- Print template is now loaded dynamically from /templates/print-page.html -->
 
         <script type="module" src="js/main.js"></script>
 </body>

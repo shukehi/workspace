@@ -6,13 +6,46 @@
 import { PACKAGING_MAPPING } from '../../config/index.js';
 import { parseQuantityPair } from '../../utils/parsers.js';
 
+// Cache for loaded template
+let templateCache = null;
+
+/**
+ * 加载打印模板
+ * @returns {Promise<HTMLTemplateElement>}
+ */
+async function loadPrintTemplate() {
+    if (templateCache) {
+        return templateCache;
+    }
+
+    const response = await fetch('/templates/print-page.html');
+    const html = await response.text();
+
+    // Create a temporary container to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+
+    // Extract the template element
+    const template = tempDiv.querySelector('template');
+
+    if (!template) {
+        throw new Error('Print template not found in templates/print-page.html');
+    }
+
+    // Cache it
+    templateCache = template;
+    return template;
+}
+
 /**
  * 生成打印页面
  * @param {Object} order - 订单数据
  */
-export function generatePrintPages(order) {
+export async function generatePrintPages(order) {
     const printOutput = document.getElementById('printOutput');
-    const printPageTemplate = document.getElementById('printPageTemplate');
+
+    // Load template dynamically
+    const printPageTemplate = await loadPrintTemplate();
 
     printOutput.innerHTML = '';
     const groups = groupItemsByPackaging(order.list);

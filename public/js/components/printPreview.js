@@ -17,7 +17,7 @@ export function initPrintPreview() {
     const previewBtn = document.getElementById('previewBtn');
     const printOutput = document.getElementById('printOutput');
 
-    previewBtn.addEventListener('click', () => {
+    previewBtn.addEventListener('click', async () => {
         const currentOrder = appState.get('currentOrder');
 
         if (!currentOrder) {
@@ -52,7 +52,8 @@ export function initPrintPreview() {
             // If cancel, we use original printData.list (unmerged)
         }
 
-        generatePrintPages(printData);
+        // Load and generate print pages (now async)
+        await generatePrintPages(printData);
         document.body.classList.add('print-mode');
 
         // Show zoom controls
