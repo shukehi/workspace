@@ -6,6 +6,7 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
+const { JSDOM } = require('jsdom');
 
 // Load packaging mapping configuration
 let packagingConfig = null;
@@ -47,6 +48,28 @@ function loadPrintCSS() {
         console.warn('⚠️ Failed to load print CSS:', error.message);
         return '/* CSS load failed */';
     }
+}
+
+// Load and cache the shared print template (same as frontend)
+let printTemplateContent = null;
+function loadPrintTemplate() {
+    if (printTemplateContent) return printTemplateContent;
+
+    try {
+        const templatePath = path.join(__dirname, '../../public/templates/print-page.html');
+        const templateFile = fs.readFileSync(templatePath, 'utf-8');
+        const dom = new JSDOM(templateFile);
+        const templateEl = dom.window.document.querySelector('#printPageTemplate');
+        if (!templateEl) {
+            throw new Error('printPageTemplate not found');
+        }
+        printTemplateContent = templateEl.innerHTML.trim();
+        console.log('✅ Print template loaded from frontend');
+    } catch (error) {
+        console.error('❌ Failed to load print template:', error.message);
+        printTemplateContent = '';
+    }
+    return printTemplateContent;
 }
 
 /**
@@ -148,9 +171,7 @@ function generatePrintHTML(orderData, poNumber) {
     const packageGroups = groupByPackaging(orderData.list, config);
 
     // Generate pages HTML
-    const pagesHTML = Object.entries(packageGroups).map(([pkgName, group]) => {
-        return generatePageHTML(orderData, group, pkgName, today, poNumber, config);
-    }).join('');
+    const pagesHTML = renderPagesFromTemplate(orderData, packageGroups, today, poNumber, config);
 
     // Load CSS from frontend
     const css = loadPrintCSS();
@@ -172,120 +193,94 @@ function generatePrintHTML(orderData, poNumber) {
 `;
 }
 
-/**
- * Generate HTML for a single print page
- */
-function generatePageHTML(orderData, group, pkgName, date, poNumber, config) {
-    const items = group.items;
-    const externalName = group.externalName;
-    const supplierName = config.supplierName || '默认供应商';
+const MAX_ROWS_PER_PAGE = 22;
 
-    // Calculate totals
-    let totalLeft = 0;
-    let totalRight = 0;
-    items.forEach(item => {
-        const qty = parseQuantityPair(item.qty);
-        totalLeft += qty.left;
-        totalRight += qty.right;
+/**
+ * Render pages using the shared print template (same as frontend)
+ */
+function renderPagesFromTemplate(orderData, packageGroups, date, poNumber, config) {
+    const templateHTML = loadPrintTemplate();
+    const supplierName = config.supplierName || '默认供应商';
+    const pages = [];
+
+    Object.entries(packageGroups).forEach(([pkgName, group]) => {
+        const items = group.items;
+        const externalName = group.externalName;
+        const totalPages = Math.max(1, Math.ceil(items.length / MAX_ROWS_PER_PAGE));
+        const groupTotals = items.reduce((acc, item) => {
+            const qty = parseQuantityPair(item.qty);
+            acc.left += qty.left;
+            acc.right += qty.right;
+            return acc;
+        }, { left: 0, right: 0 });
+
+        for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+            const startIdx = pageNum * MAX_ROWS_PER_PAGE;
+            const endIdx = Math.min(startIdx + MAX_ROWS_PER_PAGE, items.length);
+            const pageItems = items.slice(startIdx, endIdx);
+
+            const dom = new JSDOM(templateHTML);
+            const doc = dom.window.document;
+            const pageEl = doc.querySelector('.print-page');
+            if (!pageEl) {
+                throw new Error('print-page element not found in template');
+            }
+
+            // Header info
+            doc.querySelector('.p-supplier').textContent = supplierName;
+            doc.querySelector('.p-customer').textContent = orderData.customerName || '';
+            doc.querySelector('.p-code').textContent = orderData.code || '';
+            doc.querySelector('.p-int-pkg').textContent = pkgName;
+            doc.querySelector('.p-ext-pkg').textContent = externalName;
+
+            const today = date;
+            doc.querySelector('.p-date').setAttribute('value', today);
+            doc.querySelector('.p-delivery').setAttribute('value', today);
+
+            // Page number if multiple pages
+            if (totalPages > 1) {
+                const h1 = doc.querySelector('.print-header h1');
+                h1.innerHTML = `包装采购订单 <span style="font-size: 14px; font-weight: normal; color: #666;">(第${pageNum + 1}页/共${totalPages}页)</span>`;
+            }
+
+            // Table rows
+            const tbody = doc.querySelector('.p-tbody');
+            pageItems.forEach((item, index) => {
+                const qty = parseQuantityPair(item.qty);
+                const remarkSource = item.remark || orderData.remark || item.xsbz || item.fshz || '';
+                const remark = String(remarkSource || '').slice(0, 80);
+
+                const tr = doc.createElement('tr');
+                tr.innerHTML = `
+                    <td>${startIdx + index + 1}</td>
+                    <td>${item.productModelName || '-'}</td>
+                    <td>${item.spec}</td>
+                    <td>${item.mb || '-'}</td>
+                    <td>${qty.left}</td>
+                    <td>${qty.right}</td>
+                    <td>${remark}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Total row on last page for this group
+            if (pageNum === totalPages - 1) {
+                const totalRow = doc.createElement('tr');
+                totalRow.className = 'total-row';
+                totalRow.innerHTML = `
+                    <td colspan="4" style="text-align: right;">合计</td>
+                    <td>${groupTotals.left}</td>
+                    <td>${groupTotals.right}</td>
+                    <td></td>
+                `;
+                tbody.appendChild(totalRow);
+            }
+
+            pages.push(pageEl.outerHTML);
+        }
     });
 
-    // Generate table rows
-    const rowsHTML = items.map((item, idx) => {
-        const qty = parseQuantityPair(item.qty);
-        // Prefer explicit remark, then order-level remark, then long instructions truncated
-        const remarkSource = item.remark || orderData.remark || item.xsbz || item.fshz || '';
-        const remark = String(remarkSource || '').slice(0, 80);
-        return `
-            <tr>
-                <td>${idx + 1}</td>
-                <td>${item.productModelName || '-'}</td>
-                <td>${item.spec}</td>
-                <td>${item.mb || '-'}</td>
-                <td>${qty.left}</td>
-                <td>${qty.right}</td>
-                <td>${remark}</td>
-            </tr>
-        `;
-    }).join('');
-
-    return `
-    <div class="print-page">
-        <div class="print-header">
-            <h1>包装采购订单</h1>
-            <div class="print-info-container">
-                <div class="print-info-top-columns">
-                    <div class="print-col">
-                        <div class="info-item">
-                            <label>客户名称:</label> <span>${orderData.customerName}</span>
-                        </div>
-                        <div class="info-item">
-                            <label>订单号:</label> <span>${orderData.code}</span>
-                        </div>
-                    </div>
-                    <div class="print-col">
-                        <div class="info-item">
-                            <label>内部名称:</label> <span>${pkgName}</span>
-                        </div>
-                        <div class="info-item">
-                            <label>外协名称:</label> <span>${externalName}</span>
-                        </div>
-                    </div>
-                    <div class="print-col">
-                        <div class="info-item">
-                            <label>制单日期:</label> <span>${date}</span>
-                        </div>
-                        <div class="info-item">
-                            <label>交货日期:</label> <span>${date}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="print-info-bottom-row">
-                    <div class="info-item">
-                        <label>供应商:</label> <span>${supplierName}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <table class="print-table">
-            <thead>
-                <tr>
-                    <th>序号</th>
-                    <th>产品名称</th>
-                    <th>规格尺寸</th>
-                    <th>门边</th>
-                    <th>左数量</th>
-                    <th>右数量</th>
-                    <th>备注</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rowsHTML}
-                <tr class="total-row">
-                    <td colspan="4" style="text-align: right;">合计</td>
-                    <td>${totalLeft}</td>
-                    <td>${totalRight}</td>
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
-
-        <div class="print-footer">
-            <div class="sign-box">
-                <span>制单人:</span>
-                <div class="line"></div>
-            </div>
-            <div class="sign-box">
-                <span>审核人:</span>
-                <div class="line"></div>
-            </div>
-            <div class="sign-box">
-                <span>供应商签字:</span>
-                <div class="line"></div>
-            </div>
-        </div>
-    </div>
-    `;
+    return pages.join('');
 }
 
 /**
