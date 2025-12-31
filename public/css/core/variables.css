@@ -1,0 +1,36 @@
+/**
+ * CSS Variables
+ * Core design tokens and theme variables
+ */
+
+:root {
+    /* Terminal Palette - High Contrast */
+    --primary-color: #000000;
+    /* Use black as primary for terminal look */
+    --primary-hover: #333333;
+    --accent-color: #2563EB;
+    /* Keep a blue accent for critical actions */
+    --bg-color: #FFFFFF;
+    --card-bg: #FFFFFF;
+    --text-primary: #000000;
+    --text-secondary: #4B5563;
+    --text-tertiary: #9CA3AF;
+    --border-color: #000000;
+    /* Explicit black borders */
+    --border-light: #E5E7EB;
+    --error-bg: #000000;
+    --error-text: #FF4444;
+    --success-bg: #F0FDF4;
+    --success-text: #166534;
+
+    /* Sharper Edges & Flat Design */
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --radius-lg: 0px;
+    --radius-md: 0px;
+    --radius-sm: 0px;
+
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+}

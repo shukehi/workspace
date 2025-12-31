@@ -1,0 +1,67 @@
+/**
+ * Card Components
+ * Technical slabs, summary cards, and card layouts
+ */
+
+/* Technical Slabs (Instead of Cards) */
+.order-summary-card {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    padding: 24px;
+    margin-bottom: 32px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.card-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.empty-state-description {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.empty-state-action {
+    display: inline-block;
+    padding: 12px 24px;
+    background: var(--primary-color);
+    color: #FFFFFF;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.empty-state-action:hover {
+    background: var(--primary-hover);
+}

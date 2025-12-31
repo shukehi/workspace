@@ -1,0 +1,47 @@
+/**
+ * Table Components
+ * Data tables and table layouts
+ */
+
+/* Tables */
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.data-table thead {
+    background: var(--primary-color);
+    color: #FFFFFF;
+}
+
+.data-table th {
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.813rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: var(--font-mono);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.data-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.938rem;
+    font-family: var(--font-mono);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background: #F9FAFB;
+}

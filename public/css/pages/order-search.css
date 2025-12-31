@@ -1,0 +1,40 @@
+/**
+ * Order Search Page Styles
+ * Page-specific styles for order search functionality
+ */
+
+/* Packaging Section */
+.packaging-section {
+    margin-top: 32px;
+}
+
+.packaging-section h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+}
+
+/* Products Table Section */
+.products-section {
+    margin-top: 32px;
+}
+
+.products-section h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}

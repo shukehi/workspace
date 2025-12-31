@@ -1,0 +1,345 @@
+/* ========== PRINT & PREVIEW STYLES (Keep mostly strictly functional) ========== */
+
+.preview-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 0;
+    /* Sharp Edges */
+    border: 2px solid #000;
+    box-shadow: none;
+    display: flex;
+    gap: 10px;
+}
+
+.secondary {
+    background-color: #6B7280;
+    color: white;
+}
+
+.secondary:hover {
+    background-color: #4B5563;
+}
+
+/* Everything below here is critical for Print functionality */
+.print-header,
+.print-footer,
+#printOutput,
+#printPageTemplate {
+    display: none;
+}
+
+body.print-mode {
+    background-color: #525659;
+    padding: 0;
+    align-items: flex-start;
+    /* Reset center alignment */
+}
+
+body.print-mode .app-container {
+    display: none !important;
+}
+
+body.print-mode #printOutput {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 0;
+    width: 100%;
+}
+
+.print-page {
+    background: white;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 10mm;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    box-sizing: border-box;
+}
+
+.print-header {
+    display: block;
+    text-align: center;
+    border: 2px solid #000;
+    /* Full container border */
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #fff;
+}
+
+.print-header h1 {
+    font-size: 28px;
+    margin: 0 0 15px 0;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.print-info-top-columns {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    margin-top: 20px;
+    text-align: left;
+    font-size: 12px;
+    color: #000;
+}
+
+.print-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.print-info-bottom-row {
+    margin-top: 8px;
+    text-align: left;
+    font-size: 13px;
+    padding-top: 8px;
+    color: #000;
+}
+
+.info-item {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.info-item label {
+    font-weight: 700;
+    white-space: nowrap;
+    color: #000;
+    min-width: 80px;
+    text-transform: uppercase;
+    font-family: var(--font-sans);
+}
+
+.info-item span {
+    flex: 1;
+    word-break: break-all;
+    color: #000;
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+.inline-date-input {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    padding: 2px 4px;
+    outline: none;
+    cursor: pointer;
+    border-bottom: 1px solid #000;
+    transition: all 0.2s;
+}
+
+.inline-date-input:hover {
+    border-bottom-color: #666;
+}
+
+.inline-date-input:focus {
+    border-bottom-color: #000;
+    background: #f9f9f9;
+}
+
+.print-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 2px solid #000;
+    color: #000;
+    font-family: var(--font-sans);
+}
+
+.sign-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.line {
+    border-bottom: 1.5px solid #000;
+    width: 90px;
+    height: 1px;
+}
+
+/* Print Table */
+.print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    border: 2px solid #000;
+    /* Stronger outer border */
+    table-layout: fixed;
+    color: #000;
+    font-family: var(--font-mono);
+    /* Monospace for table data */
+}
+
+.print-table th,
+.print-table td {
+    border: 1px solid #000;
+    /* Solid borders */
+    padding: 8px 4px;
+    text-align: center;
+    word-wrap: break-word;
+}
+
+.print-table th {
+    background-color: #e8e8e8;
+    font-weight: 600;
+}
+
+/* 序号 */
+.print-table th:nth-child(1) {
+    width: 50px;
+}
+
+/* 产品名称 */
+.print-table th:nth-child(2) {
+    width: 220px;
+}
+
+/* 规格尺寸 */
+.print-table th:nth-child(3) {
+    width: 150px;
+}
+
+/* 门边 */
+.print-table th:nth-child(4) {
+    width: 60px;
+}
+
+/* 左数量 */
+.print-table th:nth-child(5) {
+    width: 50px;
+}
+
+/* 右数量 */
+.print-table th:nth-child(6) {
+    width: 50px;
+}
+
+/* 备注 (自动适应剩余空间) */
+.print-table th:nth-child(7) {
+    width: auto;
+}
+
+
+
+
+
+/* Print Zoom Controls */
+.zoom-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.zoom-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    min-width: 50px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.zoom-btn.active {
+    background-color: #10B981;
+    color: white;
+    border-color: #059669;
+}
+
+#printOutput.zoom-50 {
+    transform: scale(0.5);
+    transform-origin: top center;
+}
+
+#printOutput.zoom-75 {
+    transform: scale(0.75);
+    transform-origin: top center;
+}
+
+#printOutput.zoom-100 {
+    transform: scale(1);
+}
+
+#printOutput.zoom-125 {
+    transform: scale(1.25);
+    transform-origin: top center;
+}
+
+/* Navigation Link */
+.nav-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    background-color: #EFF6FF;
+    color: var(--primary-hover);
+}
+
+@media print {
+    body.print-mode {
+        background: none;
+    }
+
+    body.print-mode #printOutput {
+        padding: 0;
+        display: block;
+        transform: none !important;
+    }
+
+    body.print-mode .preview-controls,
+    body.print-mode .zoom-controls {
+        display: none !important;
+    }
+
+    .print-page {
+        box-shadow: none;
+        margin: 0;
+        page-break-after: always;
+        width: 100%;
+        height: auto;
+    }
+
+    .print-page:last-child {
+        page-break-after: auto;
+    }
+
+    .print-table th {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
