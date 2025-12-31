@@ -95,15 +95,23 @@ export async function generatePrintPages(order) {
                 const remark = String(remarkSource || '').slice(0, 80);
 
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${startIdx + index + 1}</td>
-                    <td>${item.productModelName || '-'}</td>
-                    <td>${item.spec}</td>
-                    <td>${item.mb || '-'}</td>
-                    <td>${qtyPair.left}</td>
-                    <td>${qtyPair.right}</td>
-                    <td contenteditable="true">${remark}</td>
-                `;
+                const cells = [
+                    startIdx + index + 1,
+                    item.productModelName || '-',
+                    item.spec,
+                    item.mb || '-',
+                    qtyPair.left,
+                    qtyPair.right,
+                    remark
+                ];
+                cells.forEach((val, idx) => {
+                    const td = document.createElement('td');
+                    if (idx === 6) {
+                        td.contentEditable = 'true';
+                    }
+                    td.textContent = val;
+                    tr.appendChild(td);
+                });
                 tbody.appendChild(tr);
             });
 

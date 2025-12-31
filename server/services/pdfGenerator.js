@@ -8,6 +8,16 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
+// Basic HTML escape to avoid breaking table markup when injecting text
+function escapeHTML(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Load packaging mapping configuration
 let packagingConfig = null;
 function loadPackagingConfig() {
@@ -248,7 +258,7 @@ function renderPagesFromTemplate(orderData, packageGroups, date, poNumber, confi
             pageItems.forEach((item, index) => {
                 const qty = parseQuantityPair(item.qty);
                 const remarkSource = item.remark || orderData.remark || item.xsbz || item.fshz || '';
-                const remark = String(remarkSource || '').slice(0, 80);
+                const remark = escapeHTML(String(remarkSource || '').slice(0, 80));
 
                 const tr = doc.createElement('tr');
                 tr.innerHTML = `

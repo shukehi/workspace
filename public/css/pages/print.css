@@ -235,6 +235,14 @@ body.print-mode #printOutput {
     width: auto;
 }
 
+/* Ensure remarks wrap within the cell */
+.print-table td:last-child,
+.print-table th:last-child {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
 
 
 
