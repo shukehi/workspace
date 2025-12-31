@@ -166,14 +166,29 @@ export function initPOWorkflow() {
 
             // Download PDF
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+            console.log('📦 Blob received:', {
+                size: blob.size,
+                type: blob.type,
+                contentType: response.headers.get('Content-Type')
+            });
+
+            // Create blob with explicit PDF type if needed
+            const pdfBlob = blob.type === 'application/pdf'
+                ? blob
+                : new Blob([blob], { type: 'application/pdf' });
+
+            const url = window.URL.createObjectURL(pdfBlob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `${currentPO.poNumber}.pdf`;
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+
+            // Delay cleanup to ensure download starts
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
 
             // Update PO status
             updatePOStatus(currentPO.poNumber, 'exported');

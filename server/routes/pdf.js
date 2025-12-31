@@ -42,13 +42,13 @@ router.post('/generate', async (req, res) => {
         // Generate PDF
         const pdfBuffer = await generatePurchaseOrderPDF(order, poNumber);
 
-        // Set response headers
+        // Set response headers for binary PDF data
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${poNumber}.pdf"`);
         res.setHeader('Content-Length', pdfBuffer.length);
 
-        // Send PDF
-        res.send(pdfBuffer);
+        // Send PDF as raw binary buffer (use end() instead of send() to avoid charset encoding)
+        res.end(pdfBuffer, 'binary');
 
         console.log(`✅ PDF sent successfully for ${poNumber}`);
 

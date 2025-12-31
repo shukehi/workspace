@@ -4,6 +4,28 @@
  */
 
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+
+// Load packaging mapping configuration
+let packagingConfig = null;
+function loadPackagingConfig() {
+    if (!packagingConfig) {
+        try {
+            const configPath = path.join(__dirname, '../../public/data/packaging-mapping.json');
+            const configData = fs.readFileSync(configPath, 'utf-8');
+            packagingConfig = JSON.parse(configData);
+            console.log('✅ Packaging config loaded:', packagingConfig.supplierName);
+        } catch (error) {
+            console.warn('⚠️ Failed to load packaging config, using defaults:', error.message);
+            packagingConfig = {
+                supplierName: '默认供应商',
+                mappings: {}
+            };
+        }
+    }
+    return packagingConfig;
+}
 
 /**
  * Generate PDF from order data
@@ -64,6 +86,15 @@ async function generatePurchaseOrderPDF(orderData, poNumber) {
 
         console.log(`✅ PDF generated successfully for ${poNumber} (${pdfBuffer.length} bytes)`);
 
+        // Debug: Save PDF to temp directory for verification
+        const tempDir = path.join(__dirname, '../../temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+        const tempPath = path.join(tempDir, `${poNumber}_debug.pdf`);
+        fs.writeFileSync(tempPath, pdfBuffer);
+        console.log(`🔍 Debug PDF saved to: ${tempPath}`);
+
         return pdfBuffer;
 
     } catch (error) {
@@ -85,12 +116,15 @@ async function generatePurchaseOrderPDF(orderData, poNumber) {
 function generatePrintHTML(orderData, poNumber) {
     const today = new Date().toISOString().split('T')[0];
 
+    // Load packaging configuration
+    const config = loadPackagingConfig();
+
     // Group items by packaging
-    const packageGroups = groupByPackaging(orderData.list);
+    const packageGroups = groupByPackaging(orderData.list, config);
 
     // Generate pages HTML
     const pagesHTML = Object.entries(packageGroups).map(([pkgName, group]) => {
-        return generatePageHTML(orderData, group, pkgName, today, poNumber);
+        return generatePageHTML(orderData, group, pkgName, today, poNumber, config);
     }).join('');
 
     return `
@@ -113,9 +147,10 @@ function generatePrintHTML(orderData, poNumber) {
 /**
  * Generate HTML for a single print page
  */
-function generatePageHTML(orderData, group, pkgName, date, poNumber) {
+function generatePageHTML(orderData, group, pkgName, date, poNumber, config) {
     const items = group.items;
     const externalName = group.externalName;
+    const supplierName = config.supplierName || '默认供应商';
 
     // Calculate totals
     let totalLeft = 0;
@@ -175,7 +210,7 @@ function generatePageHTML(orderData, group, pkgName, date, poNumber) {
                 </div>
                 <div class="print-info-bottom-row">
                     <div class="info-item">
-                        <label>供应商:</label> <span>默认供应商</span>
+                        <label>供应商:</label> <span>${supplierName}</span>
                     </div>
                 </div>
             </div>
@@ -225,16 +260,13 @@ function generatePageHTML(orderData, group, pkgName, date, poNumber) {
 /**
  * Group items by packaging type
  */
-function groupByPackaging(items) {
+function groupByPackaging(items, config) {
     const groups = {};
-    const PACKAGING_MAPPING = {
-        "罗曼蒂克": "美+C单",
-        "3层黄卡美+C单瓦纸箱": "美+C单"
-    };
+    const mappings = config.mappings || {};
 
     items.forEach(item => {
         const internalName = item.bz || "无名称";
-        const externalName = PACKAGING_MAPPING[internalName] || "未匹配";
+        const externalName = mappings[internalName] || "未匹配";
 
         if (!groups[internalName]) {
             groups[internalName] = {
@@ -338,14 +370,13 @@ function getPrintCSS() {
 
         .info-item {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             align-items: baseline;
         }
 
         .info-item label {
             font-weight: 700;
             white-space: nowrap;
-            min-width: 80px;
             text-transform: uppercase;
         }
 
