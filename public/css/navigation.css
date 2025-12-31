@@ -15,13 +15,13 @@
     top: 0;
     z-index: 100;
     background: var(--card-bg);
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.3s ease;
+    border-bottom: 2px solid var(--border-color);
+    /* Thicker border */
+    transition: none;
 }
 
 .main-navigation.scrolled {
-    box-shadow: var(--shadow-md);
+    box-shadow: none;
 }
 
 .nav-container {
@@ -79,34 +79,31 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    border-radius: var(--radius-md);
-    color: var(--text-secondary);
+    border-radius: 0;
+    color: var(--text-primary);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.9375rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    transition: all 0.1s;
+    border: 1px solid transparent;
 }
 
 .nav-link .nav-icon {
-    font-size: 1.125rem;
-    transition: transform 0.2s;
+    font-size: 1rem;
 }
 
 .nav-link:hover {
-    background: var(--bg-color);
-    color: var(--text-primary);
-}
-
-.nav-link:hover .nav-icon {
-    transform: translateY(-2px);
+    background: var(--text-primary);
+    color: var(--card-bg);
 }
 
 /* 当前页面激活状态 */
 .nav-link.active {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-    color: white;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    background: var(--text-primary);
+    color: #FFFFFF;
+    border: 1px solid var(--text-primary);
 }
 
 .nav-link.active .nav-icon {
@@ -114,8 +111,15 @@
 }
 
 @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
 }
 
 /* ==================== 用户区域 ==================== */
