@@ -10,19 +10,21 @@
 
 /* Layout - Structure */
 @import url('layout/containers.css');
+@import url('layout/page.css');
 
 /* Components - Reusable UI Elements */
+@import url('components/navigation.css');
+@import url('components/footer.css');
+@import url('components/breadcrumbs.css');
 @import url('components/buttons.css');
 @import url('components/forms.css');
 @import url('components/cards.css');
 @import url('components/tables.css');
 @import url('components/badges.css');
 @import url('components/loader.css');
+@import url('components/empty-state.css');
+@import url('components/notifications.css');
 
 /* Pages - Page-specific Styles */
 @import url('pages/order-search.css');
 @import url('pages/print.css');
-
-/* Legacy - Keep existing files for compatibility */
-@import url('navigation.css');
-@import url('common.css');

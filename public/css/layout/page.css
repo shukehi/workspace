@@ -1,0 +1,76 @@
+/**
+ * Page Layout
+ * 页面主体布局和页面头部样式
+ */
+
+/* ==================== 页面主体布局 ==================== */
+
+body {
+    padding-top: 0 !important;
+    /* 移除之前的顶部 padding */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.page-container {
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+}
+
+/* ==================== 页面头部 ==================== */
+
+.page-header {
+    margin-bottom: 40px;
+    animation: slideDown 0.6s ease-out;
+}
+
+.page-header h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+}
+
+.page-subtitle {
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 400;
+    margin: 0;
+}
+
+/* ==================== 页面内容区 ==================== */
+
+.page-content {
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* ==================== 响应式调整 ==================== */
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 24px 16px 40px;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+    }
+}
+
+/* Note: Animations (slideDown, fadeIn) are defined in components/loader.css */

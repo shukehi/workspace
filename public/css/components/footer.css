@@ -1,0 +1,28 @@
+/**
+ * Footer Component
+ * 页脚样式
+ */
+
+.main-footer {
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 24px;
+    text-align: center;
+    margin-top: auto;
+}
+
+.main-footer p {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.main-footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.main-footer a:hover {
+    opacity: 0.8;
+}

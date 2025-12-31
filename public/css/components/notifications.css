@@ -1,0 +1,53 @@
+/**
+ * Notifications Component
+ * 通知/提示条组件
+ */
+
+.notification {
+    padding: 16px 20px;
+    border-radius: 0;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--border-color);
+    font-family: var(--font-mono);
+}
+
+.notification-icon {
+    font-size: 1.25rem;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.notification-message {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.notification.info {
+    background: #EFF6FF;
+    color: #1E40AF;
+}
+
+.notification.success {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.notification.warning {
+    background: #FFFBEB;
+    color: #B45309;
+}
+
+.notification.error {
+    background: var(--error-bg);
+    color: var(--error-text);
+}
