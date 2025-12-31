@@ -54,8 +54,9 @@ body.print-mode #printOutput {
 
 .print-page {
     background: white;
-    width: 210mm;
-    min-height: 297mm;
+    width: 100%;
+    max-width: 210mm;
+    min-height: auto;
     padding: 10mm;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
     position: relative;
@@ -117,7 +118,6 @@ body.print-mode #printOutput {
     font-weight: 700;
     white-space: nowrap;
     color: #000;
-    text-transform: uppercase;
     font-family: var(--font-sans);
 }
 
@@ -340,5 +340,5 @@ body.print-mode #printOutput {
 
     @page {
         size: A4 portrait;
-        margin: 0;
+        margin: 10mm;
     }

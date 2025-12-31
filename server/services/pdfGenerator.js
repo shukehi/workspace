@@ -28,27 +28,25 @@ function loadPackagingConfig() {
 }
 
 // Load CSS from frontend
-let cssCache = null;
+// In development, always reload CSS to reflect changes immediately
 function loadPrintCSS() {
-    if (!cssCache) {
-        try {
-            // Load variables.css for CSS variables (fonts, colors, etc.)
-            const variablesPath = path.join(__dirname, '../../public/css/core/variables.css');
-            const variablesCSS = fs.readFileSync(variablesPath, 'utf-8');
+    try {
+        // Load variables.css for CSS variables (fonts, colors, etc.)
+        const variablesPath = path.join(__dirname, '../../public/css/core/variables.css');
+        const variablesCSS = fs.readFileSync(variablesPath, 'utf-8');
 
-            // Load print.css for print-specific styles
-            const printPath = path.join(__dirname, '../../public/css/pages/print.css');
-            const printCSS = fs.readFileSync(printPath, 'utf-8');
+        // Load print.css for print-specific styles
+        const printPath = path.join(__dirname, '../../public/css/pages/print.css');
+        const printCSS = fs.readFileSync(printPath, 'utf-8');
 
-            // Combine both CSS files
-            cssCache = `${variablesCSS}\n\n${printCSS}`;
-            console.log('✅ Print CSS loaded from frontend (with variables)');
-        } catch (error) {
-            console.warn('⚠️ Failed to load print CSS:', error.message);
-            cssCache = '/* CSS load failed */';
-        }
+        // Combine both CSS files
+        const cssContent = `${variablesCSS}\n\n${printCSS}`;
+        console.log('✅ Print CSS loaded from frontend (with variables)');
+        return cssContent;
+    } catch (error) {
+        console.warn('⚠️ Failed to load print CSS:', error.message);
+        return '/* CSS load failed */';
     }
-    return cssCache;
 }
 
 /**
@@ -91,6 +89,9 @@ async function generatePurchaseOrderPDF(orderData, poNumber) {
             waitUntil: ['domcontentloaded', 'networkidle0']
         });
 
+        // Use print media rules (applies @media print + @page)
+        await page.emulateMediaType('print');
+
         // Wait for fonts to load
         await page.evaluateHandle('document.fonts.ready');
 
@@ -99,12 +100,12 @@ async function generatePurchaseOrderPDF(orderData, poNumber) {
             format: 'A4',
             printBackground: true,
             margin: {
-                top: '10mm',
-                right: '10mm',
-                bottom: '10mm',
-                left: '10mm'
+                top: '0mm',
+                right: '0mm',
+                bottom: '0mm',
+                left: '0mm'
             },
-            preferCSSPageSize: false,
+            preferCSSPageSize: true,
             displayHeaderFooter: false
         });
 
