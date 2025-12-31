@@ -7,7 +7,7 @@
 **架构模式**：轻量级单页应用 + API 代理
 **开发时间**：2024年12月 - 持续迭代
 
-**当前版本**：v1.1.0（已移除库存管理模块）
+**当前版本**：v1.2.0（事件驱动架构重构完成）
 
 ---
 
@@ -20,6 +20,7 @@
 3. **文档完善** - 优先选择中文文档丰富的技术
 4. **渐进式** - 支持逐步升级，避免推倒重来
 5. **低维护** - 减少依赖，降低维护成本
+6. **可扩展** - 架构支持未来功能模块扩展（✨ 新增）
 
 ---
 
@@ -38,6 +39,9 @@
 - ✅ ES6 模块化（import/export）
 - ✅ 组件化设计（search.js, orderDisplay.js 等）
 - ✅ 响应式布局（移动端适配）
+- ✨ **事件驱动架构**（EventBus 发布-订阅模式）
+- ✨ **集中状态管理**（StateManager 观察者模式）
+- ✨ **零全局变量污染**（完全模块化）
 
 ### 后端技术
 
@@ -143,9 +147,12 @@ public/
 │   └── style.css          # 全局样式
 ├── js/
 │   ├── main.js            # 应用入口
-│   ├── api.js             # API 请求封装
+│   ├── api.js             # API 请求封装（超时+重试）
 │   ├── config.js          # 配置管理
-│   ├── utils.js           # 工具函数
+│   ├── utils.js           # 工具函数（验证+格式化）
+│   ├── core/              # 核心架构 ✨ 新增
+│   │   ├── eventBus.js           # 事件总线（发布-订阅）
+│   │   └── state.js              # 状态管理（观察者模式）
 │   └── components/        # 功能组件
 │       ├── search.js              # 订单搜索
 │       ├── orderDisplay.js        # 订单展示
@@ -157,20 +164,51 @@ public/
 
 ### 前端架构模式
 
-**组件化设计：**
-```javascript
-// 使用 ES6 模块
-export class SearchComponent {
-  constructor() {
-    this.initEventListeners();
-  }
+**✨ 事件驱动架构（V1.2.0 新增）：**
 
-  async handleSearch(orderCode) {
-    const data = await api.fetchOrderDetail(orderCode);
-    this.displayResults(data);
-  }
+```javascript
+// 1. 事件总线（EventBus）- 发布-订阅模式
+import { eventBus } from './core/eventBus.js';
+
+// 发布事件
+eventBus.emit('order:loaded', orderData);
+
+// 订阅事件
+eventBus.on('order:loaded', (orderData) => {
+    console.log('订单已加载:', orderData);
+});
+
+// 2. 状态管理（StateManager）- 观察者模式
+import { appState } from './core/state.js';
+
+// 更新状态
+appState.setState({
+    currentOrder: orderData,
+    loading: false
+});
+
+// 订阅状态变化
+appState.subscribe((state) => {
+    if (state.currentOrder) {
+        updateUI(state.currentOrder);
+    }
+});
+
+// 3. 组件初始化示例
+export function initOrderDisplay() {
+    // 订阅事件
+    eventBus.on('order:loaded', (order) => {
+        renderOrder(order);
+    });
 }
 ```
+
+**架构优势：**
+- 🔌 **组件解耦** - 通过事件通信，无直接依赖
+- 📦 **状态集中** - 单一数据源，便于调试
+- 🧪 **易于测试** - 模块独立，可单独测试
+- 🔄 **可扩展性** - 新增功能只需订阅事件
+- 🚫 **零污染** - 无全局变量，命名空间清晰
 
 ---
 
@@ -237,17 +275,34 @@ http://localhost:3000
 
 ## 技术演进路线
 
-### 当前阶段（V1.1.0）
+### 当前阶段（V1.2.0）
 - ✅ 订单查询系统（单一功能）
 - ✅ API 代理模式
 - ✅ 无数据库依赖
 - ✅ 轻量级部署
+- ✨ **事件驱动架构**
+- ✨ **集中状态管理**
+- ✨ **增强 API 层（超时+重试）**
 
 ### 版本历史
-- **V1.0.0** - 订单查询 + 库存管理双模块
-- **V1.1.0** - 移除库存管理，专注订单查询
+
+**V1.2.0（2024-12-31）** - 架构重构
+- ✨ 引入事件总线（EventBus）和状态管理（StateManager）
+- ✨ 重构所有组件使用事件驱动架构
+- ✨ 优化工具函数（数据验证、错误格式化）
+- ✨ 增强 API 层（超时控制、自动重试）
+- 🚫 移除全局变量污染
+- 📚 完善技术文档和开发指南
+
+**V1.1.0（2024-12-30）** - 功能简化
+- 移除库存管理模块，专注订单查询
+- 保留数据库配置以备未来扩展
+
+**V1.0.0（2024-12-29）** - 初始版本
+- 订单查询 + 库存管理双模块
 
 ### 未来升级（V2.0）
+- 🔄 新增功能模块（库存管理/采购管理）
 - 🔄 订单查询历史记录（启用数据库）
 - 🔄 用户偏好设置存储
 - 🔄 打印模板自定义
@@ -258,6 +313,7 @@ http://localhost:3000
 - ⏭ 订单数据统计分析
 - ⏭ 移动端适配优化
 - ⏭ 离线模式支持
+- ⏭ PWA（渐进式 Web 应用）
 
 ---
 
@@ -267,6 +323,7 @@ http://localhost:3000
 |------|------|----------|
 | 1.0.0 | 2024-12-29 | 初始版本，订单查询 + 库存管理 |
 | 1.1.0 | 2024-12-30 | 移除库存管理模块，保留数据库配置以备未来扩展 |
+| 1.2.0 | 2024-12-31 | 事件驱动架构重构，增强 API 层，优化工具函数 |
 
 ---
 
