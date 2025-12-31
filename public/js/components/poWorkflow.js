@@ -173,7 +173,23 @@ export function initPOWorkflow() {
 
             console.log(`📄 Print content ready: ${printContainer.children.length} pages`);
 
-            // Export to PDF
+            // Verify .print-page elements are present and visible
+            const pages = printContainer.querySelectorAll('.print-page');
+            console.log(`📄 Found ${pages.length} .print-page elements`);
+
+            if (pages.length > 0) {
+                const firstPage = pages[0];
+                const computedStyle = window.getComputedStyle(firstPage);
+                console.log('First page debug info:', {
+                    width: firstPage.offsetWidth,
+                    height: firstPage.offsetHeight,
+                    display: computedStyle.display,
+                    visibility: computedStyle.visibility,
+                    backgroundColor: computedStyle.backgroundColor
+                });
+            }
+
+            // Export to PDF (pdfExport will extract .print-page elements)
             await exportPurchaseOrderToPDF(currentPO.poNumber, printContainer);
 
             // Update PO status
