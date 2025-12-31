@@ -6,6 +6,7 @@
 /* Core - Foundation */
 @import url('core/variables.css');
 @import url('core/reset.css');
+@import url('core/utilities.css');
 
 /* Layout - Structure */
 @import url('layout/containers.css');

@@ -42,28 +42,48 @@
 /* Summary Grid */
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    /* No gaps in blueprint style */
+    border: 1px solid var(--border-color);
+    /* Outer grid border */
+}
+
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .summary-item {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    padding: 16px;
+    border-right: 1px solid var(--border-color);
+}
+
+.summary-item:last-child {
+    border-right: none;
+}
+
+.summary-item.full-width {
+    grid-column: 1 / -1;
+    border-right: none;
+    border-top: 1px solid var(--border-color);
 }
 
 .summary-item label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    font-weight: 500;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
 .summary-item span {
-    font-size: 1.125rem;
+    font-size: 1.1rem;
     color: var(--text-primary);
-    font-weight: 600;
+    font-weight: 500;
     font-family: var(--font-mono);
 }

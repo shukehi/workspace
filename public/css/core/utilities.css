@@ -1,0 +1,9 @@
+/**
+ * Utility Classes
+ * Common utility classes for layout and visibility
+ */
+
+/* Visibility */
+.hidden {
+    display: none !important;
+}

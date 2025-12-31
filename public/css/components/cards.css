@@ -4,31 +4,42 @@
  */
 
 /* Technical Slabs (Instead of Cards) */
-.order-summary-card {
-    background: var(--card-bg);
-    border: 2px solid var(--border-color);
-    padding: 24px;
-    margin-bottom: 32px;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
+.order-summary-card,
+.order-details-card {
+    background: transparent;
+    border-radius: 0;
+    padding: 32px 0;
+    /* Vertical padding only */
+    box-shadow: none;
+    margin-bottom: 0;
+    border-top: 2px solid var(--border-color);
+    /* Strong horizontal divider */
+    position: relative;
 }
 
 .card-header {
-    display: flex;
-    justify-content: space-between;
+    display: inline-flex;
     align-items: center;
     margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid var(--border-color);
+    padding: 4px 12px;
+    background: var(--primary-color);
+    /* Black background for title */
+    color: white;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
 }
 
 .card-header h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+}
+
+.header-actions {
+    margin-left: auto;
+    padding-left: 16px;
 }
 
 /* Empty State */
