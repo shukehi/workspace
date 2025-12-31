@@ -1,0 +1,65 @@
+/**
+ * PDF Generation Routes
+ * Handles PDF export requests
+ */
+
+const express = require('express');
+const { generatePurchaseOrderPDF } = require('../services/pdfGenerator');
+
+const router = express.Router();
+
+/**
+ * POST /api/pdf/generate
+ * Generate PDF from order data
+ *
+ * Request body:
+ * {
+ *   poNumber: string,
+ *   order: Object (with customerName, code, list, etc.)
+ * }
+ */
+router.post('/generate', async (req, res) => {
+    try {
+        const { poNumber, order } = req.body;
+
+        // Validate request
+        if (!poNumber || !order) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: poNumber and order'
+            });
+        }
+
+        if (!order.list || !Array.isArray(order.list)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Order must include a valid items list'
+            });
+        }
+
+        console.log(`📄 Received PDF generation request for ${poNumber}`);
+
+        // Generate PDF
+        const pdfBuffer = await generatePurchaseOrderPDF(order, poNumber);
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${poNumber}.pdf"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+
+        // Send PDF
+        res.send(pdfBuffer);
+
+        console.log(`✅ PDF sent successfully for ${poNumber}`);
+
+    } catch (error) {
+        console.error('❌ PDF generation error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'PDF generation failed',
+            message: error.message
+        });
+    }
+});
+
+module.exports = router;

@@ -6,8 +6,15 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const config = require('../config');
+const pdfRoutes = require('./pdf');
 
 const router = express.Router();
+
+/**
+ * PDF 生成 API
+ * PDF Generation API
+ */
+router.use('/pdf', pdfRoutes);
 
 /**
  * 订单查询 API（代理到外部 ERP 服务器）

@@ -10,7 +10,6 @@ import { aggregatePackaging } from './packagingTable.js';
 import { tryMergeItems } from './print/printMerge.js';
 import { generatePrintPages } from './print/printGenerator.js';
 import { initZoomControls } from './print/printControls.js';
-import { exportPurchaseOrderToPDF } from '../utils/pdfExport.js';
 
 /**
  * Initialize PO workflow
@@ -137,70 +136,47 @@ export function initPOWorkflow() {
         try {
             // Show loading state
             exportPDFBtn.disabled = true;
-            exportPDFBtn.textContent = '导出中...';
+            exportPDFBtn.textContent = '生成中...';
 
-            console.log('📄 Starting PDF export for:', currentPO.poNumber);
+            console.log('📄 Starting server-side PDF generation for:', currentPO.poNumber);
 
-            // Generate print pages temporarily
-            // Reconstruct order object with items list
-            const orderForPrint = {
-                ...currentPO.order,
-                list: currentPO.items
-            };
-            await generatePrintPages(orderForPrint);
+            // Call backend API to generate PDF
+            const response = await fetch('/api/pdf/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    poNumber: currentPO.poNumber,
+                    order: {
+                        customerName: currentPO.order.customerName,
+                        code: currentPO.order.code,
+                        orderDate: currentPO.order.orderDate,
+                        advanceDate: currentPO.order.advanceDate,
+                        remark: currentPO.order.remark,
+                        list: currentPO.items
+                    }
+                })
+            });
 
-            // Make content visible for PDF rendering
-            document.body.classList.add('print-mode');
-
-            // Get the print output container
-            const printContainer = document.getElementById('printOutput');
-
-            // Remove zoom class to prevent transform issues with html2canvas
-            const originalZoomClass = printContainer.className;
-            printContainer.className = '';
-
-            // Wait for DOM to update and CSS to apply
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            if (!printContainer) {
-                throw new Error('Print container not found');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'PDF 生成失败');
             }
 
-            if (printContainer.children.length === 0) {
-                console.error('Print container is empty after generation');
-                throw new Error('打印内容生成失败，请重试');
-            }
-
-            console.log(`📄 Print content ready: ${printContainer.children.length} pages`);
-
-            // Verify .print-page elements are present and visible
-            const pages = printContainer.querySelectorAll('.print-page');
-            console.log(`📄 Found ${pages.length} .print-page elements`);
-
-            if (pages.length > 0) {
-                const firstPage = pages[0];
-                const computedStyle = window.getComputedStyle(firstPage);
-                console.log('First page debug info:', {
-                    width: firstPage.offsetWidth,
-                    height: firstPage.offsetHeight,
-                    display: computedStyle.display,
-                    visibility: computedStyle.visibility,
-                    backgroundColor: computedStyle.backgroundColor
-                });
-            }
-
-            // Export to PDF (pdfExport will extract .print-page elements)
-            await exportPurchaseOrderToPDF(currentPO.poNumber, printContainer);
+            // Download PDF
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentPO.poNumber}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
 
             // Update PO status
             updatePOStatus(currentPO.poNumber, 'exported');
-
-            // Restore zoom class
-            printContainer.className = originalZoomClass;
-
-            // Clean up: remove print-mode class and clear print pages
-            document.body.classList.remove('print-mode');
-            printContainer.innerHTML = '';
 
             console.log('✅ PDF exported successfully:', currentPO.poNumber);
 
@@ -208,17 +184,6 @@ export function initPOWorkflow() {
             console.error('❌ PDF export failed:', error);
             alert(error.message || 'PDF 导出失败，请重试');
         } finally {
-            // Always cleanup: remove print-mode and clear container
-            document.body.classList.remove('print-mode');
-            const printContainer = document.getElementById('printOutput');
-            if (printContainer) {
-                // Restore zoom class if it was saved
-                if (originalZoomClass) {
-                    printContainer.className = originalZoomClass;
-                }
-                printContainer.innerHTML = '';
-            }
-
             // Restore button state
             exportPDFBtn.disabled = false;
             exportPDFBtn.textContent = '导出 PDF';
