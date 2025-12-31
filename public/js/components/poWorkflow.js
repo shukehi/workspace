@@ -147,8 +147,11 @@ export function initPOWorkflow() {
             };
             await generatePrintPages(orderForPrint);
 
-            // Wait a bit for DOM to update
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Make content visible for PDF rendering
+            document.body.classList.add('print-mode');
+
+            // Wait for DOM to update and CSS to apply
+            await new Promise(resolve => setTimeout(resolve, 200));
 
             // Get the print output container
             const printContainer = document.getElementById('printOutput');
@@ -170,7 +173,8 @@ export function initPOWorkflow() {
             // Update PO status
             updatePOStatus(currentPO.poNumber, 'exported');
 
-            // Clean up print pages
+            // Clean up: remove print-mode class and clear print pages
+            document.body.classList.remove('print-mode');
             printContainer.innerHTML = '';
 
             console.log('✅ PDF exported successfully:', currentPO.poNumber);
@@ -179,6 +183,13 @@ export function initPOWorkflow() {
             console.error('❌ PDF export failed:', error);
             alert(error.message || 'PDF 导出失败，请重试');
         } finally {
+            // Always cleanup: remove print-mode and clear container
+            document.body.classList.remove('print-mode');
+            const printContainer = document.getElementById('printOutput');
+            if (printContainer) {
+                printContainer.innerHTML = '';
+            }
+
             // Restore button state
             exportPDFBtn.disabled = false;
             exportPDFBtn.textContent = '导出 PDF';
