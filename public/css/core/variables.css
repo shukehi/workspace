@@ -3,6 +3,9 @@
  * Core design tokens and theme variables
  */
 
+/* Load font families with CJK glyph support for PDF generation */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+Mono:wght@400;500;700&display=swap');
+
 :root {
     /* Terminal Palette - High Contrast */
     --primary-color: #000000;
@@ -31,6 +34,6 @@
     --radius-md: 0px;
     --radius-sm: 0px;
 
-    --font-mono: 'IBM Plex Mono', monospace;
-    --font-sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Noto Sans Mono', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', monospace;
+    --font-sans: 'IBM Plex Sans', 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 }
