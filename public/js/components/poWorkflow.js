@@ -132,6 +132,8 @@ export function initPOWorkflow() {
             return;
         }
 
+        let originalZoomClass = '';
+
         try {
             // Show loading state
             exportPDFBtn.disabled = true;
@@ -150,11 +152,15 @@ export function initPOWorkflow() {
             // Make content visible for PDF rendering
             document.body.classList.add('print-mode');
 
-            // Wait for DOM to update and CSS to apply
-            await new Promise(resolve => setTimeout(resolve, 200));
-
             // Get the print output container
             const printContainer = document.getElementById('printOutput');
+
+            // Remove zoom class to prevent transform issues with html2canvas
+            const originalZoomClass = printContainer.className;
+            printContainer.className = '';
+
+            // Wait for DOM to update and CSS to apply
+            await new Promise(resolve => setTimeout(resolve, 300));
 
             if (!printContainer) {
                 throw new Error('Print container not found');
@@ -173,6 +179,9 @@ export function initPOWorkflow() {
             // Update PO status
             updatePOStatus(currentPO.poNumber, 'exported');
 
+            // Restore zoom class
+            printContainer.className = originalZoomClass;
+
             // Clean up: remove print-mode class and clear print pages
             document.body.classList.remove('print-mode');
             printContainer.innerHTML = '';
@@ -187,6 +196,10 @@ export function initPOWorkflow() {
             document.body.classList.remove('print-mode');
             const printContainer = document.getElementById('printOutput');
             if (printContainer) {
+                // Restore zoom class if it was saved
+                if (originalZoomClass) {
+                    printContainer.className = originalZoomClass;
+                }
                 printContainer.innerHTML = '';
             }
 

@@ -25,7 +25,13 @@ export async function exportPurchaseOrderToPDF(poNumber, element) {
         html2canvas: {
             scale: 2,
             useCORS: true,
-            letterRendering: true
+            letterRendering: true,
+            logging: false,
+            allowTaint: true,
+            removeContainer: true,
+            backgroundColor: '#ffffff',
+            windowWidth: 1200,
+            windowHeight: 1600
         },
         jsPDF: {
             unit: 'mm',
@@ -65,7 +71,13 @@ export async function generatePDFBlob(poNumber, element) {
         html2canvas: {
             scale: 2,
             useCORS: true,
-            letterRendering: true
+            letterRendering: true,
+            logging: false,
+            allowTaint: true,
+            removeContainer: true,
+            backgroundColor: '#ffffff',
+            windowWidth: 1200,
+            windowHeight: 1600
         },
         jsPDF: {
             unit: 'mm',
