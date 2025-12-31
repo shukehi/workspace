@@ -3,7 +3,7 @@
  * 负责聚合和展示包装采购数据
  */
 
-import { PACKAGING_MAPPING } from '../config.js';
+import { PACKAGING_MAPPING } from '../config/index.js';
 import { parseQuantity } from '../utils/parsers.js';
 
 /**

@@ -5,7 +5,7 @@
  * ✨ 已重构：使用事件总线和状态管理
  */
 
-import { fetchOrderDetail } from '../api.js';
+import { fetchOrderDetail } from '../services/api.js';
 import { eventBus } from '../core/eventBus.js';
 import { appState } from '../core/state.js';
 import { validateOrderData } from '../utils/validation.js';

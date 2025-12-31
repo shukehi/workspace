@@ -5,7 +5,7 @@
  * ✨ 已重构：初始化所有组件，使用事件驱动架构
  */
 
-import { loadPackagingMapping } from './config.js';
+import { loadPackagingMapping } from './config/index.js';
 import { initNavigation } from './components/navigation.js';
 import { initSearch } from './components/search.js';
 import { initOrderDisplay } from './components/orderDisplay.js';

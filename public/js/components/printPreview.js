@@ -5,7 +5,7 @@
  * ✨ 已重构：使用状态管理，移除全局变量依赖
  */
 
-import { PACKAGING_MAPPING } from '../config.js';
+import { PACKAGING_MAPPING } from '../config/index.js';
 import { parseQuantityPair } from '../utils/parsers.js';
 import { appState } from '../core/state.js';
 
