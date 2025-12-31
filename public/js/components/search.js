@@ -8,6 +8,7 @@
 import { fetchOrderDetail } from '../api.js';
 import { eventBus } from '../core/eventBus.js';
 import { appState } from '../core/state.js';
+import { validateOrderData, formatError } from '../utils.js';
 
 /**
  * 初始化搜索功能
@@ -62,30 +63,39 @@ export function initSearch() {
         try {
             const data = await fetchOrderDetail(code);
 
-            if (data.total === 0 || !data.rows || data.rows.length === 0) {
+            // 验证数据结构
+            const validation = validateOrderData(data);
+
+            if (!validation.valid) {
+                const errorMsg = validation.errors.join('；');
                 appState.setState({
-                    error: '未找到该订单号的相关信息',
+                    error: errorMsg,
                     loading: false
                 });
-            } else {
-                // 更新状态
-                appState.setState({
-                    currentOrder: data.rows[0],
-                    error: null,
-                    loading: false
-                });
-
-                // 触发事件，通知其他组件
-                eventBus.emit('order:loaded', data.rows[0]);
-
-                console.log('✅ 订单加载成功:', data.rows[0].code);
+                console.warn('⚠️ 数据验证失败:', validation.errors);
+                return;
             }
+
+            // 更新状态
+            appState.setState({
+                currentOrder: data.rows[0],
+                error: null,
+                loading: false
+            });
+
+            // 触发事件，通知其他组件
+            eventBus.emit('order:loaded', data.rows[0]);
+
+            console.log('✅ 订单加载成功:', data.rows[0].code);
 
         } catch (error) {
             console.error('❌ 查询错误:', error);
 
+            // 使用格式化的错误信息
+            const errorMsg = formatError(error);
+
             appState.setState({
-                error: '查询失败，请检查网络或稍后重试',
+                error: errorMsg,
                 loading: false,
                 currentOrder: null
             });
