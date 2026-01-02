@@ -14,6 +14,9 @@ import { renderPackagingSummary } from '../components/packagingTable.js';
 import { parseQuantityPair } from '../utils/parsers.js';
 import { setText } from '../utils/dom.js';
 import { smartSidebar } from '../components/SmartSidebar.js';
+import { generatePurchaseOrder, updatePOStatus } from '../components/purchaseOrder.js';
+import { aggregatePackaging } from '../components/packagingTable.js';
+import { tryMergeItems } from '../components/print/printMerge.js';
 
 // ==================== Initialization ====================
 
@@ -57,6 +60,9 @@ function bindEvents() {
         });
     });
 
+    // Packaging PO Events
+    bindPackagingEvents();
+
     // Sidebar: Status (Demo interaction)
     const statusIndicator = document.getElementById('workbenchStatus');
     statusIndicator.addEventListener('click', () => {
@@ -66,6 +72,185 @@ function bindEvents() {
         dot.classList.toggle('busy');
         statusIndicator.querySelector('.status-text').textContent =
             dot.classList.contains('idle') ? 'IDLE' : 'PROCESSING';
+    });
+}
+
+function bindPackagingEvents() {
+    // ==================== Generate PO ====================
+    document.getElementById('generatePackagingPOBtn').addEventListener('click', async () => {
+        const currentOrder = appState.get('currentOrder');
+
+        if (!currentOrder) {
+            showError('请先加载订单数据');
+            return;
+        }
+
+        try {
+            // 1. Capture merge selections
+            const checkboxes = document.querySelectorAll('.merge-checkbox');
+            const mergeFlags = Array.from(checkboxes).map(cb => cb.checked);
+
+            // 2. Prepare data (deep copy)
+            const orderData = JSON.parse(JSON.stringify(currentOrder));
+
+            // Tag items with merge flags
+            if (orderData.list) {
+                orderData.list.forEach((item, idx) => {
+                    item._allowMerge = mergeFlags[idx] || false;
+                });
+            }
+
+            // 3. Process merge logic
+            const { reducedList, canMerge } = tryMergeItems(orderData.list);
+
+            if (canMerge) {
+                if (confirm('检测到已勾选"标准"的项可以合并。\n\n【确定】合并相同规格\n【取消】保持独立显示')) {
+                    orderData.list = reducedList;
+                }
+            }
+
+            // 4. Aggregate packaging data
+            const packagingData = aggregatePackaging(orderData.list);
+
+            // 5. Generate PO record
+            const po = generatePurchaseOrder(orderData, packagingData, mergeFlags);
+
+            // 6. Update state
+            appState.setState({ currentPackagingPO: po });
+
+            // 7. Update UI
+            document.getElementById('packagingPONumber').textContent = po.poNumber;
+            document.getElementById('generatePackagingPOBtn').classList.add('hidden');
+            document.getElementById('packagingPOPanel').classList.remove('hidden');
+
+            console.log('✅ Packaging PO Generated:', po.poNumber);
+
+        } catch (error) {
+            console.error('❌ PO Generation Failed:', error);
+            showError('采购单生成失败，请重试');
+        }
+    });
+
+    // ==================== Print PO ====================
+    document.getElementById('printPackagingBtn').addEventListener('click', async () => {
+        const currentPO = appState.get('currentPackagingPO');
+
+        if (!currentPO) {
+            showError('请先生成采购单');
+            return;
+        }
+
+        try {
+            // Prepare order data for print preview
+            const orderForPrint = {
+                ...currentPO.order,
+                list: currentPO.items
+            };
+
+            // Store data temporarily in localStorage for the new window to access
+            localStorage.setItem('_print_preview_data', JSON.stringify(orderForPrint));
+            localStorage.setItem('_print_preview_po_number', currentPO.poNumber);
+
+            // Open print preview in new window
+            const printWindow = window.open(
+                '/print-preview.html',
+                '_blank',
+                'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
+            );
+
+            if (!printWindow) {
+                showError('无法打开打印预览窗口，请检查浏览器弹窗拦截设置');
+                // Clean up temporary data
+                localStorage.removeItem('_print_preview_data');
+                localStorage.removeItem('_print_preview_po_number');
+                return;
+            }
+
+            // Update PO status
+            updatePOStatus(currentPO.poNumber, 'printed');
+
+            console.log('📄 Print preview opened for:', currentPO.poNumber);
+
+        } catch (error) {
+            console.error('❌ Print preview failed:', error);
+            showError('打印预览失败，请重试');
+        }
+    });
+
+    // ==================== Export PDF ====================
+    document.getElementById('exportPackagingPDFBtn').addEventListener('click', async () => {
+        const currentPO = appState.get('currentPackagingPO');
+
+        if (!currentPO) {
+            showError('请先生成采购单');
+            return;
+        }
+
+        const exportBtn = document.getElementById('exportPackagingPDFBtn');
+
+        try {
+            // Show loading state
+            exportBtn.disabled = true;
+            exportBtn.textContent = '生成中...';
+
+            console.log('📄 Starting PDF generation for:', currentPO.poNumber);
+
+            // Call backend API to generate PDF
+            const response = await fetch('/api/pdf/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    poNumber: currentPO.poNumber,
+                    order: {
+                        customerName: currentPO.order.customerName,
+                        code: currentPO.order.code,
+                        orderDate: currentPO.order.orderDate,
+                        advanceDate: currentPO.order.advanceDate,
+                        remark: currentPO.order.remark,
+                        list: currentPO.items
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'PDF 生成失败');
+            }
+
+            // Download PDF
+            const blob = await response.blob();
+            const pdfBlob = blob.type === 'application/pdf'
+                ? blob
+                : new Blob([blob], { type: 'application/pdf' });
+
+            const url = window.URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentPO.poNumber}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+
+            // Delay cleanup to ensure download starts
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+
+            // Update PO status
+            updatePOStatus(currentPO.poNumber, 'exported');
+
+            console.log('✅ PDF exported successfully:', currentPO.poNumber);
+
+        } catch (error) {
+            console.error('❌ PDF export failed:', error);
+            showError(error.message || 'PDF 导出失败，请重试');
+        } finally {
+            // Restore button state
+            exportBtn.disabled = false;
+            exportBtn.textContent = 'PDF';
+        }
     });
 }
 
@@ -85,6 +270,12 @@ function setupEventSubscriptions() {
 
         // Analyze for Smart Sidebar
         smartSidebar.analyze(order);
+
+        // Reset PO panels when new order is loaded
+        document.getElementById('generatePackagingPOBtn').classList.remove('hidden');
+        document.getElementById('packagingPOPanel').classList.add('hidden');
+        document.getElementById('packagingPONumber').textContent = '';
+        appState.setState({ currentPackagingPO: null });
 
         // Update overall status
         updateStatus('READY');
