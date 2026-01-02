@@ -41,6 +41,11 @@ export function renderPackagingSummary(items) {
 export function aggregatePackaging(items) {
     const groups = {};
 
+    if (!items || !Array.isArray(items)) {
+        console.warn('aggregatePackaging received invalid items:', items);
+        return {};
+    }
+
     items.forEach(item => {
         const internalName = item.bz || "未知";
         // Map to supplier name, default to internal name along with a marker if not found
