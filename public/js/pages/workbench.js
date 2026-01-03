@@ -188,13 +188,11 @@ async function handleBatchGenerate(selectedCategories) {
 }
 
 
+
 function setupEventSubscriptions() {
     eventBus.on('order:loaded', (order) => {
         // Render Source Table
         renderSourceTable(order.list);
-
-        // Render Packaging Table (shared component)
-        renderPackagingSummary(order.list);
 
         // Update Meta
         renderMeta(order);
@@ -204,12 +202,6 @@ function setupEventSubscriptions() {
 
         // Analyze for Smart Sidebar
         smartSidebar.analyze(order);
-
-        // Reset PO panels when new order is loaded
-        document.getElementById('generatePackagingPOBtn').classList.remove('hidden');
-        document.getElementById('packagingPOPanel').classList.add('hidden');
-        document.getElementById('packagingPONumber').textContent = '';
-        appState.setState({ currentPackagingPO: null });
 
         // Update overall status
         updateStatus('READY');
@@ -444,7 +436,7 @@ function renderPOList() {
 }
 
 // Make functions global for onclick handlers
-window.viewPO = function(poNumber) {
+window.viewPO = function (poNumber) {
     const po = listPurchaseOrders().find(p => p.poNumber === poNumber);
     if (!po) return;
 
@@ -464,13 +456,13 @@ window.viewPO = function(poNumber) {
     );
 };
 
-window.printPO = function(poNumber) {
+window.printPO = function (poNumber) {
     viewPO(poNumber);
     updatePOStatus(poNumber, 'printed');
     renderPOList();
 };
 
-window.exportPDF = async function(poNumber) {
+window.exportPDF = async function (poNumber) {
     const po = listPurchaseOrders().find(p => p.poNumber === poNumber);
     if (!po) return;
 
@@ -507,7 +499,7 @@ window.exportPDF = async function(poNumber) {
     }
 };
 
-window.handleDeletePO = function(poNumber) {
+window.handleDeletePO = function (poNumber) {
     if (confirm(`确定要删除采购单 ${poNumber} 吗？`)) {
         deletePurchaseOrder(poNumber);
         renderPOList();

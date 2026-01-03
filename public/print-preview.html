@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,7 +46,7 @@
             right: 0;
             background: white;
             padding: 12px 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             display: flex;
             justify-content: space-between;
@@ -96,6 +97,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Controls Bar -->
     <div class="controls-bar">
@@ -131,6 +133,7 @@
             // Get order data from localStorage (passed from parent window)
             const orderData = JSON.parse(localStorage.getItem('_print_preview_data') || 'null');
             const poNumber = localStorage.getItem('_print_preview_po_number') || '';
+            const category = localStorage.getItem('_print_preview_category') || 'packaging';
 
             if (!orderData) {
                 alert('未找到订单数据');
@@ -138,14 +141,29 @@
                 return;
             }
 
-            // Update title (both page title and heading)
-            document.title = poNumber || '采购订单';
-            document.getElementById('poTitle').textContent = `采购订单 ${poNumber}`;
+            // Update title based on category
+            const categoryLabels = {
+                packaging: '包装采购订单',
+                cylinder: '锁芯采购订单',
+                hardware: '五金采购订单',
+                lock: '边锁采购订单'
+            };
+            const categoryLabel = categoryLabels[category] || '采购订单';
 
-            // Generate print pages
+            document.title = `${poNumber} - ${categoryLabel}`;
+            document.getElementById('poTitle').textContent = `${categoryLabel} ${poNumber}`;
+
+            // Generate print pages based on category
             try {
-                await generatePrintPages(orderData);
-                console.log('✅ Print preview generated');
+                if (category === 'packaging') {
+                    // Use existing packaging print generator
+                    await generatePrintPages(orderData);
+                } else {
+                    // For other categories, render simple table
+                    await renderCategoryPreview(orderData, category, poNumber);
+                }
+
+                console.log('✅ Print preview generated for category:', category);
 
                 // Initialize zoom controls
                 const printOutput = document.getElementById('printOutput');
@@ -154,14 +172,105 @@
                 // Clean up temporary data
                 localStorage.removeItem('_print_preview_data');
                 localStorage.removeItem('_print_preview_po_number');
+                localStorage.removeItem('_print_preview_category');
             } catch (error) {
                 console.error('❌ Failed to generate print preview:', error);
                 alert('打印预览生成失败');
             }
         }
 
+        // Render preview for non-packaging categories
+        async function renderCategoryPreview(orderData, category, poNumber) {
+            const printOutput = document.getElementById('printOutput');
+
+            const categoryTitles = {
+                cylinder: '锁芯采购清单',
+                hardware: '五金采购清单',
+                lock: '边锁采购清单'
+            };
+
+            const html = `
+                <div class="print-page">
+                    <div class="print-header">
+                        <h1>${categoryTitles[category] || '采购清单'}</h1>
+                        <div class="print-meta">
+                            <span>单号: <b>${poNumber}</b></span>
+                            <span>客户: <b>${orderData.customerName || '-'}</b></span>
+                            <span>日期: <b>${new Date().toLocaleDateString('zh-CN')}</b></span>
+                        </div>
+                    </div>
+                    <div class="print-content">
+                        <table class="print-table">
+                            <thead>
+                                <tr>
+                                    ${getCategoryTableHeaders(category)}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${renderCategoryTableRows(orderData.list, category)}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="print-footer">
+                        <div class="sign-box">
+                            <span>制单人:</span>
+                            <span class="sign-line"></span>
+                        </div>
+                        <div class="sign-box">
+                            <span>审核人:</span>
+                            <span class="sign-line"></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            printOutput.innerHTML = html;
+        }
+
+        function getCategoryTableHeaders(category) {
+            const headers = {
+                cylinder: '<th>序号</th><th>锁芯型号</th><th>等级</th><th>数量</th><th>备注</th>',
+                hardware: '<th>序号</th><th>五金名称</th><th>规格</th><th>数量</th><th>备注</th>',
+                lock: '<th>序号</th><th>边锁型号</th><th>规格</th><th>数量</th><th>备注</th>'
+            };
+            return headers[category] || '<th>项目</th><th>数量</th>';
+        }
+
+        function renderCategoryTableRows(items, category) {
+            if (!items || items.length === 0) {
+                return '<tr><td colspan="5" style="text-align:center;">暂无数据</td></tr>';
+            }
+
+            if (category === 'cylinder') {
+                // Group by lock type
+                const cylinderMap = {};
+                items.forEach(item => {
+                    const type = item.sx || '标准锁芯';
+                    if (!cylinderMap[type]) {
+                        cylinderMap[type] = { type, qty: 0 };
+                    }
+                    const [left, right] = (item.qty || '0/0').split('/').map(Number);
+                    cylinderMap[type].qty += (left || 0) + (right || 0);
+                });
+
+                return Object.values(cylinderMap).map((item, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${item.type}</td>
+                        <td>标准</td>
+                        <td>${item.qty}</td>
+                        <td>-</td>
+                    </tr>
+                `).join('');
+            }
+
+            // For other categories, show placeholder
+            return '<tr><td colspan="5" style="text-align:center;">功能开发中...</td></tr>';
+        }
+
         // Start when DOM is ready
         initPrintPreview();
     </script>
 </body>
+
 </html>
