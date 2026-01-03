@@ -550,3 +550,12 @@ function formatDate(isoString) {
         minute: '2-digit'
     });
 }
+
+// ==================== Message Listener for PO Updates ====================
+
+window.addEventListener('message', (event) => {
+    if (event.data.type === 'PO_UPDATED') {
+        console.log('📨 收到 PO 更新通知:', event.data.poNumber);
+        renderPOList(); // Refresh the list
+    }
+});
