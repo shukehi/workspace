@@ -95,6 +95,43 @@
         body {
             padding-top: 60px;
         }
+
+        .btn-success {
+            background: #10B981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        /* Edit mode styles */
+        .edit-mode [contenteditable="true"] {
+            background: rgba(100, 149, 237, 0.05);
+            cursor: text;
+            padding: 4px;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .edit-mode [contenteditable="true"]:hover {
+            background: rgba(100, 149, 237, 0.1);
+            outline: 1px dashed #6495ED;
+        }
+
+        .edit-mode [contenteditable="true"]:focus {
+            outline: 2px solid #6495ED;
+            background: rgba(100, 149, 237, 0.15);
+        }
+
+        /* Hide edit UI when printing */
+        @media print {
+
+            #toggleEditBtn,
+            #saveBtn {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
@@ -103,6 +140,8 @@
     <div class="controls-bar">
         <h2 id="poTitle">采购订单打印预览</h2>
         <div class="controls-actions">
+            <button id="toggleEditBtn" class="btn btn-secondary">编辑</button>
+            <button id="saveBtn" class="btn btn-success" style="display:none;">保存</button>
             <button class="btn btn-primary" onclick="window.print()">打印</button>
             <button class="btn btn-secondary" onclick="window.close()">关闭</button>
         </div>
@@ -273,4 +312,151 @@
     </script>
 </body>
 
+</html>
+        // ==================== Edit Mode Logic ====================
+        
+        let isEditMode = false;
+        let currentPONumber = '';
+        let currentCategory = '';
+
+        // Initialize edit controls
+        function initEditControls() {
+            const toggleEditBtn = document.getElementById('toggleEditBtn');
+            const saveBtn = document.getElementById('saveBtn');
+
+            if (!toggleEditBtn || !saveBtn) return;
+
+            toggleEditBtn.addEventListener('click', toggleEditMode);
+            saveBtn.addEventListener('click', saveEdits);
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const container = document.getElementById('printOutput');
+            const toggleBtn = document.getElementById('toggleEditBtn');
+            const saveBtn = document.getElementById('saveBtn');
+
+            if (isEditMode) {
+                container.classList.add('edit-mode');
+                toggleBtn.textContent = '取消编辑';
+                saveBtn.style.display = 'inline-block';
+                enableEditing();
+            } else {
+                container.classList.remove('edit-mode');
+                toggleBtn.textContent = '编辑';
+                saveBtn.style.display = 'none';
+                disableEditing();
+            }
+        }
+
+        function enableEditing() {
+            document.querySelectorAll('[contenteditable]').forEach(el => {
+                el.setAttribute('contenteditable', 'true');
+            });
+        }
+
+        function disableEditing() {
+            document.querySelectorAll('[contenteditable]').forEach(el => {
+                el.setAttribute('contenteditable', 'false');
+            });
+        }
+
+        function saveEdits() {
+            try {
+                const editedData = collectEditedData();
+                saveToPO(currentPONumber, currentCategory, editedData);
+                
+                alert('✅ 保存成功！');
+                
+                // Notify parent window to refresh
+                if (window.opener && !window.opener.closed) {
+                    try {
+                        window.opener.postMessage({ 
+                            type: 'PO_UPDATED', 
+                            poNumber: currentPONumber 
+                        }, '*');
+                    } catch (e) {
+                        console.log('无法通知父窗口:', e);
+                    }
+                }
+                
+                // Exit edit mode
+                toggleEditMode();
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('❌ 保存失败: ' + error.message);
+            }
+        }
+
+        function collectEditedData() {
+            const rows = document.querySelectorAll('.print-table tbody tr:not(.total-row)');
+            const items = [];
+
+            rows.forEach(row => {
+                const itemIndex = row.dataset.itemIndex;
+                if (!itemIndex) return; // Skip rows without index
+
+                const item = { _index: parseInt(itemIndex) };
+                row.querySelectorAll('[data-field]').forEach(cell => {
+                    const field = cell.dataset.field;
+                    let value = cell.textContent.trim();
+                    
+                    // Convert numbers
+                    if (field === 'qtyLeft' || field === 'qtyRight') {
+                        value = parseInt(value) || 0;
+                    }
+                    
+                    item[field] = value;
+                });
+                items.push(item);
+            });
+
+            return items;
+        }
+
+        function saveToPO(poNumber, category, editedData) {
+            const allPOs = JSON.parse(localStorage.getItem('purchase_orders') || '[]');
+            const poIndex = allPOs.findIndex(p => p.poNumber === poNumber);
+
+            if (poIndex === -1) {
+                throw new Error('找不到采购单: ' + poNumber);
+            }
+
+            // Update items with edited data
+            editedData.forEach(editedItem => {
+                const originalIndex = editedItem._index;
+                if (allPOs[poIndex].items[originalIndex]) {
+                    const original = allPOs[poIndex].items[originalIndex];
+                    
+                    // Update fields
+                    if (editedItem.productModelName) original.productModelName = editedItem.productModelName;
+                    if (editedItem.spec) original.spec = editedItem.spec;
+                    if (editedItem.mb) original.mb = editedItem.mb;
+                    if (editedItem.remark !== undefined) original.remark = editedItem.remark;
+                    
+                    // Update quantity (combine left/right back to qty format)
+                    if (editedItem.qtyLeft !== undefined || editedItem.qtyRight !== undefined) {
+                        const left = editedItem.qtyLeft || 0;
+                        const right = editedItem.qtyRight || 0;
+                        original.qty = `${left}/${right}`;
+                    }
+                }
+            });
+
+            // Update metadata
+            allPOs[poIndex].lastModified = new Date().toISOString();
+            
+            localStorage.setItem('purchase_orders', JSON.stringify(allPOs));
+            console.log('✅ PO updated:', poNumber);
+        }
+
+        // Listen for messages from parent window
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'REFRESH_PO_LIST') {
+                console.log('收到父窗口刷新请求');
+            }
+        });
+
+    </script>
+</body>
 </html>

@@ -94,21 +94,25 @@ export async function generatePrintPages(order) {
                 const remark = ''; // 留空备注，供手写/后续填写
 
                 const tr = document.createElement('tr');
+                tr.dataset.itemIndex = startIdx + index; // 添加索引用于保存
+
                 const cells = [
-                    startIdx + index + 1,
-                    item.productModelName || '-',
-                    item.spec,
-                    item.mb || '-',
-                    qtyPair.left,
-                    qtyPair.right,
-                    remark
+                    { value: startIdx + index + 1, editable: false, field: 'no' },
+                    { value: item.productModelName || '-', editable: true, field: 'productModelName' },
+                    { value: item.spec, editable: true, field: 'spec' },
+                    { value: item.mb || '-', editable: true, field: 'mb' },
+                    { value: qtyPair.left, editable: true, field: 'qtyLeft' },
+                    { value: qtyPair.right, editable: true, field: 'qtyRight' },
+                    { value: remark, editable: true, field: 'remark' }
                 ];
-                cells.forEach((val, idx) => {
+
+                cells.forEach((cell, idx) => {
                     const td = document.createElement('td');
-                    if (idx === 6) {
-                        td.contentEditable = 'true';
+                    if (cell.editable) {
+                        td.setAttribute('contenteditable', 'false'); // 默认不可编辑
+                        td.dataset.field = cell.field;
                     }
-                    td.textContent = val;
+                    td.textContent = cell.value;
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
