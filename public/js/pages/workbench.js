@@ -475,7 +475,14 @@ window.exportPDF = async function (poNumber) {
             body: JSON.stringify({
                 poNumber: po.poNumber,
                 category: po.category,
-                order: po.order
+                order: {
+                    customerName: po.order.customerName,
+                    code: po.order.code,
+                    orderDate: po.order.orderDate,
+                    advanceDate: po.order.advanceDate,
+                    remark: po.order.remark,
+                    list: po.items  // 添加缺失的 list 字段
+                }
             })
         });
 
