@@ -467,23 +467,31 @@ window.exportPDF = async function (poNumber) {
     if (!po) return;
 
     try {
+        const requestBody = {
+            poNumber: po.poNumber,
+            order: {
+                customerName: po.order.customerName,
+                code: po.order.code,
+                orderDate: po.order.orderDate,
+                advanceDate: po.order.advanceDate,
+                remark: po.order.remark,
+                list: po.items
+            }
+        };
+
+        // Debug: 查看发送的数据
+        console.log('📤 PDF Export Request:', {
+            poNumber: requestBody.poNumber,
+            listLength: requestBody.order.list?.length,
+            listSample: requestBody.order.list?.[0]
+        });
+
         const response = await fetch('/api/pdf/generate', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                poNumber: po.poNumber,
-                category: po.category,
-                order: {
-                    customerName: po.order.customerName,
-                    code: po.order.code,
-                    orderDate: po.order.orderDate,
-                    advanceDate: po.order.advanceDate,
-                    remark: po.order.remark,
-                    list: po.items  // 添加缺失的 list 字段
-                }
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) throw new Error('PDF 生成失败');
