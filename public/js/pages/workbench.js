@@ -421,6 +421,8 @@ function renderPOList() {
         <tr>
             <td>${po.poNumber}</td>
             <td><span class="category-badge">${getCategoryLabel(po.category)}</span></td>
+            <td>${po.order?.customerName || '-'}</td>
+            <td>${po.order?.code || '-'}</td>
             <td>${formatDate(po.createdAt)}</td>
             <td><span class="status-badge ${po.status}">${getStatusLabel(po.status)}</span></td>
             <td>
@@ -445,18 +447,20 @@ window.viewPO = function (poNumber) {
         list: po.items
     };
 
-    localStorage.setItem('_print_preview_data', JSON.stringify(orderForPrint));
-    localStorage.setItem('_print_preview_po_number', po.poNumber);
-    localStorage.setItem('_print_preview_category', po.category);
+    localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
+    localStorage.setItem('_order_preview_po_number', po.poNumber);
+    localStorage.setItem('_order_preview_category', po.category);
 
     window.open(
-        '/print-preview.html',
+        '/order-preview.html',
         '_blank',
         'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
     );
 };
 
 window.printPO = function (poNumber) {
+    // Set auto-print flag before opening preview
+    localStorage.setItem('_order_preview_auto_print', 'true');
     viewPO(poNumber);
     updatePOStatus(poNumber, 'printed');
     renderPOList();

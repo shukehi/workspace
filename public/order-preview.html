@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打印预览 - 采购订单</title>
+    <title>订单预览 - 采购订单</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -138,7 +138,7 @@
 <body>
     <!-- Controls Bar -->
     <div class="controls-bar">
-        <h2 id="poTitle">采购订单打印预览</h2>
+        <h2 id="poTitle">采购订单预览</h2>
         <div class="controls-actions">
             <button id="toggleEditBtn" class="btn btn-secondary">编辑</button>
             <button id="saveBtn" class="btn btn-success" style="display:none;">保存</button>
@@ -147,32 +147,22 @@
         </div>
     </div>
 
-    <!-- Zoom Controls -->
-    <div id="zoomControls" class="zoom-controls">
-        <span style="font-size: 0.85rem; color: #6B7280; margin-right: 4px;">缩放:</span>
-        <button id="zoom50" class="zoom-btn">50%</button>
-        <button id="zoom75" class="zoom-btn">75%</button>
-        <button id="zoom100" class="zoom-btn active">100%</button>
-        <button id="zoom125" class="zoom-btn">125%</button>
-    </div>
-
     <!-- Print Output Container -->
-    <div id="printOutput" class="zoom-100"></div>
+    <div id="printOutput"></div>
 
     <script type="module">
         import { loadPackagingMapping } from './js/config/index.js';
         import { generatePrintPages } from './js/components/print/printGenerator.js';
-        import { initZoomControls } from './js/components/print/printControls.js';
 
-        // Initialize print preview
-        async function initPrintPreview() {
+        // Initialize order preview
+        async function initOrderPreview() {
             // Load packaging mapping configuration first
             await loadPackagingMapping();
 
             // Get order data from localStorage (passed from parent window)
-            const orderData = JSON.parse(localStorage.getItem('_print_preview_data') || 'null');
-            const poNumber = localStorage.getItem('_print_preview_po_number') || '';
-            const category = localStorage.getItem('_print_preview_category') || 'packaging';
+            const orderData = JSON.parse(localStorage.getItem('_order_preview_data') || 'null');
+            const poNumber = localStorage.getItem('_order_preview_po_number') || '';
+            const category = localStorage.getItem('_order_preview_category') || 'packaging';
 
             if (!orderData) {
                 alert('未找到订单数据');
@@ -202,19 +192,31 @@
                     await renderCategoryPreview(orderData, category, poNumber);
                 }
 
-                console.log('✅ Print preview generated for category:', category);
+                console.log('✅ Order preview generated for category:', category);
 
-                // Initialize zoom controls
-                const printOutput = document.getElementById('printOutput');
-                initZoomControls(printOutput);
+                // Store PO info for edit mode (before cleaning up localStorage)
+                currentPONumber = poNumber;
+                currentCategory = category;
+
+                // Check if auto-print mode is enabled
+                const autoPrint = localStorage.getItem('_order_preview_auto_print');
+                if (autoPrint === 'true') {
+                    // Clear the flag
+                    localStorage.removeItem('_order_preview_auto_print');
+
+                    // Trigger print dialog after a short delay to ensure rendering is complete
+                    setTimeout(() => {
+                        window.print();
+                    }, 500);
+                }
 
                 // Clean up temporary data
-                localStorage.removeItem('_print_preview_data');
-                localStorage.removeItem('_print_preview_po_number');
-                localStorage.removeItem('_print_preview_category');
+                localStorage.removeItem('_order_preview_data');
+                localStorage.removeItem('_order_preview_po_number');
+                localStorage.removeItem('_order_preview_category');
             } catch (error) {
                 console.error('❌ Failed to generate print preview:', error);
-                alert('打印预览生成失败');
+                alert('订单预览生成失败');
             }
         }
 
@@ -307,14 +309,8 @@
             return '<tr><td colspan="5" style="text-align:center;">功能开发中...</td></tr>';
         }
 
-        // Start when DOM is ready
-        initPrintPreview();
-    </script>
-</body>
-
-</html>
         // ==================== Edit Mode Logic ====================
-        
+
         let isEditMode = false;
         let currentPONumber = '';
         let currentCategory = '';
@@ -365,21 +361,21 @@
             try {
                 const editedData = collectEditedData();
                 saveToPO(currentPONumber, currentCategory, editedData);
-                
+
                 alert('✅ 保存成功！');
-                
+
                 // Notify parent window to refresh
                 if (window.opener && !window.opener.closed) {
                     try {
-                        window.opener.postMessage({ 
-                            type: 'PO_UPDATED', 
-                            poNumber: currentPONumber 
+                        window.opener.postMessage({
+                            type: 'PO_UPDATED',
+                            poNumber: currentPONumber
                         }, '*');
                     } catch (e) {
                         console.log('无法通知父窗口:', e);
                     }
                 }
-                
+
                 // Exit edit mode
                 toggleEditMode();
             } catch (error) {
@@ -389,9 +385,24 @@
         }
 
         function collectEditedData() {
-            const rows = document.querySelectorAll('.print-table tbody tr:not(.total-row)');
-            const items = [];
+            const data = {
+                headerFields: {},
+                items: []
+            };
 
+            // Collect header fields from the first print page
+            const firstPage = document.querySelector('.print-page');
+            if (firstPage) {
+                const headerFields = firstPage.querySelectorAll('[data-field]:not(td [data-field])');
+                headerFields.forEach(field => {
+                    const fieldName = field.dataset.field;
+                    const value = field.textContent.trim();
+                    data.headerFields[fieldName] = value;
+                });
+            }
+
+            // Collect table row data
+            const rows = document.querySelectorAll('.print-table tbody tr:not(.total-row)');
             rows.forEach(row => {
                 const itemIndex = row.dataset.itemIndex;
                 if (!itemIndex) return; // Skip rows without index
@@ -400,52 +411,74 @@
                 row.querySelectorAll('[data-field]').forEach(cell => {
                     const field = cell.dataset.field;
                     let value = cell.textContent.trim();
-                    
+
                     // Convert numbers
                     if (field === 'qtyLeft' || field === 'qtyRight') {
                         value = parseInt(value) || 0;
                     }
-                    
+
                     item[field] = value;
                 });
-                items.push(item);
+                data.items.push(item);
             });
 
-            return items;
+            return data;
         }
 
         function saveToPO(poNumber, category, editedData) {
-            const allPOs = JSON.parse(localStorage.getItem('purchase_orders') || '[]');
-            const poIndex = allPOs.findIndex(p => p.poNumber === poNumber);
+            // Get all POs as object (not array)
+            const allPOs = JSON.parse(localStorage.getItem('purchase_orders') || '{}');
 
-            if (poIndex === -1) {
+            // Access PO directly by key
+            const po = allPOs[poNumber];
+
+            if (!po) {
                 throw new Error('找不到采购单: ' + poNumber);
             }
 
+            // Update header fields
+            if (editedData.headerFields) {
+                const hf = editedData.headerFields;
+
+                // Update order-level fields
+                if (hf.customerName) po.order.customerName = hf.customerName;
+                if (hf.orderCode) po.order.code = hf.orderCode;
+
+                // Store supplier and package names in metadata for now
+                // (These are display-only fields that may vary per packaging group)
+                if (!po.metadata.editedFields) po.metadata.editedFields = {};
+                if (hf.supplierName) po.metadata.editedFields.supplierName = hf.supplierName;
+                if (hf.internalPkgName) po.metadata.editedFields.internalPkgName = hf.internalPkgName;
+                if (hf.externalPkgName) po.metadata.editedFields.externalPkgName = hf.externalPkgName;
+            }
+
             // Update items with edited data
-            editedData.forEach(editedItem => {
-                const originalIndex = editedItem._index;
-                if (allPOs[poIndex].items[originalIndex]) {
-                    const original = allPOs[poIndex].items[originalIndex];
-                    
-                    // Update fields
-                    if (editedItem.productModelName) original.productModelName = editedItem.productModelName;
-                    if (editedItem.spec) original.spec = editedItem.spec;
-                    if (editedItem.mb) original.mb = editedItem.mb;
-                    if (editedItem.remark !== undefined) original.remark = editedItem.remark;
-                    
-                    // Update quantity (combine left/right back to qty format)
-                    if (editedItem.qtyLeft !== undefined || editedItem.qtyRight !== undefined) {
-                        const left = editedItem.qtyLeft || 0;
-                        const right = editedItem.qtyRight || 0;
-                        original.qty = `${left}/${right}`;
+            if (editedData.items) {
+                editedData.items.forEach(editedItem => {
+                    const originalIndex = editedItem._index;
+                    if (po.items && po.items[originalIndex]) {
+                        const original = po.items[originalIndex];
+
+                        // Update fields
+                        if (editedItem.productModelName) original.productModelName = editedItem.productModelName;
+                        if (editedItem.spec) original.spec = editedItem.spec;
+                        if (editedItem.mb) original.mb = editedItem.mb;
+                        if (editedItem.remark !== undefined) original.remark = editedItem.remark;
+
+                        // Update quantity (combine left/right back to qty format)
+                        if (editedItem.qtyLeft !== undefined || editedItem.qtyRight !== undefined) {
+                            const left = editedItem.qtyLeft || 0;
+                            const right = editedItem.qtyRight || 0;
+                            original.qty = `${left}/${right}`;
+                        }
                     }
-                }
-            });
+                });
+            }
 
             // Update metadata
-            allPOs[poIndex].lastModified = new Date().toISOString();
-            
+            po.lastModified = new Date().toISOString();
+
+            // Save back to localStorage
             localStorage.setItem('purchase_orders', JSON.stringify(allPOs));
             console.log('✅ PO updated:', poNumber);
         }
@@ -457,6 +490,10 @@
             }
         });
 
+        // Start when DOM is ready
+        initOrderPreview();
+        initEditControls();
     </script>
 </body>
+
 </html>

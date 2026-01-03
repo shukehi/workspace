@@ -97,12 +97,13 @@ export function initPOWorkflow() {
             };
 
             // Store data temporarily in localStorage for the new window to access
-            localStorage.setItem('_print_preview_data', JSON.stringify(orderForPrint));
-            localStorage.setItem('_print_preview_po_number', currentPO.poNumber);
+            localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
+            localStorage.setItem('_order_preview_po_number', currentPO.poNumber);
+            localStorage.setItem('_order_preview_auto_print', 'true'); // Enable auto-print
 
             // Open print preview in new window
             const printWindow = window.open(
-                '/print-preview.html',
+                '/order-preview.html',
                 '_blank',
                 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
             );
@@ -110,8 +111,8 @@ export function initPOWorkflow() {
             if (!printWindow) {
                 alert('无法打开打印预览窗口，请检查浏览器弹窗拦截设置');
                 // Clean up temporary data
-                localStorage.removeItem('_print_preview_data');
-                localStorage.removeItem('_print_preview_po_number');
+                localStorage.removeItem('_order_preview_data');
+                localStorage.removeItem('_order_preview_po_number');
                 return;
             }
 
