@@ -14,6 +14,7 @@
     <!-- Modular CSS -->
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/pages/workbench.css">
+    <link rel="stylesheet" href="css/pages/workbench-modal.css">
     <!-- PDF Export Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- 导入导航组件 -->
@@ -97,20 +98,10 @@
                         <span class="tab-label">SOURCE</span>
                         <span class="tab-desc">订单明细</span>
                     </button>
-                    <button class="hub-tab" data-tab="packaging">
-                        <span class="tab-icon">📦</span>
-                        <span class="tab-label">PACKAGING</span>
-                        <span class="tab-desc">包装采购</span>
-                    </button>
-                    <button class="hub-tab" data-tab="cylinder">
-                        <span class="tab-icon">🔐</span>
-                        <span class="tab-label">CYLINDER</span>
-                        <span class="tab-desc">锁芯采购</span>
-                    </button>
-                    <button class="hub-tab" data-tab="hardware">
-                        <span class="tab-icon">🔩</span>
-                        <span class="tab-label">HARDWARE</span>
-                        <span class="tab-desc">五金配件</span>
+                    <button class="hub-tab" data-tab="orders">
+                        <span class="tab-icon">📑</span>
+                        <span class="tab-label">ORDERS</span>
+                        <span class="tab-desc">采购单管理</span>
                     </button>
                 </nav>
 
@@ -120,6 +111,11 @@
                     <div class="hub-panel active" id="panel-source">
                         <div class="panel-header">
                             <h2>订单原始数据 <span class="badge" id="sourceCount">0 items</span></h2>
+                            <div class="panel-actions">
+                                <button id="generateOrdersBtn" class="action-btn primary">
+                                    生成采购订单 ▼
+                                </button>
+                            </div>
                         </div>
                         <div class="table-responsive">
                             <table class="details-table">
@@ -147,97 +143,30 @@
                         </div>
                     </div>
 
-                    <!-- Tab: PACKAGING - 包装采购预览 -->
-                    <div class="hub-panel" id="panel-packaging">
+
+                    <!-- Tab: ORDERS - 采购单管理 -->
+                    <div class="hub-panel" id="panel-orders">
                         <div class="panel-header">
-                            <h2>包装采购预览 <span class="badge" id="packagingCount">0 items</span></h2>
-                            <div class="panel-actions">
-                                <button id="generatePackagingPOBtn" class="action-btn">生成采购单</button>
-                            </div>
+                            <h2>采购单管理 <span class="badge" id="ordersCount">0 单</span></h2>
                         </div>
-
-                        <!-- PO 信息面板 -->
-                        <div id="packagingPOPanel" class="po-panel hidden">
-                            <div class="po-info">
-                                <span class="po-label">PO#</span>
-                                <span class="po-number" id="packagingPONumber">--</span>
-                            </div>
-                            <div class="po-actions">
-                                <button id="printPackagingBtn" class="action-btn">打印</button>
-                                <button id="exportPackagingPDFBtn" class="action-btn secondary">PDF</button>
-                            </div>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="details-table print-table">
+                        <div class="orders-list-container">
+                            <table class="orders-table">
                                 <thead>
                                     <tr>
-                                        <th>包装厂家名称</th>
-                                        <th>规格尺寸</th>
-                                        <th>数量 (合计)</th>
+                                        <th>PO 编号</th>
+                                        <th>类别</th>
+                                        <th>生成时间</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
                                     </tr>
                                 </thead>
-                                <tbody id="packagingTableBody">
+                                <tbody id="ordersTableBody">
                                     <!-- 动态注入 -->
                                 </tbody>
                             </table>
-                        </div>
-                        <div class="empty-state" id="packagingEmptyState">
-                            <p>请先加载订单数据</p>
-                        </div>
-                    </div>
-
-                    <!-- Tab: CYLINDER - 锁芯采购预览 -->
-                    <div class="hub-panel" id="panel-cylinder">
-                        <div class="panel-header">
-                            <h2>锁芯采购预览 <span class="badge" id="cylinderCount">0 items</span></h2>
-                            <div class="panel-actions">
-                                <button id="generateCylinderPOBtn" class="action-btn">生成采购单</button>
+                            <div class="empty-state" id="ordersEmptyState">
+                                <p>暂无采购单，请先生成</p>
                             </div>
-                        </div>
-
-                        <!-- PO 信息面板 -->
-                        <div id="cylinderPOPanel" class="po-panel hidden">
-                            <div class="po-info">
-                                <span class="po-label">PO#</span>
-                                <span class="po-number" id="cylinderPONumber">--</span>
-                            </div>
-                            <div class="po-actions">
-                                <button id="printCylinderBtn" class="action-btn">打印</button>
-                                <button id="exportCylinderPDFBtn" class="action-btn secondary">PDF</button>
-                            </div>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="details-table">
-                                <thead>
-                                    <tr>
-                                        <th>锁芯型号</th>
-                                        <th>等级</th>
-                                        <th>数量</th>
-                                        <th>备注</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="cylinderTableBody">
-                                    <!-- 动态注入 -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="empty-state" id="cylinderEmptyState">
-                            <p>请先加载订单数据</p>
-                        </div>
-                    </div>
-
-                    <!-- Tab: HARDWARE - 五金配件预览 -->
-                    <div class="hub-panel" id="panel-hardware">
-                        <div class="panel-header">
-                            <h2>五金配件预览 <span class="badge" id="hardwareCount">0 items</span></h2>
-                            <div class="panel-actions">
-                                <button id="generateHardwarePOBtn" class="action-btn" disabled>开发中</button>
-                            </div>
-                        </div>
-                        <div class="empty-state">
-                            <p>🚧 功能开发中...</p>
                         </div>
                     </div>
                 </div>
@@ -256,6 +185,45 @@
                 <button id="quickExportBtn" class="footer-btn primary" disabled>QUICK EXPORT</button>
             </div>
         </footer>
+
+        <!-- ==================== 类别选择 Modal ==================== -->
+        <div id="categoryModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>选择要生成的采购单类别</h3>
+                    <button class="modal-close" id="modalCloseBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="category-grid">
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="packaging" checked>
+                            <span class="category-icon">📦</span>
+                            <span class="category-label">包装</span>
+                        </label>
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="cylinder">
+                            <span class="category-icon">🔐</span>
+                            <span class="category-label">锁芯</span>
+                        </label>
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="hardware">
+                            <span class="category-icon">🔩</span>
+                            <span class="category-label">五金</span>
+                        </label>
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="lock">
+                            <span class="category-icon">🔒</span>
+                            <span class="category-label">边锁</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="selectAllBtn" class="btn-secondary">全选</button>
+                    <button id="confirmGenerateBtn" class="btn-primary">生成</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Print-only elements (Hidden normally) -->

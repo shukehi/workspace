@@ -42,17 +42,19 @@ function generatePONumber() {
 /**
  * Create purchase order snapshot
  * @param {Object} orderData - Original order data
- * @param {Array} packagingData - Aggregated packaging data
+ * @param {Array|Object} itemsData - Aggregated data (packaging/cylinder/hardware/lock)
  * @param {Array} mergeFlags - Merge checkbox states
+ * @param {string} category - PO category (packaging/cylinder/hardware/lock)
  * @returns {Object} PO record
  */
-export function generatePurchaseOrder(orderData, packagingData, mergeFlags = []) {
+export function generatePurchaseOrder(orderData, itemsData, mergeFlags = [], category = 'packaging') {
     const poNumber = generatePONumber();
     const timestamp = new Date().toISOString();
 
     // Create deep copy to avoid mutations
     const snapshot = {
         poNumber,
+        category, // 新增：类别标识
         createdAt: timestamp,
         status: 'generated', // generated, printed, exported
 
@@ -65,14 +67,14 @@ export function generatePurchaseOrder(orderData, packagingData, mergeFlags = [])
             remark: orderData.remark
         },
 
-        // Item details with merge flags
-        items: orderData.list.map((item, idx) => ({
+        // Item details with merge flags (for packaging)
+        items: orderData.list ? orderData.list.map((item, idx) => ({
             ...item,
             _allowMerge: mergeFlags[idx] || false
-        })),
+        })) : [],
 
-        // Packaging summary
-        packaging: packagingData,
+        // Category-specific data
+        data: itemsData,
 
         // Metadata
         metadata: {
@@ -84,7 +86,7 @@ export function generatePurchaseOrder(orderData, packagingData, mergeFlags = [])
     // Save to localStorage
     savePurchaseOrder(snapshot);
 
-    console.log('✅ Purchase Order Generated:', poNumber);
+    console.log('✅ Purchase Order Generated:', poNumber, 'Category:', category);
     return snapshot;
 }
 
