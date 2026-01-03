@@ -116,13 +116,9 @@
     accent-color: var(--accent-color);
 }
 
-.category-item input[type="checkbox"]:checked~.category-icon {
-    transform: scale(1.1);
-}
-
-.category-icon {
-    font-size: 32px;
-    transition: transform 0.2s;
+.category-item input[type="checkbox"]:checked~.category-label {
+    color: var(--accent-color);
+    font-weight: 600;
 }
 
 .category-label {
