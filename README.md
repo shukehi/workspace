@@ -97,21 +97,30 @@ workspace/
 │   ├── js/                 # JavaScript 代码
 │   │   ├── core/           # 核心架构
 │   │   │   ├── eventBus.js    # 事件总线
-│   │   │   ├── state.js       # 状态管理
-│   │   │   └── logic.js       # 业务逻辑
+│   │   │   └── state.js       # 状态管理
 │   │   ├── components/     # UI 组件
-│   │   │   ├── search.js
-│   │   │   ├── orderDisplay.js
-│   │   │   ├── packagingTable.js
-│   │   │   ├── printPreview.js
-│   │   │   └── navigation.js
-│   │   ├── api.js          # API 调用层
-│   │   ├── config.js       # 前端配置
-│   │   ├── utils.js        # 工具函数
+│   │   │   ├── print/         # 打印相关组件
+│   │   │   │   ├── printGenerator.js
+│   │   │   │   └── printMerge.js
+│   │   │   ├── navigation.js
+│   │   │   ├── purchaseOrder.js
+│   │   │   └── SmartSidebar.js
+│   │   ├── pages/          # 页面控制器
+│   │   │   └── workbench.js   # 采购工作台逻辑
+│   │   ├── config/         # 配置模块
+│   │   │   ├── index.js       # 配置入口
+│   │   │   └── mergeRules.js  # 合并规则配置
+│   │   ├── services/       # 服务层
+│   │   │   └── api.js         # API 通信
+│   │   ├── utils/          # 工具库
+│   │   │   ├── dataExtractors.js
+│   │   │   ├── formatters.js
+│   │   │   ├── parsers.js
+│   │   │   └── dom.js
 │   │   └── main.js         # 应用入口
 │   ├── css/                # 样式文件
 │   │   ├── common.css      # 通用样式
-│   │   ├── navigation.css  # 导航样式
+│   │   ├── workbench.css   # 工作台样式
 │   │   └── style.css       # 主样式
 │   └── *.html              # HTML 页面
 ├── data/                   # 数据存储

@@ -43,13 +43,21 @@ public/js/
 │   ├── eventBus.js    # 事件总线
 │   └── state.js       # 状态管理
 ├── components/         # 业务组件
-│   ├── search.js
-│   ├── orderDisplay.js
-│   ├── packagingTable.js
-│   └── printPreview.js
-├── api.js             # API 封装
-├── utils.js           # 工具函数
-├── config.js          # 配置管理
+│   ├── print/         # 打印模块
+│   │   ├── printMerge.js
+│   │   └── printGenerator.js
+│   ├── purchaseOrder.js
+│   └── SmartSidebar.js
+├── pages/             # 页面逻辑
+│   └── workbench.js   # 采购工作台
+├── services/          # API 服务
+│   └── api.js
+├── utils/             # 工具函数
+│   ├── dataExtractors.js
+│   └── parsers.js
+├── config/            # 配置管理
+│   ├── index.js
+│   └── mergeRules.js  # 合并规则
 └── main.js            # 应用入口
 ```
 
