@@ -4,14 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>订单查询系统</title>
+    <title>采购工作台 | Procurement Workbench</title>
+    <meta name="description" content="统一采购工作台 - 快速生成包装、锁芯等采购订单">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
         rel="stylesheet">
-    <!-- Modular CSS - Single Entry Point -->
+    <!-- Modular CSS -->
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/pages/workbench.css">
+    <link rel="stylesheet" href="css/pages/workbench-modal.css">
     <!-- PDF Export Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- 导入导航组件 -->
@@ -19,169 +22,231 @@
 </head>
 
 <body>
-    <div class="page-wrapper">
-        <!-- 顶部导航栏 - Web Component -->
+    <div class="workbench-wrapper">
+        <!-- ==================== 顶部导航栏 ==================== -->
         <app-navigation></app-navigation>
 
-        <!-- 页面内容容器 -->
-        <div class="page-container">
-            <!-- 页面头部 -->
-            <div class="page-header">
-                <h1>订单查询</h1>
-                <p class="page-subtitle">请输入订单号查询详细信息</p>
-            </div>
+        <!-- ==================== 工作台主体 ==================== -->
+        <div class="workbench-layout">
 
-            <!-- 页面内容 -->
-            <div class="page-content">
-
-                <div class="search-section">
-                    <div class="input-group">
-                        <input type="text" id="orderCodeInput" placeholder="输入订单号，例如 202512260034" value="202512260034">
-                        <button id="searchBtn">
-                            <span class="btn-text">查询</span>
+            <!-- ========== 左侧：命令输入区 (Command Panel) ========== -->
+            <aside class="workbench-sidebar">
+                <div class="sidebar-section">
+                    <div class="section-label">LOAD SOURCE</div>
+                    <div class="command-input-group">
+                        <input type="text" id="orderCodeInput" placeholder="输入合同编号..." value="202512260034"
+                            autocomplete="off">
+                        <button id="searchBtn" class="cmd-btn">
+                            <span class="btn-text">FETCH</span>
                             <span class="btn-loader"></span>
                         </button>
                     </div>
                     <p id="errorMsg" class="error-message"></p>
                 </div>
 
-                <div id="resultContainer" class="result-container hidden">
-                    <div class="order-summary-card">
-                        <div class="card-header">
-                            <h2>订单概览</h2>
-                            <span id="orderStatusBadge" class="status-badge">已查询</span>
+                <!-- 订单元数据（精简展示） -->
+                <div class="sidebar-section" id="orderMetaSection">
+                    <div class="section-label">ORDER META</div>
+                    <div class="meta-grid" id="orderMetaGrid">
+                        <div class="meta-item">
+                            <span class="meta-key">CLIENT</span>
+                            <span class="meta-value" id="customerName">--</span>
                         </div>
-                        <div class="summary-grid">
-                            <div class="summary-item">
-                                <label>客户名称</label>
-                                <span id="customerName"></span>
-                            </div>
-                            <div class="summary-item">
-                                <label>订单编号</label>
-                                <span id="orderCode"></span>
-                            </div>
-                            <div class="summary-item">
-                                <label>订单日期</label>
-                                <span id="orderDate"></span>
-                            </div>
-                            <div class="summary-item">
-                                <label>交货日期</label>
-                                <span id="advanceDate"></span>
-                            </div>
-                            <div class="summary-item full-width">
-                                <label>备注</label>
-                                <span id="orderRemark"></span>
-                            </div>
+                        <div class="meta-item">
+                            <span class="meta-key">CODE</span>
+                            <span class="meta-value mono" id="orderCode">--</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-key">DATE</span>
+                            <span class="meta-value mono" id="orderDate">--</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-key">DUE</span>
+                            <span class="meta-value mono" id="advanceDate">--</span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="order-details-card">
-                        <div class="card-header">
-                            <h2>商品明细</h2>
+                <!-- 备注/异常提醒区 -->
+                <div class="sidebar-section" id="remarksSection">
+                    <div class="section-label">REMARKS / ALERTS</div>
+                    <div class="remarks-box" id="orderRemark">
+                        <span class="placeholder-text">无备注信息</span>
+                    </div>
+                    <!-- 智能提取的异常项 -->
+                    <div id="alertsContainer" class="alerts-container hidden">
+                        <!-- 动态注入识别出的异常需求 -->
+                    </div>
+                </div>
+
+                <!-- 状态指示器 -->
+                <div class="sidebar-section">
+                    <div class="section-label">STATUS</div>
+                    <div class="status-indicator" id="workbenchStatus">
+                        <span class="status-dot idle"></span>
+                        <span class="status-text">IDLE</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ========== 中央：采购处理中心 (The Hub) ========== -->
+            <main class="workbench-main">
+                <!-- Hub 标签导航 -->
+                <nav class="hub-tabs" id="hubTabs">
+                    <button class="hub-tab active" data-tab="source">
+                        <span class="tab-label">SOURCE</span>
+                        <span class="tab-desc">订单明细</span>
+                    </button>
+                    <button class="hub-tab" data-tab="orders">
+                        <span class="tab-label">ORDERS</span>
+                        <span class="tab-desc">采购单管理</span>
+                    </button>
+                </nav>
+
+                <!-- Hub 内容区 -->
+                <div class="hub-content">
+                    <!-- Tab: SOURCE - 订单原始明细 -->
+                    <div class="hub-panel active" id="panel-source">
+                        <div class="panel-header">
+                            <h2>订单原始数据 <span class="badge" id="sourceCount">0 items</span></h2>
+                            <div class="panel-actions">
+                                <button id="generateOrdersBtn" class="action-btn primary">
+                                    生成采购订单 ▼
+                                </button>
+                            </div>
                         </div>
                         <div class="table-responsive">
                             <table class="details-table">
                                 <thead>
                                     <tr>
-                                        <th>序号</th>
+                                        <th>#</th>
                                         <th>产品名称</th>
                                         <th>规格</th>
                                         <th>颜色</th>
-                                        <th>左数量</th>
-                                        <th>右数量</th>
+                                        <th>L</th>
+                                        <th>R</th>
                                         <th>门板款式</th>
                                         <th>锁具</th>
                                         <th>详情</th>
-                                        <th style="width: 80px; text-align: center;">允许合并</th>
+                                        <th style="width: 80px; text-align: center;">合并</th>
                                     </tr>
                                 </thead>
                                 <tbody id="detailsTableBody">
-                                    <!-- Rows will be injected here -->
+                                    <!-- 动态注入 -->
                                 </tbody>
                             </table>
                         </div>
+                        <div class="empty-state" id="sourceEmptyState">
+                            <p>请在左侧输入合同编号并点击 FETCH</p>
+                        </div>
                     </div>
 
-                    <div class="order-summary-card" id="packagingCard">
-                        <div class="card-header">
-                            <h2>包装采购预览</h2>
-                            <div class="header-actions">
-                                <!-- Generate PO Button (shown initially) -->
-                                <button id="generatePOBtn" class="sm-btn">生成采购单</button>
-                            </div>
-                        </div>
 
-                        <!-- PO Info Panel (Hidden until PO is generated) -->
-                        <div id="poInfoPanel" class="po-info-panel hidden">
-                            <div class="po-info-content">
-                                <div class="po-number-display">
-                                    <label>采购单号:</label>
-                                    <span id="poNumberDisplay" class="po-number"></span>
-                                </div>
-                                <div class="po-actions">
-                                    <button id="printPOBtn" class="sm-btn">打印采购单</button>
-                                    <button id="exportPDFBtn" class="sm-btn sm-btn-secondary">导出 PDF</button>
-                                </div>
-                            </div>
+                    <!-- Tab: ORDERS - 采购单管理 -->
+                    <div class="hub-panel" id="panel-orders">
+                        <div class="panel-header">
+                            <h2>采购单管理 <span class="badge" id="ordersCount">0 单</span></h2>
                         </div>
-
-                        <!-- Print Header (Hidden normally) -->
-                        <div class="print-header hidden">
-                            <h1>包装采购订单</h1>
-                            <div class="print-meta">
-                                <span>供应商: <b id="printSupplier">美+C单</b></span>
-                                <span>日期: <span id="printDate"></span></span>
-                                <span>单号: <span id="printCode"></span></span>
-                            </div>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="details-table print-table">
+                        <div class="orders-list-container">
+                            <table class="orders-table">
                                 <thead>
                                     <tr>
-                                        <th>包装厂家名称</th>
-                                        <th>规格尺寸</th>
-                                        <th>数量 (合计)</th>
+                                        <th>PO 编号</th>
+                                        <th>类别</th>
+                                        <th>客户名称</th>
+                                        <th>合同编号</th>
+                                        <th>生成时间</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
                                     </tr>
                                 </thead>
-                                <tbody id="packagingTableBody">
-                                    <!-- Aggregated rows will be injected here -->
+                                <tbody id="ordersTableBody">
+                                    <!-- 动态注入 -->
                                 </tbody>
                             </table>
-                        </div>
-
-                        <!-- Print Footer (Hidden normally) -->
-                        <div class="print-footer hidden">
-                            <div class="sign-box">
-                                <span>制单人:</span>
-                                <div class="line"></div>
-                            </div>
-                            <div class="sign-box">
-                                <span>审核人:</span>
-                                <div class="line"></div>
-                            </div>
-                            <div class="sign-box">
-                                <span>供应商签字:</span>
-                                <div class="line"></div>
+                            <div class="empty-state" id="ordersEmptyState">
+                                <p>暂无采购单，请先生成</p>
                             </div>
                         </div>
                     </div>
-
                 </div>
-                <!-- End: page-content -->
-
-            </div>
-            <!-- End: page-container -->
-
-            <!-- 页脚 -->
-            <footer class="main-footer">
-                <p>&copy; 2024 订单管理系统 | 技术支持</p>
-            </footer>
-
+            </main>
         </div>
-        <!-- End: page-wrapper -->
 
-        <script type="module" src="js/main.js"></script>
+        <!-- ==================== 底部固定操作栏 ==================== -->
+        <footer class="workbench-footer">
+            <div class="footer-left">
+                <span class="footer-label">WORKBENCH v1.0</span>
+                <span class="footer-divider">|</span>
+                <span class="footer-status" id="footerStatus">Ready</span>
+            </div>
+            <div class="footer-right">
+                <button id="resetWorkbenchBtn" class="footer-btn">RESET</button>
+                <button id="quickExportBtn" class="footer-btn primary" disabled>QUICK EXPORT</button>
+            </div>
+        </footer>
+
+        <!-- ==================== 类别选择 Modal ==================== -->
+        <div id="categoryModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>选择要生成的采购单类别</h3>
+                    <button class="modal-close" id="modalCloseBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="category-grid">
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="packaging" checked>
+                            <span class="category-label">包装</span>
+                        </label>
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="cylinder">
+                            <span class="category-label">锁芯</span>
+                        </label>
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="hardware">
+                            <span class="category-label">五金</span>
+                        </label>
+                        <label class="category-item">
+                            <input type="checkbox" name="category" value="lock">
+                            <span class="category-label">边锁</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="selectAllBtn" class="btn-secondary">全选</button>
+                    <button id="confirmGenerateBtn" class="btn-primary">生成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print-only elements (Hidden normally) -->
+    <div class="print-header hidden">
+        <h1>包装采购订单</h1>
+        <div class="print-meta">
+            <span>供应商: <b id="printSupplier">美+C单</b></span>
+            <span>日期: <span id="printDate"></span></span>
+            <span>单号: <span id="printCode"></span></span>
+        </div>
+    </div>
+    <div class="print-footer hidden">
+        <div class="sign-box">
+            <span>制单人:</span>
+            <div class="line"></div>
+        </div>
+        <div class="sign-box">
+            <span>审核人:</span>
+            <div class="line"></div>
+        </div>
+        <div class="sign-box">
+            <span>供应商签字:</span>
+            <div class="line"></div>
+        </div>
+    </div>
+
+    <script type="module" src="js/pages/workbench.js"></script>
 </body>
 
 </html>
