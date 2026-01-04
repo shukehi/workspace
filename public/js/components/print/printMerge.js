@@ -4,13 +4,14 @@
  */
 
 import { parseQuantityPair } from '../../utils/parsers.js';
+import { MERGE_STRATEGIES } from '../../config/mergeRules.js';
 
 /**
  * 尝试合并商品项
  * @param {Array} items - 商品明细数组
  * @returns {Object} { reducedList: Array, canMerge: boolean }
  */
-export function tryMergeItems(items) {
+export function tryMergeItems(items, category = 'default') {
     if (!items || items.length === 0) return { reducedList: [], canMerge: false };
 
     // Group by Packaging Type first (bz) - consistent with generatePrintPages
@@ -35,8 +36,12 @@ export function tryMergeItems(items) {
             if (!item._allowMerge) {
                 independentItems.push(item);
             } else {
-                // Create a unique key for merging: Spec + MB (Wall) + SX (Direction)
-                const key = `${item.spec}|${item.mb}|${item.sx}`;
+                // Create a unique key for merging based on category strategy
+                // Future-proofing: To add new categories, simply add to MERGE_STRATEGIES
+                const strategy = MERGE_STRATEGIES[category] || MERGE_STRATEGIES.default;
+
+                // Construct key based on strategy fields
+                const key = strategy.fields.map(field => item[field] || '').join('|');
 
                 if (!mergeableBuckets[key]) {
                     mergeableBuckets[key] = [];

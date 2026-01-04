@@ -152,21 +152,28 @@ async function handleBatchGenerate(selectedCategories) {
             });
         }
 
-        // Process merge logic
-        const { reducedList, canMerge } = tryMergeItems(orderData.list);
-
-        if (canMerge) {
-            if (confirm('检测到已勾选"标准"的项可以合并。\n\n【确定】合并相同规格\n【取消】保持独立显示')) {
-                orderData.list = reducedList;
-            }
-        }
-
         // Generate POs for each selected category
         const generatedPOs = [];
+
         for (const category of selectedCategories) {
+            // Clone order data for this category to avoid side-effects
+            const categoryOrderData = JSON.parse(JSON.stringify(orderData));
+
+            // Apply category-specific merge logic
+            // We assume if users checked "merge" boxes, they WANT merging
+            // The merge logic now respects the category (e.g., Packaging ignores SX)
+            const { reducedList, canMerge } = tryMergeItems(categoryOrderData.list, category);
+
+            if (canMerge) {
+                console.log(`🔹 Merging items for category: ${category}`);
+                categoryOrderData.list = reducedList;
+            }
+
             const extractor = getExtractor(category);
-            const data = extractor(orderData.list);
-            const po = generatePurchaseOrder(orderData, data, mergeFlags, category);
+            // Extract data from the (potentially merged) list
+            const data = extractor(categoryOrderData.list);
+
+            const po = generatePurchaseOrder(categoryOrderData, data, mergeFlags, category);
             generatedPOs.push(po);
         }
 
