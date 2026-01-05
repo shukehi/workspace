@@ -1,0 +1,39 @@
+{
+    "dimensions": {
+        "5": {
+            "code": "70AB",
+            "eccentricity": "30*40/中心孔偏心"
+        },
+        "7": {
+            "code": "90AB",
+            "eccentricity": "34.5*55.5/中心孔偏心"
+        },
+        "9": {
+            "code": "110AB",
+            "eccentricity": "40*70/中心孔偏心"
+        },
+        "10": {
+            "code": "120AB",
+            "eccentricity": "41*79/中心孔偏心"
+        }
+    },
+    "products": [
+        {
+            "description": "忠恒-锌合金系列",
+            "matchKeywords": [
+                "锌合金",
+                "P35"
+            ],
+            "supplier": "忠恒",
+            "template": "{code}微珠锌合金"
+        },
+        {
+            "description": "劲佳-塑2铜系列",
+            "matchKeywords": [
+                "塑2铜"
+            ],
+            "supplier": "劲佳",
+            "template": "{code}塑2铜锁芯"
+        }
+    ]
+}

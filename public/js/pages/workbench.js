@@ -8,7 +8,7 @@
 import { fetchOrderDetail } from '../services/api.js';
 import { appState } from '../core/state.js';
 import { eventBus } from '../core/eventBus.js';
-import { loadPackagingMapping } from '../config/index.js';
+import { loadPackagingMapping, loadCylinderMapping } from '../config/index.js';
 import { initNavigation } from '../components/navigation.js';
 import { parseQuantityPair } from '../utils/parsers.js';
 import { setText } from '../utils/dom.js';
@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Load Config
     await loadPackagingMapping();
+    await loadCylinderMapping();
     console.log('✅ Config loaded');
 
     // 3. Bind UI Events
@@ -171,7 +172,12 @@ async function handleBatchGenerate(selectedCategories) {
 
             const extractor = getExtractor(category);
             // Extract data from the (potentially merged) list
-            const data = extractor(categoryOrderData.list);
+            // Pass order info for cylinder mapping (customer name needed for requirements)
+            const orderInfo = {
+                customerName: categoryOrderData.customerName,
+                code: categoryOrderData.code
+            };
+            const data = extractor(categoryOrderData.list, orderInfo);
 
             const po = generatePurchaseOrder(categoryOrderData, data, mergeFlags, category);
             generatedPOs.push(po);
