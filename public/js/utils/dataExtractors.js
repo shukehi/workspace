@@ -27,7 +27,6 @@ export function extractCylinderData(orderList, orderInfo = {}) {
 
     orderList.forEach(item => {
         // 1. 提取门厚 (从规格字符串中)
-        // 假设格式为: 宽*高/厚/...
         const parts = (item.spec || '').split('/');
         let thickness = "7"; // 默认值
         if (parts.length >= 2) {
@@ -41,45 +40,42 @@ export function extractCylinderData(orderList, orderInfo = {}) {
             return;
         }
 
-        // 3. 匹配产品规则
+        // 3. 获取内部名称并查找映射
         const internalName = item.sx || '标准锁芯';
-        const productRule = CYLINDER_MAPPING.products?.find(prod => {
-            return prod.matchKeywords?.every(kw => internalName.includes(kw));
-        });
+        const mapping = CYLINDER_MAPPING.mappings?.[internalName];
 
-        if (!productRule) {
-            console.warn(`未找到名称 [${internalName}] 的产品匹配规则，使用默认`);
+        if (!mapping) {
+            console.warn(`未找到锁芯 [${internalName}] 的映射配置，使用默认值`);
             // 使用默认值
-            const cylinderType = internalName;
-            if (!cylinderMap[cylinderType]) {
-                cylinderMap[cylinderType] = {
-                    type: cylinderType,
+            const key = internalName;
+            if (!cylinderMap[key]) {
+                cylinderMap[key] = {
+                    type: internalName,
                     supplier: '未知供应商',
+                    eccentricity: dimensionRule.eccentricity,
                     grade: '标准',
                     quantity: 0,
-                    remark: ''
+                    remark: determineRequirements(orderInfo.customerName || '')
                 };
             }
             const qty = parseQuantityPair(item.qty);
-            cylinderMap[cylinderType].quantity += qty.left + qty.right;
+            cylinderMap[key].quantity += qty.left + qty.right;
             return;
         }
 
         // 4. 生成外协名称 (替换模板变量)
-        const externalName = productRule.template
-            .replace('{code}', dimensionRule.code);
+        const externalName = mapping.template.replace('{code}', dimensionRule.code);
 
         // 5. 确定要求 (根据客户部门智能判断)
         const requirements = determineRequirements(orderInfo.customerName || '');
 
         // 6. 构建唯一键并聚合
-        // 使用: 供应商 + 外协名称 + 偏心 作为唯一键
-        const key = `${productRule.supplier}|${externalName}|${dimensionRule.eccentricity}`;
+        const key = `${mapping.supplier}|${externalName}|${dimensionRule.eccentricity}`;
 
         if (!cylinderMap[key]) {
             cylinderMap[key] = {
                 type: externalName,
-                supplier: productRule.supplier,
+                supplier: mapping.supplier,
                 eccentricity: dimensionRule.eccentricity,
                 grade: '标准',
                 quantity: 0,
