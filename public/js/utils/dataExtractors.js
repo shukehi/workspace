@@ -5,7 +5,6 @@
 
 import { aggregatePackaging } from '../components/packagingTable.js';
 import { parseQuantityPair } from './parsers.js';
-import { CYLINDER_MAPPING } from '../config/index.js';
 
 /**
  * 提取包装数据
@@ -20,9 +19,12 @@ export function extractPackagingData(orderList) {
  * 提取锁芯数据
  * @param {Array} orderList - 订单明细列表
  * @param {Object} orderInfo - 订单信息 (包含客户名称等)
- * @returns {Array} 锁芯数据
+ * @returns {Promise<Array>} 锁芯数据
  */
-export function extractCylinderData(orderList, orderInfo = {}) {
+export async function extractCylinderData(orderList, orderInfo = {}) {
+    // Dynamically import to ensure config is loaded
+    const { CYLINDER_MAPPING } = await import('../config/index.js');
+
     const cylinderMap = {};
 
     orderList.forEach(item => {

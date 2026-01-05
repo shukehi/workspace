@@ -177,7 +177,7 @@ async function handleBatchGenerate(selectedCategories) {
                 customerName: categoryOrderData.customerName,
                 code: categoryOrderData.code
             };
-            const data = extractor(categoryOrderData.list, orderInfo);
+            const data = await extractor(categoryOrderData.list, orderInfo);
 
             const po = generatePurchaseOrder(categoryOrderData, data, mergeFlags, category);
             generatedPOs.push(po);
