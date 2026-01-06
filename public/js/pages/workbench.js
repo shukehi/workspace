@@ -485,17 +485,33 @@ window.exportPDF = async function (poNumber) {
     if (!po) return;
 
     try {
+        // Prepare request body
         const requestBody = {
             poNumber: po.poNumber,
+            title: po.category === 'cylinder' ? '锁芯采购订单' : '包装采购订单',
             order: {
                 customerName: po.order.customerName,
                 code: po.order.code,
                 orderDate: po.order.orderDate,
                 advanceDate: po.order.advanceDate,
                 remark: po.order.remark,
-                list: po.items
+                list: po.items // Default
             }
         };
+
+        // Adapter for Cylinder Data
+        if (po.category === 'cylinder') {
+            console.log('🔄 Adapting Cylinder data for PDF export...');
+            requestBody.order.list = po.items.map(item => ({
+                productModelName: item.type,       // 锁芯型号 -> 产品名称
+                spec: item.eccentricity,           // 偏心参数 -> 规格尺寸
+                qty: item.quantity,                // 总数量 -> 数量
+                mb: item.supplier,                 // 供应商 -> 门板 (借用显示)
+                xsbz: item.remark,                 // 备注 -> 备注
+                ...item                            // Keep original fields
+            }));
+        }
+
 
         // Debug: 查看发送的数据
         console.log('📤 PDF Export Request:', {
