@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="css/core/variables.css">
     <link rel="stylesheet" href="css/core/utilities.css">
     <link rel="stylesheet" href="css/pages/print.css">
+
+    <!-- html2pdf.js for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             background-color: #525659;
@@ -143,6 +146,7 @@
             <button id="toggleEditBtn" class="btn btn-secondary">编辑</button>
             <button id="saveBtn" class="btn btn-success" style="display:none;">保存</button>
             <button class="btn btn-primary" onclick="window.print()">打印</button>
+            <button id="exportPdfBtn" class="btn btn-primary">导出PDF</button>
             <button class="btn btn-secondary" onclick="window.close()">关闭</button>
         </div>
     </div>
@@ -214,6 +218,52 @@
                 alert('订单预览生成失败');
             }
         }
+
+        // ==================== PDF Export with html2pdf.js ====================
+
+        function initPDFExport() {
+            const exportBtn = document.getElementById('exportPdfBtn');
+            if (!exportBtn) return;
+
+            exportBtn.addEventListener('click', async () => {
+                try {
+                    exportBtn.disabled = true;
+                    exportBtn.textContent = '生成中...';
+
+                    const element = document.getElementById('printOutput');
+                    const category = localStorage.getItem('_order_preview_category') || 'packaging';
+                    const poNumber = currentPONumber || 'order';
+
+                    const opt = {
+                        margin: [10, 10, 10, 10],
+                        filename: `${poNumber}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: {
+                            scale: 2,
+                            useCORS: true,
+                            letterRendering: true
+                        },
+                        jsPDF: {
+                            unit: 'mm',
+                            format: 'a4',
+                            orientation: 'portrait'
+                        },
+                        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                    };
+
+                    await html2pdf().set(opt).from(element).save();
+
+                    console.log('✅ PDF exported successfully');
+                } catch (error) {
+                    console.error('❌ PDF export failed:', error);
+                    alert('PDF 导出失败: ' + error.message);
+                } finally {
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = '导出PDF';
+                }
+            });
+        }
+
 
         // ==================== Edit Mode Logic ====================
 
@@ -399,6 +449,7 @@
         // Start when DOM is ready
         initOrderPreview();
         initEditControls();
+        initPDFExport();
     </script>
 </body>
 
