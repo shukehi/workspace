@@ -17,6 +17,23 @@
             "eccentricity": "41*79/中心孔偏心"
         }
     },
+    "specialRules": [
+        {
+            "conditionField": "sxhz",
+            "keyword": "16-7-5+ZS17",
+            "thickness": "7",
+            "variants": {
+                "内开": {
+                    "code": "84AB",
+                    "eccentricity": "28*56/中心孔偏心"
+                },
+                "外开": {
+                    "code": "84AB",
+                    "eccentricity": "34*50/中心孔偏心"
+                }
+            }
+        }
+    ],
     "mappings": {
         "90P35锌合金锁芯扣封": {
             "supplier": "忠恒",
@@ -37,6 +54,10 @@
         "ZH-微珠锌合金锁芯": {
             "supplier": "忠恒",
             "template": "{code}微珠锌合金锁芯"
+        },
+        "JJ-锌合金子母": {
+            "supplier": "劲佳",
+            "template": "{code}电镀锌合金子母珠"
         }
     },
     "customLogos": [

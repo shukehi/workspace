@@ -37,15 +37,50 @@ export async function extractCylinderData(orderList, orderInfo = {}) {
     };
 
     orderList.forEach(item => {
-        // 1. 提取门厚 (从规格字符串中)
+        // 1. 提取门厚 和 开向 (从规格字符串中)
         const parts = (item.spec || '').split('/');
         let thickness = "7"; // 默认值
+        let openDirection = "内开"; // 默认值
+
         if (parts.length >= 2) {
             thickness = parts[1].trim();
         }
+        if (parts.length >= 3) {
+            // 简单判断包含关系
+            const dirPart = parts[2];
+            if (dirPart.includes("外开")) openDirection = "外开";
+            else if (dirPart.includes("内开")) openDirection = "内开";
+        }
 
-        // 2. 查尺寸表
-        const dimensionRule = CYLINDER_MAPPING.dimensions?.[thickness];
+        // 2. 确定尺寸规则 (优先检查特殊规则)
+        let dimensionRule = null;
+
+        // 2.1 检查特殊规则 (Special Rules Override)
+        const specialRules = CYLINDER_MAPPING.specialRules || [];
+        for (const rule of specialRules) {
+            // 检查字段是否存在且包含关键字
+            // 注意: 字段名可能是 'sxhz' 但 API 返回的 item 里可能都是小写或者 mapping 需要适应
+            const fieldValue = item[rule.conditionField] || '';
+
+            // 只有当门厚也是 7 (或规则不限制门厚) 时才生效
+            if (rule.thickness && rule.thickness !== thickness) continue;
+
+            if (fieldValue && fieldValue.includes(rule.keyword)) {
+                // 命中特殊规则！查找对应的开向变体
+                const variant = rule.variants[openDirection];
+                if (variant) {
+                    dimensionRule = variant;
+                    // console.log(`⚡️ 命中特殊规则: ${rule.keyword} [${openDirection}] -> ${variant.code}`);
+                    break; // 找到一个即停止
+                }
+            }
+        }
+
+        // 2.2 如果没命中特殊规则，使用标准尺寸表
+        if (!dimensionRule) {
+            dimensionRule = CYLINDER_MAPPING.dimensions?.[thickness];
+        }
+
         if (!dimensionRule) {
             console.warn(`未找到门厚 [${thickness}] 的尺寸定义，跳过`);
             return;

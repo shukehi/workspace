@@ -145,23 +145,42 @@ export function initPOWorkflow() {
 
             console.log('📄 Starting server-side PDF generation for:', currentPO.poNumber);
 
+            // Prepare request body
+            const requestBody = {
+                poNumber: currentPO.poNumber,
+                title: currentPO.category === 'cylinder' ? '锁芯采购订单' : '包装采购订单', // Attempt to override title
+                order: {
+                    customerName: currentPO.order.customerName,
+                    code: currentPO.order.code,
+                    orderDate: currentPO.order.orderDate,
+                    advanceDate: currentPO.order.advanceDate,
+                    remark: currentPO.order.remark,
+                    list: currentPO.items // Default list
+                }
+            };
+
+            // Adapter for Cylinder Data
+            // Backend expects: productModelName, spec, qty, mb, xsbz
+            if (currentPO.category === 'cylinder') {
+                console.log('🔄 Adapting Cylinder data for PDF export...');
+                requestBody.order.list = currentPO.items.map(item => ({
+                    productModelName: item.type,       // 锁芯型号 -> 产品名称
+                    spec: item.eccentricity,           // 偏心参数 -> 规格尺寸
+                    qty: item.quantity,                // 总数量 -> 数量
+                    mb: item.supplier,                 // 供应商 -> 门板 (借用显示)
+                    xsbz: item.remark,                 // 备注 -> 备注
+                    // Keep original fields just in case
+                    ...item
+                }));
+            }
+
             // Call backend API to generate PDF
             const response = await fetch('/api/pdf/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    poNumber: currentPO.poNumber,
-                    order: {
-                        customerName: currentPO.order.customerName,
-                        code: currentPO.order.code,
-                        orderDate: currentPO.order.orderDate,
-                        advanceDate: currentPO.order.advanceDate,
-                        remark: currentPO.order.remark,
-                        list: currentPO.items
-                    }
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
