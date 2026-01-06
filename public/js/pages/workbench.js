@@ -175,7 +175,8 @@ async function handleBatchGenerate(selectedCategories) {
             // Pass order info for cylinder mapping (customer name needed for requirements)
             const orderInfo = {
                 customerName: categoryOrderData.customerName,
-                code: categoryOrderData.code
+                code: categoryOrderData.code,
+                remark: categoryOrderData.remark
             };
             const data = await extractor(categoryOrderData.list, orderInfo);
 

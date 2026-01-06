@@ -20,7 +20,7 @@
     "mappings": {
         "90P35锌合金锁芯扣封": {
             "supplier": "忠恒",
-            "template": "{code}微珠锌合金"
+            "template": "{code}微珠锌合金锁芯 ORIGINAL&SED(TURKEY)"
         },
         "塑2铜锁芯": {
             "supplier": "劲佳",
@@ -29,6 +29,22 @@
         "锌合金高低齿": {
             "supplier": "兴泰锁芯",
             "template": "{code}锌合金高低齿铜锁芯"
+        },
+        "ZH-微珠锌合金MAN": {
+            "supplier": "忠恒",
+            "template": "{code}微珠锌合金锁芯 Craft-MAN标"
+        },
+        "ZH-微珠锌合金锁芯": {
+            "supplier": "忠恒",
+            "template": "{code}微珠锌合金锁芯"
         }
-    }
+    },
+    "customLogos": [
+        "MEGASTAR",
+        "Craft",
+        "ORIGINAL&SED(TURKEY)",
+        "VAnric",
+        "Railingo",
+        "HOME SECURE"
+    ]
 }

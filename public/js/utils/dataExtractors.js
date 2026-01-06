@@ -24,8 +24,17 @@ export function extractPackagingData(orderList) {
 export async function extractCylinderData(orderList, orderInfo = {}) {
     // Dynamically import to ensure config is loaded
     const { CYLINDER_MAPPING } = await import('../config/index.js');
+    const customLogos = CYLINDER_MAPPING.customLogos || [];
 
     const cylinderMap = {};
+
+    // Helper: Detect logo in text
+    const detectLogo = (text) => {
+        if (!text || typeof text !== 'string') return null;
+        const upperText = text.toUpperCase();
+        // Return the exact casing from the config if found
+        return customLogos.find(logo => upperText.includes(logo.toUpperCase()));
+    };
 
     orderList.forEach(item => {
         // 1. 提取门厚 (从规格字符串中)
@@ -42,15 +51,25 @@ export async function extractCylinderData(orderList, orderInfo = {}) {
             return;
         }
 
-        // 3. 获取内部名称并查找映射
+        // 3. Detect Logo (Check item remark -> Order remark -> Customer Name)
+        const logo = detectLogo(item.xsbz) ||
+            detectLogo(orderInfo.remark) ||
+            detectLogo(orderInfo.customerName);
+
+        // 4. 获取内部名称并查找映射
         const internalName = item.sx || '标准锁芯';
         const mapping = CYLINDER_MAPPING.mappings?.[internalName];
 
         if (!mapping) {
             console.warn(`未找到锁芯 [${internalName}] 的映射配置，使用默认值`);
-            // 使用默认值
-            const key = internalName;
+
+            // Build key with logo isolation
+            const key = `${internalName}|${logo || ''}`;
+
             if (!cylinderMap[key]) {
+                let req = determineRequirements(orderInfo.customerName || '');
+                if (logo) req += ` (刻 ${logo} 标)`;
+
                 cylinderMap[key] = {
                     internalName: internalName,  // 内部名称
                     type: internalName,           // 默认情况下，外协名称=内部名称
@@ -58,7 +77,7 @@ export async function extractCylinderData(orderList, orderInfo = {}) {
                     eccentricity: dimensionRule.eccentricity,
                     grade: '标准',
                     quantity: 0,
-                    remark: determineRequirements(orderInfo.customerName || '')
+                    remark: req
                 };
             }
             const qty = parseQuantityPair(item.qty);
@@ -66,14 +85,17 @@ export async function extractCylinderData(orderList, orderInfo = {}) {
             return;
         }
 
-        // 4. 生成外协名称 (替换模板变量)
+        // 5. 生成外协名称 (替换模板变量)
         const externalName = mapping.template.replace('{code}', dimensionRule.code);
 
-        // 5. 确定要求 (根据客户部门智能判断)
-        const requirements = determineRequirements(orderInfo.customerName || '');
+        // 6. 确定要求 (根据客户部门智能判断 + Logo)
+        let requirements = determineRequirements(orderInfo.customerName || '');
+        if (logo) {
+            requirements += ` (刻 ${logo} 标)`;
+        }
 
-        // 6. 构建唯一键并聚合
-        const key = `${mapping.supplier}|${externalName}|${dimensionRule.eccentricity}`;
+        // 7. 构建唯一键并聚合 (加入 logo 隔离)
+        const key = `${mapping.supplier}|${externalName}|${dimensionRule.eccentricity}|${logo || ''}`;
 
         if (!cylinderMap[key]) {
             cylinderMap[key] = {
