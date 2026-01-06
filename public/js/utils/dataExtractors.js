@@ -52,7 +52,8 @@ export async function extractCylinderData(orderList, orderInfo = {}) {
             const key = internalName;
             if (!cylinderMap[key]) {
                 cylinderMap[key] = {
-                    type: internalName,
+                    internalName: internalName,  // 内部名称
+                    type: internalName,           // 默认情况下，外协名称=内部名称
                     supplier: '未知供应商',
                     eccentricity: dimensionRule.eccentricity,
                     grade: '标准',
@@ -76,7 +77,8 @@ export async function extractCylinderData(orderList, orderInfo = {}) {
 
         if (!cylinderMap[key]) {
             cylinderMap[key] = {
-                type: externalName,
+                internalName: internalName,  // 内部名称（订单中的锁芯名称）
+                type: externalName,           // 外协名称（生成的采购名称）
                 supplier: mapping.supplier,
                 eccentricity: dimensionRule.eccentricity,
                 grade: '标准',

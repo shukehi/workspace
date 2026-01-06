@@ -22,9 +22,13 @@
             "supplier": "忠恒",
             "template": "{code}微珠锌合金"
         },
-        "90AB塑2铜锁芯": {
+        "塑2铜锁芯": {
             "supplier": "劲佳",
             "template": "{code}塑2铜锁芯"
+        },
+        "锌合金高低齿": {
+            "supplier": "兴泰锁芯",
+            "template": "{code}锌合金高低齿铜锁芯"
         }
     }
 }

@@ -231,15 +231,11 @@ body.print-mode #printOutput {
     width: 45px;
 }
 
-/* 备注 (保证最小宽度) */
-.print-table th:nth-child(7) {
-    width: auto;
+/* 备注列 - 始终使用自动宽度（适配所有类别：包装7列、锁芯5列等） */
+.print-table th:last-child,
+.print-table td:last-child {
+    width: auto !important;
     min-width: 100px;
-}
-
-/* Ensure remarks wrap within the cell */
-.print-table td:last-child,
-.print-table th:last-child {
     word-break: break-all;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
@@ -316,6 +312,7 @@ body.print-mode #printOutput {
 }
 
 @media print {
+
     /* Hide all UI controls when printing */
     .controls-bar,
     .zoom-controls,
@@ -376,10 +373,28 @@ body.print-mode #printOutput {
 
     /* Additional attempts to suppress browser headers/footers */
     @page {
-        @top-left { content: none; }
-        @top-center { content: none; }
-        @top-right { content: none; }
-        @bottom-left { content: none; }
-        @bottom-center { content: none; }
-        @bottom-right { content: none; }
+        @top-left {
+            content: none;
+        }
+
+        @top-center {
+            content: none;
+        }
+
+        @top-right {
+            content: none;
+        }
+
+        @bottom-left {
+            content: none;
+        }
+
+        @bottom-center {
+            content: none;
+        }
+
+        @bottom-right {
+            content: none;
+        }
     }
+}

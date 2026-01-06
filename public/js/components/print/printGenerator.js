@@ -24,8 +24,8 @@ const CATEGORY_CONFIGS = {
     },
     cylinder: {
         title: '锁芯采购订单',
-        headers: ['序号', '锁芯型号', '供应商', '偏心', '数量', '备注'],
-        fields: ['no', 'type', 'supplier', 'eccentricity', 'quantity', 'remark'],
+        headers: ['序号', '锁芯型号', '偏心', '数量', '备注'],
+        fields: ['no', 'type', 'eccentricity', 'quantity', 'remark'],
         groupBy: 'supplier', // 按供应商分组
         showSupplier: true,
         showPackagingNames: false
@@ -130,8 +130,14 @@ export async function generatePrintPages(order, category = 'packaging') {
                 clone.querySelector('.p-supplier').textContent = PACKAGING_MAPPING.supplierName || '默认供应商';
                 clone.querySelector('.p-int-pkg').textContent = group.internalName || groupKey;
                 clone.querySelector('.p-ext-pkg').textContent = group.externalName || groupKey;
+            } else if (category === 'cylinder') {
+                // Cylinder-specific fields
+                clone.querySelector('.p-supplier').textContent = group.supplier || groupKey;
+                // 锁芯订单不显示内部名称和外协名称
+                clone.querySelector('.p-int-pkg').textContent = '-';
+                clone.querySelector('.p-ext-pkg').textContent = '-';
             } else {
-                // For other categories, use supplier from group
+                // For other categories (hardware, lock, etc.)
                 clone.querySelector('.p-supplier').textContent = group.supplier || groupKey;
                 clone.querySelector('.p-int-pkg').textContent = '-';
                 clone.querySelector('.p-ext-pkg').textContent = '-';

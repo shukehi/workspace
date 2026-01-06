@@ -52,6 +52,20 @@ export function generatePurchaseOrder(orderData, itemsData, mergeFlags = [], cat
     const timestamp = new Date().toISOString();
 
     // Create deep copy to avoid mutations
+    // 根据类别决定使用哪个数据源
+    let items;
+    if (category === 'packaging') {
+        // 包装类别：使用原始订单数据（因为需要规格、门板等原始字段）
+        items = orderData.list ? orderData.list.map((item, idx) => ({
+            ...item,
+            _allowMerge: mergeFlags[idx] || false
+        })) : [];
+    } else {
+        // 其他类别（锁芯、五金、边锁）：使用提取后的数据
+        // itemsData 是已经聚合和转换后的数据（如锁芯的 type, supplier, eccentricity 等）
+        items = Array.isArray(itemsData) ? itemsData : [];
+    }
+
     const snapshot = {
         poNumber,
         category, // 新增：类别标识
@@ -67,13 +81,10 @@ export function generatePurchaseOrder(orderData, itemsData, mergeFlags = [], cat
             remark: orderData.remark
         },
 
-        // Item details with merge flags (for packaging)
-        items: orderData.list ? orderData.list.map((item, idx) => ({
-            ...item,
-            _allowMerge: mergeFlags[idx] || false
-        })) : [],
+        // Item details
+        items: items,
 
-        // Category-specific data
+        // Category-specific data (保留原始提取数据，用于调试和引用)
         data: itemsData,
 
         // Metadata
