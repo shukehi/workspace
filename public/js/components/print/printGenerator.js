@@ -39,10 +39,10 @@ const CATEGORY_CONFIGS = {
         showPackagingNames: false
     },
     lock: {
-        title: '边锁采购订单',
+        title: '锁叉采购订单',
         headers: ['序号', '边锁型号', '规格', '数量', '备注'],
         fields: ['no', 'type', 'spec', 'quantity', 'remark'],
-        groupBy: 'type',
+        groupBy: 'supplier', // 改为按供应商分组，这样上下头会在同一组
         showSupplier: true,
         showPackagingNames: false
     }
@@ -293,6 +293,9 @@ function groupItemsByCategory(items, category) {
         }
         groups[groupKey].items.push(item);
     });
+
+    console.log(`🔧 Grouped ${category} items:`, groups);
+    console.log(`🔧 Total groups: ${Object.keys(groups).length}`);
 
     return groups;
 }

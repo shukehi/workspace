@@ -337,8 +337,14 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
             lockSuffix = lockTypeConfig.nameModifier; // "P66"
         }
 
-        // 10. 构建备注
-        let remarkText = hasHangingFeet ? `吊脚${hangingFeetValue}mm` : '';
+        // 10. 构建备注（包含门厚和门高）
+        let remarkParts = [`${thickness}CM ${doorHeight}`];
+
+        if (hasHangingFeet) {
+            remarkParts.push(`吊脚${hangingFeetValue}mm`);
+        }
+
+        let remarkText = remarkParts.join(', ');
 
         const qtyPair = parseQuantityPair(item.qty);
         const totalQty = qtyPair.left + qtyPair.right;
@@ -417,7 +423,10 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
         }
     });
 
-    return Object.values(lockForkMap);
+    const result = Object.values(lockForkMap);
+    console.log('🔧 Lock Fork Extraction Result:', result);
+    console.log('🔧 Total lock fork items:', result.length);
+    return result;
 }
 
 /**
