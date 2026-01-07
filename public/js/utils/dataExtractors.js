@@ -323,34 +323,97 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
             heightAdjustment + hangingFeetAdjustment
         );
 
-        // 8. 构建规格字符串（包含上头和下头尺寸）
-        const specString = `上头 = ${upperDimension}, 下头 = ${lowerDimension}`;
+        // 8. 构建锁叉名称（基础部分）
+        let baseName = item.sc; // 如 "单头锁叉"
 
-        // 9. 构建备注
-        let finalRemark = '';
-        if (lockTypeConfig?.category === 'dual-head') {
-            finalRemark = `上头: ${lockTypeConfig.upper || ''}, 下头: ${lockTypeConfig.lower || ''}`;
-        } else if (hasHangingFeet) {
-            finalRemark = `吊脚${hangingFeetValue}mm`;
+        // 添加边型修饰符（如果有）
+        if (edgeModifier) {
+            baseName = `${baseName} ${edgeModifier}`; // "单头锁叉 T型"
         }
 
-        // 10. 生成唯一键（用于合并相同规格）
-        const key = `${lockForkName}|${specString}|${finalRemark}`;
+        // 9. 构建锁具类型后缀
+        let lockSuffix = '';
+        if (lockTypeConfig?.nameModifier && lockTypeConfig.category !== 'dual-head') {
+            lockSuffix = lockTypeConfig.nameModifier; // "P66"
+        }
+
+        // 10. 构建备注
+        let remarkText = hasHangingFeet ? `吊脚${hangingFeetValue}mm` : '';
 
         const qtyPair = parseQuantityPair(item.qty);
         const totalQty = qtyPair.left + qtyPair.right;
 
-        // 11. 合并或创建新条目
-        if (lockForkMap[key]) {
-            lockForkMap[key].quantity += totalQty;
+        // 11. 生成上头和下头两条记录
+        if (lockTypeConfig?.category === 'dual-head') {
+            // 双头锁叉（直杆/弯杆）
+            const upperName = `${baseName} - 上头 ${lockTypeConfig.upper || ''}`.trim();
+            const lowerName = `${baseName} - 下头 ${lockTypeConfig.lower || ''}`.trim();
+
+            const upperKey = `${upperName}|${upperDimension}|${remarkText}`;
+            const lowerKey = `${lowerName}|${lowerDimension}|${remarkText}`;
+
+            // 上头
+            if (lockForkMap[upperKey]) {
+                lockForkMap[upperKey].quantity += totalQty;
+            } else {
+                lockForkMap[upperKey] = {
+                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
+                    type: upperName,
+                    spec: upperDimension,
+                    remark: remarkText,
+                    quantity: totalQty
+                };
+            }
+
+            // 下头
+            if (lockForkMap[lowerKey]) {
+                lockForkMap[lowerKey].quantity += totalQty;
+            } else {
+                lockForkMap[lowerKey] = {
+                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
+                    type: lowerName,
+                    spec: lowerDimension,
+                    remark: remarkText,
+                    quantity: totalQty
+                };
+            }
         } else {
-            lockForkMap[key] = {
-                supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
-                type: lockForkName,
-                spec: specString,
-                remark: finalRemark,
-                quantity: totalQty
-            };
+            // 标准锁叉或P66
+            const upperName = lockSuffix
+                ? `${baseName} - 上头 ${lockSuffix}`
+                : `${baseName} - 上头`;
+            const lowerName = lockSuffix
+                ? `${baseName} - 下头 ${lockSuffix}`
+                : `${baseName} - 下头`;
+
+            const upperKey = `${upperName}|${upperDimension}|${remarkText}`;
+            const lowerKey = `${lowerName}|${lowerDimension}|${remarkText}`;
+
+            // 上头
+            if (lockForkMap[upperKey]) {
+                lockForkMap[upperKey].quantity += totalQty;
+            } else {
+                lockForkMap[upperKey] = {
+                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
+                    type: upperName,
+                    spec: upperDimension,
+                    remark: remarkText,
+                    quantity: totalQty
+                };
+            }
+
+            // 下头
+            if (lockForkMap[lowerKey]) {
+                lockForkMap[lowerKey].quantity += totalQty;
+            } else {
+                lockForkMap[lowerKey] = {
+                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
+                    type: lowerName,
+                    spec: lowerDimension,
+                    remark: remarkText,
+                    quantity: totalQty
+                };
+            }
         }
     });
 
