@@ -40,8 +40,8 @@ const CATEGORY_CONFIGS = {
     },
     lock: {
         title: '锁叉采购订单',
-        headers: ['序号', '边锁型号', '规格', '数量', '备注'],
-        fields: ['no', 'type', 'spec', 'quantity', 'remark'],
+        headers: ['序号', '边锁型号', '规格', '数量', '单位', '备注'],
+        fields: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
         groupBy: 'supplier', // 改为按供应商分组，这样上下头会在同一组
         showSupplier: true,
         showPackagingNames: false
@@ -199,6 +199,10 @@ export async function generatePrintPages(order, category = 'packaging') {
                             value = item.quantity || 0;
                             totalQty += (item.quantity || 0);
                             break;
+                        case 'unit':
+                            value = '根';
+                            editable = false;
+                            break;
                         case 'remark':
                             value = item.remark || '';
                             break;
@@ -245,10 +249,14 @@ export async function generatePrintPages(order, category = 'packaging') {
                         groupTotal += (item.quantity || 0);
                     });
 
-                    const colspanCount = config.fields.length - 2; // -2 for quantity and remark columns
+                    // Calculate colspan: total fields - (quantity + unit + remark)
+                    // For lock: 6 fields - 3 = 3
+                    // For cylinder/hardware: 5 fields - 2 = 3
+                    const colspanCount = config.fields.length - (category === 'lock' ? 3 : 2);
                     totalRow.innerHTML = `
                         <td colspan="${colspanCount}" style="text-align: right;">合计</td>
                         <td>${groupTotal}</td>
+                        ${category === 'lock' ? '<td></td>' : ''}
                         <td></td>
                     `;
                 }
