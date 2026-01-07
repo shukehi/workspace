@@ -323,73 +323,34 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
             heightAdjustment + hangingFeetAdjustment
         );
 
-        // 8. 处理双头锁叉（直杆/弯杆）
+        // 8. 构建规格字符串（包含上头和下头尺寸）
+        const specString = `上头 = ${upperDimension}, 下头 = ${lowerDimension}`;
+
+        // 9. 构建备注
+        let finalRemark = '';
         if (lockTypeConfig?.category === 'dual-head') {
-            // 上头
-            const upperKey = `${lockForkName} - 上头|${upperDimension}|${lockTypeConfig.upper || ''}`;
-            const lowerKey = `${lockForkName} - 下头|${lowerDimension}|${lockTypeConfig.lower || ''}`;
+            finalRemark = `上头: ${lockTypeConfig.upper || ''}, 下头: ${lockTypeConfig.lower || ''}`;
+        } else if (hasHangingFeet) {
+            finalRemark = `吊脚${hangingFeetValue}mm`;
+        }
 
-            const qtyPair = parseQuantityPair(item.qty);
-            const totalQty = qtyPair.left + qtyPair.right;
+        // 10. 生成唯一键（用于合并相同规格）
+        const key = `${lockForkName}|${specString}|${finalRemark}`;
 
-            // 上头
-            if (lockForkMap[upperKey]) {
-                lockForkMap[upperKey].quantity += totalQty;
-            } else {
-                lockForkMap[upperKey] = {
-                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
-                    type: `${lockForkName} - 上头`,
-                    dimension: upperDimension,
-                    remark: lockTypeConfig.upper || '',
-                    quantity: totalQty
-                };
-            }
+        const qtyPair = parseQuantityPair(item.qty);
+        const totalQty = qtyPair.left + qtyPair.right;
 
-            // 下头
-            if (lockForkMap[lowerKey]) {
-                lockForkMap[lowerKey].quantity += totalQty;
-            } else {
-                lockForkMap[lowerKey] = {
-                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
-                    type: `${lockForkName} - 下头`,
-                    dimension: lowerDimension,
-                    remark: lockTypeConfig.lower || '',
-                    quantity: totalQty
-                };
-            }
+        // 11. 合并或创建新条目
+        if (lockForkMap[key]) {
+            lockForkMap[key].quantity += totalQty;
         } else {
-            // 单头锁叉
-            const upperKey = `${lockForkName} - 上头|${upperDimension}`;
-            const lowerKey = `${lockForkName} - 下头|${lowerDimension}`;
-
-            const qtyPair = parseQuantityPair(item.qty);
-            const totalQty = qtyPair.left + qtyPair.right;
-
-            // 上头
-            if (lockForkMap[upperKey]) {
-                lockForkMap[upperKey].quantity += totalQty;
-            } else {
-                lockForkMap[upperKey] = {
-                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
-                    type: `${lockForkName} - 上头`,
-                    dimension: upperDimension,
-                    remark: '',
-                    quantity: totalQty
-                };
-            }
-
-            // 下头
-            if (lockForkMap[lowerKey]) {
-                lockForkMap[lowerKey].quantity += totalQty;
-            } else {
-                lockForkMap[lowerKey] = {
-                    supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
-                    type: `${lockForkName} - 下头`,
-                    dimension: lowerDimension,
-                    remark: hasHangingFeet ? `吊脚${hangingFeetValue}mm` : '',
-                    quantity: totalQty
-                };
-            }
+            lockForkMap[key] = {
+                supplier: LOCK_FORK_MAPPING.suppliers?.default || '锁叉供应商',
+                type: lockForkName,
+                spec: specString,
+                remark: finalRemark,
+                quantity: totalQty
+            };
         }
     });
 
