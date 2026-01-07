@@ -32,6 +32,66 @@
                     "eccentricity": "34*50/中心孔偏心"
                 }
             }
+        },
+        {
+            "conditionField": "sxhz",
+            "keyword": "16-1-5+ZS4",
+            "thickness": "7",
+            "variants": {
+                "内开": {
+                    "code": "78AB",
+                    "eccentricity": "28*50/中心孔偏心"
+                },
+                "外开": {
+                    "code": "78AB",
+                    "eccentricity": "28*50/中心孔偏心"
+                }
+            }
+        },
+        {
+            "conditionField": "sxhz",
+            "keyword": "凸护罩",
+            "thickness": "7",
+            "variants": {
+                "内开": {
+                    "code": "81AB",
+                    "eccentricity": "29*52/中心孔偏心"
+                },
+                "外开": {
+                    "code": "81AB",
+                    "eccentricity": "29*52/中心孔偏心"
+                }
+            }
+        }
+    ],
+    "secondaryDimensions": {
+        "7": {
+            "variants": {
+                "内开": {
+                    "code": "90",
+                    "eccentricity": "30*60/中心孔偏心",
+                    "remark": "旋钮在长一边"
+                },
+                "外开": {
+                    "code": "90",
+                    "eccentricity": "35*55/中心孔偏心",
+                    "remark": "旋钮在短一边"
+                }
+            }
+        }
+    },
+    "secondarySpecialRules": [
+        {
+            "conditionField": "fshz",
+            "keyword": "哑黑护罩",
+            "thickness": "9",
+            "variants": {
+                "内开": {
+                    "code": "105",
+                    "eccentricity": "37*68/中心孔偏心",
+                    "remark": "旋钮在一边"
+                }
+            }
         }
     ],
     "mappings": {
@@ -58,6 +118,10 @@
         "JJ-锌合金子母": {
             "supplier": "劲佳",
             "template": "{code}电镀锌合金子母珠"
+        },
+        "铜带菱形旋钮": {
+            "supplier": "劲佳",
+            "template": "{code}铜带菱形旋钮"
         }
     },
     "customLogos": [

@@ -1,202 +1,201 @@
 /**
- * Data Extractors
- * 从订单明细中提取不同类别的采购数据
+ * 数据提取工具集
+ * 负责从原始订单行提取各类采购数据
  */
 
-import { aggregatePackaging } from '../components/packagingTable.js';
 import { parseQuantityPair } from './parsers.js';
 
 /**
- * 提取包装数据
- * @param {Array} orderList - 订单明细列表
- * @returns {Object} 包装数据
- */
-export function extractPackagingData(orderList) {
-    return aggregatePackaging(orderList);
-}
-
-/**
- * 提取锁芯数据
- * @param {Array} orderList - 订单明细列表
- * @param {Object} orderInfo - 订单信息 (包含客户名称等)
- * @returns {Promise<Array>} 锁芯数据
+ * 提取锁芯采购数据
+ * @param {Array} orderList - 原始订单列表
+ * @param {Object} orderInfo - 订单汇总信息（包含 customerName, remark 等）
  */
 export async function extractCylinderData(orderList, orderInfo = {}) {
-    // Dynamically import to ensure config is loaded
+    // 动态加载配置
     const { CYLINDER_MAPPING } = await import('../config/index.js');
     const customLogos = CYLINDER_MAPPING.customLogos || [];
-
     const cylinderMap = {};
 
-    // Helper: Detect logo in text
+    // 助手：检测文本中的 Logo
     const detectLogo = (text) => {
         if (!text || typeof text !== 'string') return null;
         const upperText = text.toUpperCase();
-        // Return the exact casing from the config if found
         return customLogos.find(logo => upperText.includes(logo.toUpperCase()));
     };
 
-    orderList.forEach(item => {
-        // 1. 提取门厚 和 开向 (从规格字符串中)
-        const parts = (item.spec || '').split('/');
-        let thickness = "7"; // 默认值
-        let openDirection = "内开"; // 默认值
-
-        if (parts.length >= 2) {
-            thickness = parts[1].trim();
+    // 助手：确定钥匙配置（基于客户部门和锁芯型号）
+    const determineKeyConfig = (cylinderName, customerName) => {
+        // 规则1：基于客户部门
+        if (customerName) {
+            if (customerName.includes("三部")) {
+                // 三部客户：特定锁芯型号使用 1+5
+                if (cylinderName === "ZH-微珠锌合金MAN") {
+                    return "钥匙 1+5 英文说明书";
+                }
+                return "钥匙 2+5 英文说明书";
+            }
+            if (customerName.includes("一部") || customerName.includes("二部") || customerName.includes("六部")) {
+                return "钥匙 2+5 中文说明书";
+            }
         }
+
+        // 未识别部门：提示人工确认
+        return "【待确认】钥匙配置";
+    };
+
+    orderList.forEach(item => {
+        // 1. 提取基础属性：门厚 和 开向 (从规格字符串中)
+        const parts = (item.spec || '').split('/');
+        let thickness = "7";
+        let openDirection = "内开";
+
+        if (parts.length >= 2) thickness = parts[1].trim();
         if (parts.length >= 3) {
-            // 简单判断包含关系
             const dirPart = parts[2];
             if (dirPart.includes("外开")) openDirection = "外开";
             else if (dirPart.includes("内开")) openDirection = "内开";
         }
 
-        // 2. 确定尺寸规则 (优先检查特殊规则)
-        let dimensionRule = null;
+        /**
+         * 核心助手：提取单个锁芯（主/副）
+         * @param {string} cylinderName - 锁芯名称 (sx 或 fssx)
+         * @param {string} shieldValue - 护罩值 (sxhz 或 fshz)
+         * @param {string} mode - 'primary' 或 'secondary'
+         */
+        const process = (cylinderName, shieldValue, mode) => {
+            if (!cylinderName || cylinderName === '-' || cylinderName === '无') return;
 
-        // 2.1 检查特殊规则 (Special Rules Override)
-        const specialRules = CYLINDER_MAPPING.specialRules || [];
-        for (const rule of specialRules) {
-            // 检查字段是否存在且包含关键字
-            // 注意: 字段名可能是 'sxhz' 但 API 返回的 item 里可能都是小写或者 mapping 需要适应
-            const fieldValue = item[rule.conditionField] || '';
+            let dimensionRule = null;
+            let specialRemark = "";
 
-            // 只有当门厚也是 7 (或规则不限制门厚) 时才生效
-            if (rule.thickness && rule.thickness !== thickness) continue;
+            // A. 选择规则集
+            const specialRules = mode === 'secondary'
+                ? (CYLINDER_MAPPING.secondarySpecialRules || [])
+                : (CYLINDER_MAPPING.specialRules || []);
 
-            if (fieldValue && fieldValue.includes(rule.keyword)) {
-                // 命中特殊规则！查找对应的开向变体
-                const variant = rule.variants[openDirection];
-                if (variant) {
-                    dimensionRule = variant;
-                    // console.log(`⚡️ 命中特殊规则: ${rule.keyword} [${openDirection}] -> ${variant.code}`);
-                    break; // 找到一个即停止
+            const standardDimensions = mode === 'secondary'
+                ? CYLINDER_MAPPING.secondaryDimensions
+                : CYLINDER_MAPPING.dimensions;
+
+            // B. 匹配特殊规则
+            for (const rule of specialRules) {
+                if (rule.thickness && rule.thickness !== thickness) continue;
+                if (shieldValue && shieldValue.includes(rule.keyword)) {
+                    const variant = rule.variants[openDirection];
+                    if (variant) {
+                        dimensionRule = variant;
+                        specialRemark = variant.remark || "";
+                        break;
+                    }
                 }
             }
-        }
 
-        // 2.2 如果没命中特殊规则，使用标准尺寸表
-        if (!dimensionRule) {
-            dimensionRule = CYLINDER_MAPPING.dimensions?.[thickness];
-        }
+            // C. 匹配标准尺寸
+            if (!dimensionRule && standardDimensions) {
+                const standard = standardDimensions[thickness];
+                if (standard) {
+                    if (standard.variants) {
+                        const variant = standard.variants[openDirection];
+                        if (variant) {
+                            dimensionRule = variant;
+                            specialRemark = variant.remark || "";
+                        }
+                    } else {
+                        dimensionRule = standard;
+                    }
+                }
+            }
 
-        if (!dimensionRule) {
-            console.warn(`未找到门厚 [${thickness}] 的尺寸定义，跳过`);
-            return;
-        }
+            if (!dimensionRule) return;
 
-        // 3. Detect Logo (Check item remark -> Order remark -> Customer Name)
-        const logo = detectLogo(item.xsbz) ||
-            detectLogo(orderInfo.remark) ||
-            detectLogo(orderInfo.customerName);
+            // D. 获取 Logo
+            const logo = detectLogo(item.xsbz) ||
+                detectLogo(orderInfo.remark) ||
+                detectLogo(orderInfo.customerName);
 
-        // 4. 获取内部名称并查找映射
-        const internalName = item.sx || '标准锁芯';
-        const mapping = CYLINDER_MAPPING.mappings?.[internalName];
+            // E. 获取映射
+            const mapping = CYLINDER_MAPPING.mappings?.[cylinderName] || {
+                supplier: "未知供应商",
+                template: `{code}${cylinderName}`
+            };
 
-        if (!mapping) {
-            console.warn(`未找到锁芯 [${internalName}] 的映射配置，使用默认值`);
+            // F. 组装数据
+            let externalName = mapping.template.replace('{code}', dimensionRule.code);
+            let finalRemark = specialRemark;
 
-            // Build key with logo isolation
-            const key = `${internalName}|${logo || ''}`;
+            // 添加钥匙配置
+            if (mode === 'secondary') {
+                const keySuffix = "5A钥匙";
+                finalRemark = finalRemark ? `${finalRemark}, ${keySuffix}` : keySuffix;
+                externalName = `(副) ${externalName}`;
+            } else {
+                // 主锁芯：根据型号和客户部门动态确定钥匙配置
+                const keySuffix = determineKeyConfig(cylinderName, orderInfo.customerName);
+                finalRemark = finalRemark ? `${finalRemark}, ${keySuffix}` : keySuffix;
+            }
 
-            if (!cylinderMap[key]) {
-                let req = determineRequirements(orderInfo.customerName || '');
-                if (logo) req += ` (刻 ${logo} 标)`;
+            if (logo) {
+                finalRemark = finalRemark ? `${finalRemark}, (刻 ${logo} 标)` : `(刻 ${logo} 标)`;
+            }
 
+            const qtyPair = parseQuantityPair(item.qty);
+            const totalQty = qtyPair.left + qtyPair.right;
+
+            const key = `${mapping.supplier}|${externalName}|${dimensionRule.eccentricity}|${finalRemark}`;
+
+            if (cylinderMap[key]) {
+                cylinderMap[key].quantity += totalQty;
+            } else {
                 cylinderMap[key] = {
-                    internalName: internalName,  // 内部名称
-                    type: internalName,           // 默认情况下，外协名称=内部名称
-                    supplier: '未知供应商',
+                    supplier: mapping.supplier,
+                    type: externalName,
                     eccentricity: dimensionRule.eccentricity,
-                    grade: '标准',
-                    quantity: 0,
-                    remark: req
+                    remark: finalRemark,
+                    quantity: totalQty
                 };
             }
-            const qty = parseQuantityPair(item.qty);
-            cylinderMap[key].quantity += qty.left + qty.right;
-            return;
-        }
+        };
 
-        // 5. 生成外协名称 (替换模板变量)
-        const externalName = mapping.template.replace('{code}', dimensionRule.code);
-
-        // 6. 确定要求 (根据客户部门智能判断 + Logo)
-        let requirements = determineRequirements(orderInfo.customerName || '');
-        if (logo) {
-            requirements += ` (刻 ${logo} 标)`;
-        }
-
-        // 7. 构建唯一键并聚合 (加入 logo 隔离)
-        const key = `${mapping.supplier}|${externalName}|${dimensionRule.eccentricity}|${logo || ''}`;
-
-        if (!cylinderMap[key]) {
-            cylinderMap[key] = {
-                internalName: internalName,  // 内部名称（订单中的锁芯名称）
-                type: externalName,           // 外协名称（生成的采购名称）
-                supplier: mapping.supplier,
-                eccentricity: dimensionRule.eccentricity,
-                grade: '标准',
-                quantity: 0,
-                remark: requirements
-            };
-        }
-
-        // 计算数量
-        const qty = parseQuantityPair(item.qty);
-        cylinderMap[key].quantity += qty.left + qty.right;
+        // 处理主锁
+        process(item.sx, item.sxhz || '', 'primary');
+        // 处理副锁
+        process(item.fssx, item.fshz || '', 'secondary');
     });
 
     return Object.values(cylinderMap);
 }
 
 /**
- * 根据客户名称确定锁芯要求
- * @param {string} customerName - 客户名称
- * @returns {string} 要求描述
+ * 提取包装采购数据
+ * @param {Array} orderList - 原始订单列表
  */
-function determineRequirements(customerName) {
-    let keyConfig = "钥匙 2+5";
-    let manualLang = "";
-
-    if (customerName.includes("三部")) {
-        manualLang = "英文说明书";
-    } else if (["一部", "二部", "六部"].some(kw => customerName.includes(kw))) {
-        manualLang = "中文说明书";
-    } else {
-        manualLang = "【请确认中/英文】";
-    }
-
-    return `${keyConfig} ${manualLang}`;
+export async function extractPackagingData(orderList) {
+    // Import aggregatePackaging from packagingTable
+    const { aggregatePackaging } = await import('../components/packagingTable.js');
+    return aggregatePackaging(orderList);
 }
 
 /**
- * 提取五金数据
- * @param {Array} orderList - 订单明细列表
- * @returns {Array} 五金数据
+ * 提取五金采购数据
+ * @param {Array} orderList - 原始订单列表
  */
 export function extractHardwareData(orderList) {
     // TODO: 实现五金数据提取逻辑
-    // 这里需要根据实际业务需求定义五金的识别规则
     return [];
 }
 
 /**
- * 提取边锁数据
- * @param {Array} orderList - 订单明细列表
- * @returns {Array} 边锁数据
+ * 提取边锁采购数据
+ * @param {Array} orderList - 原始订单列表
  */
 export function extractLockData(orderList) {
     // TODO: 实现边锁数据提取逻辑
-    // 这里需要根据实际业务需求定义边锁的识别规则
     return [];
 }
 
 /**
- * 获取对应类别的数据提取器
- * @param {string} category - 类别名称
+ * 根据类别获取对应的数据提取器
+ * @param {string} category - 类别 (packaging, cylinder, hardware, lock)
  * @returns {Function} 提取器函数
  */
 export function getExtractor(category) {
@@ -207,5 +206,5 @@ export function getExtractor(category) {
         lock: extractLockData
     };
 
-    return extractors[category] || (() => []);
+    return extractors[category] || null;
 }
