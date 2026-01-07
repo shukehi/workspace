@@ -38,3 +38,14 @@ export function parseQuantity(qtyStr) {
     });
     return sum;
 }
+
+/**
+ * 解析规格字符串中的门高
+ * @param {string} spec - 规格字符串，如 "960*2050/10/内开外包"
+ * @returns {number} 门高（毫米），默认 2050
+ */
+export function parseHeight(spec) {
+    if (!spec) return 2050;
+    const match = spec.match(/\d+\*(\d+)/);
+    return match ? parseInt(match[1], 10) : 2050;
+}

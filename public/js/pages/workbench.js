@@ -8,7 +8,7 @@
 import { fetchOrderDetail } from '../services/api.js';
 import { appState } from '../core/state.js';
 import { eventBus } from '../core/eventBus.js';
-import { loadPackagingMapping, loadCylinderMapping } from '../config/index.js';
+import { loadPackagingMapping, loadCylinderMapping, loadLockForkMapping } from '../config/index.js';
 import { initNavigation } from '../components/navigation.js';
 import { parseQuantityPair } from '../utils/parsers.js';
 import { setText } from '../utils/dom.js';
@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Load Config
     await loadPackagingMapping();
     await loadCylinderMapping();
+    await loadLockForkMapping();
     console.log('✅ Config loaded');
 
     // 3. Bind UI Events
@@ -560,7 +561,7 @@ function getCategoryLabel(category) {
         packaging: '包装',
         cylinder: '锁芯',
         hardware: '五金',
-        lock: '边锁'
+        lock: '锁叉'
     };
     return labels[category] || category;
 }

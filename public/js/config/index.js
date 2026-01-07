@@ -5,6 +5,7 @@
 
 export let PACKAGING_MAPPING = {};
 export let CYLINDER_MAPPING = {};
+export let LOCK_FORK_MAPPING = {};
 
 /**
  * 加载包装映射配置
@@ -60,3 +61,31 @@ export async function loadCylinderMapping() {
         };
     }
 }
+
+/**
+ * 加载锁叉映射配置
+ * 从 JSON 文件加载配置，失败时使用默认配置
+ */
+export async function loadLockForkMapping() {
+    try {
+        const response = await fetch('/data/lock-fork-mapping.json');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        LOCK_FORK_MAPPING = await response.json();
+        console.log('✅ 锁叉映射配置加载成功');
+
+    } catch (error) {
+        console.warn('⚠️ 加载锁叉映射配置失败，使用默认配置:', error.message);
+
+        // Fallback to default mapping
+        LOCK_FORK_MAPPING = {
+            baseDimensions: {},
+            lockTypes: {},
+            heightReference: 2050
+        };
+    }
+}
+
