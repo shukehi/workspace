@@ -217,10 +217,10 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
         if (!xsbz || typeof xsbz !== 'string') return null;
 
         if (xsbz.includes('平下档')) {
-            // 尝试提取尺寸，如 "4CM平下档" -> "4CM"
-            const match = xsbz.match(/(\d+(?:\.\d+)?CM)平下档/i);
+            // 尝试提取完整文本，如 "4CM平下档" -> "4CM平下档"
+            const match = xsbz.match(/(\d+(?:\.\d+)?CM平下档)/i);
             if (match) {
-                return match[1]; // 返回 "4CM"
+                return match[1]; // 返回 "4CM平下档"
             }
             return '平下档'; // 有关键字但没有尺寸
         }
