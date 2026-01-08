@@ -212,6 +212,21 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
         return null;
     };
 
+    // 助手：检测平下档
+    const detectFlatBottomRail = (xsbz) => {
+        if (!xsbz || typeof xsbz !== 'string') return null;
+
+        if (xsbz.includes('平下档')) {
+            // 尝试提取尺寸，如 "4CM平下档" -> "4CM"
+            const match = xsbz.match(/(\d+(?:\.\d+)?CM)平下档/i);
+            if (match) {
+                return match[1]; // 返回 "4CM"
+            }
+            return '平下档'; // 有关键字但没有尺寸
+        }
+        return null;
+    };
+
     // 助手：检测边型
     const detectEdgeType = (mb) => {
         if (!mb || typeof mb !== 'string') return null;
@@ -271,8 +286,11 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
         const heightReference = LOCK_FORK_MAPPING.heightReference || 2050;
         const heightAdjustment = Math.round((doorHeight - heightReference) / 2);
 
-        // 3. 检测吊脚
-        const hangingFeetValue = detectHangingFeet(item.xsbz);
+        // 3. 检测平下档和吊脚（互斥）
+        const flatBottomRail = detectFlatBottomRail(item.xsbz);
+        const hasFlatBottomRail = flatBottomRail !== null;
+
+        const hangingFeetValue = hasFlatBottomRail ? null : detectHangingFeet(item.xsbz);
         const hasHangingFeet = hangingFeetValue !== null;
         const hangingFeetAdjustment = hasHangingFeet
             ? (LOCK_FORK_MAPPING.hangingFeet?.standard || 35) - hangingFeetValue
@@ -285,7 +303,9 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
             return;
         }
 
-        const dimensionType = hasHangingFeet ? 'withHangingFeet' : 'standard';
+
+        // 平下档或吊脚都使用 withHangingFeet 尺寸（下头 base2 = 313）
+        const dimensionType = (hasFlatBottomRail || hasHangingFeet) ? 'withHangingFeet' : 'standard';
         const dimensions = baseDimensions[dimensionType];
 
         if (!dimensions) {
@@ -296,6 +316,7 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
         // 5. 检测边型和锁具类型
         const edgeModifier = detectEdgeType(item.mb);
         const lockTypeConfig = detectLockType(item.sj, item.fssj);
+
 
         // 6. 构建锁叉名称
         let lockForkName = item.sc;
@@ -340,7 +361,9 @@ export async function extractLockForkData(orderList, orderInfo = {}) {
         // 10. 构建备注（包含门厚和门高）
         let remarkParts = [`${thickness}CM ${doorHeight}`];
 
-        if (hasHangingFeet) {
+        if (hasFlatBottomRail) {
+            remarkParts.push(flatBottomRail); // "4CM平下档" 或 "平下档"
+        } else if (hasHangingFeet) {
             remarkParts.push(`吊脚${hangingFeetValue}mm`);
         }
 
