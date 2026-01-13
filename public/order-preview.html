@@ -304,12 +304,69 @@
         function enableEditing() {
             document.querySelectorAll('[contenteditable]').forEach(el => {
                 el.setAttribute('contenteditable', 'true');
+                
+                // Add input listener for quantity fields to update totals
+                if (el.dataset.field === 'quantity' || el.dataset.field === 'qtyLeft' || el.dataset.field === 'qtyRight') {
+                    el.addEventListener('input', updateTotals);
+                }
             });
         }
 
         function disableEditing() {
             document.querySelectorAll('[contenteditable]').forEach(el => {
                 el.setAttribute('contenteditable', 'false');
+                
+                // Remove input listeners
+                if (el.dataset.field === 'quantity' || el.dataset.field === 'qtyLeft' || el.dataset.field === 'qtyRight') {
+                    el.removeEventListener('input', updateTotals);
+                }
+            });
+        }
+
+        function updateTotals() {
+            // Update totals for all tables
+            document.querySelectorAll('.print-table').forEach(table => {
+                const tbody = table.querySelector('tbody');
+                const totalRow = tbody.querySelector('.total-row');
+                if (!totalRow) return;
+
+                const rows = tbody.querySelectorAll('tr:not(.total-row)');
+                let totalQty = 0;
+                let totalLeft = 0;
+                let totalRight = 0;
+
+                rows.forEach(row => {
+                    // Check if this is a packaging order (has qtyLeft/qtyRight)
+                    const qtyLeftCell = row.querySelector('[data-field="qtyLeft"]');
+                    const qtyRightCell = row.querySelector('[data-field="qtyRight"]');
+                    const quantityCell = row.querySelector('[data-field="quantity"]');
+
+                    if (qtyLeftCell && qtyRightCell) {
+                        // Packaging order
+                        totalLeft += parseInt(qtyLeftCell.textContent) || 0;
+                        totalRight += parseInt(qtyRightCell.textContent) || 0;
+                    } else if (quantityCell) {
+                        // Other orders (cylinder, lock, etc.)
+                        totalQty += parseInt(quantityCell.textContent) || 0;
+                    }
+                });
+
+                // Update total row based on order type
+                const totalCells = totalRow.querySelectorAll('td');
+                if (totalLeft > 0 || totalRight > 0) {
+                    // Packaging order - update left and right totals
+                    totalCells[totalCells.length - 3].textContent = totalLeft;
+                    totalCells[totalCells.length - 2].textContent = totalRight;
+                } else {
+                    // Other orders - update single total
+                    // Find the quantity column (second to last or third to last depending on if there's a unit column)
+                    const hasUnitColumn = table.querySelector('th:nth-last-child(2)')?.textContent.includes('单位');
+                    if (hasUnitColumn) {
+                        totalCells[totalCells.length - 3].textContent = totalQty;
+                    } else {
+                        totalCells[totalCells.length - 2].textContent = totalQty;
+                    }
+                }
             });
         }
 
