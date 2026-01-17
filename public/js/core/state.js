@@ -11,6 +11,8 @@ class StateManager {
             // 订单相关
             currentOrder: null,
             orderList: [],
+            loadedOrders: [],      // Array of loaded order objects for multi-order aggregation
+            appendMode: false,     // Toggle for append vs replace mode
 
             // UI 状态
             loading: false,
@@ -116,6 +118,8 @@ class StateManager {
         this.state = {
             currentOrder: null,
             orderList: [],
+            loadedOrders: [],
+            appendMode: false,
             loading: false,
             error: null,
             user: null,

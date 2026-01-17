@@ -1,0 +1,62 @@
+{
+    "PSW3114-1新3": {
+        "id": "MAT-001",
+        "name": "PSW3114-1新3",
+        "type": "塑粉",
+        "supplier": "共成",
+        "unit": "kg",
+        "unitPrice": 25.5,
+        "minOrder": 20,
+        "packageSpec": "20kg/箱",
+        "leadTime": 3,
+        "notes": "常用塑粉，库存充足"
+    },
+    "H09165-1": {
+        "id": "MAT-002",
+        "name": "H09165-1",
+        "type": "铰链转印纸",
+        "supplier": "吉荣",
+        "unit": "m",
+        "unitPrice": 12.8,
+        "minOrder": 500,
+        "packageSpec": "500m/卷",
+        "leadTime": 5,
+        "notes": "铰链专用转印纸"
+    },
+    "1834-6": {
+        "id": "MAT-003",
+        "name": "1834-6",
+        "type": "锁边转印纸",
+        "supplier": "吉荣",
+        "unit": "m",
+        "unitPrice": 8.5,
+        "minOrder": 100,
+        "packageSpec": "100m/卷",
+        "leadTime": 5,
+        "notes": "锁边专用转印纸"
+    },
+    "3520-BASE": {
+        "id": "MAT-004",
+        "name": "3520-BASE",
+        "type": "塑粉",
+        "supplier": "华丽粉末",
+        "unit": "kg",
+        "unitPrice": 28.0,
+        "minOrder": 25,
+        "packageSpec": "25kg/袋",
+        "leadTime": 3,
+        "notes": "3520仿铜底粉"
+    },
+    "3520-PATTERN": {
+        "id": "MAT-005",
+        "name": "3520-PATTERN",
+        "type": "转印纸",
+        "supplier": "美图转印",
+        "unit": "m",
+        "unitPrice": 15.0,
+        "minOrder": 100,
+        "packageSpec": "100m/卷",
+        "leadTime": 7,
+        "notes": "3520仿铜纹理转印纸"
+    }
+}

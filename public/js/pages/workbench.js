@@ -8,7 +8,7 @@
 import { fetchOrderDetail } from '../services/api.js';
 import { appState } from '../core/state.js';
 import { eventBus } from '../core/eventBus.js';
-import { loadPackagingMapping, loadCylinderMapping, loadLockForkMapping } from '../config/index.js';
+import { loadPackagingMapping, loadCylinderMapping, loadLockForkMapping, loadMaterialsCatalog, loadColorFormulas, MATERIALS_CATALOG, COLOR_FORMULAS } from '../config/index.js';
 import { initNavigation } from '../components/navigation.js';
 import { parseQuantityPair } from '../utils/parsers.js';
 import { setText } from '../utils/dom.js';
@@ -16,6 +16,8 @@ import { smartSidebar } from '../components/SmartSidebar.js';
 import { generatePurchaseOrder, updatePOStatus, listPurchaseOrders, deletePurchaseOrder } from '../components/purchaseOrder.js';
 import { getExtractor } from '../utils/dataExtractors.js';
 import { tryMergeItems } from '../components/print/printMerge.js';
+import { orderPool } from '../utils/orderPool.js';
+import { calculateMaterialRequirements, getMaterialSummary } from '../utils/materialDecomposer.js';
 
 // ==================== Initialization ====================
 
@@ -29,15 +31,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadPackagingMapping();
     await loadCylinderMapping();
     await loadLockForkMapping();
+    await loadMaterialsCatalog();
+    await loadColorFormulas();
     console.log('✅ Config loaded');
 
     // 3. Bind UI Events
     bindEvents();
 
-    // 4. Listen to Global Events
+    // 4. Listen to Global Events (MUST be before loading saved data)
     setupEventSubscriptions();
 
-    // 5. Render PO List
+    // 5. Load saved order pool
+    orderPool.load();
+    if (orderPool.getAll().length > 0) {
+        console.log(`📂 Restored ${orderPool.getAll().length} orders from localStorage`);
+        // Sync with state
+        appState.setState({
+            loadedOrders: orderPool.getAll(),
+            currentOrder: orderPool.getCurrent()
+        });
+        // Trigger UI update
+        eventBus.emit('orders:updated');
+    }
+
+    // 6. Render PO List
     renderPOList();
 
     console.log('✅ Workbench ready');
@@ -72,6 +89,12 @@ function bindEvents() {
             return;
         }
         openCategoryModal();
+    });
+
+    // Append Mode Toggle
+    document.getElementById('appendModeToggle').addEventListener('change', (e) => {
+        appState.setState({ appendMode: e.target.checked });
+        console.log('📌 Append mode:', e.target.checked ? 'ON' : 'OFF');
     });
 
     // Modal Events
@@ -205,21 +228,46 @@ async function handleBatchGenerate(selectedCategories) {
 
 
 function setupEventSubscriptions() {
-    eventBus.on('order:loaded', (order) => {
-        // Render Source Table
-        renderSourceTable(order.list);
+    // Listen for multi-order updates
+    eventBus.on('orders:updated', () => {
+        // Get merged items from pool
+        const mergedItems = orderPool.getMergedItems();
+        const orders = orderPool.getAll();
 
-        // Update Meta
-        renderMeta(order);
+        // Render Source Table with merged data
+        renderSourceTable(mergedItems);
+
+        // Update Meta (show most recent order or summary)
+        if (orders.length > 0) {
+            const mostRecent = orderPool.getCurrent();
+            renderMeta(mostRecent, orders.length);
+        }
 
         // Update Counts in Tabs
-        updateTabCounts(order);
+        updateTabCounts({ list: mergedItems });
 
-        // Analyze for Smart Sidebar
-        smartSidebar.analyze(order);
+        // Render loaded sources panel
+        renderLoadedSources(orders);
+
+        // Analyze for Smart Sidebar (use most recent order)
+        if (orders.length > 0) {
+            smartSidebar.analyze(orderPool.getCurrent());
+        }
+
+        // Calculate and render statistics from pool (with caching)
+        renderStatistics();
+
+        // Calculate and render materials
+        renderMaterials();
 
         // Update overall status
         updateStatus('READY');
+    });
+
+    // Keep backward compatibility with old event (for other components)
+    eventBus.on('order:loaded', (order) => {
+        // This is now handled by orders:updated
+        console.log('⚠️ Deprecated event: order:loaded');
     });
 }
 
@@ -245,28 +293,51 @@ async function handleFetch() {
         const data = await fetchOrderDetail(code);
 
         // Adapter for Search Result vs Detail
-        // If API returns a search result (rows array), use the first result as the active order
         let orderData = data;
         if (data.rows && Array.isArray(data.rows) && data.rows.length > 0) {
             console.log('📦 Extracting first order from search results');
             orderData = data.rows[0];
-        } else if (data.list && Array.isArray(data.list) && data.total === 1 && data.list[0].list) {
-            // Handle case where .list is the search result list (rare but possible based on my previous adapter)
-            // But based on user log {total: 1, rows: ...}, the above branch should catch it.
         }
 
-        // Deep validation of the specific order object
+        // Deep validation
         if (!orderData || !Array.isArray(orderData.list)) {
             console.error('❌ Data missing "list" array:', orderData);
             throw new Error('订单数据缺少明细列表');
         }
 
-        // Update State
-        appState.setState({ currentOrder: orderData });
-        eventBus.emit('order:loaded', orderData);
+        // Check append mode
+        const appendMode = appState.get('appendMode');
 
-        // Clear error
+        if (appendMode) {
+            // Append mode: add to pool
+            try {
+                orderPool.add(orderData);
+            } catch (error) {
+                // Handle duplicate or invalid order
+                showError(error.message);
+                updateStatus('ERROR');
+                return;
+            }
+        } else {
+            // Replace mode: clear and set single order
+            orderPool.replace(orderData);
+        }
+
+        // Save pool to localStorage
+        orderPool.save();
+
+        // Update state (for backward compatibility)
+        appState.setState({
+            loadedOrders: orderPool.getAll(),
+            currentOrder: orderPool.getCurrent()
+        });
+
+        // Emit event
+        eventBus.emit('orders:updated');
+
+        // Clear error and input
         errorMsg.textContent = '';
+        input.value = '';
     } catch (error) {
         console.error('Fetch error:', error);
         showError(error.message || '查询失败，请检查网络或单号');
@@ -326,9 +397,9 @@ function showError(msg) {
 
 // ==================== Renderers ====================
 
-function renderMeta(order) {
+function renderMeta(order, orderCount = 1) {
     setText('customerName', order.customerName);
-    setText('orderCode', order.code);
+    setText('orderCode', orderCount > 1 ? `${order.code} (+${orderCount - 1} more)` : order.code);
     setText('orderDate', order.orderDate);
     setText('advanceDate', order.advanceDate);
 
@@ -354,6 +425,35 @@ function updateTabCounts(order) {
     // Actually renderPackagingSummary updates the TABLE body, but maybe not the badge?
     // Let's simply update source badge for now.
 }
+
+function renderLoadedSources(orders = []) {
+    const container = document.getElementById('sourcesList');
+
+    if (orders.length === 0) {
+        container.innerHTML = '<div class="sources-list-empty">暂无已加载订单</div>';
+        return;
+    }
+
+    container.innerHTML = orders.map(order => `
+        <div class="source-tag">
+            <span class="source-tag-code">${order.code}</span>
+            <button class="source-tag-remove" onclick="handleRemoveOrder('${order.code}')">×</button>
+        </div>
+    `).join('');
+}
+
+window.handleRemoveOrder = function (orderCode) {
+    orderPool.remove(orderCode);
+    orderPool.save();
+
+    // Update state (for backward compatibility)
+    appState.setState({
+        loadedOrders: orderPool.getAll(),
+        currentOrder: orderPool.getCurrent()
+    });
+
+    eventBus.emit('orders:updated');
+};
 
 function renderSourceTable(items) {
     const tbody = document.getElementById('detailsTableBody');
@@ -403,6 +503,9 @@ function renderSourceTable(items) {
                     <div class="spec-detail" style="margin-top:4px;">${item.xsbz || ''}</div>
                 </div>
             </td>
+            <td style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary);">
+                ${item._originOrder || '-'}
+            </td>
             <td style="text-align: center;">
                  <label style="display: flex; flex-direction: column; align-items: center; cursor: pointer;">
                     <input type="checkbox" class="merge-checkbox" data-index="${index}" style="width: 18px; height: 18px; cursor: pointer;">
@@ -411,6 +514,46 @@ function renderSourceTable(items) {
         `;
         tbody.appendChild(row);
     });
+}
+
+// ==================== Statistics Renderer ====================
+
+function renderStatistics() {
+    // Get cached statistics from pool
+    const stats = orderPool.getStatistics();
+
+    // Update metrics
+    document.getElementById('statsTotalColors').textContent = stats.totalColors;
+    document.getElementById('statsTotalDoors').textContent = stats.totalDoors;
+    document.getElementById('statsColorCount').textContent = `${stats.totalColors} 种颜色`;
+
+    // Render table
+    const tbody = document.getElementById('statsTableBody');
+    const emptyState = document.getElementById('statsEmptyState');
+
+    if (stats.totalColors === 0) {
+        tbody.innerHTML = '';
+        emptyState.style.display = 'flex';
+        return;
+    }
+
+    emptyState.style.display = 'none';
+
+    tbody.innerHTML = stats.colorDistribution.map((item, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td class="color-name">${item.color}</td>
+            <td class="door-count">${item.doorCount}</td>
+            <td>
+                <div class="ratio-bar">
+                    <div class="ratio-progress">
+                        <div class="ratio-fill" style="width: ${item.ratio}%"></div>
+                    </div>
+                    <span class="ratio-text">${item.ratio}%</span>
+                </div>
+            </td>
+        </tr>
+    `).join('');
 }
 
 // ==================== PO List Management ====================
@@ -584,6 +727,70 @@ function formatDate(isoString) {
         hour: '2-digit',
         minute: '2-digit'
     });
+}
+
+// ==================== Materials Renderer ====================
+
+function renderMaterials() {
+    const items = orderPool.getMergedItems();
+    const formulas = COLOR_FORMULAS;
+    const catalog = MATERIALS_CATALOG;
+
+    const container = document.getElementById('materialsContainer');
+    const emptyState = document.getElementById('materialsEmptyState');
+
+    if (items.length === 0 || Object.keys(formulas).length === 0 || Object.keys(catalog).length === 0) {
+        container.innerHTML = '';
+        emptyState.style.display = 'flex';
+        return;
+    }
+
+    try {
+        const requirements = calculateMaterialRequirements(items, formulas, catalog);
+
+        if (Object.keys(requirements).length === 0) {
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">暂无可计算的原材料数据</div>';
+            emptyState.style.display = 'none';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        container.innerHTML = Object.entries(requirements).map(([supplier, group]) => `
+            <div class="supplier-group">
+                <div class="supplier-header">供应商: ${group.supplierName} (${group.totalItems} 种材料)</div>
+                <table class="materials-table">
+                    <thead>
+                        <tr>
+                            <th>材料类型</th>
+                            <th>型号</th>
+                            <th>总用量</th>
+                            <th>单位</th>
+                            <th>最小起订</th>
+                            <th>包装规格</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${group.materials.map(m => `
+                            <tr>
+                                <td class="material-type">${m.material.type}</td>
+                                <td>${m.material.name}</td>
+                                <td class="material-usage">${m.totalUsage.toFixed(2)}</td>
+                                <td>${m.material.unit}</td>
+                                <td>${m.material.minOrder || '-'}</td>
+                                <td>${m.material.packageSpec || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Material calculation error:', error);
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">原材料计算出错，请检查配置</div>';
+        emptyState.style.display = 'none';
+    }
 }
 
 // ==================== Message Listener for PO Updates ====================

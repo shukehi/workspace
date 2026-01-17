@@ -6,6 +6,8 @@
 export let PACKAGING_MAPPING = {};
 export let CYLINDER_MAPPING = {};
 export let LOCK_FORK_MAPPING = {};
+export let MATERIALS_CATALOG = {};
+export let COLOR_FORMULAS = {};
 
 /**
  * 加载包装映射配置
@@ -89,3 +91,44 @@ export async function loadLockForkMapping() {
     }
 }
 
+/**
+ * 加载材料目录配置
+ * 从 JSON 文件加载配置，失败时使用默认配置
+ */
+export async function loadMaterialsCatalog() {
+    try {
+        const response = await fetch('/data/materials-catalog.json');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        MATERIALS_CATALOG = await response.json();
+        console.log('✅ 材料目录配置加载成功:', Object.keys(MATERIALS_CATALOG).length, '种材料');
+
+    } catch (error) {
+        console.warn('⚠️ 加载材料目录配置失败:', error.message);
+        MATERIALS_CATALOG = {};
+    }
+}
+
+/**
+ * 加载颜色配方配置
+ * 从 JSON 文件加载配置，失败时使用默认配置
+ */
+export async function loadColorFormulas() {
+    try {
+        const response = await fetch('/data/color-formulas.json');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        COLOR_FORMULAS = await response.json();
+        console.log('✅ 颜色配方配置加载成功:', Object.keys(COLOR_FORMULAS).length, '种颜色');
+
+    } catch (error) {
+        console.warn('⚠️ 加载颜色配方配置失败:', error.message);
+        COLOR_FORMULAS = {};
+    }
+}

@@ -41,6 +41,12 @@
                         </button>
                     </div>
                     <p id="errorMsg" class="error-message"></p>
+                    <div class="mode-toggle">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="appendModeToggle">
+                            <span class="toggle-text">APPEND MODE</span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- 订单元数据（精简展示） -->
@@ -63,6 +69,14 @@
                             <span class="meta-key">DUE</span>
                             <span class="meta-value mono" id="advanceDate">--</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 已加载订单列表 -->
+                <div class="sidebar-section" id="loadedSourcesSection">
+                    <div class="section-label">LOADED SOURCES</div>
+                    <div class="sources-list" id="sourcesList">
+                        <div class="sources-list-empty">暂无已加载订单</div>
                     </div>
                 </div>
 
@@ -96,6 +110,14 @@
                         <span class="tab-label">SOURCE</span>
                         <span class="tab-desc">订单明细</span>
                     </button>
+                    <button class="hub-tab" data-tab="stats">
+                        <span class="tab-label">STATS</span>
+                        <span class="tab-desc">配件颜色统计</span>
+                    </button>
+                    <button class="hub-tab" data-tab="materials">
+                        <span class="tab-label">MATERIALS</span>
+                        <span class="tab-desc">原材料清单</span>
+                    </button>
                     <button class="hub-tab" data-tab="orders">
                         <span class="tab-label">ORDERS</span>
                         <span class="tab-desc">采购单管理</span>
@@ -127,6 +149,7 @@
                                         <th>门板款式</th>
                                         <th>锁具</th>
                                         <th>详情</th>
+                                        <th>来源订单</th>
                                         <th style="width: 80px; text-align: center;">合并</th>
                                     </tr>
                                 </thead>
@@ -137,6 +160,66 @@
                         </div>
                         <div class="empty-state" id="sourceEmptyState">
                             <p>请在左侧输入合同编号并点击 FETCH</p>
+                        </div>
+                    </div>
+
+
+                    <!-- Tab: STATS - 配件颜色统计 -->
+                    <div class="hub-panel" id="panel-stats">
+                        <div class="panel-header">
+                            <h2>配件颜色统计 <span class="badge" id="statsColorCount">0 种颜色</span></h2>
+                        </div>
+
+                        <!-- Key Metrics Cards -->
+                        <div class="stats-cards">
+                            <div class="stat-card">
+                                <span class="stat-label">UNIQUE COLORS</span>
+                                <span class="stat-value" id="statsTotalColors">0</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-label">TOTAL DOORS</span>
+                                <span class="stat-value" id="statsTotalDoors">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Color Distribution Table -->
+                        <div class="table-responsive">
+                            <table class="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>颜色名称</th>
+                                        <th>门数量</th>
+                                        <th>占比</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statsTableBody">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="empty-state" id="statsEmptyState">
+                            <p>请先加载订单数据</p>
+                        </div>
+                    </div>
+
+
+                    <!-- Tab: MATERIALS - 原材料清单 -->
+                    <div class="hub-panel" id="panel-materials">
+                        <div class="panel-header">
+                            <h2>原材料采购清单</h2>
+                        </div>
+
+                        <!-- Materials Container -->
+                        <div id="materialsContainer">
+                            <!-- Dynamically rendered supplier groups -->
+                        </div>
+
+                        <!-- Empty State -->
+                        <div class="empty-state" id="materialsEmptyState" style="display: flex;">
+                            <p>暂无原材料数据</p>
+                            <span>请先加载订单</span>
                         </div>
                     </div>
 

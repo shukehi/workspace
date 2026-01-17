@@ -1,0 +1,54 @@
+{
+    "K拼色": {
+        "displayName": "K拼色",
+        "category": "拼色系列",
+        "bom": [
+            {
+                "materialId": "PSW3114-1新3",
+                "usage": {
+                    "single": 0.6,
+                    "double": 0.9,
+                    "paired": 1.2
+                }
+            },
+            {
+                "materialId": "H09165-1",
+                "usage": {
+                    "single": 6,
+                    "double": 8,
+                    "paired": 12
+                }
+            },
+            {
+                "materialId": "H1834-6",
+                "usage": {
+                    "single": 2,
+                    "double": 2,
+                    "paired": 4
+                }
+            }
+        ]
+    },
+    "3520仿铜": {
+        "displayName": "3520仿铜",
+        "category": "仿铜系列",
+        "bom": [
+            {
+                "materialId": "3520-BASE",
+                "usage": {
+                    "single": 0.5,
+                    "double": 0.8,
+                    "paired": 1.0
+                }
+            },
+            {
+                "materialId": "3520-PATTERN",
+                "usage": {
+                    "single": 5,
+                    "double": 7,
+                    "paired": 10
+                }
+            }
+        ]
+    }
+}
