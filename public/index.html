@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>采购工作台 | Procurement Workbench</title>
+    <title>采购工作台 v1.6 | Procurement Workbench</title>
     <meta name="description" content="统一采购工作台 - 快速生成包装、锁芯等采购订单">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,9 +12,9 @@
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <!-- Modular CSS -->
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/pages/workbench.css">
-    <link rel="stylesheet" href="css/pages/workbench-modal.css">
+    <link rel="stylesheet" href="css/main.css?v=1.6">
+    <link rel="stylesheet" href="css/pages/workbench.css?v=1.6">
+    <link rel="stylesheet" href="css/pages/workbench-modal.css?v=1.6">
     <!-- PDF Export Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- 导入导航组件 -->
@@ -251,25 +251,25 @@
                                     <table class="config-table" id="configMaterialsTable">
                                         <thead>
                                             <tr>
-                                                <th>ID (Key)</th>
-                                                <th>名称</th>
-                                                <th>
+                                                <th width="15%">ID (Key)</th>
+                                                <th width="15%">型号 (Model)</th>
+                                                <th width="10%">
                                                     类型
                                                     <select id="filterMatType" class="header-filter"
                                                         onclick="event.stopPropagation()">
                                                         <option value="">全部</option>
                                                     </select>
                                                 </th>
-                                                <th>
+                                                <th width="10%">
                                                     供应商
                                                     <select id="filterMatSupplier" class="header-filter"
                                                         onclick="event.stopPropagation()">
                                                         <option value="">全部</option>
                                                     </select>
                                                 </th>
-                                                <th>单位</th>
-                                                <th>规格</th>
-                                                <th>操作</th>
+                                                <th width="10%">单位</th>
+                                                <th width="10%">规格</th>
+                                                <th width="10%">操作</th>
                                             </tr>
                                         </thead>
                                         <tbody><!-- Dynamic --></tbody>
@@ -310,6 +310,7 @@
                                                     <thead>
                                                         <tr>
                                                             <th>材料 (ID/名称)</th>
+                                                            <th width="100">部位</th>
                                                             <th width="100">单门用量</th>
                                                             <th width="100">双开用量</th>
                                                             <th width="100">子母用量</th>
@@ -435,7 +436,7 @@
         </div>
     </div>
 
-    <script type="module" src="js/pages/workbench.js"></script>
+    <script type="module" src="js/pages/workbench.js?v=1.6"></script>
 </body>
 
 </html>

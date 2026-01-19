@@ -18,27 +18,50 @@ function parseMaterial(rawName, type) {
     if (!rawName) return null;
     let name = rawName.trim();
 
-    // Remove prefixes like "门面", "门框", "锁边" etc.
+    // Identify Position Prefixes
     const prefixes = ['门面', '门框', '锁边', '铰链边', '后板', '前板', '合页', '型材', '拉手', '条子', '铝条', '封板', '小面积', '大面积', '门扇', '门架'];
-    // Sort prefixes by length desc to handle "门面锁边" before "门面"
     prefixes.sort((a, b) => b.length - a.length);
 
-    let cleanedParts = [];
-    let currentName = name;
+    let positions = [];
+    let tempName = name;
 
-    // Simple heuristic: Try to find a supplier name inside the string
+    // Iteratively extract positions from the start
+    while (true) {
+        let matched = false;
+        for (const p of prefixes) {
+            if (tempName.startsWith(p)) {
+                positions.push(p);
+                tempName = tempName.substring(p.length).trim();
+                matched = true;
+                break;
+            }
+        }
+        // Handle "和" connector if present (simple check)
+        if (!matched && tempName.startsWith('和')) {
+            tempName = tempName.substring(1).trim();
+            matched = true;
+        }
+        if (!matched) break;
+    }
+
+    // Extract Supplier
     let foundSupplier = '未知';
     let supplierIndex = -1;
 
     for (const s of KNOWN_SUPPLIERS) {
-        const idx = currentName.indexOf(s);
+        const idx = tempName.indexOf(s);
         if (idx !== -1) {
-            // Find the earliest occurring supplier
             if (supplierIndex === -1 || idx < supplierIndex) {
                 supplierIndex = idx;
                 foundSupplier = s;
             }
         }
+    }
+
+    let model = tempName;
+    if (foundSupplier !== '未知') {
+        // Strip supplier from name to get pure Model
+        model = tempName.replace(foundSupplier, '').trim();
     }
 
     // Determine unit and package spec based on type
@@ -56,9 +79,13 @@ function parseMaterial(rawName, type) {
         packageSpec = '20kg/桶';
     }
 
+    // New ID construction: Supplier + Model
+    const newId = foundSupplier !== '未知' ? `${foundSupplier}${model}` : model;
+
     return {
-        id: name, // Use full raw name as ID
-        name: name,
+        id: newId,
+        model: model,
+        position: positions.length > 0 ? positions.join(',') : '通用', // Return for Formula usage
         type: type,
         supplier: foundSupplier,
         unit: unit,
@@ -76,27 +103,18 @@ function findColumnGroups(headers) {
     types.forEach(type => {
         // Look for columns starting with the type name (e.g., "塑粉1", "塑粉2")
         // We assume the structure is always [Name, SingleUsage, PairedUsage] corresponding to columns [i, i+1, i+2]
-        // But let's be safer and look for the base name column
 
         for (let i = 0; i < headers.length; i++) {
             const header = headers[i];
-            // Check if this header indicates a material start (e.g., "塑粉1", "塑粉2") 
-            // AND the next headers look like usage columns ("塑粉单门1", "塑粉子母1")
-
-            // Regex to match "塑粉1", "塑粉2", etc. but NOT "塑粉单门1"
             const namePattern = new RegExp(`^${type}\\d+$`);
 
             if (namePattern.test(header)) {
-                // Found a material column. Verify subsequent columns.
-                // We expect i+1 to be Single Usage (contains "单门")
-                // We expect i+2 to be Paired Usage (contains "子母")
-
                 if (headers[i + 1] && headers[i + 1].includes('单门') &&
                     headers[i + 2] && headers[i + 2].includes('子母')) {
 
                     groups.push({
                         type: type,
-                        indexes: [i] // Only store the base index. We'll access i+1 and i+2 relative to it.
+                        indexes: [i]
                     });
                     console.log(`Found ${type} group at index ${i}: ${header}, ${headers[i + 1]}, ${headers[i + 2]}`);
                 }
@@ -112,10 +130,6 @@ try {
     const csvContent = fs.readFileSync(CSV_FILE, 'utf8');
     const lines = csvContent.split('\n');
 
-    // Line 0: English codes (YS, SF1...)
-    // Line 1: Chinese headers (颜色, 塑粉1...) -> We use this one
-    // Line 2+: Data
-
     if (lines.length < 3) {
         throw new Error('CSV file too short');
     }
@@ -128,8 +142,6 @@ try {
 
     if (processGroups.length === 0) {
         console.warn('⚠️ No material groups found in headers! Checking hardcoded fallback...');
-        // Fallback or error? Let's error to be safe, as this is a refactor for robustness.
-        // But for safety during transition, we could hardcode if detection fails, but that defeats the purpose.
     }
 
     const catalog = {};
@@ -142,7 +154,7 @@ try {
 
         // Handle CSV split strictly
         const cols = line.split(',');
-        const colorName = cols[0]; // Assumes first column is always Color Name
+        const colorName = cols[0];
 
         if (!colorName) continue;
 
@@ -156,20 +168,34 @@ try {
             group.indexes.forEach(baseIdx => {
                 const matName = cols[baseIdx];
                 const usageSingle = parseFloat(cols[baseIdx + 1] || 0);
-                const usagePaired = parseFloat(cols[baseIdx + 2] || 0); // Col 3 is Paired (SFZM/ZYZMC etc)
+                const usagePaired = parseFloat(cols[baseIdx + 2] || 0);
 
                 if (matName && matName.trim()) {
                     const matObj = parseMaterial(matName, group.type);
+
+                    // 1. Add to Catalog (WITHOUT Position)
                     if (!catalog[matObj.id]) {
-                        catalog[matObj.id] = matObj;
+                        catalog[matObj.id] = {
+                            id: matObj.id,
+                            model: matObj.model,
+                            type: matObj.type,
+                            supplier: matObj.supplier,
+                            unit: matObj.unit,
+                            unitPrice: matObj.unitPrice,
+                            minOrder: matObj.minOrder,
+                            packageSpec: matObj.packageSpec
+                            // No 'position' here!
+                        };
                     }
 
+                    // 2. Add to Formula BOM (WITH Position)
                     formula.bom.push({
                         materialId: matObj.id,
+                        position: matObj.position, // <--- Position lives here now
                         usage: {
                             single: usageSingle,
-                            double: Number((usageSingle * 2).toFixed(2)), // Double = Single * 2
-                            paired: usagePaired // Paired = From CSV
+                            double: Number((usageSingle * 2).toFixed(2)),
+                            paired: usagePaired
                         }
                     });
                 }

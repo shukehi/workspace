@@ -63,6 +63,8 @@ class ConfigManager {
         });
 
 
+
+
         // --- Formula Editor Events ---
         this.formulaSearch.addEventListener('input', (e) => {
             this.renderFormulaList(e.target.value);
@@ -116,14 +118,24 @@ class ConfigManager {
     populateMaterialFilters() {
         const types = new Set();
         const suppliers = new Set();
+        // Position isn't always single value (comma sep), need to split? 
+        // For simplicity, let's just collect unique FULL strings, users can search. 
+        // Or better yet, just extract unique words if needed. 
+        // Let's stick to simple unique values for the dropdown first, or parse if comma separated.
+        const positions = new Set();
 
         Object.values(this.materials).forEach(m => {
             if (m.type) types.add(m.type);
             if (m.supplier) suppliers.add(m.supplier);
+            // Handling comma separated positions for filter
+            if (m.position) {
+                m.position.split(',').forEach(p => positions.add(p.trim()));
+            }
         });
 
         const sortedTypes = Array.from(types).sort();
         const sortedSuppliers = Array.from(suppliers).sort();
+        const sortedPositions = Array.from(positions).sort();
 
         this.filterMatType.innerHTML = '<option value="">全部</option>' +
             sortedTypes.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -134,6 +146,7 @@ class ConfigManager {
 
     // --- Materials Logic (Simple Table) ---
     renderMaterials() {
+        console.log('ConfigManager V1.2: Rendering Materials (No Position Column)');
         this.materialsTableBody.innerHTML = '';
         Object.keys(this.materials).forEach(key => {
             const mat = this.materials[key];
@@ -146,8 +159,8 @@ class ConfigManager {
             tr.dataset.key = key;
             tr.innerHTML = `
                 <td><input class="config-input mono" value="${key}" readonly></td>
-                <td><input class="config-input" value="${mat.name || ''}" data-field="name"></td>
-                <td><input class="config-input" value="${mat.type || ''}" data-field="type"></td>
+                <td><input class="config-input" value="${mat.model || ''}" data-field="model"></td>
+                <td><input class="config-input type-col" value="${mat.type || ''}" data-field="type"></td>
                 <td><input class="config-input" value="${mat.supplier || ''}" data-field="supplier"></td>
                 <td><input class="config-input" value="${mat.unit || ''}" data-field="unit"></td>
                 <td><input class="config-input" value="${mat.packageSpec || ''}" data-field="packageSpec"></td>
@@ -225,6 +238,7 @@ class ConfigManager {
                     <div class="suggestions-list"></div>
                 </div>
             </td>
+            <td><input class="config-input" value="${item.position || ''}" placeholder="如:门架" data-field="position"></td>
             <td><input class="config-input" type="number" step="0.01" value="${item.usage.single}" data-field="single"></td>
             <td><input class="config-input" type="number" step="0.01" value="${item.usage.double}" data-field="double"></td>
             <td><input class="config-input" type="number" step="0.01" value="${item.usage.paired}" data-field="paired"></td>
@@ -258,13 +272,13 @@ class ConfigManager {
             // Search in materials
             const matches = Object.values(this.materials).filter(m =>
                 (m.id && m.id.toLowerCase().includes(query)) ||
-                (m.name && m.name.toLowerCase().includes(query))
+                (m.model && m.model.toLowerCase().includes(query))
             ).slice(0, 10);
 
             if (matches.length > 0) {
                 list.innerHTML = matches.map(m => `
                     <div class="suggestion-item" data-id="${m.id}">
-                        ${m.id} <span class="sub">${m.name}</span>
+                        ${m.id} <span class="sub">${m.model}</span>
                     </div>
                 `).join('');
                 list.classList.add('show');
@@ -307,7 +321,7 @@ class ConfigManager {
             const inputs = row.querySelectorAll('input');
             newMaterials[key] = {
                 id: key,
-                name: inputs[1].value,
+                model: inputs[1].value,
                 type: inputs[2].value,
                 supplier: inputs[3].value,
                 unit: inputs[4].value,
@@ -340,8 +354,11 @@ class ConfigManager {
             if (!matId) return;
 
             const inputs = row.querySelectorAll('input[type="number"]');
+            const positionInput = row.querySelector('[data-field="position"]');
+
             newBom.push({
                 materialId: matId,
+                position: positionInput ? positionInput.value : '通用',
                 usage: {
                     single: parseFloat(inputs[0].value) || 0,
                     double: parseFloat(inputs[1].value) || 0,

@@ -18,7 +18,7 @@ import { getExtractor } from '../utils/dataExtractors.js';
 import { tryMergeItems } from '../components/print/printMerge.js';
 import { orderPool } from '../utils/orderPool.js';
 import { calculateMaterialRequirements, getMaterialSummary } from '../utils/materialDecomposer.js';
-import '../components/configManager.js'; // [NEW] Config Manager
+import '../components/configManager.js?v=1.2'; // [NEW] Config Manager
 
 // ==================== Initialization ====================
 
@@ -809,7 +809,7 @@ function renderMaterials() {
                         ${group.materials.map(m => `
                             <tr>
                                 <td class="material-type">${m.material.type}</td>
-                                <td>${m.material.name}</td>
+                                <td>${m.material.model}</td>
                                 <td class="material-usage">${m.totalUsage.toFixed(2)}</td>
                                 <td>${m.material.unit}</td>
                                 <td>${m.material.minOrder || '-'}</td>
