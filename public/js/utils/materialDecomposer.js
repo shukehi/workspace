@@ -99,7 +99,11 @@ export function calculateMaterialRequirements(items, formulas, catalog) {
         console.warn('⚠️ Missing formulas for colors:', Array.from(missingFormulas).join(', '));
     }
 
-    return groupBySupplier(requirements, catalog);
+    // Return both requirements and missing items for UI handling
+    return {
+        requirements: groupBySupplier(requirements, catalog),
+        missing: Array.from(missingFormulas)
+    };
 }
 
 /**

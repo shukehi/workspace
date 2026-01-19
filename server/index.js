@@ -20,11 +20,11 @@ const app = express();
 // CORS 支持
 app.use(cors(config.cors));
 
-// 解析 JSON 请求体
-app.use(express.json());
+// 解析 JSON 请求体 (调大限制以支持大型配方库保存)
+app.use(express.json({ limit: '50mb' }));
 
 // 解析 URL 编码的请求体
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // 请求日志（开发环境）
 if (config.server.env === 'development') {

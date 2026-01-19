@@ -8,9 +8,9 @@
         "dev": "NODE_ENV=development node server/index.js"
     },
     "dependencies": {
-        "body-parser": "^2.2.1",
+        "body-parser": "^2.2.2",
         "cors": "^2.8.5",
-        "express": "^4.18.2",
+        "express": "^4.22.1",
         "http-proxy-middleware": "^2.0.6",
         "jsdom": "^27.4.0",
         "puppeteer": "^24.34.0",

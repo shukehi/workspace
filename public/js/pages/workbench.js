@@ -18,6 +18,7 @@ import { getExtractor } from '../utils/dataExtractors.js';
 import { tryMergeItems } from '../components/print/printMerge.js';
 import { orderPool } from '../utils/orderPool.js';
 import { calculateMaterialRequirements, getMaterialSummary } from '../utils/materialDecomposer.js';
+import '../components/configManager.js'; // [NEW] Config Manager
 
 // ==================== Initialization ====================
 
@@ -353,12 +354,18 @@ function switchTab(tabId) {
         t.classList.toggle('active', t.dataset.tab === tabId);
     });
 
+
     // 2. Update Panels
     document.querySelectorAll('.hub-panel').forEach(p => {
         // Just toggle active class as CSS handles display properties
         // .hub-panel { display: none } .hub-panel.active { display: block }
         p.classList.toggle('active', p.id === `panel-${tabId}`);
     });
+
+    // 3. Special handling (refresh data for config)
+    if (tabId === 'config' && window.configManager) {
+        window.configManager.loadData();
+    }
 }
 
 function updateStatus(status) {
@@ -738,6 +745,11 @@ function renderMaterials() {
 
     const container = document.getElementById('materialsContainer');
     const emptyState = document.getElementById('materialsEmptyState');
+    const warningContainer = document.getElementById('materialsWarning'); // Expecting this or will create dynamically
+
+    // Clear previous warning if any (or we inject strictly into container)
+    const existingWarning = document.getElementById('generated-material-warning');
+    if (existingWarning) existingWarning.remove();
 
     if (items.length === 0 || Object.keys(formulas).length === 0 || Object.keys(catalog).length === 0) {
         container.innerHTML = '';
@@ -746,7 +758,30 @@ function renderMaterials() {
     }
 
     try {
-        const requirements = calculateMaterialRequirements(items, formulas, catalog);
+        const result = calculateMaterialRequirements(items, formulas, catalog);
+        const requirements = result.requirements || {};
+        const missing = result.missing || [];
+
+        // 1. Render Warnings for Missing Formulas
+        if (missing.length > 0) {
+            const warningDiv = document.createElement('div');
+            warningDiv.id = 'generated-material-warning';
+            warningDiv.className = 'warning-banner'; // Ensure CSS exists or use inline styles for now
+            warningDiv.style.cssText = `
+                background-color: #fff3cd; 
+                color: #856404; 
+                padding: 12px; 
+                margin-bottom: 20px; 
+                border: 1px solid #ffeeba; 
+                border-radius: 4px;
+            `;
+            warningDiv.innerHTML = `
+                <strong>⚠️ 以下颜色未找到配方，无法计算材料：</strong><br>
+                ${missing.join(', ')}
+            `;
+            // Insert before container
+            container.parentNode.insertBefore(warningDiv, container);
+        }
 
         if (Object.keys(requirements).length === 0) {
             container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">暂无可计算的原材料数据</div>';

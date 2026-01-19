@@ -118,6 +118,10 @@
                         <span class="tab-label">MATERIALS</span>
                         <span class="tab-desc">原材料清单</span>
                     </button>
+                    <button class="hub-tab" data-tab="config">
+                        <span class="tab-label">CONFIG</span>
+                        <span class="tab-desc">配方管理</span>
+                    </button>
                     <button class="hub-tab" data-tab="orders">
                         <span class="tab-label">ORDERS</span>
                         <span class="tab-desc">采购单管理</span>
@@ -223,6 +227,109 @@
                         </div>
                     </div>
 
+                    <!-- Tab: CONFIG - 系统配置管理 -->
+                    <div class="hub-panel" id="panel-config">
+                        <div class="panel-header">
+                            <h2>配置管理中心</h2>
+                            <div class="config-controls">
+                                <div class="config-tabs">
+                                    <button class="config-tab active" data-target="materials">原材料库</button>
+                                    <button class="config-tab" data-target="formulas">颜色配方</button>
+                                </div>
+                                <div class="config-actions">
+                                    <input type="text" id="configSearch" placeholder="搜索名称..." class="search-input">
+                                    <button id="configRefreshBtn" class="action-btn">🔄 刷新</button>
+                                    <button id="configSaveBtn" class="action-btn primary">💾 保存更改</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-content">
+                            <!-- 1. Materials Editor -->
+                            <div class="config-section active" id="config-section-materials">
+                                <div class="table-responsive">
+                                    <table class="config-table" id="configMaterialsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>ID (Key)</th>
+                                                <th>名称</th>
+                                                <th>
+                                                    类型
+                                                    <select id="filterMatType" class="header-filter"
+                                                        onclick="event.stopPropagation()">
+                                                        <option value="">全部</option>
+                                                    </select>
+                                                </th>
+                                                <th>
+                                                    供应商
+                                                    <select id="filterMatSupplier" class="header-filter"
+                                                        onclick="event.stopPropagation()">
+                                                        <option value="">全部</option>
+                                                    </select>
+                                                </th>
+                                                <th>单位</th>
+                                                <th>规格</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody><!-- Dynamic --></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- 2. Formulas Editor (Master-Detail) -->
+                            <div class="config-section" id="config-section-formulas">
+                                <div class="formula-layout">
+                                    <!-- Left: Color List -->
+                                    <div class="formula-sidebar">
+                                        <div class="sidebar-header">
+                                            <input type="text" id="formulaSearchInput" placeholder="搜索颜色..."
+                                                class="search-input">
+                                            <button id="addFormulaBtn" class="icon-btn" title="新建配方">+</button>
+                                        </div>
+                                        <div class="formula-list" id="formulaList">
+                                            <!-- Dynamic List Items -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Right: Detail Editor -->
+                                    <div class="formula-editor" id="formulaEditor">
+                                        <div class="editor-header">
+                                            <h3 id="currentFormulaName">请选择颜色</h3>
+                                            <div class="editor-actions">
+                                                <button id="addBomItemBtn" class="action-btn secondary" disabled>+
+                                                    添加材料</button>
+                                                <button id="deleteFormulaBtn" class="action-btn danger"
+                                                    disabled>删除配方</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="editor-body">
+                                            <div class="table-responsive">
+                                                <table class="config-table" id="bomTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>材料 (ID/名称)</th>
+                                                            <th width="100">单门用量</th>
+                                                            <th width="100">双开用量</th>
+                                                            <th width="100">子母用量</th>
+                                                            <th width="60">操作</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="bomTableBody">
+                                                        <!-- Dynamic BOM Items -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="empty-state" id="bomEmptyState">
+                                                <p>请在一侧选择颜色以编辑配方</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Tab: ORDERS - 采购单管理 -->
                     <div class="hub-panel" id="panel-orders">
