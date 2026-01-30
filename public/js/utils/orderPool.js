@@ -21,7 +21,10 @@ class StatisticsCache {
      */
     generateKey(orders) {
         return orders
-            .map(o => `${o.code}:${o.list?.length || 0}`)
+            .map(o => {
+                const excludedCount = (o.list || []).filter(i => i._excludeStats).length;
+                return `${o.code}:${o.list?.length || 0}:${excludedCount}`;
+            })
             .sort()
             .join('|');
     }
@@ -167,9 +170,10 @@ class OrderPool {
      */
     getMergedItems() {
         return this.getAll().flatMap(order =>
-            (order.list || []).map(item => ({
+            (order.list || []).map((item, index) => ({
                 ...item,
                 _originOrder: order.code,
+                _originIndex: index,
                 _originCustomer: order.customerName
             }))
         );
@@ -211,6 +215,26 @@ class OrderPool {
         this.clear();
         if (order) {
             this.add(order);
+        }
+        return this;
+    }
+
+    /**
+     * Toggle item statistics exclusion
+     * @param {string} orderCode - Order code
+     * @param {number} itemIndex - Index of item in order list
+     * @returns {OrderPool} this for chaining
+     */
+    toggleItemStats(orderCode, itemIndex) {
+        const order = this.orders.get(orderCode);
+        if (order && order.list && order.list[itemIndex]) {
+            const item = order.list[itemIndex];
+            item._excludeStats = !item._excludeStats;
+
+            this.statsCache.clear(); // Invalidate cache
+            this.notify('update', { orderCode, itemIndex }); // Notify listeners
+            this.save(); // Persist changes
+            console.log(`🔄 Toggled stats for ${orderCode} item ${itemIndex}: ${!item._excludeStats}`);
         }
         return this;
     }

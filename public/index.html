@@ -103,320 +103,201 @@
             </aside>
 
             <!-- ========== 中央：采购处理中心 (The Hub) ========== -->
-            <main class="workbench-main">
-                <!-- Hub 标签导航 -->
-                <nav class="hub-tabs" id="hubTabs">
-                    <button class="hub-tab active" data-tab="source">
-                        <span class="tab-label">SOURCE</span>
-                        <span class="tab-desc">订单明细</span>
-                    </button>
-                    <button class="hub-tab" data-tab="stats">
-                        <span class="tab-label">STATS</span>
-                        <span class="tab-desc">配件颜色统计</span>
-                    </button>
-                    <button class="hub-tab" data-tab="materials">
-                        <span class="tab-label">MATERIALS</span>
-                        <span class="tab-desc">原材料清单</span>
-                    </button>
-                    <button class="hub-tab" data-tab="config">
-                        <span class="tab-label">CONFIG</span>
-                        <span class="tab-desc">配方管理</span>
-                    </button>
-                    <button class="hub-tab" data-tab="orders">
-                        <span class="tab-label">ORDERS</span>
-                        <span class="tab-desc">采购单管理</span>
-                    </button>
-                </nav>
+            <main class="workbench-main" id="app">
+                <!-- Vue App will mount here -->
+                <workbench-app></workbench-app>
+            </main>
 
-                <!-- Hub 内容区 -->
-                <div class="hub-content">
-                    <!-- Tab: SOURCE - 订单原始明细 -->
-                    <div class="hub-panel active" id="panel-source">
-                        <div class="panel-header">
-                            <h2>订单原始数据 <span class="badge" id="sourceCount">0 items</span></h2>
-                            <div class="panel-actions">
-                                <button id="generateOrdersBtn" class="action-btn primary">
-                                    生成采购订单 ▼
-                                </button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="details-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>产品名称</th>
-                                        <th>规格</th>
-                                        <th>颜色</th>
-                                        <th>L</th>
-                                        <th>R</th>
-                                        <th>门板款式</th>
-                                        <th>锁具</th>
-                                        <th>详情</th>
-                                        <th>来源订单</th>
-                                        <th style="width: 50px; text-align: center;">统计</th>
-                                        <th style="width: 80px; text-align: center;">合并</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="detailsTableBody">
-                                    <!-- 动态注入 -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="empty-state" id="sourceEmptyState">
-                            <p>请在左侧输入合同编号并点击 FETCH</p>
-                        </div>
-                    </div>
+            <!-- ==================== Vue Templates ==================== -->
 
+            <!-- 1. Workbench App Root Template -->
+            <script type="text/x-template" id="workbench-app-template">
+                <div>
+                    <!-- Hub Tabs Navigation -->
+                    <nav class="hub-tabs" id="hubTabs">
+                        <button 
+                            v-for="tab in tabs" 
+                            :key="tab.id"
+                            class="hub-tab" 
+                            :class="{ active: currentTab === tab.id }"
+                            @click="currentTab = tab.id">
+                            <span class="tab-label">{{ tab.label }}</span>
+                            <span class="tab-desc">{{ tab.desc }}</span>
+                        </button>
+                    </nav>
 
-                    <!-- Tab: STATS - 配件颜色统计 -->
-                    <div class="hub-panel" id="panel-stats">
-                        <div class="panel-header">
-                            <h2>配件颜色统计 <span class="badge" id="statsColorCount">0 种颜色</span></h2>
-                        </div>
-
-                        <!-- Key Metrics Cards -->
-                        <div class="stats-cards">
-                            <div class="stat-card">
-                                <span class="stat-label">UNIQUE COLORS</span>
-                                <span class="stat-value" id="statsTotalColors">0</span>
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-label">TOTAL DOORS</span>
-                                <span class="stat-value" id="statsTotalDoors">0</span>
-                            </div>
-                        </div>
-
-                        <!-- Color Distribution Table -->
-                        <div class="table-responsive">
-                            <table class="stats-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>颜色名称</th>
-                                        <th>门数量</th>
-                                        <th>占比</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="statsTableBody">
-                                    <!-- Dynamic content -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="empty-state" id="statsEmptyState">
-                            <p>请先加载订单数据</p>
-                        </div>
-                    </div>
-
-
-                    <!-- Tab: MATERIALS - 原材料清单 -->
-                    <div class="hub-panel" id="panel-materials">
-                        <div class="panel-header">
-                            <h2>原材料采购清单</h2>
-                        </div>
-
-                        <!-- Materials Container -->
-                        <div id="materialsContainer">
-                            <!-- Dynamically rendered supplier groups -->
-                        </div>
-
-                        <!-- Empty State -->
-                        <div class="empty-state" id="materialsEmptyState" style="display: flex;">
-                            <p>暂无原材料数据</p>
-                            <span>请先加载订单</span>
-                        </div>
-                    </div>
-
-                    <!-- Tab: CONFIG - 系统配置管理 -->
-                    <div class="hub-panel" id="panel-config">
-                        <!-- Vue 3 Mount Point -->
-                        <div id="config-mount-point"></div>
-
-                        <!-- Vue 3 Template Definition (Separated from JS) -->
-                        <script type="text/x-template" id="config-panel-template">
-                            <div class="config-content-vue">
-                                <div class="panel-header">
-                                    <h2>配置管理中心 (Vue 3 Optimized)</h2>
-                                    <div class="config-controls">
-                                        <div class="config-tabs">
-                                            <button 
-                                                class="config-tab" 
-                                                :class="{ active: currentTab === 'materials' }"
-                                                @click="currentTab = 'materials'">
-                                                原材料库
-                                            </button>
-                                            <button 
-                                                class="config-tab" 
-                                                :class="{ active: currentTab === 'formulas' }"
-                                                @click="currentTab = 'formulas'">
-                                                颜色配方
-                                            </button>
-                                        </div>
-                                        <div class="config-actions">
-                                            <input type="text" v-model="searchQuery" placeholder="搜索名称..." class="search-input">
-                                            <button @click="refreshData" class="action-btn">🔄 刷新</button>
-                                            <button @click="saveData" class="action-btn primary">💾 保存更改</button>
-                                        </div>
-                                    </div>
-                                </div>
-                        
-                                <div class="config-content">
-                                    <!-- 1. Materials Editor -->
-                                    <div v-if="currentTab === 'materials'" class="config-section active">
-                                        <div class="table-responsive">
-                                            <table class="config-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th width="15%">ID (Key)</th>
-                                                        <th width="15%">型号 (Model)</th>
-                                                        <th width="10%">
-                                                            类型
-                                                            <select v-model="filterType" class="header-filter" @click.stop>
-                                                                <option value="">全部</option>
-                                                                <option v-for="type in uniqueTypes" :value="type">{{ type }}</option>
-                                                            </select>
-                                                        </th>
-                                                        <th width="10%">
-                                                            供应商
-                                                            <select v-model="filterSupplier" class="header-filter" @click.stop>
-                                                                <option value="">全部</option>
-                                                                <option v-for="supp in uniqueSuppliers" :value="supp">{{ supp }}</option>
-                                                            </select>
-                                                        </th>
-                                                        <th width="10%">单位</th>
-                                                        <th width="10%">规格</th>
-                                                        <th width="10%">操作</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr v-for="item in filteredMaterials" :key="item.id">
-                                                        <td>{{ item.id }}</td>
-                                                        <td>
-                                                            <input type="text" v-model="item.model" class="table-input">
-                                                        </td>
-                                                        <td>{{ item.type }}</td>
-                                                        <td>{{ item.supplier }}</td>
-                                                        <td>{{ item.unit }}</td>
-                                                        <td>{{ item.price }}</td>
-                                                        <td>
-                                                            <button class="icon-btn danger" @click="removeMaterial(item.id)">🗑️</button>
-                                                        </td>
-                                                    </tr>
-                                                    <!-- Add Row -->
-                                                    <tr class="add-row">
-                                                        <td><input v-model="newMaterial.id" placeholder="ID" class="table-input"></td>
-                                                        <td><input v-model="newMaterial.model" placeholder="型号" class="table-input"></td>
-                                                        <td><input v-model="newMaterial.type" placeholder="类型" class="table-input"></td>
-                                                        <td><input v-model="newMaterial.supplier" placeholder="供应商" class="table-input"></td>
-                                                        <td><input v-model="newMaterial.unit" placeholder="单位" class="table-input"></td>
-                                                        <td><button class="action-btn small" @click="addMaterial">添加</button></td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                        
-                                    <!-- 2. Formulas Editor (Master-Detail) -->
-                                    <div v-if="currentTab === 'formulas'" class="config-section active">
-                                        <div class="formula-layout">
-                                            <!-- Left: Color List -->
-                                            <div class="formula-sidebar">
-                                                <div class="sidebar-header">
-                                                    <input type="text" v-model="formulaSearch" placeholder="搜索颜色..." class="search-input">
-                                                    <button @click="addNewFormula" class="icon-btn" title="新建配方">+</button>
-                                                </div>
-                                                <div class="formula-list">
-                                                    <div 
-                                                        v-for="(formula, colorName) in filteredFormulas" 
-                                                        :key="colorName"
-                                                        class="formula-item"
-                                                        :class="{ active: selectedColor === colorName }"
-                                                        @click="selectColor(colorName)">
-                                                        <span class="formula-name">{{ colorName }}</span>
-                                                        <span class="formula-count">{{ Object.keys(formula).length }} 项</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                        
-                                            <!-- Right: Detail Editor -->
-                                            <div class="formula-editor">
-                                                <div class="editor-header">
-                                                    <h3>{{ selectedColor || '请选择颜色' }}</h3>
-                                                    <div class="editor-actions" v-if="selectedColor">
-                                                        <button @click="addBomItem" class="action-btn secondary">+ 添加材料</button>
-                                                        <button @click="deleteFormula" class="action-btn danger">删除配方</button>
-                                                    </div>
-                                                </div>
-                        
-                                                <div class="editor-body">
-                                                    <div v-if="selectedColor" class="table-responsive">
-                                                        <table class="config-table">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>材料 (ID/名称)</th>
-                                                                    <th width="100">部位</th>
-                                                                    <th width="100">单门用量</th>
-                                                                    <th width="100">双开用量</th>
-                                                                    <th width="100">子母用量</th>
-                                                                    <th width="60">操作</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                <tr v-for="(bomItem, partName) in currentFormula" :key="partName">
-                                                                    <td>
-                                                                        <input v-model="bomItem.materialId" class="table-input" placeholder="材料ID">
-                                                                    </td>
-                                                                    <td>{{ partName }}</td>
-                                                                    <td><input v-model="bomItem.usage.single" type="number" step="0.01" class="table-input"></td>
-                                                                    <td><input v-model="bomItem.usage.double" type="number" step="0.01" class="table-input"></td>
-                                                                    <td><input v-model="bomItem.usage.mother_son" type="number" step="0.01" class="table-input"></td>
-                                                                    <td><button class="icon-btn danger" @click="removeBomItem(partName)">×</button></td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                     <div v-else class="empty-state">
-                                                        <p>请在一侧选择颜色以编辑配方</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </script>
-                    </div>
-
-                    <!-- Tab: ORDERS - 采购单管理 -->
-                    <div class="hub-panel" id="panel-orders">
-                        <div class="panel-header">
-                            <h2>采购单管理 <span class="badge" id="ordersCount">0 单</span></h2>
-                        </div>
-                        <div class="orders-list-container">
-                            <table class="orders-table">
-                                <thead>
-                                    <tr>
-                                        <th>PO 编号</th>
-                                        <th>类别</th>
-                                        <th>客户名称</th>
-                                        <th>合同编号</th>
-                                        <th>生成时间</th>
-                                        <th>状态</th>
-                                        <th>操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ordersTableBody">
-                                    <!-- 动态注入 -->
-                                </tbody>
-                            </table>
-                            <div class="empty-state" id="ordersEmptyState">
-                                <p>暂无采购单，请先生成</p>
-                            </div>
-                        </div>
+                    <!-- Hub Content Area -->
+                    <div class="hub-content">
+                        <!-- Using KeepAlive to preserve state between tab switches -->
+                        <keep-alive>
+                            <component :is="currentTabComponent"
+                                :orders="purchaseOrders"
+                                @generate="generateOrders"
+                                @delete-po="deletePO"
+                                @clear-all="clearAllPOs"
+                            ></component>
+                        </keep-alive>
                     </div>
                 </div>
-            </main>
+            </script>
+
+            <!-- 2. Source Tab Template -->
+            <script type="text/x-template" id="source-tab-template">
+                <div class="hub-panel active">
+                    <div class="panel-header">
+                        <h2>订单原始数据 <span class="badge">{{ items.length }} items</span></h2>
+                        <div class="panel-actions">
+                            <button @click="generateOrders" class="action-btn primary">
+                                生成采购订单 ▼
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="details-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>产品名称</th>
+                                    <th>规格</th>
+                                    <th>颜色</th>
+                                    <th>L</th>
+                                    <th>R</th>
+                                    <th>门板款式</th>
+                                    <th>锁具</th>
+                                    <th>详情</th>
+                                    <th>来源订单</th>
+                                    <th style="width: 50px; text-align: center;">统计</th>
+                                    <th style="width: 80px; text-align: center;">合并</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, index) in items" :key="index">
+                                    <td>{{ index + 1 }}</td>
+                                    <td>{{ item.productName }}</td>
+                                    <td>{{ item.spec }}</td>
+                                    <td>{{ item.color }}</td>
+                                    <td>{{ item.qtyL }}</td>
+                                    <td>{{ item.qtyR }}</td>
+                                    <td>{{ item.doorType }}</td>
+                                    <td>{{ item.lockType }}</td>
+                                    <td>{{ item.details }}</td>
+                                    <td>{{ item.sourceOrder }}</td>
+                                    <td class="text-center">
+                                        <input type="checkbox" v-model="item.includeStats">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="checkbox" v-model="item.merge">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-if="items.length === 0" class="empty-state">
+                        <p>请在左侧输入合同编号并点击 FETCH</p>
+                    </div>
+                </div>
+            </script>
+
+            <!-- 3. Stats Tab Template -->
+            <script type="text/x-template" id="stats-tab-template">
+                <div class="hub-panel active">
+                    <div class="panel-header">
+                        <h2>配件颜色统计 <span class="badge">{{ uniqueColors }} 种颜色</span></h2>
+                    </div>
+
+                    <!-- Key Metrics Cards -->
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <span class="stat-label">UNIQUE COLORS</span>
+                            <span class="stat-value">{{ uniqueColors }}</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">TOTAL DOORS</span>
+                            <span class="stat-value">{{ totalDoors }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Color Distribution Table -->
+                    <div class="table-responsive">
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>颜色名称</th>
+                                    <th>门数量</th>
+                                    <th>占比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(stat, index) in statistics" :key="stat.color">
+                                    <td>{{ index + 1 }}</td>
+                                    <td>{{ stat.color }}</td>
+                                    <td>{{ stat.count }}</td>
+                                    <td>{{ stat.percentage }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div v-if="statistics.length === 0" class="empty-state">
+                        <p>请先加载订单数据</p>
+                    </div>
+                </div>
+            </script>
+
+            <!-- 4. Materials Tab Template (Placeholder / Future) -->
+            <script type="text/x-template" id="materials-tab-template">
+                <div class="hub-panel active">
+                    <div class="panel-header">
+                        <h2>原材料采购清单</h2>
+                    </div>
+                    <div class="empty-state" style="display: flex;">
+                        <p>Materials Tab (In Progress)</p>
+                    </div>
+                </div>
+            </script>
+
+            <!-- 5. Orders Tab Template -->
+            <script type="text/x-template" id="orders-tab-template">
+                <div class="hub-panel active">
+                    <div class="panel-header">
+                        <h2>采购单管理 <span class="badge" id="po-count">{{ orders.length }}</span></h2>
+                        <div class="panel-actions">
+                            <button class="action-btn danger" @click="clearAll">清空全部</button>
+                            <button class="action-btn secondary" @click="exportAll">导出全部</button>
+                            <label class="action-btn secondary" style="cursor: pointer;">
+                                导入
+                                <input type="file" hidden @change="handleImport">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="po-grid-container">
+                        <div v-for="po in orders" :key="po.id" class="po-card">
+                            <div class="po-header">
+                                <span class="po-number">{{ po.poNumber }}</span>
+                                <span class="po-status" :class="po.status">{{ po.status }}</span>
+                            </div>
+                            <div class="po-body">
+                                <p><strong>供应商:</strong> {{ po.supplier }}</p>
+                                <p><strong>类型:</strong> {{ po.category }}</p>
+                                <p><strong>包含订单:</strong> <span class="mono">{{ po.sourceOrders }}</span></p>
+                                <p><strong>生成时间:</strong> {{ formatDate(po.generatedAt) }}</p>
+                            </div>
+                            <div class="po-footer">
+                                <button class="btn-text" @click="viewPO(po)">查看</button>
+                                <button class="btn-text" @click="printPO(po)">打印</button>
+                                <button class="btn-text danger" @click="deletePO(po.id)">删除</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="orders.length === 0" class="empty-state" style="display: flex;">
+                        <p>暂无生成的采购单</p>
+                        <span>请在 SOURCE 页面选择项目生成</span>
+                    </div>
+                </div>
+            </script>
         </div>
 
         <!-- ==================== 底部固定操作栏 ==================== -->

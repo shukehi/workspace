@@ -51,6 +51,9 @@ export function calculateMaterialRequirements(items, formulas, catalog) {
     const missingFormulas = new Set();
 
     items.forEach(item => {
+        // Skip items excluded from statistics
+        if (item._excludeStats) return;
+
         const formula = formulas[item.color];
 
         if (!formula) {

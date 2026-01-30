@@ -23,6 +23,9 @@ export function calculateColorStatistics(orderItems) {
     const colorMap = new Map();
 
     orderItems.forEach(item => {
+        // Skip items excluded from statistics
+        if (item._excludeStats) return;
+
         const color = item.color || '未指定';
 
         // Parse quantity (format: "3/3" or "10")
