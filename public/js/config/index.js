@@ -95,6 +95,8 @@ export async function loadLockForkMapping() {
  * 加载材料目录配置
  * 从 JSON 文件加载配置，失败时使用默认配置
  */
+import { DataNormalizer } from '../utils/dataNormalizer.js';
+
 export async function loadMaterialsCatalog() {
     try {
         const response = await fetch('/data/materials-catalog.json');
@@ -103,8 +105,10 @@ export async function loadMaterialsCatalog() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        MATERIALS_CATALOG = await response.json();
-        console.log('✅ 材料目录配置加载成功:', Object.keys(MATERIALS_CATALOG).length, '种材料');
+        const rawData = await response.json();
+        MATERIALS_CATALOG = DataNormalizer.normalizeMaterialCatalog(rawData);
+
+        console.log('✅ 材料目录配置加载成功 (已标准化):', Object.keys(MATERIALS_CATALOG).length, '种材料');
 
     } catch (error) {
         console.warn('⚠️ 加载材料目录配置失败:', error.message);

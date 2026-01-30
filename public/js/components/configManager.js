@@ -313,13 +313,18 @@ class ConfigManager {
     }
 
     async saveMaterials() {
+        // Dynamic import to avoid module ordering issues if not using a bundler
+        const { DataNormalizer } = await import('../utils/dataNormalizer.js');
+
         const newMaterials = {};
         const rows = this.materialsTableBody.querySelectorAll('tr');
         rows.forEach(row => {
             const key = row.dataset.key;
             if (!key) return;
             const inputs = row.querySelectorAll('input');
-            newMaterials[key] = {
+
+            // Reconstruct raw object from UI inputs
+            const rawMat = {
                 id: key,
                 model: inputs[1].value,
                 type: inputs[2].value,
@@ -327,6 +332,9 @@ class ConfigManager {
                 unit: inputs[4].value,
                 packageSpec: inputs[5].value
             };
+
+            // Normalize before saving to ensure defaults and structure
+            newMaterials[key] = DataNormalizer.normalizeMaterial(key, rawMat);
         });
         await this.postConfig('/api/config/materials', newMaterials, '材料库');
     }

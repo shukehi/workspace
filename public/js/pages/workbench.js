@@ -18,7 +18,11 @@ import { getExtractor } from '../utils/dataExtractors.js';
 import { tryMergeItems } from '../components/print/printMerge.js';
 import { orderPool } from '../utils/orderPool.js';
 import { calculateMaterialRequirements, getMaterialSummary } from '../utils/materialDecomposer.js';
-import '../components/configManager.js?v=1.2'; // [NEW] Config Manager
+import { exportConfig, importConfig, mergeConfig, exportConfigCSV } from '../utils/configExporter.js';
+// import '../components/configManager.js?v=1.2'; // [Legacy] Config Manager - Replaced by Vue
+import { ConfigPanel } from '../components-vue/ConfigPanel.js';
+const { createApp } = Vue;
+let vueAppInstance = null;
 
 // ==================== Initialization ====================
 
@@ -110,6 +114,12 @@ function bindEvents() {
         statusIndicator.querySelector('.status-text').textContent =
             dot.classList.contains('idle') ? 'IDLE' : 'PROCESSING';
     });
+
+    // Config Export Button
+    document.getElementById('configExportBtn')?.addEventListener('click', handleConfigExport);
+
+    // Config Import Button
+    document.getElementById('configImportBtn')?.addEventListener('click', handleConfigImport);
 }
 
 
@@ -362,9 +372,16 @@ function switchTab(tabId) {
         p.classList.toggle('active', p.id === `panel-${tabId}`);
     });
 
-    // 3. Special handling (refresh data for config)
-    if (tabId === 'config' && window.configManager) {
-        window.configManager.loadData();
+    // 3. Special handling (Mount Vue App for config)
+    if (tabId === 'config') {
+        if (!vueAppInstance) {
+            console.log('🚀 Mounting Vue ConfigPanel...');
+            vueAppInstance = createApp(ConfigPanel);
+            vueAppInstance.mount('#config-mount-point');
+        } else if (vueAppInstance._instance && vueAppInstance._instance.ctx.refreshData) {
+            // Optional: call refresh if exposed
+            vueAppInstance._instance.ctx.refreshData();
+        }
     }
 }
 
@@ -462,9 +479,18 @@ window.handleRemoveOrder = function (orderCode) {
     eventBus.emit('orders:updated');
 };
 
+
 function renderSourceTable(items) {
+
     const tbody = document.getElementById('detailsTableBody');
     const emptyState = document.getElementById('sourceEmptyState');
+
+    // Update Header if not already there (Ideally we should update HTML, but let's assume HTML header is static or modify it via JS if needed. 
+    // Wait, the header is in the HTML file, not generated here. The previous step's plan implied updating workbench.js.
+    // If renderSourceTable only updates body, I need to update HTML file for header.
+    // Let me check workbench.js renderSourceTable again. It gets `detailsTableBody`. 
+    // The header is in index.html. I should update index.html for the header column as well.
+    // But first let's update the JS to render the row correctly.
 
     tbody.innerHTML = '';
 
@@ -479,6 +505,12 @@ function renderSourceTable(items) {
 
     items.forEach((item, index) => {
         const row = document.createElement('tr');
+
+        // Visual cue for excluded items
+        if (item._excludeStats) {
+            row.style.opacity = '0.5';
+            row.style.backgroundColor = '#f5f5f5';
+        }
 
         // Parse details
         const detailTags = [];
@@ -514,6 +546,14 @@ function renderSourceTable(items) {
                 ${item._originOrder || '-'}
             </td>
             <td style="text-align: center;">
+                 <label style="display: flex; flex-direction: column; align-items: center; cursor: pointer;" title="是否包含在统计中">
+                    <input type="checkbox" 
+                        onchange="handleToggleStats('${item._originOrder}', ${item._originIndex}, this)" 
+                        ${!item._excludeStats ? 'checked' : ''} 
+                        style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-color);">
+                </label>
+            </td>
+            <td style="text-align: center;">
                  <label style="display: flex; flex-direction: column; align-items: center; cursor: pointer;">
                     <input type="checkbox" class="merge-checkbox" data-index="${index}" style="width: 18px; height: 18px; cursor: pointer;">
                 </label>
@@ -522,6 +562,17 @@ function renderSourceTable(items) {
         tbody.appendChild(row);
     });
 }
+
+// Global handler for stats toggle
+window.handleToggleStats = function (orderCode, itemIndex, checkbox) {
+    if (orderPool) {
+        orderPool.toggleItemStats(orderCode, itemIndex);
+        // Trigger UI refresh to update statistics and materials
+        eventBus.emit('orders:updated');
+    } else {
+        console.error('OrderPool not initialized');
+    }
+};
 
 // ==================== Statistics Renderer ====================
 
@@ -809,7 +860,7 @@ function renderMaterials() {
                         ${group.materials.map(m => `
                             <tr>
                                 <td class="material-type">${m.material.type}</td>
-                                <td>${m.material.model}</td>
+                                <td>${m.material.model || m.material.name || m.material.id}</td>
                                 <td class="material-usage">${m.totalUsage.toFixed(2)}</td>
                                 <td>${m.material.unit}</td>
                                 <td>${m.material.minOrder || '-'}</td>
@@ -826,6 +877,108 @@ function renderMaterials() {
         container.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">原材料计算出错，请检查配置</div>';
         emptyState.style.display = 'none';
     }
+}
+
+// ==================== Config Export/Import Handlers ====================
+
+/**
+ * Handle config export button click
+ */
+function handleConfigExport() {
+    try {
+        // Ask user to choose format
+        const format = confirm(
+            '请选择导出格式:\n\n' +
+            '点击 "确定" → JSON 格式 (完整数据，可导入)\n' +
+            '点击 "取消" → CSV 格式 (Excel查看，仅导出)'
+        );
+
+        if (format) {
+            // JSON export
+            const userNote = prompt('请输入备注（可选）:', '');
+            exportConfig(MATERIALS_CATALOG, COLOR_FORMULAS, userNote || '');
+            alert('✅ JSON 配方数据已成功导出！');
+        } else {
+            // CSV export
+            exportConfigCSV(MATERIALS_CATALOG, COLOR_FORMULAS);
+            alert('✅ CSV 文件已成功导出！\n\n已生成两个文件:\n• 原材料库.csv\n• 颜色配方.csv');
+        }
+    } catch (error) {
+        console.error('❌ 导出失败:', error);
+        alert('导出失败: ' + error.message);
+    }
+}
+
+/**
+ * Handle config import button click
+ */
+async function handleConfigImport() {
+    // Create hidden file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+
+    fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            // Import and validate
+            const importedData = await importConfig(file);
+
+            // Show confirmation dialog
+            const confirmed = confirm(
+                `检测到配方文件:\n\n` +
+                `• 原材料: ${importedData.metadata.itemCounts.materials} 项\n` +
+                `• 颜色配方: ${importedData.metadata.itemCounts.formulas} 个\n` +
+                `• 导出时间: ${new Date(importedData.metadata.exportTime).toLocaleString('zh-CN')}\n\n` +
+                `确认导入吗？（将替换当前所有配方数据）`
+            );
+
+            if (!confirmed) {
+                console.log('用户取消导入');
+                return;
+            }
+
+            // Merge config (replace mode)
+            const merged = mergeConfig(
+                { materials: MATERIALS_CATALOG, formulas: COLOR_FORMULAS },
+                importedData,
+                'replace'
+            );
+
+            // Update global config objects
+            Object.keys(MATERIALS_CATALOG).forEach(key => delete MATERIALS_CATALOG[key]);
+            Object.assign(MATERIALS_CATALOG, merged.materials);
+
+            Object.keys(COLOR_FORMULAS).forEach(key => delete COLOR_FORMULAS[key]);
+            Object.assign(COLOR_FORMULAS, merged.formulas);
+
+            // Save to localStorage
+            localStorage.setItem('materials-catalog', JSON.stringify(MATERIALS_CATALOG));
+            localStorage.setItem('color-formulas', JSON.stringify(COLOR_FORMULAS));
+
+            // Refresh CONFIG page if it's active
+            if (window.configManager) {
+                window.configManager.loadData();
+            }
+
+            // Refresh materials view if there are loaded orders
+            if (orderPool.getAll().length > 0) {
+                renderMaterials();
+            }
+
+            alert('✅ 配方数据已成功导入！');
+            console.log('✅ 导入完成:', importedData.metadata);
+
+        } catch (error) {
+            console.error('❌ 导入失败:', error);
+            alert('导入失败: ' + error.message);
+        }
+    };
+
+    // Trigger file selection
+    fileInput.click();
 }
 
 // ==================== Message Listener for PO Updates ====================
