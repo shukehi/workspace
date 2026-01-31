@@ -81,7 +81,362 @@
     cursor: not-allowed;
 }
 
-/* Responsive Design */
+/* ==================== Purchase Order Cards Grid ==================== */
+
+/* Grid Container for PO Cards */
+.po-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* Individual PO Card */
+.po-card {
+    background: var(--card-bg, #ffffff);
+    border: 2px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 0;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.po-card:hover {
+    border-color: var(--primary-color, #10b981);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+/* PO Card Header */
+.po-card .po-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--bg-color, #f9fafb);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    gap: 12px;
+}
+
+.po-card .po-number {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-color, #10b981);
+    background: rgba(16, 185, 129, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.po-card .po-status {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Status Variants */
+.po-card .po-status.pending {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fbbf24;
+}
+
+.po-card .po-status.completed {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.po-card .po-status.cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+/* PO Card Body */
+.po-card .po-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+}
+
+.po-card .po-body p {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.po-card .po-body strong {
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.po-card .po-body .mono {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.8rem;
+    color: var(--text-primary, #1f2937);
+}
+
+/* PO Card Footer */
+.po-card .po-footer {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--bg-color, #f9fafb);
+    border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.po-card .po-footer .btn-text {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px solid var(--border-color, #e5e7eb);
+    color: var(--text-primary, #1f2937);
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.po-card .po-footer .btn-text:hover {
+    background: var(--primary-color, #10b981);
+    border-color: var(--primary-color, #10b981);
+    color: white;
+}
+
+.po-card .po-footer .btn-text.danger {
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.po-card .po-footer .btn-text.danger:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
+
+/* ==================== View Toggle Buttons ==================== */
+
+.view-toggle-group {
+    display: flex;
+    gap: 0;
+    background: var(--bg-color, #f9fafb);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    padding: 2px;
+    margin-right: 12px;
+}
+
+.view-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-radius: 4px;
+    min-width: 36px;
+    height: 36px;
+}
+
+.view-toggle-btn:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--primary-color, #10b981);
+}
+
+.view-toggle-btn.active {
+    background: var(--primary-color, #10b981);
+    color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.view-toggle-btn svg {
+    display: block;
+}
+
+/* ==================== List View Styles ==================== */
+
+.po-list-container {
+    margin-top: 20px;
+}
+
+.po-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border: 1px solid var(--border-color, #e5e7eb);
+    font-size: 0.875rem;
+}
+
+.po-list-table thead {
+    background: var(--card-bg, #f9fafb);
+    border-bottom: 2px solid var(--border-color, #e5e7eb);
+}
+
+.po-list-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.po-list-table tbody tr {
+    border-bottom: 1px solid var(--border-light, #f3f4f6);
+    transition: background 0.15s ease;
+}
+
+.po-list-table tbody tr:hover {
+    background: var(--bg-color, #f9fafb);
+}
+
+.po-list-table td {
+    padding: 14px 16px;
+    color: var(--text-primary, #1f2937);
+}
+
+/* List View: PO Number */
+.po-number-text {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-color, #10b981);
+}
+
+/* List View: Status Badge */
+.po-status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.7rem;
+    font-weight: 500;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.po-status-badge.pending {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fbbf24;
+}
+
+.po-status-badge.completed {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.po-status-badge.cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+/* List View: Category Tag */
+.category-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    background: var(--bg-color, #f9fafb);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #6b7280);
+    font-family: var(--font-sans, 'Inter', sans-serif);
+}
+
+/* List View: Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-icon:hover {
+    background: var(--primary-color, #10b981);
+    border-color: var(--primary-color, #10b981);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-icon.danger {
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.btn-icon.danger:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
+
+.btn-icon svg {
+    display: block;
+}
+
+/* ==================== Utility Classes ==================== */
+
+.text-center {
+    text-align: center;
+}
+
+.text-secondary {
+    color: var(--text-secondary, #6b7280);
+}
+
+.mono {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+}
+
+.mono.small {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #6b7280);
+}
+
+/* ==================== Responsive Design ==================== */
+
 @media (max-width: 768px) {
     .po-info-content {
         flex-direction: column;
@@ -95,5 +450,34 @@
 
     .po-actions .sm-btn {
         width: 100%;
+    }
+
+    .po-grid-container {
+        grid-template-columns: 1fr;
+    }
+
+    .view-toggle-group {
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+
+    .panel-actions {
+        flex-wrap: wrap;
+    }
+
+    /* List view table responsive */
+    .po-list-table {
+        font-size: 0.75rem;
+    }
+
+    .po-list-table th,
+    .po-list-table td {
+        padding: 8px 10px;
+    }
+
+    /* Hide some columns on mobile */
+    .po-list-table th:nth-child(7),
+    .po-list-table td:nth-child(7) {
+        display: none;
     }
 }

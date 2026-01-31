@@ -25,6 +25,7 @@
 @import url('components/empty-state.css');
 @import url('components/notifications.css');
 @import url('components/purchase-order.css');
+@import url('components/preview-modal.css');
 
 /* Pages - Page-specific Styles */
 @import url('pages/order-search.css');

@@ -6,32 +6,89 @@
 /* Tables */
 .table-responsive {
     overflow-x: auto;
+    width: 100%;
+    display: block;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
+}
+
+.table-responsive.sticky-wrapper {
+    overflow-x: auto;
 }
 
 .details-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 800px;
 }
+
+.order-source-table {
+    min-width: 3800px;
+}
+
+.materials-table {
+    width: 100%;
+    min-width: 800px;
+    /* Sensible minimum for materials */
+}
+
+/* Explicit width for Materials columns */
+.materials-table th:nth-child(1),
+.materials-table td:nth-child(1) {
+    width: 15%;
+}
+
+/* ID */
+.materials-table th:nth-child(2),
+.materials-table td:nth-child(2) {
+    width: 25%;
+}
+
+/* Model */
+.materials-table th:nth-child(3),
+.materials-table td:nth-child(3) {
+    width: 12%;
+}
+
+/* Type */
+.materials-table th:nth-child(4),
+.materials-table td:nth-child(4) {
+    width: 15%;
+}
+
+/* Supplier */
+.materials-table th:nth-child(5),
+.materials-table td:nth-child(5) {
+    width: 8%;
+    text-align: center;
+}
+
+/* Unit */
+.materials-table th:nth-child(6),
+.materials-table td:nth-child(6) {
+    width: 10%;
+    text-align: center;
+}
+
+/* Action */
 
 .details-table th {
     text-align: left;
-    padding: 16px 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
     color: var(--text-secondary);
     background-color: #F9FAFB;
     border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .details-table td {
-    padding: 16px 20px;
-    font-size: 0.95rem;
+    padding: 8px 12px;
+    font-size: 0.9rem;
     color: var(--text-primary);
     border-bottom: 1px solid var(--border-color);
-    vertical-align: top;
+    vertical-align: middle;
     font-family: var(--font-mono);
 }
 
@@ -59,4 +116,135 @@
     color: #4B5563;
     font-weight: 500;
     border: 1px solid #E5E7EB;
+}
+
+/* Sticky Columns for Order Details Table ONLY */
+/* Column 1: 序号 */
+.order-source-table th:nth-child(1),
+.order-source-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background-color: #F9FAFB;
+    min-width: 60px;
+    width: 60px;
+}
+
+.order-source-table td:nth-child(1) {
+    background-color: white;
+}
+
+/* Column 2: 产品名称 */
+.order-source-table th:nth-child(2),
+.order-source-table td:nth-child(2) {
+    position: sticky;
+    left: 60px;
+    z-index: 3;
+    background-color: #F9FAFB;
+    min-width: 200px;
+}
+
+.order-source-table td:nth-child(2) {
+    background-color: white;
+}
+
+/* Column 3: 规格 */
+.order-source-table th:nth-child(3),
+.order-source-table td:nth-child(3) {
+    position: sticky;
+    left: 260px;
+    z-index: 3;
+    background-color: #F9FAFB;
+    min-width: 150px;
+}
+
+.order-source-table td:nth-child(3) {
+    background-color: white;
+}
+
+/* Shadow separator after sticky columns */
+.order-source-table th:nth-child(3)::after,
+.order-source-table td:nth-child(3)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: -1px;
+    width: 1px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+
+/* Column width optimization for better readability */
+.order-source-table th:nth-child(4),
+/* 门边 */
+.order-source-table th:nth-child(7),
+/* 锁具 */
+.order-source-table th:nth-child(8),
+/* 锁芯 */
+.order-source-table th:nth-child(13),
+/* 锁叉 */
+.order-source-table th:nth-child(16),
+/* 铰链 */
+.order-source-table th:nth-child(25),
+/* 前/后/门架 */
+.order-source-table th:nth-child(10),
+/* 副锁锁具 */
+.order-source-table th:nth-child(11),
+/* 副锁锁芯 */
+.order-source-table th:nth-child(12)
+
+/* 副锁护罩 */
+    {
+    min-width: 120px;
+}
+
+.order-source-table th:nth-child(5),
+/* 门扇厚度 */
+.order-source-table th:nth-child(6),
+/* 数量 */
+.order-source-table th:nth-child(14),
+/* 门铃 */
+.order-source-table th:nth-child(17),
+/* 边锁 */
+.order-source-table th:nth-child(18),
+/* 填充 */
+.order-source-table th:nth-child(20),
+/* 皮条 */
+.order-source-table th:nth-child(26)
+
+/* 级别 */
+    {
+    min-width: 100px;
+}
+
+.order-source-table th:nth-child(9),
+/* 锁芯护罩 */
+.order-source-table th:nth-child(15),
+/* 猫眼 */
+.order-source-table th:nth-child(22),
+/* 拉手 */
+.order-source-table th:nth-child(24)
+
+/* 是否通用拉手 */
+    {
+    min-width: 150px;
+}
+
+.order-source-table th:nth-child(19),
+/* 颜色 */
+.order-source-table th:nth-child(21),
+/* 包装 */
+.order-source-table th:nth-child(27)
+
+/* 下档 */
+    {
+    min-width: 120px;
+}
+
+.order-source-table th:nth-child(23)
+
+/* 备注 */
+    {
+    min-width: 300px;
 }

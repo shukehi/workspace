@@ -34,8 +34,8 @@ input[type="text"] {
     flex: 1;
     border: none;
     outline: none;
-    padding: 14px 24px;
-    font-size: 1.05rem;
+    padding: 5px;
+    font-size: 0.85rem;
     color: var(--text-primary);
     background: transparent;
     font-weight: 500;

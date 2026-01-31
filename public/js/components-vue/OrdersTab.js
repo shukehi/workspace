@@ -1,8 +1,13 @@
 
-const { computed } = Vue;
+const { computed, ref } = Vue;
+
+import { PreviewModal } from './PreviewModal.js';
 
 export const OrdersTab = {
     template: '#orders-tab-template',
+    components: {
+        PreviewModal
+    },
     props: {
         orders: {
             type: Array,
@@ -11,38 +16,73 @@ export const OrdersTab = {
     },
     setup(props, { emit }) {
 
+        // View mode state: 'grid' or 'list'
+        const viewMode = ref('grid');
+
+        // Simplified modal state - single reactive object
+        const modal = ref({
+            show: false,
+            url: ''
+        });
+
         const formatDate = (ts) => {
             if (!ts) return '-';
             return new Date(ts).toLocaleString();
         };
 
-        const viewPO = (po) => {
-            // Legacy Logic: Save to localStorage and open preview window
-            // We need to adhere to the format expected by order-preview.html
-            // po object structure: { items, poNumber, ... } 
-
-            // Construct the order object expected by preview
-            // (Assuming po.items contains the list)
-            const orderForPrint = {
-                customerName: po.supplier, // Tentative mapping
-                code: po.sourceOrders,     // Tentative mapping
+        // Extracted common logic for preparing PO data
+        const preparePOData = (po, autoPrint = false) => {
+            const orderData = {
+                customerName: po.supplier,
+                code: po.sourceOrders,
                 list: po.items
             };
 
-            localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
-            localStorage.setItem('_order_preview_po_number', po.poNumber);
-            localStorage.setItem('_order_preview_category', po.category);
+            // Map order category to print category
+            // "常规" and "非标" are packaging orders
+            let printCategory = 'packaging';
+            if (po.category === '常规' || po.category === '非标') {
+                printCategory = 'packaging';
+            } else if (po.category === '锁芯') {
+                printCategory = 'cylinder';
+            } else if (po.category === '五金') {
+                printCategory = 'hardware';
+            } else if (po.category === '锁叉') {
+                printCategory = 'lock';
+            }
 
-            window.open(
-                '/order-preview.html',
-                '_blank',
-                'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
-            );
+            localStorage.setItem('_order_preview_data', JSON.stringify(orderData));
+            localStorage.setItem('_order_preview_po_number', po.poNumber);
+            localStorage.setItem('_order_preview_category', printCategory);
+
+            if (autoPrint) {
+                localStorage.setItem('_order_preview_auto_print', 'true');
+            } else {
+                localStorage.removeItem('_order_preview_auto_print');
+            }
         };
 
+        // Simplified: open modal with preview
+        const viewPO = (po) => {
+            preparePOData(po, false);
+            modal.value = {
+                show: true,
+                url: `/order-preview.html?t=${Date.now()}`
+            };
+        };
+
+        // Simplified: open modal with auto-print
         const printPO = (po) => {
-            localStorage.setItem('_order_preview_auto_print', 'true');
-            viewPO(po);
+            preparePOData(po, true);
+            modal.value = {
+                show: true,
+                url: `/order-preview.html?t=${Date.now()}`
+            };
+        };
+
+        // Simplified: close modal
+        const closePreviewModal = () => {
+            modal.value = { show: false, url: '' };
         };
 
         const deletePO = (id) => {
@@ -58,21 +98,22 @@ export const OrdersTab = {
         };
 
         const exportAll = () => {
-            // Bridge to legacy export or implement new
             alert('导出功能待实现/整合');
         };
 
         const handleImport = (event) => {
             const file = event.target.files[0];
             if (file) {
-                // Implement import logic
                 alert('导入功能正在迁移中...');
             }
         };
 
         return {
+            viewMode,
+            modal,
             formatDate,
             viewPO,
+            closePreviewModal,
             printPO,
             deletePO,
             clearAll,

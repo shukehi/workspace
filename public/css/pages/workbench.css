@@ -112,6 +112,40 @@
     transform: scale(0.98);
 }
 
+/* Button Loading State */
+.cmd-btn .btn-loader {
+    display: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    animation: rotate 1s linear infinite;
+}
+
+.cmd-btn.loading {
+    cursor: wait;
+    opacity: 0.8;
+}
+
+.cmd-btn.loading .btn-text {
+    display: none;
+}
+
+.cmd-btn.loading .btn-loader {
+    display: block;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Meta Grid */
 .meta-grid {
     display: grid;
@@ -393,6 +427,7 @@
 /* Hub Content Area */
 .hub-content {
     flex: 1;
+    min-width: 0;
     padding: 24px;
     overflow-y: auto;
     background: var(--bg-color);
@@ -434,6 +469,13 @@
     color: white;
     font-size: 0.7rem;
     font-weight: 500;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+.panel-header .badge.small {
+    padding: 2px 6px;
+    font-size: 0.65rem;
 }
 
 .panel-actions {
@@ -848,41 +890,57 @@
 /* ================== CONFIG TAB STYLES ================== */
 
 #panel-config .panel-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+    /* Fixed: Removed previous column layout to allow single line */
+    flex-direction: row;
+    align-items: center;
+}
+
+.panel-header h2 {
+    white-space: nowrap;
+    /* Prevent title wrapping */
+    margin-right: 20px;
 }
 
 .config-controls {
     display: flex;
     justify-content: space-between;
-    width: 100%;
+    flex: 1;
+    /* Take remaining space */
     align-items: center;
 }
 
 .config-tabs {
     display: flex;
-    gap: 10px;
+    gap: 0;
     background: transparent;
-    padding: 5px;
-    border-radius: 4px;
-    border: 1px solid var(--border-dim);
+    padding: 0;
+    border: none;
+    border-bottom: 2px solid transparent;
 }
 
 .config-tab {
     background: transparent;
     border: none;
-    color: var(--text-dim);
-    padding: 5px 15px;
+    color: var(--text-tertiary);
+    padding: 8px 20px;
     cursor: pointer;
     font-family: var(--font-mono);
-    font-size: 0.9em;
-    border-radius: 2px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -18px;
+    /* Align with parent bottom border if existing */
+}
+
+.config-tab:hover {
+    color: var(--primary-color);
 }
 
 .config-tab.active {
-    background: var(--primary);
-    color: #000;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--primary-color);
+    font-weight: 600;
 }
 
 .config-actions {
@@ -929,13 +987,22 @@
     color: var(--text-main);
     width: 100%;
     font-family: var(--font-mono);
+    font-size: 0.85rem;
+    /* Reduced from default/inherited */
+    padding: 6px 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
 }
 
 .config-input:focus {
-    outline: 1px solid var(--primary-color);
-    background: rgba(0, 0, 0, 0.05);
+    outline: none;
+    /* Removed outline */
+    background: white;
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+    /* Soft shadow focus */
 }
 
+/* Config Section Toggle */
 .config-section {
     display: none;
 }
@@ -948,21 +1015,28 @@
 .bom-row {
     font-size: 0.9em;
     color: var(--text-dim);
-    border-bottom: 1px dashed var(--border-dim);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     background: transparent;
-    border: 1px solid #ff4444;
-    color: #ff4444;
+    border: 1px solid transparent;
+    color: var(--text-tertiary);
     cursor: pointer;
-    padding: 2px 5px;
-    font-size: 0.8em;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: all 0.2s;
 }
 
 .delete-btn:hover {
-    background: #ff4444;
-    color: #fff;
+    background: #fee2e2;
+    color: #ef4444;
 }
 
 /* ==================== Config Formula Layout ==================== */
@@ -1007,27 +1081,91 @@
     background: var(--border-light);
 }
 
+/* Sidebar List Styling */
 .formula-list {
     flex: 1;
     overflow-y: auto;
+    padding: 10px;
+}
+
+.formula-group-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    padding: 8px 12px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.formula-group-header:first-child {
+    margin-top: 0;
 }
 
 .formula-item {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    margin-bottom: 4px;
     cursor: pointer;
+    font-family: var(--font-mono);
     font-size: 0.85rem;
-    color: var(--text-primary);
-    transition: all 0.1s;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    background: white;
 }
 
 .formula-item:hover {
-    background: var(--bg-color);
+    background: var(--bg-hover);
+    transform: translateX(2px);
+    border-color: var(--border-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .formula-item.active {
     background: var(--primary-color);
     color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(var(--primary-rgb), 0.2);
+    border-color: transparent;
+}
+
+.formula-item .item-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.formula-item .item-tag {
+    font-size: 0.7em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-secondary);
+}
+
+.formula-item.active .item-tag {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* Search Highlight */
+.search-highlight {
+    background-color: rgba(255, 255, 0, 0.4);
+    border-radius: 2px;
+    color: inherit;
+}
+
+.formula-item.active .search-highlight {
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Editor Area */
@@ -1109,4 +1247,315 @@
     font-size: 0.75rem;
     color: var(--text-tertiary);
     margin-left: 8px;
+}
+
+/* ==================== Sub-Tabs (for Config Panel) ==================== */
+
+.sub-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0;
+}
+
+.sub-tab {
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: -2px;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-color);
+}
+
+.sub-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: var(--bg-color);
+}
+
+.config-content {
+    padding: 20px 0;
+}
+
+.config-content.full-height {
+    height: calc(100vh - 250px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Config Toolbar */
+.config-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border: 1px dashed var(--border-light);
+}
+
+.filter-group {
+    display: flex;
+    gap: 10px;
+}
+
+/* Inline Inputs */
+.inline-input {
+    width: 100%;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    /* Reduced from default */
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.inline-input:focus,
+.inline-input:hover {
+    background: var(--bg-primary);
+    border-bottom: 1px dashed var(--border-dark);
+}
+
+.inline-input.number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.add-row {
+    background: var(--bg-tertiary);
+}
+
+.add-row td {
+    padding: 2px !important;
+}
+
+/* Split View Layout */
+.config-split-view {
+    display: flex;
+    height: 100%;
+    border: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+}
+
+/* Config Sidebar */
+.config-sidebar {
+    width: 250px;
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-tertiary);
+}
+
+.sidebar-header {
+    padding: 10px;
+    border-bottom: 1px dashed var(--border-light);
+}
+
+.full-width-input {
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    outline: none;
+}
+
+.full-width-input:focus {
+    border-color: var(--primary-color);
+}
+
+.formula-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.formula-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.formula-item:hover {
+    background: var(--bg-hover);
+}
+
+.formula-item.active {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-dark);
+    font-weight: 600;
+}
+
+.sidebar-footer {
+    padding: 10px;
+    border-top: 1px dashed var(--border-light);
+}
+
+/* Config Main Detail */
+.config-main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+}
+
+.formula-detail {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--text-primary);
+}
+
+.detail-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.subtitle {
+    font-size: 0.6em;
+    font-weight: normal;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.btn-dashed {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: 1px dashed var(--border-dark);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    transition: all 0.2s;
+}
+
+.btn-dashed:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: var(--bg-tertiary);
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 0;
+    margin-top: 10px;
+    border-top: 1px dashed var(--border-light);
+}
+
+/* ==================== Enhanced BOM Detail Styles ==================== */
+
+.bom-row {
+    background: white;
+    transition: background 0.2s;
+}
+
+.bom-row:hover {
+    background: var(--bg-hover);
+}
+
+/* Material Type Tag */
+.mat-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 6px;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.mat-tag.powder {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Red for Powder */
+.mat-tag.paper {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* Blue for Paper */
+.mat-tag.paint {
+    background: #d1fae5;
+    color: #047857;
+}
+
+/* Green for Paint */
+.mat-tag.other {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Usage Visualization Bar */
+.usage-cell {
+    position: relative;
+    vertical-align: middle;
+}
+
+.usage-bar-container {
+    position: absolute;
+    bottom: 2px;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.usage-bar {
+    height: 100%;
+    background: var(--primary-color);
+    opacity: 0.4;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.usage-input-wrapper {
+    position: relative;
+    z-index: 2;
 }

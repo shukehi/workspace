@@ -43,6 +43,31 @@ export const ConfigPanel = {
             });
         });
 
+        // Pagination
+        const currentPage = ref(1);
+        const itemsPerPage = 50;
+
+        const totalPages = computed(() => Math.ceil(filteredMaterials.value.length / itemsPerPage));
+
+        const paginatedMaterials = computed(() => {
+            const start = (currentPage.value - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            return filteredMaterials.value.slice(start, end);
+        });
+
+        // Watchers to reset pagination
+        watch([searchQuery, filterType, filterSupplier], () => {
+            currentPage.value = 1;
+        });
+
+        const nextPage = () => {
+            if (currentPage.value < totalPages.value) currentPage.value++;
+        };
+
+        const prevPage = () => {
+            if (currentPage.value > 1) currentPage.value--;
+        };
+
         // Computed: Filtered Formulas
         const filteredFormulas = computed(() => {
             if (!formulaSearch.value) return formulas.value;
@@ -145,19 +170,19 @@ export const ConfigPanel = {
 
         const addBomItem = () => {
             if (!selectedColor.value) return;
-            const partName = prompt('输入部位名称 (如: 门扇):');
-            if (partName) {
-                // Determine structure compatibility with existing data
-                formulas.value[selectedColor.value][partName] = {
-                    materialId: '',
-                    usage: { single: 0, double: 0, mother_son: 0 }
-                };
-            }
+            const formula = formulas.value[selectedColor.value];
+            if (!formula.bom) formula.bom = [];
+
+            formula.bom.push({
+                position: '通用',
+                materialId: '',
+                usage: { single: 0, double: 0, mother_son: 0 }
+            });
         };
 
-        const removeBomItem = (partName) => {
-            if (selectedColor.value) {
-                delete formulas.value[selectedColor.value][partName];
+        const removeBomItem = (index) => {
+            if (selectedColor.value && formulas.value[selectedColor.value]?.bom) {
+                formulas.value[selectedColor.value].bom.splice(index, 1);
             }
         };
 
@@ -189,7 +214,14 @@ export const ConfigPanel = {
             addNewFormula,
             deleteFormula,
             addBomItem,
-            removeBomItem
+            removeBomItem,
+
+            // Pagination
+            currentPage,
+            totalPages,
+            paginatedMaterials,
+            nextPage,
+            prevPage
         };
     }
 };

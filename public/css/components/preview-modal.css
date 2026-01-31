@@ -1,0 +1,267 @@
+/**
+ * Preview Modal Component Styles
+ * Full-screen modal with glassmorphism effect
+ */
+
+/* Modal Overlay */
+.preview-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+/* Modal Container */
+.preview-modal-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    max-width: 1100px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Modal Header */
+.preview-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 2px solid var(--border-color, #e5e7eb);
+    background: var(--card-bg, #f9fafb);
+}
+
+.preview-modal-header h3 {
+    margin: 0;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #1f2937);
+    letter-spacing: 0.02em;
+}
+
+/* Modal Actions Container */
+.preview-modal-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Action Buttons */
+.modal-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+}
+
+.modal-action-btn svg {
+    flex-shrink: 0;
+}
+
+/* Edit Button - Blue-gray */
+.modal-btn-edit {
+    background: #6b7280;
+}
+
+.modal-btn-edit:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
+}
+
+/* Print Button - Green */
+.modal-btn-print {
+    background: #10b981;
+}
+
+.modal-btn-print:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* Export Button - Emerald */
+.modal-btn-export {
+    background: #10b981;
+}
+
+.modal-btn-export:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* Close Button */
+.modal-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.modal-close-btn:hover {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #dc2626;
+}
+
+/* Modal Body */
+.preview-modal-body {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #f3f4f6;
+}
+
+.preview-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+/* Loading State */
+.preview-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+}
+
+.preview-loading .loader {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color, #e5e7eb);
+    border-top-color: var(--primary-color, #10b981);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.preview-loading p {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6b7280);
+}
+
+/* Transition Animations */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+    opacity: 0;
+}
+
+.modal-fade-enter-active .preview-modal-container {
+    animation: modalSlideUp 0.3s ease-out;
+}
+
+.modal-fade-leave-active .preview-modal-container {
+    animation: modalSlideDown 0.2s ease-in;
+}
+
+@keyframes modalSlideDown {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .preview-modal-overlay {
+        padding: 0;
+    }
+
+    .preview-modal-container {
+        border-radius: 0;
+        max-width: 100%;
+        height: 100vh;
+    }
+
+    .preview-modal-header {
+        padding: 12px 16px;
+    }
+
+    .preview-modal-header h3 {
+        font-size: 0.95rem;
+    }
+
+    .preview-modal-actions {
+        gap: 6px;
+    }
+
+    .modal-action-btn {
+        padding: 8px 10px;
+        font-size: 0;
+        /* Hide text on mobile */
+    }
+
+    .modal-action-btn svg {
+        margin: 0;
+        width: 18px;
+        height: 18px;
+    }
+
+    .modal-close-btn {
+        width: 32px;
+        height: 32px;
+    }
+}

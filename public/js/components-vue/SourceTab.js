@@ -10,18 +10,20 @@ export const SourceTab = {
         // Use mergedItems from store
         const items = computed(() => store.mergedItems.value);
 
-        const handleToggleStats = (orderCode, itemIndex) => {
-            store.toggleItemStats(orderCode, itemIndex);
-        };
-
         const generateOrders = () => {
             emit('generate');
         };
 
+        const handleUpdateItem = (item, key, value) => {
+            if (item._originOrder && item._originIndex !== undefined) {
+                store.updateItemProp(item._originOrder, item._originIndex, key, value);
+            }
+        };
+
         return {
             items,
-            handleToggleStats,
-            generateOrders
+            generateOrders,
+            handleUpdateItem
         };
     }
 };

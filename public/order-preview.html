@@ -135,6 +135,15 @@
                 display: none !important;
             }
         }
+
+        /* Hide controls bar when loaded in iframe (modal mode) */
+        body.in-iframe .controls-bar {
+            display: none !important;
+        }
+
+        body.in-iframe {
+            padding-top: 20px !important;
+        }
     </style>
 </head>
 
@@ -157,6 +166,13 @@
     <script type="module">
         import { loadPackagingMapping } from './js/config/index.js';
         import { generatePrintPages } from './js/components/print/printGenerator.js';
+
+        // Detect if running in iframe (modal mode)
+        const isInIframe = window.self !== window.top;
+        if (isInIframe) {
+            document.body.classList.add('in-iframe');
+            console.log('📱 Running in iframe mode - controls hidden');
+        }
 
         // Initialize order preview
         async function initOrderPreview() {
@@ -304,7 +320,7 @@
         function enableEditing() {
             document.querySelectorAll('[contenteditable]').forEach(el => {
                 el.setAttribute('contenteditable', 'true');
-                
+
                 // Add input listener for quantity fields to update totals
                 if (el.dataset.field === 'quantity' || el.dataset.field === 'qtyLeft' || el.dataset.field === 'qtyRight') {
                     el.addEventListener('input', updateTotals);
@@ -315,7 +331,7 @@
         function disableEditing() {
             document.querySelectorAll('[contenteditable]').forEach(el => {
                 el.setAttribute('contenteditable', 'false');
-                
+
                 // Remove input listeners
                 if (el.dataset.field === 'quantity' || el.dataset.field === 'qtyLeft' || el.dataset.field === 'qtyRight') {
                     el.removeEventListener('input', updateTotals);
@@ -496,10 +512,24 @@
             console.log('✅ PO updated:', poNumber);
         }
 
-        // Listen for messages from parent window
+        // Listen for messages from parent window (modal or standalone)
         window.addEventListener('message', (event) => {
-            if (event.data.type === 'REFRESH_PO_LIST') {
+            const { type, action } = event.data;
+
+            // Handle legacy message type
+            if (type === 'REFRESH_PO_LIST') {
                 console.log('收到父窗口刷新请求');
+                return;
+            }
+
+            // Handle action commands from modal
+            if (action === 'TOGGLE_EDIT') {
+                console.log('📝 Toggle edit mode from parent');
+                toggleEditMode();
+            } else if (action === 'EXPORT_PDF') {
+                console.log('📄 Export PDF from parent');
+                const exportBtn = document.getElementById('exportPdfBtn');
+                if (exportBtn) exportBtn.click();
             }
         });
 
