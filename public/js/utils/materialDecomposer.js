@@ -110,6 +110,28 @@ export function calculateMaterialRequirements(items, formulas, catalog) {
 }
 
 /**
+ * Wrapper function for UI consumption
+ * Handles calculation and formatting in one go.
+ */
+export function getMaterialsForUI(items, formulas, catalog) {
+    // 1. Calculate
+    const { requirements, missing } = calculateMaterialRequirements(items, formulas, catalog);
+
+    // 2. Format as Array for v-for
+    const supplierGroups = Object.entries(requirements).map(([supplier, group]) => ({
+        supplier,
+        ...group
+    }));
+
+    // 3. Return UI-ready object
+    return {
+        supplierGroups,
+        missingFormulas: missing || [],
+        hasData: supplierGroups.length > 0
+    };
+}
+
+/**
  * Group materials by supplier
  * @param {Map} requirements - Material requirements map
  * @param {Object} catalog - Materials catalog

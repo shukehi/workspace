@@ -1,9 +1,12 @@
-
 const { reactive, computed, watch } = Vue;
+
+import { calculateMaterialRequirements, getMaterialsForUI } from '../utils/materialDecomposer.js';
+import { MATERIALS_CATALOG, COLOR_FORMULAS } from '../config/index.js';
 
 // State - The single source of truth
 const state = reactive({
     orders: [],
+    purchaseOrders: [], // Persisted POs
     currentOrder: null,
     // Global filters or settings could go here
 });
@@ -11,21 +14,26 @@ const state = reactive({
 // Computed Properties
 const mergedItems = computed(() => {
     return state.orders.flatMap(order =>
-        (order.list || []).map((item, index) => ({
-            ...item,
-            _originOrder: order.code,
-            _originIndex: index,
-            // Default flags if not present
-            _excludeStats: item._excludeStats || false,
-            // Merge handling could also be here or in controllers
-        }))
+        (order.list || []).map((item, index) => {
+            // Ensure flags exist with defaults
+            if (item.includeStats === undefined) item.includeStats = false;
+            if (item.merge === undefined) item.merge = false;
+
+            return {
+                ...item,
+                _originOrder: order.code,
+                _originIndex: index,
+                sourceOrder: order.code, // Add sourceOrder for display in SOURCE tab
+            };
+        })
     );
 });
 
 const statistics = computed(() => {
     // Simple recalculation based on mergedItems
     // This replaces orderPool.getStatistics()
-    const items = mergedItems.value.filter(i => !i._excludeStats);
+    // Only include items where includeStats is true
+    const items = mergedItems.value.filter(i => i.includeStats);
     const colorMap = new Map();
     let totalDoors = 0;
 
@@ -41,26 +49,37 @@ const statistics = computed(() => {
         // For now, let's just count occurrences of color for "Distribution"
 
         let count = 0;
-        // Parse "10+10" or "20"
+        // Parse "10+10" or "20" or "5/20" format
         if (item.qty) {
-            const parts = item.qty.toString().split('+');
-            count = parts.reduce((sum, part) => sum + (parseInt(part) || 0), 0);
+            const qtyStr = item.qty.toString();
+            if (qtyStr.includes('/')) {
+                // Format: "5/20" (left/right)
+                const parts = qtyStr.split('/');
+                count = parts.reduce((sum, part) => sum + (parseInt(part) || 0), 0);
+            } else if (qtyStr.includes('+')) {
+                // Format: "10+10"
+                const parts = qtyStr.split('+');
+                count = parts.reduce((sum, part) => sum + (parseInt(part) || 0), 0);
+            } else {
+                // Simple number
+                count = parseInt(qtyStr) || 0;
+            }
         }
 
         totalDoors += count;
 
         if (!colorMap.has(item.color)) {
-            colorMap.set(item.color, { color: item.color, doorCount: 0 });
+            colorMap.set(item.color, { color: item.color, count: 0 });
         }
-        colorMap.get(item.color).doorCount += count;
+        colorMap.get(item.color).count += count;
     });
 
     const totalColors = colorMap.size;
     const colorDistribution = Array.from(colorMap.values())
-        .sort((a, b) => b.doorCount - a.doorCount)
+        .sort((a, b) => b.count - a.count)
         .map(c => ({
             ...c,
-            ratio: totalDoors > 0 ? ((c.doorCount / totalDoors) * 100).toFixed(1) : 0
+            percentage: totalDoors > 0 ? ((c.count / totalDoors) * 100).toFixed(1) : 0
         }));
 
     return {
@@ -70,20 +89,65 @@ const statistics = computed(() => {
     };
 });
 
-// Persistence
-const saveToStorage = () => {
-    try {
-        localStorage.setItem('vueOrderStore', JSON.stringify(state.orders));
-    } catch (e) {
-        console.error('Save failed', e);
+// Materials - Calculate raw material requirements (Clean Version)
+const materials = computed(() => {
+    const items = mergedItems.value;
+
+    // Early return if dependencies missing
+    if (!items?.length || !COLOR_FORMULAS || !MATERIALS_CATALOG) {
+        return {
+            supplierGroups: [],
+            missingFormulas: [],
+            hasData: false,
+            error: null
+        };
     }
+
+    try {
+        // Delegate calculation and formatting to util
+        const result = getMaterialsForUI(items, COLOR_FORMULAS, MATERIALS_CATALOG);
+        return { ...result, error: null };
+    } catch (error) {
+        console.error('Material calculation error:', error);
+        return {
+            supplierGroups: [],
+            missingFormulas: [],
+            hasData: false,
+            error: error.message || 'Error executing material calculation'
+        };
+    }
+});
+
+// Persistence
+let saveTimeout;
+const saveToStorage = () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        try {
+            const dataToSave = {
+                orders: state.orders,
+                purchaseOrders: state.purchaseOrders
+            };
+            localStorage.setItem('vueOrderStore', JSON.stringify(dataToSave));
+            console.log('💾 Store auto-saved');
+        } catch (e) {
+            console.error('Save failed', e);
+        }
+    }, 500); // Debounce 500ms
 };
 
 const loadFromStorage = () => {
     try {
         const saved = localStorage.getItem('vueOrderStore');
         if (saved) {
-            state.orders = JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            // Support both old array format and new object format
+            if (Array.isArray(parsed)) {
+                state.orders = parsed;
+            } else {
+                state.orders = parsed.orders || [];
+                state.purchaseOrders = parsed.purchaseOrders || [];
+            }
         }
     } catch (e) {
         console.error('Load failed', e);
@@ -91,7 +155,7 @@ const loadFromStorage = () => {
 };
 
 // Auto-save
-watch(() => state.orders, saveToStorage, { deep: true });
+watch(() => [state.orders, state.purchaseOrders], saveToStorage, { deep: true });
 
 // Actions
 const useOrderStore = () => {
@@ -120,23 +184,29 @@ const useOrderStore = () => {
         state.currentOrder = null;
     };
 
-    // Toggle stats exclusion for an item
-    const toggleItemStats = (orderCode, itemIndex) => {
-        const order = state.orders.find(o => o.code === orderCode);
-        if (order && order.list && order.list[itemIndex]) {
-            order.list[itemIndex]._excludeStats = !order.list[itemIndex]._excludeStats;
-        }
-    };
-
     return {
         state,
         mergedItems,
         statistics,
+        materials,
         addOrder,
         removeOrder,
         clearOrders,
-        toggleItemStats,
-        loadFromStorage
+        loadFromStorage,
+        // PO Actions
+        addPO: (po) => state.purchaseOrders.unshift(po),
+        deletePO: (id) => { state.purchaseOrders = state.purchaseOrders.filter(p => p.id !== id); },
+        clearPOs: () => { state.purchaseOrders = []; },
+
+        // Item Actions
+        updateItemProp: (orderCode, itemIndex, key, value) => {
+            const order = state.orders.find(o => o.code === orderCode);
+            if (order && order.list && order.list[itemIndex]) {
+                order.list[itemIndex][key] = value;
+                // Trigger save/reactivity strictly
+                state.orders = [...state.orders];
+            }
+        }
     };
 };
 

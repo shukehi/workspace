@@ -26,123 +26,151 @@
         <!-- ==================== 顶部导航栏 ==================== -->
         <app-navigation></app-navigation>
 
-        <!-- ==================== 工作台主体 ==================== -->
-        <div class="workbench-layout">
 
-            <!-- ========== 左侧：命令输入区 (Command Panel) ========== -->
-            <aside class="workbench-sidebar">
-                <div class="sidebar-section">
-                    <div class="section-label">LOAD SOURCE</div>
-                    <div class="command-input-group">
-                        <input type="text" id="orderCodeInput" placeholder="输入合同编号..." autocomplete="off">
-                        <button id="searchBtn" class="cmd-btn">
-                            <span class="btn-text">FETCH</span>
-                            <span class="btn-loader"></span>
-                        </button>
+
+        <!-- ==================== Vue Mount Point ==================== -->
+        <div id="app" style="display: flex; flex: 1; flex-direction: column;">
+            <workbench-app></workbench-app>
+        </div>
+
+        <!-- ==================== Vue Templates ==================== -->
+
+        <!-- 1. Workbench App Root Template -->
+        <script type="text/x-template" id="workbench-app-template">
+                <div style="display: flex; flex-direction: column; width: 100%; flex: 1;">
+                    <div class="workbench-layout">
+                        <!-- Left Sidebar -->
+                        <the-sidebar></the-sidebar>
+
+                        <!-- Main Hub -->
+                        <main class="workbench-main">
+                            <div>
+                                <!-- Hub Tabs Navigation -->
+                                <nav class="hub-tabs" id="hubTabs">
+                                    <button 
+                                        v-for="tab in tabs" 
+                                        :key="tab.id"
+                                        class="hub-tab" 
+                                        :class="{ active: currentTab === tab.id }"
+                                        @click="currentTab = tab.id">
+                                        <span class="tab-label">{{ tab.label }}</span>
+                                        <span class="tab-desc">{{ tab.desc }}</span>
+                                    </button>
+                                </nav>
+
+                                <!-- Hub Content Area -->
+                                <div class="hub-content">
+                                    <keep-alive>
+                                        <component :is="currentTabComponent"
+                                            :orders="purchaseOrders"
+                                            @generate="generateOrders"
+                                            @delete-po="deletePO"
+                                            @clear-all="clearAllPOs"
+                                        ></component>
+                                    </keep-alive>
+                                </div>
+                            </div>
+                        </main>
                     </div>
-                    <p id="errorMsg" class="error-message"></p>
-                    <div class="mode-toggle">
-                        <label class="toggle-label">
-                            <input type="checkbox" id="appendModeToggle">
-                            <span class="toggle-text">APPEND MODE</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- 订单元数据（精简展示） -->
-                <div class="sidebar-section" id="orderMetaSection">
-                    <div class="section-label">ORDER META</div>
-                    <div class="meta-grid" id="orderMetaGrid">
-                        <div class="meta-item">
-                            <span class="meta-key">CLIENT</span>
-                            <span class="meta-value" id="customerName">--</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-key">CODE</span>
-                            <span class="meta-value mono" id="orderCode">--</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-key">DATE</span>
-                            <span class="meta-value mono" id="orderDate">--</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-key">DUE</span>
-                            <span class="meta-value mono" id="advanceDate">--</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 已加载订单列表 -->
-                <div class="sidebar-section" id="loadedSourcesSection">
-                    <div class="section-label">LOADED SOURCES</div>
-                    <div class="sources-list" id="sourcesList">
-                        <div class="sources-list-empty">暂无已加载订单</div>
-                    </div>
-                </div>
-
-                <!-- 备注/异常提醒区 -->
-                <div class="sidebar-section" id="remarksSection">
-                    <div class="section-label">REMARKS / ALERTS</div>
-                    <div class="remarks-box" id="orderRemark">
-                        <span class="placeholder-text">无备注信息</span>
-                    </div>
-                    <!-- 智能提取的异常项 -->
-                    <div id="alertsContainer" class="alerts-container hidden">
-                        <!-- 动态注入识别出的异常需求 -->
-                    </div>
-                </div>
-
-                <!-- 状态指示器 -->
-                <div class="sidebar-section">
-                    <div class="section-label">STATUS</div>
-                    <div class="status-indicator" id="workbenchStatus">
-                        <span class="status-dot idle"></span>
-                        <span class="status-text">IDLE</span>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- ========== 中央：采购处理中心 (The Hub) ========== -->
-            <main class="workbench-main" id="app">
-                <!-- Vue App will mount here -->
-                <workbench-app></workbench-app>
-            </main>
-
-            <!-- ==================== Vue Templates ==================== -->
-
-            <!-- 1. Workbench App Root Template -->
-            <script type="text/x-template" id="workbench-app-template">
-                <div>
-                    <!-- Hub Tabs Navigation -->
-                    <nav class="hub-tabs" id="hubTabs">
-                        <button 
-                            v-for="tab in tabs" 
-                            :key="tab.id"
-                            class="hub-tab" 
-                            :class="{ active: currentTab === tab.id }"
-                            @click="currentTab = tab.id">
-                            <span class="tab-label">{{ tab.label }}</span>
-                            <span class="tab-desc">{{ tab.desc }}</span>
-                        </button>
-                    </nav>
-
-                    <!-- Hub Content Area -->
-                    <div class="hub-content">
-                        <!-- Using KeepAlive to preserve state between tab switches -->
-                        <keep-alive>
-                            <component :is="currentTabComponent"
-                                :orders="purchaseOrders"
-                                @generate="generateOrders"
-                                @delete-po="deletePO"
-                                @clear-all="clearAllPOs"
-                            ></component>
-                        </keep-alive>
-                    </div>
+                    
+                    <!-- Footer -->
+                    <the-footer></the-footer>
                 </div>
             </script>
 
-            <!-- 2. Source Tab Template -->
-            <script type="text/x-template" id="source-tab-template">
+        <!-- 6. Smart Sidebar Template (Included in TheSidebar) -->
+        <script type="text/x-template" id="smart-sidebar-template">
+                <div v-if="hasAlerts" class="smart-alerts">
+                     <div v-for="(alert, index) in alerts" :key="index" class="alert-item">
+                        <span>{{ alert.icon }} {{ alert.message }}</span>
+                     </div>
+                </div>
+            </script>
+
+        <!-- 7. The Sidebar Template -->
+        <script type="text/x-template" id="the-sidebar-template">
+                <aside class="workbench-sidebar">
+                    <div class="sidebar-section">
+                        <div class="section-label">LOAD SOURCE</div>
+                        <div class="command-input-group">
+                            <input type="text" v-model="orderCode" @keyup.enter="handleFetch" placeholder="输入合同编号..." autocomplete="off">
+                            <button class="cmd-btn" :class="{ loading: isLoading }" @click="handleFetch">
+                                <span class="btn-text">FETCH</span>
+                                <span class="btn-loader"></span>
+                            </button>
+                        </div>
+                        <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
+                        <div class="mode-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" v-model="appendMode">
+                                <span class="toggle-text">APPEND MODE</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Order Meta -->
+                    <div class="sidebar-section" v-if="currentOrder">
+                        <div class="section-label">ORDER META</div>
+                        <div class="meta-grid">
+                            <div class="meta-item">
+                                <span class="meta-key">CLIENT</span>
+                                <span class="meta-value">{{ currentOrder.customerName }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-key">CODE</span>
+                                <span class="meta-value mono">{{ currentOrder.code }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-key">DATE</span>
+                                <span class="meta-value mono">{{ currentOrder.orderDate }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loaded Sources List -->
+                    <div class="sidebar-section">
+                        <div class="section-label">LOADED SOURCES</div>
+                        <div class="sources-list">
+                            <div v-for="order in orders" :key="order.code" class="source-tag">
+                                <span class="source-tag-code">{{ order.code }}</span>
+                                <button class="source-tag-remove" @click="removeOrder(order.code)">×</button>
+                            </div>
+                            <div v-if="orders.length === 0" class="sources-list-empty">暂无已加载订单</div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Alerts (Nested Component) -->
+                    <div class="sidebar-section">
+                         <div class="section-label">ALERTS</div>
+                         <smart-sidebar></smart-sidebar>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="sidebar-section">
+                        <div class="section-label">STATUS</div>
+                        <div class="status-indicator">
+                            <span class="status-dot" :class="status.toLowerCase()"></span>
+                            <span class="status-text">{{ status }}</span>
+                        </div>
+                    </div>
+                </aside>
+            </script>
+
+        <!-- 8. The Footer Template -->
+        <script type="text/x-template" id="the-footer-template">
+                <footer class="workbench-footer">
+                    <div class="footer-left">
+                        <span class="footer-label">WORKBENCH v1.6 (Vue SPA)</span>
+                        <span class="footer-divider">|</span>
+                        <span class="footer-status">Ready</span>
+                    </div>
+                </footer>
+            </script>
+    </div>
+    </script>
+
+    <!-- 2. Source Tab Template -->
+    <script type="text/x-template" id="source-tab-template">
                 <div class="hub-panel active">
                     <div class="panel-header">
                         <h2>订单原始数据 <span class="badge">{{ items.length }} items</span></h2>
@@ -152,20 +180,39 @@
                             </button>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="details-table">
+                    <!-- Order Details Table -->
+                <div class="table-container">
+                    <div class="table-responsive sticky-wrapper">
+                        <table class="details-table order-source-table">
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th>产品名称</th>
+                                    <th style="min-width: 60px;">序号</th>
+                                    <th style="min-width: 200px;">产品名称</th>
                                     <th>规格</th>
-                                    <th>颜色</th>
-                                    <th>L</th>
-                                    <th>R</th>
-                                    <th>门板款式</th>
+                                    <th>门边</th>
+                                    <th>门扇厚度</th>
+                                    <th>数量(左/右)</th>
                                     <th>锁具</th>
-                                    <th>详情</th>
-                                    <th>来源订单</th>
+                                    <th>锁芯</th>
+                                    <th>锁芯护罩</th>
+                                    <th>副锁锁具</th>
+                                    <th>副锁锁芯</th>
+                                    <th>副锁护罩</th>
+                                    <th>锁叉</th>
+                                    <th>门铃</th>
+                                    <th>猫眼</th>
+                                    <th>铰链</th>
+                                    <th>边锁</th>
+                                    <th>填充</th>
+                                    <th>颜色</th>
+                                    <th>皮条</th>
+                                    <th>包装</th>
+                                    <th>拉手</th>
+                                    <th>备注</th>
+                                    <th>是否通用拉手</th>
+                                    <th>前/后/门架</th>
+                                    <th>级别</th>
+                                    <th>下档</th>
                                     <th style="width: 50px; text-align: center;">统计</th>
                                     <th style="width: 80px; text-align: center;">合并</th>
                                 </tr>
@@ -175,31 +222,49 @@
                                     <td>{{ index + 1 }}</td>
                                     <td>{{ item.productName }}</td>
                                     <td>{{ item.spec }}</td>
-                                    <td>{{ item.color }}</td>
-                                    <td>{{ item.qtyL }}</td>
-                                    <td>{{ item.qtyR }}</td>
-                                    <td>{{ item.doorType }}</td>
-                                    <td>{{ item.lockType }}</td>
-                                    <td>{{ item.details }}</td>
-                                    <td>{{ item.sourceOrder }}</td>
+                                    <td>{{ item.mb || '-' }}</td>
+                                    <td>{{ item.mshd || '-' }}</td>
+                                    <td>{{ item.qty || '-' }}</td>
+                                    <td>{{ item.sj || '-' }}</td>
+                                    <td>{{ item.sx || '-' }}</td>
+                                    <td>{{ item.sxhz || '-' }}</td>
+                                    <td>{{ item.fssj || '-' }}</td>
+                                    <td>{{ item.fssx || '-' }}</td>
+                                    <td>{{ item.fshz || '-' }}</td>
+                                    <td>{{ item.sc || '-' }}</td>
+                                    <td>{{ item.ml || '-' }}</td>
+                                    <td>{{ item.my || '-' }}</td>
+                                    <td>{{ item.jl || '-' }}</td>
+                                    <td>{{ item.bs || '-' }}</td>
+                                    <td>{{ item.tc || '-' }}</td>
+                                    <td>{{ item.color || '-' }}</td>
+                                    <td>{{ item.pt || '-' }}</td>
+                                    <td>{{ item.bz || '-' }}</td>
+                                    <td>{{ item.ls || '-' }}</td>
+                                    <td>{{ item.xsbz || '-' }}</td>
+                                    <td>{{ item.tyls || '-' }}</td>
+                                    <td>{{ item.qbbc || '-' }}</td>
+                                    <td>{{ item.jb || '-' }}</td>
+                                    <td>{{ item.xd || '-' }}</td>
                                     <td class="text-center">
-                                        <input type="checkbox" v-model="item.includeStats">
+                                        <input type="checkbox" :checked="item.includeStats" @change="handleUpdateItem(item, 'includeStats', $event.target.checked)">
                                     </td>
                                     <td class="text-center">
-                                        <input type="checkbox" v-model="item.merge">
+                                        <input type="checkbox" :checked="item.merge" @change="handleUpdateItem(item, 'merge', $event.target.checked)">
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
+                </div>
                     <div v-if="items.length === 0" class="empty-state">
                         <p>请在左侧输入合同编号并点击 FETCH</p>
                     </div>
                 </div>
             </script>
 
-            <!-- 3. Stats Tab Template -->
-            <script type="text/x-template" id="stats-tab-template">
+    <!-- 3. Stats Tab Template -->
+    <script type="text/x-template" id="stats-tab-template">
                 <div class="hub-panel active">
                     <div class="panel-header">
                         <h2>配件颜色统计 <span class="badge">{{ uniqueColors }} 种颜色</span></h2>
@@ -245,24 +310,264 @@
                 </div>
             </script>
 
-            <!-- 4. Materials Tab Template (Placeholder / Future) -->
-            <script type="text/x-template" id="materials-tab-template">
+    <!-- 4. Materials Tab Template -->
+    <script type="text/x-template" id="materials-tab-template">
                 <div class="hub-panel active">
                     <div class="panel-header">
                         <h2>原材料采购清单</h2>
                     </div>
-                    <div class="empty-state" style="display: flex;">
-                        <p>Materials Tab (In Progress)</p>
+
+                    <!-- Missing Formulas Warning -->
+                    <div v-if="missingFormulas.length > 0" class="alert-warning" style="margin: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+                        <strong>⚠️ 以下颜色缺少配方：</strong> {{ missingFormulas.join(', ') }}
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div v-if="error" class="alert-error" style="margin: 20px; padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 8px;">
+                        <strong>❌ 计算出错：</strong> {{ error }}
+                    </div>
+
+                    <!-- Materials Container -->
+                    <div v-if="hasData" id="materialsContainer" style="padding: 20px;">
+                        <div v-for="group in supplierGroups" :key="group.supplier" class="supplier-group" style="margin-bottom: 30px;">
+                            <div class="supplier-header" style="padding: 12px 16px; background: #f8f9fa; border-left: 4px solid #007bff; margin-bottom: 12px; border-radius: 4px; font-weight: 600;">
+                                供应商: {{ group.supplierName }} ({{ group.totalItems }} 种材料)
+                            </div>
+                            <div class="table-responsive">
+                                <table class="details-table materials-table">
+                                    <thead>
+                                        <tr>
+                                            <th>材料类型</th>
+                                            <th>型号</th>
+                                            <th>总用量</th>
+                                            <th>单位</th>
+                                            <th>最小起订</th>
+                                            <th>包装规格</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="mat in group.materials" :key="mat.materialId">
+                                            <td class="material-type">{{ mat.material.type }}</td>
+                                            <td>{{ mat.material.model || mat.material.name }}</td>
+                                            <td class="material-usage">{{ mat.totalUsage.toFixed(2) }}</td>
+                                            <td>{{ mat.material.unit }}</td>
+                                            <td>{{ mat.material.minOrder || '-' }}</td>
+                                            <td>{{ mat.material.packageSpec || '-' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-if="!hasData" class="empty-state" style="display: flex;">
+                        <p>暂无原材料数据</p>
+                        <span>请先加载订单</span>
                     </div>
                 </div>
             </script>
 
-            <!-- 5. Orders Tab Template -->
-            <script type="text/x-template" id="orders-tab-template">
+    <!-- 4.5. Config Panel Template -->
+    <script type="text/x-template" id="config-panel-template">
+                <div class="hub-panel active">
+                    <div class="panel-header">
+                        <h2>配置管理中心</h2>
+                        <div class="config-controls">
+                            <div class="config-tabs">
+                                <button class="config-tab" :class="{ active: currentTab === 'materials' }" @click="currentTab = 'materials'">原材料库</button>
+                                <button class="config-tab" :class="{ active: currentTab === 'formulas' }" @click="currentTab = 'formulas'">颜色配方</button>
+                            </div>
+                            <!-- Global Actions -->
+                            <div class="global-actions" style="margin-left: 20px; display: flex; gap: 10px;">
+                                <button class="action-btn secondary" @click="refreshData">刷新</button>
+                                <button class="action-btn primary" @click="saveData">保存</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Materials Tab Content -->
+                    <div v-if="currentTab === 'materials'" class="config-content">
+                        <!-- Toolbar -->
+                        <div class="config-toolbar">
+                            <div class="command-input-group" style="width: 300px;">
+                                <input type="text" v-model="searchQuery" placeholder="搜索型号/ID..." autocomplete="off">
+                            </div>
+                            <div class="filter-group">
+                                <select v-model="filterType" class="cmd-select">
+                                    <option value="">所有类型</option>
+                                    <option v-for="t in uniqueTypes" :key="t" :value="t">{{ t }}</option>
+                                </select>
+                                <select v-model="filterSupplier" class="cmd-select">
+                                    <option value="">所有供应商</option>
+                                    <option v-for="s in uniqueSuppliers" :key="s" :value="s">{{ s }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="details-table materials-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>型号</th>
+                                        <th>类型</th>
+                                        <th>供应商</th>
+                                        <th>单位</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Add New Row -->
+                                    <tr class="add-row">
+                                        <td><input type="text" v-model="newMaterial.id" placeholder="ID" class="inline-input"></td>
+                                        <td><input type="text" v-model="newMaterial.model" placeholder="Model" class="inline-input"></td>
+                                        <td><input type="text" v-model="newMaterial.type" placeholder="Type" class="inline-input"></td>
+                                        <td><input type="text" v-model="newMaterial.supplier" placeholder="Supplier" class="inline-input"></td>
+                                        <td><input type="text" v-model="newMaterial.unit" placeholder="Unit" class="inline-input" style="width: 50px;"></td>
+                                        <td>
+                                            <button class="btn-icon primary" @click="addMaterial" title="Add">+</button>
+                                        </td>
+                                    </tr>
+                                    <!-- List Rows -->
+                                    <tr v-for="material in paginatedMaterials" :key="material.id">
+                                        <td>{{ material.id }}</td>
+                                        <td>{{ material.model }}</td>
+                                        <td>{{ material.type }}</td>
+                                        <td>{{ material.supplier }}</td>
+                                        <td>{{ material.unit }}</td>
+                                        <td>
+                                            <button class="btn-text danger" @click="removeMaterial(material.id)">删除</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination Controls -->
+                        <div class="pagination-controls" v-if="totalPages > 1">
+                            <button class="btn-dashed" :disabled="currentPage === 1" @click="prevPage" style="width: auto; padding: 5px 15px;">上一页</button>
+                            <span class="page-info" style="font-family: var(--font-mono); font-size: 0.9em;">Page {{ currentPage }} / {{ totalPages }}</span>
+                            <button class="btn-dashed" :disabled="currentPage === totalPages" @click="nextPage" style="width: auto; padding: 5px 15px;">下一页</button>
+                        </div>
+
+                        <div v-if="filteredMaterials.length === 0" class="empty-state">
+                            <p>暂无原材料数据</p>
+                        </div>
+                    </div>
+
+                    <!-- Formulas Tab Content -->
+                    <div v-if="currentTab === 'formulas'" class="config-content full-height">
+                        <div class="formula-layout">
+                            <!-- Left: List -->
+                            <div class="formula-sidebar">
+                                <div class="sidebar-header">
+                                    <input type="text" v-model="formulaSearch" placeholder="搜索配方..." class="full-width-input">
+                                </div>
+                                <div class="formula-list">
+                                    <div v-for="(formula, name) in filteredFormulas" :key="name" 
+                                         class="formula-item" 
+                                         :class="{ active: selectedColor === name }"
+                                         @click="selectColor(name)">
+                                        <span class="formula-name">{{ name }}</span>
+                                        <span class="badge small">{{ formula.bom ? formula.bom.length : 0 }}</span>
+                                    </div>
+                                </div>
+                                <div class="sidebar-footer">
+                                    <button class="action-btn full-width" @click="addNewFormula">+ 新建配方</button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Detail -->
+                            <div class="formula-editor">
+                                <div v-if="selectedColor" class="formula-detail">
+                                    <div class="detail-header">
+                                        <h3>{{ selectedColor }} <span class="subtitle">BOM Detail</span></h3>
+                                        <button class="btn-text danger" @click="deleteFormula">删除配方</button>
+                                    </div>
+                                    
+                                    <table class="details-table">
+                                        <thead>
+                                            <tr>
+                                                <th>部位</th>
+                                                <th>原材料ID</th>
+                                                <th>单开用量</th>
+                                                <th>双开用量</th>
+                                                <th>子母用量</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(item, index) in (currentFormula.bom || [])" :key="index">
+                                                <td><input type="text" v-model="item.position" class="inline-input" placeholder="部位"></td>
+                                                <td><input type="text" v-model="item.materialId" class="inline-input"></td>
+                                                
+                                                <!-- Usage Inputs with Safety Check -->
+                                                <template v-if="item.usage">
+                                                    <td><input type="number" v-model.number="item.usage.single" class="inline-input number" step="0.1"></td>
+                                                    <td><input type="number" v-model.number="item.usage.double" class="inline-input number" step="0.1"></td>
+                                                    <td><input type="number" v-model.number="item.usage.paired" class="inline-input number" step="0.1"></td>
+                                                </template>
+                                                <template v-else>
+                                                    <td colspan="3" class="text-error" style="color: red; font-size: 0.8em;">(Data Error: No Usage)</td>
+                                                </template>
+
+                                                <td>
+                                                    <button class="delete-btn" @click="removeBomItem(index)" title="删除">&times;</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="6">
+                                                    <button class="btn-dashed full-width" @click="addBomItem">+ 添加部位组件</button>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <div v-else class="empty-state">
+                                    <p>请在左侧选择或新建一个颜色配方</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </script>
+
+    <!-- 5. Orders Tab Template -->
+    <script type="text/x-template" id="orders-tab-template">
                 <div class="hub-panel active">
                     <div class="panel-header">
                         <h2>采购单管理 <span class="badge" id="po-count">{{ orders.length }}</span></h2>
                         <div class="panel-actions">
+                            <!-- View Toggle Buttons -->
+                            <div class="view-toggle-group">
+                                <button 
+                                    class="view-toggle-btn" 
+                                    :class="{ active: viewMode === 'grid' }" 
+                                    @click="viewMode = 'grid'"
+                                    title="卡片视图">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <rect x="1" y="1" width="6" height="6" rx="1"/>
+                                        <rect x="9" y="1" width="6" height="6" rx="1"/>
+                                        <rect x="1" y="9" width="6" height="6" rx="1"/>
+                                        <rect x="9" y="9" width="6" height="6" rx="1"/>
+                                    </svg>
+                                </button>
+                                <button 
+                                    class="view-toggle-btn" 
+                                    :class="{ active: viewMode === 'list' }" 
+                                    @click="viewMode = 'list'"
+                                    title="列表视图">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <rect x="1" y="2" width="14" height="2" rx="1"/>
+                                        <rect x="1" y="7" width="14" height="2" rx="1"/>
+                                        <rect x="1" y="12" width="14" height="2" rx="1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
                             <button class="action-btn danger" @click="clearAll">清空全部</button>
                             <button class="action-btn secondary" @click="exportAll">导出全部</button>
                             <label class="action-btn secondary" style="cursor: pointer;">
@@ -272,7 +577,8 @@
                         </div>
                     </div>
 
-                    <div class="po-grid-container">
+                    <!-- Grid View -->
+                    <div v-if="viewMode === 'grid'" class="po-grid-container">
                         <div v-for="po in orders" :key="po.id" class="po-card">
                             <div class="po-header">
                                 <span class="po-number">{{ po.poNumber }}</span>
@@ -292,61 +598,175 @@
                         </div>
                     </div>
 
+                    <!-- List View -->
+                    <div v-if="viewMode === 'list'" class="po-list-container">
+                        <div class="table-responsive">
+                            <table class="po-list-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">#</th>
+                                        <th style="width: 150px;">采购单号</th>
+                                        <th style="width: 100px;">状态</th>
+                                        <th style="width: 150px;">供应商</th>
+                                        <th style="width: 100px;">类型</th>
+                                        <th style="min-width: 200px;">包含订单</th>
+                                        <th style="width: 180px;">生成时间</th>
+                                        <th style="width: 200px; text-align: center;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(po, index) in orders" :key="po.id" class="po-list-row">
+                                        <td class="text-center">{{ index + 1 }}</td>
+                                        <td>
+                                            <span class="po-number-text">{{ po.poNumber }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="po-status-badge" :class="po.status">{{ po.status }}</span>
+                                        </td>
+                                        <td>{{ po.supplier }}</td>
+                                        <td>
+                                            <span class="category-tag">{{ po.category }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="mono small">{{ po.sourceOrders }}</span>
+                                        </td>
+                                        <td class="text-secondary">{{ formatDate(po.generatedAt) }}</td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn-icon" @click="viewPO(po)" title="查看">
+                                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                                        <path d="M8 2C4.5 2 1.5 4.5.5 8c1 3.5 4 6 7.5 6s6.5-2.5 7.5-6c-1-3.5-4-6-7.5-6z"/>
+                                                    </svg>
+                                                </button>
+                                                <button class="btn-icon" @click="printPO(po)" title="打印">
+                                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                                                        <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zM3 5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1v-1H3V6h10v3h-1v1h1a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H3z"/>
+                                                        <path d="M5 10h6v4H5v-4z"/>
+                                                    </svg>
+                                                </button>
+                                                <button class="btn-icon danger" @click="deletePO(po.id)" title="删除">
+                                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div v-if="orders.length === 0" class="empty-state" style="display: flex;">
                         <p>暂无生成的采购单</p>
                         <span>请在 SOURCE 页面选择项目生成</span>
                     </div>
+
+                    <!-- Preview Modal -->
+                    <preview-modal 
+                        :show="modal.show" 
+                        :preview-url="modal.url"
+                        @close="closePreviewModal">
+                    </preview-modal>
                 </div>
             </script>
-        </div>
 
-        <!-- ==================== 底部固定操作栏 ==================== -->
-        <footer class="workbench-footer">
-            <div class="footer-left">
-                <span class="footer-label">WORKBENCH v1.0</span>
-                <span class="footer-divider">|</span>
-                <span class="footer-status" id="footerStatus">Ready</span>
-            </div>
-            <div class="footer-right">
-                <button id="resetWorkbenchBtn" class="footer-btn">RESET</button>
-                <button id="quickExportBtn" class="footer-btn primary" disabled>QUICK EXPORT</button>
-            </div>
-        </footer>
+    <!-- 6. Preview Modal Template -->
+    <script type="text/x-template" id="preview-modal-template">
+        <transition name="modal-fade">
+            <div v-if="show" class="preview-modal-overlay" @click="handleOverlayClick">
+                <div class="preview-modal-container">
+                    <!-- Modal Header -->
+                    <div class="preview-modal-header">
+                        <h3>采购单预览</h3>
+                        <div class="preview-modal-actions">
+                            <button class="modal-action-btn modal-btn-edit" @click="handleEdit" title="编辑订单">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                                </svg>
+                                编辑
+                            </button>
+                            <button class="modal-action-btn modal-btn-print" @click="handlePrint" title="打印订单">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zM3 5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1v-1H3V6h10v3h-1v1h1a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H3z"/>
+                                    <path d="M5 10h6v4H5v-4z"/>
+                                </svg>
+                                打印
+                            </button>
+                            <button class="modal-action-btn modal-btn-export" @click="handleExport" title="导出为PDF">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/>
+                                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                                </svg>
+                                导出PDF
+                            </button>
+                            <button class="modal-close-btn" @click="closeModal" title="关闭 (ESC)">
+                                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- ==================== 类别选择 Modal ==================== -->
-        <div id="categoryModal" class="modal hidden">
-            <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>选择要生成的采购单类别</h3>
-                    <button class="modal-close" id="modalCloseBtn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="category-grid">
-                        <label class="category-item">
-                            <input type="checkbox" name="category" value="packaging" checked>
-                            <span class="category-label">包装</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" name="category" value="cylinder">
-                            <span class="category-label">锁芯</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" name="category" value="hardware">
-                            <span class="category-label">五金</span>
-                        </label>
-                        <label class="category-item">
-                            <input type="checkbox" name="category" value="lock">
-                            <span class="category-label">锁叉</span>
-                        </label>
+                    <!-- Modal Body (iframe) -->
+                    <div class="preview-modal-body">
+                        <iframe 
+                            v-if="previewUrl"
+                            ref="iframeRef"
+                            :src="previewUrl" 
+                            frameborder="0"
+                            class="preview-iframe">
+                        </iframe>
+                        <div v-else class="preview-loading">
+                            <div class="loader"></div>
+                            <p>加载中...</p>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button id="selectAllBtn" class="btn-secondary">全选</button>
-                    <button id="confirmGenerateBtn" class="btn-primary">生成</button>
+            </div>
+        </transition>
+    </script>
+    </div>
+
+    <!-- ==================== 底部固定操作栏 ==================== -->
+
+
+    <!-- ==================== 类别选择 Modal ==================== -->
+    <div id="categoryModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择要生成的采购单类别</h3>
+                <button class="modal-close" id="modalCloseBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="category-grid">
+                    <label class="category-item">
+                        <input type="checkbox" name="category" value="packaging" checked>
+                        <span class="category-label">包装</span>
+                    </label>
+                    <label class="category-item">
+                        <input type="checkbox" name="category" value="cylinder">
+                        <span class="category-label">锁芯</span>
+                    </label>
+                    <label class="category-item">
+                        <input type="checkbox" name="category" value="hardware">
+                        <span class="category-label">五金</span>
+                    </label>
+                    <label class="category-item">
+                        <input type="checkbox" name="category" value="lock">
+                        <span class="category-label">锁叉</span>
+                    </label>
                 </div>
             </div>
+            <div class="modal-footer">
+                <button id="selectAllBtn" class="btn-secondary">全选</button>
+                <button id="confirmGenerateBtn" class="btn-primary">生成</button>
+            </div>
         </div>
+    </div>
     </div>
 
     <!-- Print-only elements (Hidden normally) -->

@@ -4,11 +4,13 @@ const { ref, shallowRef, computed, onMounted } = Vue;
 import { ConfigPanel } from './ConfigPanel.js';
 import { SourceTab } from './SourceTab.js';
 import { StatsTab } from './StatsTab.js';
+import { MaterialsTab } from './MaterialsTab.js';
 import { OrdersTab } from './OrdersTab.js';
+import { SmartSidebar } from './SmartSidebar.js';
+import { TheSidebar } from './TheSidebar.js';
+import { TheFooter } from './TheFooter.js';
 import { useOrderStore } from '../store/orderStore.js';
 
-// Placeholder for Materials Tab
-const MaterialsTab = { template: '#materials-tab-template' };
 
 export const WorkbenchApp = {
     template: '#workbench-app-template',
@@ -17,15 +19,18 @@ export const WorkbenchApp = {
         StatsTab,
         MaterialsTab,
         ConfigPanel,
-        OrdersTab
+        OrdersTab,
+        SmartSidebar,
+        TheSidebar,
+        TheFooter
     },
     setup() {
         // --- Store ---
         const store = useOrderStore();
 
         // --- State ---
+        // --- State ---
         const currentTab = ref('source');
-        const purchaseOrders = ref([]); // Generated POs (This could also be in a store eventually)
 
         // --- Tabs Config ---
         const tabs = [
@@ -37,6 +42,8 @@ export const WorkbenchApp = {
         ];
 
         // --- Computed ---
+        const purchaseOrders = computed(() => store.state.purchaseOrders); // Read from store
+
         const currentTabComponent = computed(() => {
             switch (currentTab.value) {
                 case 'source': return 'SourceTab';
@@ -53,9 +60,7 @@ export const WorkbenchApp = {
         // 2. Generate Orders
         const generateOrders = () => {
             // Use mergedItems from store
-            const selectedItems = store.mergedItems.value.filter(i => i.merge || i.includeStats); // Wait, need to check if SourceTab syncs 'merge' back to store
-            // 'merge' flag is UI state, currently it might be lost if we don't store it in store
-            // For now, let's assume SourceTab modifies the objects inside store.mergedItems directly (Vue proxies handle this)
+            const selectedItems = store.mergedItems.value.filter(i => i.merge || i.includeStats);
 
             if (selectedItems.length === 0) {
                 alert('请至少选择一项进行生成');
@@ -73,16 +78,16 @@ export const WorkbenchApp = {
                 items: selectedItems
             };
 
-            purchaseOrders.value.unshift(newPO);
+            store.addPO(newPO);
             currentTab.value = 'orders';
         };
 
         const deletePO = (id) => {
-            purchaseOrders.value = purchaseOrders.value.filter(p => p.id !== id);
+            store.deletePO(id);
         };
 
         const clearAllPOs = () => {
-            purchaseOrders.value = [];
+            store.clearPOs();
         };
 
         // --- Lifecycle ---
@@ -95,7 +100,6 @@ export const WorkbenchApp = {
             currentTab,
             tabs,
             currentTabComponent,
-            // Expose store state if needed for debug, though children use store directly
             purchaseOrders,
             generateOrders,
             deletePO,
