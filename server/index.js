@@ -39,8 +39,8 @@ if (config.server.env === 'development') {
 // 服务前端静态文件
 app.use(express.static(path.join(__dirname, '..', config.static.public)));
 
-// 注意：不再将 data 目录作为静态文件服务，增强安全性
-// app.use('/data', express.static('data'));  // 已移除
+// Mount data directory for legacy config loading
+app.use('/data', express.static(path.join(__dirname, '..', config.static.data)));
 
 // ==================== 路由配置 ====================
 

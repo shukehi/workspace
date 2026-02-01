@@ -19,6 +19,16 @@ const router = createRouter({
                     component: () => import('@/views/ColorFormula.vue')
                 },
                 {
+                    path: '/source',
+                    name: 'source',
+                    component: () => import('../views/Source.vue'),
+                },
+                {
+                    path: '/materials',
+                    name: 'materials',
+                    component: () => import('../views/Materials.vue'),
+                },
+                {
                     path: '/inventory',
                     name: 'inventory',
                     component: () => import('@/views/Inventory.vue')

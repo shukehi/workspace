@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted, h, computed } from 'vue'
 import { api } from '@/lib/api'
 import type { Order } from '@/types/order'
 import type { ColumnDef } from '@tanstack/vue-table'
 import DataTable from '@/components/data-table/DataTable.vue'
 import { Button } from '@/components/ui/button'
 
-const data = ref<Order[]>([])
-const loading = ref(false)
+import { useProcurementStore } from '@/stores/useProcurementStore';
 
+const store = useProcurementStore();
+const data = computed(() => store.sortedOrders); // Sort by date desc
+
+// Remove loading logic for now as it's sync
+// async function fetchData() { ... }
+
+onMounted(() => {
+    // Store autoloads from localstorage
+})
 const columns: ColumnDef<Order>[] = [
   {
     accessorKey: 'order_no',
@@ -58,31 +66,50 @@ const columns: ColumnDef<Order>[] = [
     id: 'actions',
     header: 'Actions',
     cell: ({ row }) => {
-      return h(Button, {
-        variant: 'outline',
-        size: 'sm',
-        class: 'h-6 text-xs',
-        onClick: () => console.log('Edit Order', row.original.id)
-      }, () => 'Edit')
+      return h('div', { class: 'flex gap-2 justify-end' }, [
+          h(Button, {
+            variant: 'outline',
+            size: 'sm',
+            class: 'h-6 text-xs',
+            onClick: async () => {
+                console.log('Downloading PDF...', row.original.order_no);
+                try {
+                    // Adapt the order object to match backend expectations
+                    // Backend expects: { poNumber, order: { list: items... } }
+                    const payload = {
+                        poNumber: row.original.order_no,
+                        order: {
+                            customerName: 'Internal', // Mock
+                            code: row.original.supplier,
+                            list: row.original.items.map(item => ({
+                                product_name: item.name,
+                                model_name: item.model,
+                                quantity: item.quantity,
+                                unit: item.unit || 'pcs'
+                            }))
+                        }
+                    };
+                    await api.downloadPDF('/api/pdf/generate', payload, `${row.original.order_no}.pdf`);
+                } catch (e) {
+                    console.error('Download failed', e);
+                    alert('PDF Download Failed (Ensure Backend is running and VITE_USE_MOCK=false)');
+                }
+            }
+          }, () => 'PDF'),
+          h(Button, {
+            variant: 'outline',
+            size: 'sm',
+            class: 'h-6 text-xs',
+            onClick: () => console.log('Edit Order', row.original.id)
+          }, () => 'Edit')
+      ])
     },
   },
 ]
 
-async function fetchData() {
-    loading.value = true
-    try {
-        const res = await api.get<Order[]>('/orders')
-        data.value = res
-    } catch (e) {
-        console.error(e)
-    } finally {
-        loading.value = false
-    }
-}
 
-onMounted(() => {
-    fetchData()
-})
+// Store handles data loading
+
 </script>
 
 <template>
@@ -92,9 +119,14 @@ onMounted(() => {
             <h1 class="text-3xl font-mono font-bold uppercase">Procurement</h1>
             <p class="font-mono text-sm text-neutral-500 mt-1">Manage purchase orders and suppliers.</p>
         </div>
-        <Button>
-            + New Order
-        </Button>
+        <div class="flex gap-2">
+            <Button variant="outline" @click="store.clearOrders()">
+                Clear All
+            </Button>
+            <Button>
+                + New Order
+            </Button>
+        </div>
     </div>
 
     <div class="flex-1 overflow-auto">

@@ -67,5 +67,8 @@ if (import.meta.env.DEV) {
     ];
     mock.onGet('/formulas').reply(200, mockFormulas);
 
+    // IMPORTANT: Allow all other requests to pass through to the real server
+    mock.onAny().passThrough();
+
     console.log('[Mock] Ready.');
 }
