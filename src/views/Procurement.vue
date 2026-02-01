@@ -20,16 +20,16 @@ onMounted(() => {
 const columns: ColumnDef<Order>[] = [
   {
     accessorKey: 'order_no',
-    header: 'PO Number',
+    header: '采购单号',
     cell: ({ row }) => h('div', { class: 'font-mono font-bold' }, row.getValue('order_no')),
   },
   {
     accessorKey: 'supplier',
-    header: 'Supplier',
+    header: '供应商',
   },
   {
     accessorKey: 'created_at',
-    header: 'Date',
+    header: '日期',
     cell: ({ row }) => {
         const date = new Date(row.getValue('created_at'));
         return h('div', { class: 'font-mono text-xs' }, date.toLocaleDateString())
@@ -37,7 +37,7 @@ const columns: ColumnDef<Order>[] = [
   },
   {
     accessorKey: 'total_amount',
-    header: 'Total',
+    header: '总金额',
      cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total_amount'));
         return h('div', { class: 'font-mono text-right' }, `$${amount.toLocaleString()}`)
@@ -45,7 +45,7 @@ const columns: ColumnDef<Order>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: '状态',
     cell: ({ row }) => {
         const status = row.getValue('status') as string;
         let style = 'bg-white text-black border-black'; // default
@@ -64,7 +64,7 @@ const columns: ColumnDef<Order>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: '操作',
     cell: ({ row }) => {
       return h('div', { class: 'flex gap-2 justify-end' }, [
           h(Button, {
@@ -116,15 +116,15 @@ const columns: ColumnDef<Order>[] = [
   <div class="p-8 h-full flex flex-col">
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-mono font-bold uppercase">Procurement</h1>
-            <p class="font-mono text-sm text-neutral-500 mt-1">Manage purchase orders and suppliers.</p>
+            <h1 class="text-3xl font-mono font-bold uppercase">采购管理</h1>
+            <p class="font-mono text-sm text-neutral-500 mt-1">管理采购订单与供应商。</p>
         </div>
         <div class="flex gap-2">
             <Button variant="outline" @click="store.clearOrders()">
-                Clear All
+                清空数据
             </Button>
             <Button>
-                + New Order
+                + 新建订单
             </Button>
         </div>
     </div>

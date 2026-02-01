@@ -13,26 +13,26 @@ const activeTab = ref('raw'); // raw | hardware | packaging
 <template>
     <div class="h-full flex flex-col p-8 pt-6 space-y-6">
         <div>
-            <h2 class="text-3xl font-bold tracking-tight">Materials Analysis</h2>
-            <p class="text-muted-foreground">Detailed breakdown of calculated material requirements.</p>
+            <h2 class="text-3xl font-bold tracking-tight">物料分析</h2>
+            <p class="text-muted-foreground">根据订单计算出的详细物料清单 (BOM)。</p>
         </div>
 
         <div v-if="!store.hasOrder" class="flex-1 flex flex-col items-center justify-center border rounded-lg bg-muted/10 dashed text-muted-foreground">
-             <p>No data loaded.</p>
-             <p class="text-sm">Please go to <b class="text-foreground">Source</b> tab and load a contract first.</p>
+             <p>暂无数据。</p>
+             <p class="text-sm">请先前往 <b class="text-foreground">原始订单</b> 页面加载合同。</p>
         </div>
 
         <div v-else class="flex-1 flex flex-col space-y-4">
             <!-- Tabs Navigation -->
             <div class="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
                 <button 
-                    v-for="tab in ['raw', 'hardware', 'packaging']" 
-                    :key="tab"
-                    @click="activeTab = tab"
+                    v-for="tab in [{k:'raw', l:'原材料'}, {k:'hardware', l:'五金配件'}, {k:'packaging', l:'包装材料'}]" 
+                    :key="tab.k"
+                    @click="activeTab = tab.k"
                     class="px-4 py-2 text-sm font-medium rounded-md transition-all uppercase"
-                    :class="activeTab === tab ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'"
+                    :class="activeTab === tab.k ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'"
                 >
-                    {{ tab }}
+                    {{ tab.l }}
                 </button>
             </div>
 

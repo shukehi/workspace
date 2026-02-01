@@ -10,9 +10,9 @@ interface DashboardStat {
 }
 
 const stats = ref<DashboardStat[]>([
-    { label: 'Active Orders', value: '-', desc: 'Pending processing' },
-    { label: 'Inventory Value', value: '-', desc: 'Total stock valuation' },
-    { label: 'Formulas', value: '-', desc: 'Active color recipes' },
+    { label: '待处理订单', value: '-', desc: '等待处理中' },
+    { label: '库存总值', value: '-', desc: '当前库存总估值' },
+    { label: '活跃配方', value: '-', desc: '可用颜色配方数' },
 ])
 
 async function fetchStats() {
@@ -57,7 +57,7 @@ onMounted(() => {
 
 <template>
   <div class="p-8">
-    <h1 class="text-3xl font-mono font-bold uppercase mb-8">Dashboard</h1>
+    <h1 class="text-3xl font-mono font-bold uppercase mb-8">仪表盘</h1>
     
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card v-for="stat in stats" :key="stat.label" class="rounded-none border-2 border-black shadow-none bg-white">
@@ -77,10 +77,10 @@ onMounted(() => {
 
     <div class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <div class="col-span-4 border-2 border-black p-4 bg-neutral-50 min-h-[300px] flex items-center justify-center">
-            <p class="font-mono text-neutral-400">[Chart Placeholder: Order Trends]</p>
+            <p class="font-mono text-neutral-400">[图表占位符: 订单趋势]</p>
         </div>
         <div class="col-span-3 border-2 border-black p-4 bg-white">
-             <h3 class="font-mono font-bold text-sm mb-4 border-b border-black pb-2">SYSTEM ALERTS</h3>
+             <h3 class="font-mono font-bold text-sm mb-4 border-b border-black pb-2">系统消息</h3>
              <ul class="space-y-2">
                 <li class="font-mono text-xs flex items-center text-red-600">
                     <span class="w-2 h-2 bg-red-600 mr-2"></span>

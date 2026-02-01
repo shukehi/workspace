@@ -78,28 +78,28 @@ const toggleSelection = (supplier: string) => {
   <Dialog v-model:open="open">
     <DialogTrigger as-child>
       <Button variant="default" :disabled="disabled || !sourceStore.hardwareRequirements">
-        Generate PO
+        一键生成采购单
       </Button>
     </DialogTrigger>
     <DialogContent class="sm:max-w-[725px]">
       <DialogHeader>
-        <DialogTitle>Generate Purchase Orders</DialogTitle>
+        <DialogTitle>生成采购提案</DialogTitle>
         <DialogDescription>
-          Review the material breakdown by supplier. Uncheck any suppliers you wish to skip.
+          请确认按供应商拆分的采购建议。取消勾选以跳过某些供应商。
         </DialogDescription>
       </DialogHeader>
       
       <div class="py-4">
         <div v-if="proposals.length === 0" class="text-center py-8 text-muted-foreground">
-            No materials to purchase found.
+            没有发现需要采购的物料。
         </div>
 
         <div v-else class="border rounded-md">
             <div class="grid grid-cols-12 gap-4 p-3 bg-muted/50 font-medium text-sm border-b">
-                <div class="col-span-1">Select</div>
-                <div class="col-span-4">Supplier</div>
-                <div class="col-span-5">Summary</div>
-                <div class="col-span-2 text-right">Items</div>
+                <div class="col-span-1">选择</div>
+                <div class="col-span-4">供应商</div>
+                <div class="col-span-5">摘要</div>
+                <div class="col-span-2 text-right">项数</div>
             </div>
             
             <div v-for="group in proposals" :key="group.supplierName" 
@@ -126,9 +126,9 @@ const toggleSelection = (supplier: string) => {
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="open = false">Cancel</Button>
+        <Button variant="outline" @click="open = false">取消</Button>
         <Button @click="handleConfirm" :disabled="selectedSuppliers.length === 0 || isGenerating">
-            {{ isGenerating ? 'Creating...' : `Create ${selectedSuppliers.length} Orders` }}
+            {{ isGenerating ? '生成中...' : `生成 ${selectedSuppliers.length} 张采购单` }}
         </Button>
       </DialogFooter>
     </DialogContent>

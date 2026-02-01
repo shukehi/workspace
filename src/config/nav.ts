@@ -7,36 +7,36 @@ export interface NavItem {
 
 export const mainNav: NavItem[] = [
     {
-        title: "Data Source",
-        href: "/source",
-        icon: "database", // Simplified string for now, icon component handled in Sidebar
-        number: "00"
-    },
-    {
-        title: 'Dashboard',
-        href: '/',
-        number: '01'
-    },
-    {
-        title: 'Procurement',
+        title: "原始订单",
         href: "/source",
         icon: "database",
         number: "01"
     },
     {
-        title: "Materials",
+        title: "物料分析",
         href: "/materials",
         icon: "box",
         number: "02"
     },
     {
-        title: 'Inventory',
-        href: '/inventory',
-        number: '03'
+        title: "采购管理",
+        href: "/procurement", // Fixed duplicate href in previous file
+        icon: "shopping-cart", // Added appropriate icon
+        number: "03"
     },
     {
-        title: 'Color Formula',
-        href: '/formula',
-        number: '04'
+        title: "库存管理",
+        href: "/inventory",
+        number: "04"
+    },
+    {
+        title: "配方配置",
+        href: "/formula",
+        number: "05"
+    },
+    {
+        title: "仪表盘",
+        href: "/",
+        number: "00"
     }
 ];

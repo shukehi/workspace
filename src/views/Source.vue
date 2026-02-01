@@ -56,8 +56,8 @@ const handleGenerate = () => {
     <div class="h-full flex flex-col space-y-4 p-8 pt-6">
         <div class="flex items-center justify-between space-y-2">
             <div>
-                <h2 class="text-3xl font-bold tracking-tight">Source Data</h2>
-                <p class="text-muted-foreground">Load contract orders from ERP and generate procurement plans.</p>
+                <h2 class="text-3xl font-bold tracking-tight">订单数据源</h2>
+                <p class="text-muted-foreground">加载 ERP 合同订单并生成采购计划。</p>
             </div>
         </div>
 
@@ -65,12 +65,12 @@ const handleGenerate = () => {
         <div class="flex items-center space-x-2 bg-white/5 p-4 border rounded-lg">
             <Input 
                 v-model="contractInput" 
-                placeholder="Enter Contract ID (e.g. C12345)..." 
+                placeholder="输入合同编号 (如 C12345)..." 
                 class="w-[300px] font-mono"
                 @keyup.enter="handleSearch"
             />
             <Button @click="handleSearch" :disabled="store.loading">
-                {{ store.loading ? 'Fetching...' : 'Fetch Contract' }}
+                {{ store.loading ? '查询中...' : '获取合同' }}
             </Button>
             
             <div v-if="store.currentOrder" class="ml-auto flex items-center gap-4 text-sm">
@@ -95,7 +95,7 @@ const handleGenerate = () => {
                 :data="store.orderItems" 
             />
             <div v-else class="h-full flex items-center justify-center text-muted-foreground">
-                Enter a contract ID to load data.
+                请输入合同号以加载数据
             </div>
         </div>
     </div>

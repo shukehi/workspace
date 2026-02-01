@@ -13,22 +13,22 @@ const loading = ref(false);
 const columns: ColumnDef<ColorFormula>[] = [
   {
     accessorKey: 'id',
-    header: 'Product Key (ID)',
+    header: '产品编码 (ID)',
     cell: ({ row }) => h('div', { class: 'font-mono' }, row.getValue('id')),
   },
   {
     accessorKey: 'category',
-    header: 'Category',
+    header: '分类',
     cell: ({ row }) => h('div', { class: 'px-2 py-0.5 rounded-md bg-muted text-xs inline-block' }, row.getValue('category')),
   },
   {
     accessorKey: 'material_count',
-    header: 'Materials',
+    header: '物料数',
     cell: ({ row }) => h('div', { class: 'font-mono font-bold text-center' }, row.getValue('material_count')),
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: '状态',
     cell: ({ row }) => {
         const status = row.getValue('status') as string;
         return h('div', { 
@@ -38,7 +38,7 @@ const columns: ColumnDef<ColorFormula>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: '操作',
     cell: ({ row }) => {
       return h(Button, {
         variant: 'outline',
@@ -87,11 +87,11 @@ onMounted(() => {
   <div class="p-8 h-full flex flex-col">
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-mono font-bold uppercase">Color Formulas</h1>
-            <p class="font-mono text-sm text-neutral-500 mt-1">Manage product color recipes (Synced with JSON).</p>
+            <h1 class="text-3xl font-mono font-bold uppercase">配方配置</h1>
+            <p class="font-mono text-sm text-neutral-500 mt-1">管理产品颜色配方数据 (已同步)。</p>
         </div>
         <Button class="rounded-[0px] bg-black text-white hover:bg-neutral-800 font-mono uppercase">
-            + New Formula
+            + 新增配方
         </Button>
     </div>
 
