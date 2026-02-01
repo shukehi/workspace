@@ -8,13 +8,36 @@
         "dev": "NODE_ENV=development node server/index.js"
     },
     "dependencies": {
+        "@vee-validate/zod": "^4.15.1",
+        "@vueuse/core": "^14.2.0",
+        "axios": "^1.13.4",
         "body-parser": "^2.2.2",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
         "cors": "^2.8.5",
         "express": "^4.22.1",
         "http-proxy-middleware": "^2.0.6",
         "jsdom": "^27.4.0",
+        "lucide-vue-next": "^0.563.0",
+        "pinia": "^3.0.4",
         "puppeteer": "^24.34.0",
+        "reka-ui": "^2.8.0",
         "sequelize": "^6.37.7",
-        "sqlite3": "^5.1.7"
+        "sqlite3": "^5.1.7",
+        "tailwind-merge": "^3.4.0",
+        "vee-validate": "^4.15.1",
+        "zod": "^3.25.76"
+    },
+    "devDependencies": {
+        "@types/node": "^25.1.0",
+        "@vitejs/plugin-vue": "^6.0.3",
+        "autoprefixer": "^10.4.24",
+        "axios-mock-adapter": "^2.1.0",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^4.1.18",
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1",
+        "vue": "^3.5.27",
+        "vue-tsc": "^3.2.4"
     }
 }
