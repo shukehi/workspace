@@ -46,6 +46,11 @@ app.use(express.static(path.join(__dirname, '..', config.static.public)));
 
 app.use(routes);
 
+// SPA Fallback: Serve index.html for any unknown routes (must be after API routes)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', config.static.public, 'index.html'));
+});
+
 // ==================== 错误处理 ====================
 
 // 全局错误处理中间件

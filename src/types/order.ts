@@ -17,6 +17,6 @@ export interface Order {
     items: OrderItem[];
     total_amount: number;
     created_at: string;
-    status: 'draft' | 'submitted' | 'completed';
+    status: 'draft' | 'submitted' | 'processing' | 'completed' | 'cancelled';
     remark?: string;
 }

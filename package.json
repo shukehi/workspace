@@ -2,12 +2,18 @@
     "name": "order-search",
     "version": "1.0.0",
     "description": "Order search with proxy",
+    "type": "module",
     "main": "server/index.js",
     "scripts": {
-        "start": "node server/index.js",
-        "dev": "NODE_ENV=development node server/index.js"
+        "dev": "vite",
+        "build": "vue-tsc --noEmit && vite build",
+        "preview": "vite preview",
+        "server:dev": "NODE_ENV=development node server/index.js",
+        "server:prod": "node server/index.js"
     },
     "dependencies": {
+        "@tailwindcss/postcss": "^4.1.18",
+        "@tanstack/vue-table": "^8.21.3",
         "@vee-validate/zod": "^4.15.1",
         "@vueuse/core": "^14.2.0",
         "axios": "^1.13.4",
@@ -26,6 +32,7 @@
         "sqlite3": "^5.1.7",
         "tailwind-merge": "^3.4.0",
         "vee-validate": "^4.15.1",
+        "vue-router": "^5.0.1",
         "zod": "^3.25.76"
     },
     "devDependencies": {

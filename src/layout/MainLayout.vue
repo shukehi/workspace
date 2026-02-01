@@ -16,7 +16,7 @@ import MobileNav from './MobileNav.vue';
 
     <!-- Main Content -->
     <main class="flex-1 w-full p-0 overflow-y-auto">
-       <slot />
+       <router-view />
     </main>
   </div>
 </template>

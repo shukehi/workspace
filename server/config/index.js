@@ -18,7 +18,7 @@ module.exports = {
 
     // 静态文件配置
     static: {
-        public: 'public',
+        public: 'dist',
         // 不再将 data 目录作为静态文件服务
         // data: 'data'  // 已移除，增强安全性
     }
