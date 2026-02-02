@@ -89,7 +89,7 @@ const columns: ColumnDef<Order>[] = [
                             }))
                         }
                     };
-                    await api.downloadPDF('/api/pdf/generate', payload, `${row.original.order_no}.pdf`);
+                    await api.downloadPDF('/pdf/generate', payload, `${row.original.order_no}.pdf`);
                 } catch (e) {
                     console.error('Download failed', e);
                     alert('PDF Download Failed (Ensure Backend is running and VITE_USE_MOCK=false)');
