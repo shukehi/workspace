@@ -1,7 +1,7 @@
 
 // Column definition for the massive Source Table
 export const sourceColumns = [
-    { key: 'productName', label: '产品名称', width: 200 },
+    { key: 'productModelName', label: '产品名称', width: 200 },
     { key: 'spec', label: '规格/洞口尺寸', width: 140 },
     { key: 'qty', label: '数量', width: 80 },
     { key: 'color', label: '颜色', width: 100 },
