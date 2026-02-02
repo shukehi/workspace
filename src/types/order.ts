@@ -4,6 +4,9 @@ export interface OrderItem {
     name: string;
     model: string;
     quantity: number;
+    quantity_left?: number;
+    quantity_right?: number;
+    orientation?: string;
     unit: string;
     price?: number;
     total?: number;
@@ -17,6 +20,12 @@ export interface Order {
     items: OrderItem[];
     total_amount: number;
     created_at: string;
+    delivery_date?: string;
     status: 'draft' | 'submitted' | 'processing' | 'completed' | 'cancelled';
     remark?: string;
+    metadata?: {
+        internal_name?: string;
+        external_name?: string;
+        [key: string]: any;
+    };
 }

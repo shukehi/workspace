@@ -7,9 +7,19 @@ import DataTable from '@/components/data-table/DataTable.vue'
 import { Button } from '@/components/ui/button'
 
 import { useProcurementStore } from '@/stores/useProcurementStore';
+import EditOrderDialog from '@/components/procurement/EditOrderDialog.vue';
 
 const store = useProcurementStore();
 const data = computed(() => store.sortedOrders); // Sort by date desc
+
+// Edit Dialog State
+const editDialogOpen = ref(false);
+const editingOrder = ref<Order | null>(null);
+
+function openEditDialog(order: Order) {
+    editingOrder.value = order;
+    editDialogOpen.value = true;
+}
 
 // Remove loading logic for now as it's sync
 // async function fetchData() { ... }
@@ -100,7 +110,11 @@ const columns: ColumnDef<Order>[] = [
             variant: 'outline',
             size: 'sm',
             class: 'h-6 text-xs',
-            onClick: () => console.log('Edit Order', row.original.id)
+            onClick: () => {
+                console.log('Edit Order', row.original.id);
+                // alert('编辑功能开发中 (Coming Soon)');
+                openEditDialog(row.original);
+            }
           }, () => 'Edit')
       ])
     },
@@ -132,5 +146,11 @@ const columns: ColumnDef<Order>[] = [
     <div class="flex-1 overflow-auto">
         <DataTable :columns="columns" :data="data" />
     </div>
+
+    <!-- Edit Dialog -->
+    <EditOrderDialog 
+        v-model:open="editDialogOpen"
+        :order="editingOrder"
+    />
   </div>
 </template>

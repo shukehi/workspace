@@ -1,5 +1,6 @@
 
 import { useSourceStore } from '@/stores/useSourceStore';
+import { packagingMatcher } from '@/lib/packagingMatcher';
 import type { Order, OrderItem } from '@/types/order';
 
 interface SupplierGroup {
@@ -89,19 +90,23 @@ export class POGenerator {
             });
         }
 
-        // 4. Process Packaging
         if (hardware?.packaging) {
             Object.values(hardware.packaging).forEach((pkg: any, idx: number) => {
-                const supplier = pkg.supplierName || '未分配包装';
+                const internalName = pkg.internalName || pkg.spec; // Assuming internalName might be available or fallback to spec
+
+                // Use Matcher
+                const matchedName = packagingMatcher.match(internalName);
+                const supplier = pkg.supplierName || '方亮包装'; // Default to 方亮 if not set
                 const target = ensureGroup(supplier);
 
                 target.items.push({
                     id: `pkg_${Date.now()}_${idx}`,
                     material_id: pkg.spec,
-                    name: '包装箱',
+                    name: matchedName, // Use standardized name
                     model: pkg.spec,
                     quantity: pkg.totalQty,
-                    unit: '套'
+                    unit: '套',
+                    remark: `原名: ${internalName}` // Keep trace of original
                 });
             });
         }

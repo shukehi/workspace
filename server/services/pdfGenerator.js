@@ -102,6 +102,12 @@ async function generatePurchaseOrderPDF(orderData, poNumber) {
     try {
         console.log(`📄 Starting PDF generation for ${poNumber}...`);
 
+        // Debug Paths
+        console.log('📂 CWD:', process.cwd());
+        console.log('📂 Service Dir:', __dirname);
+        console.log('📂 Resolving templates from:', path.join(__dirname, '../../public/templates/print-page.html'));
+
+
         // Launch headless browser
         browser = await puppeteer.launch({
             headless: 'new',

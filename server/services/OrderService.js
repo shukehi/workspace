@@ -1,0 +1,86 @@
+const { Order, OrderItem, sequelize } = require('../models');
+
+class OrderService {
+    async getAllOrders() {
+        return await Order.findAll({
+            include: [{ model: OrderItem, as: 'items' }],
+            order: [['created_at', 'DESC']]
+        });
+    }
+
+    async getOrderById(id) {
+        return await Order.findByPk(id, {
+            include: [{ model: OrderItem, as: 'items' }]
+        });
+    }
+
+    async createOrder(data) {
+        const transaction = await sequelize.transaction();
+        try {
+            const order = await Order.create({
+                order_no: data.order_no,
+                supplier: data.supplier,
+                status: data.status || 'draft',
+                metadata: data.metadata || {},
+                created_at: data.created_at,
+                delivery_date: data.delivery_date
+            }, { transaction });
+
+            if (data.items && data.items.length > 0) {
+                const items = data.items.map(item => ({
+                    ...item,
+                    order_id: order.id
+                }));
+                await OrderItem.bulkCreate(items, { transaction });
+            }
+
+            await transaction.commit();
+            return await this.getOrderById(order.id);
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
+
+    async updateOrder(id, data) {
+        const transaction = await sequelize.transaction();
+        try {
+            const order = await Order.findByPk(id, { transaction });
+            if (!order) throw new Error('Order not found');
+
+            await order.update({
+                supplier: data.supplier,
+                status: data.status,
+                metadata: data.metadata,
+                delivery_date: data.delivery_date
+            }, { transaction });
+
+            if (data.items) {
+                // simple strategy: delete all and recreate (easiest for full replace)
+                // for more efficiency, we could diff, but for now this is safe
+                await OrderItem.destroy({ where: { order_id: id }, transaction });
+
+                const items = data.items.map(item => ({
+                    ...item,
+                    id: undefined, // ensure new IDs
+                    order_id: id
+                }));
+                await OrderItem.bulkCreate(items, { transaction });
+            }
+
+            await transaction.commit();
+            return await this.getOrderById(id);
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
+
+    async deleteOrder(id) {
+        // Cascade delete is handled by DB FK usually, but Sequelize define expects manual or hooks
+        // We set onDelete: CASCADE in models/index.js so simple destroy is enough
+        return await Order.destroy({ where: { id } });
+    }
+}
+
+module.exports = new OrderService();

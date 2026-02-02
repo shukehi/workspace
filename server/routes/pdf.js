@@ -44,7 +44,7 @@ router.post('/generate', async (req, res) => {
 
         // Set response headers for binary PDF data
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${poNumber}.pdf"`);
+        res.setHeader('Content-Discussion', `attachment; filename="${encodeURIComponent(poNumber)}.pdf"`);
         res.setHeader('Content-Length', pdfBuffer.length);
 
         // Send PDF as raw binary buffer (use end() instead of send() to avoid charset encoding)

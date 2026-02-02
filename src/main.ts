@@ -11,3 +11,7 @@ app.use(createPinia())
 app.use(router)
 
 app.mount('#app')
+
+// Initialize Config
+import { configLoader } from '@/services/configLoader';
+configLoader.loadAll().catch(console.error);

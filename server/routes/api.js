@@ -7,8 +7,14 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const config = require('../config');
 const pdfRoutes = require('./pdf');
+const orderRoutes = require('./order');
 
 const router = express.Router();
+
+/**
+ * Order Management API (SQLite)
+ */
+router.use('/orders', orderRoutes);
 
 /**
  * PDF 生成 API

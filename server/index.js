@@ -11,7 +11,7 @@ const cors = require('cors');
 const path = require('path');
 const config = require('./config');
 const routes = require('./routes');
-const { sequelize, testConnection, initDatabase, closeConnection } = require('./db');
+const { initDB } = require('./models');
 
 const app = express();
 
@@ -70,13 +70,8 @@ app.use((err, req, res, next) => {
  */
 async function startServer() {
     try {
-        // 数据库配置保留但暂不初始化（订单查询系统使用外部 API）
-        // const connected = await testConnection();
-        // if (!connected) {
-        //     console.error('❌ 数据库连接失败，服务器启动终止');
-        //     process.exit(1);
-        // }
-        // await initDatabase(false);
+        // Initialize SQLite Database
+        await initDB();
 
         // 启动 HTTP 服务器
         app.listen(config.server.port, () => {
