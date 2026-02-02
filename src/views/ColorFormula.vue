@@ -95,7 +95,7 @@ onMounted(() => {
         </Button>
     </div>
 
-    <div class="flex-1 overflow-auto border rounded-md">
+    <div class="flex-1 overflow-auto rounded-md">
         <DataTable :columns="columns" :data="data" />
     </div>
   </div>

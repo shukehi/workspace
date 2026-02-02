@@ -37,7 +37,7 @@ const activeTab = ref('raw'); // raw | hardware | packaging
             </div>
 
             <!-- Content Area -->
-            <div class="flex-1 overflow-auto border rounded-md bg-background">
+            <div class="flex-1 overflow-auto rounded-md bg-background">
                 
                 <!-- Raw Materials Tab -->
                 <div v-if="activeTab === 'raw'" class="h-full">
@@ -50,7 +50,7 @@ const activeTab = ref('raw'); // raw | hardware | packaging
                         <h3 class="font-bold text-lg flex items-center">
                             <span class="mr-2">🔐</span> Cylinders (锁芯)
                         </h3>
-                        <div class="border rounded-md">
+                        <div class="rounded-md">
                             <DataTable :columns="cylinderColumns" :data="store.flatCylinders" />
                         </div>
                     </div>
@@ -59,7 +59,7 @@ const activeTab = ref('raw'); // raw | hardware | packaging
                         <h3 class="font-bold text-lg flex items-center">
                             <span class="mr-2">🔧</span> Lock Forks (锁叉)
                         </h3>
-                        <div class="border rounded-md">
+                        <div class="rounded-md">
                             <DataTable :columns="forkColumns" :data="store.flatForks" />
                         </div>
                     </div>

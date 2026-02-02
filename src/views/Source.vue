@@ -88,7 +88,7 @@ const handleGenerate = () => {
         </div>
 
         <!-- Data Table -->
-        <div class="flex-1 border rounded-md overflow-hidden bg-background">
+        <div class="flex-1 rounded-md overflow-hidden bg-background">
             <DataTable 
                 v-if="store.hasOrder"
                 :columns="columns" 
