@@ -5,6 +5,7 @@ import type { Order, OrderItem } from '@/types/order';
 
 interface SupplierGroup {
     supplierName: string;
+    category: string;
     items: OrderItem[];
     totalCost: number;
 }
@@ -19,15 +20,17 @@ export class POGenerator {
     generateProposal(): SupplierGroup[] {
         const proposal: Record<string, SupplierGroup> = {};
 
-        const ensureGroup = (supplier: string) => {
-            if (!proposal[supplier]) {
-                proposal[supplier] = {
+        const ensureGroup = (supplier: string, category: string) => {
+            const key = `${category}_${supplier}`;
+            if (!proposal[key]) {
+                proposal[key] = {
                     supplierName: supplier,
+                    category: category,
                     items: [],
                     totalCost: 0
                 };
             }
-            return proposal[supplier];
+            return proposal[key];
         };
 
         // 1. Process Raw Materials
@@ -35,7 +38,7 @@ export class POGenerator {
         if (materials && materials.requirements) {
             Object.values(materials.requirements).forEach((group: any) => {
                 const supplier = group.supplierName || '未知供应商';
-                const target = ensureGroup(supplier);
+                const target = ensureGroup(supplier, '原辅材料');
 
                 group.materials.forEach((mat: any, idx: number) => {
                     target.items.push({
@@ -58,7 +61,7 @@ export class POGenerator {
         if (hardware?.cylinders) {
             hardware.cylinders.forEach((cyl: any, idx: number) => {
                 const supplier = cyl.supplier || '未分配五金';
-                const target = ensureGroup(supplier);
+                const target = ensureGroup(supplier, '锁芯');
 
                 target.items.push({
                     id: `cyl_${Date.now()}_${idx}`,
@@ -76,7 +79,7 @@ export class POGenerator {
         if (hardware?.lockForks) {
             hardware.lockForks.forEach((fork: any, idx: number) => {
                 const supplier = fork.supplier || '未分配五金';
-                const target = ensureGroup(supplier);
+                const target = ensureGroup(supplier, '锁叉');
 
                 target.items.push({
                     id: `fork_${Date.now()}_${idx}`,
@@ -97,7 +100,7 @@ export class POGenerator {
                 // Use Matcher
                 const matchedName = packagingMatcher.match(internalName);
                 const supplier = pkg.supplierName || '方亮包装'; // Default to 方亮 if not set
-                const target = ensureGroup(supplier);
+                const target = ensureGroup(supplier, '包装');
 
                 target.items.push({
                     id: `pkg_${Date.now()}_${idx}`,
@@ -114,18 +117,21 @@ export class POGenerator {
         return Object.values(proposal);
     }
 
-    createOrders(selectedSuppliers: string[]): Order[] {
+    createOrders(selectedGroups: { supplier: string; category: string }[]): Order[] {
         const proposal = this.generateProposal();
         const orders: Order[] = [];
         const contractCode = this.sourceStore.currentOrder?.code || 'UNKNOWN';
 
         proposal.forEach(group => {
-            if (!selectedSuppliers.includes(group.supplierName)) return;
+            const isSelected = selectedGroups.some(g => g.supplier === group.supplierName && g.category === group.category);
+            if (!isSelected) return;
 
             orders.push({
                 id: `po_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-                order_no: `PO-${contractCode}-${group.supplierName}`,
+                order_no: `PO-${contractCode}-${group.category}-${group.supplierName}`,
                 supplier: group.supplierName,
+                // Add category here, assuming types/order.ts Order might need category field. (Need to check if it does, wait)
+                category: group.category as any, // Cast to any if we haven't updated the Order type
                 items: group.items,
                 total_amount: 0, // Calculate if price available
                 created_at: new Date().toISOString(),

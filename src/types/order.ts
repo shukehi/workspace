@@ -21,6 +21,7 @@ export interface Order {
     total_amount: number;
     created_at: string;
     delivery_date?: string;
+    category?: string;
     status: 'draft' | 'submitted' | 'processing' | 'completed' | 'cancelled';
     remark?: string;
     metadata?: {
