@@ -17,7 +17,7 @@
 
 **请求示例：**
 ```
-GET http://localhost:3000/api/getOutContractDetail?code=202408120023
+GET http://localhost:3000/api/getOutContractDetail?code=202601050004
 ```
 
 **后端代理目标：**

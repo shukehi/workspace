@@ -20,9 +20,15 @@ export const mainNav: NavItem[] = [
     },
     {
         title: "采购管理",
-        href: "/procurement", // Fixed duplicate href in previous file
-        icon: "shopping-cart", // Added appropriate icon
+        href: "/procurement",
+        icon: "shopping-cart",
         number: "03"
+    },
+    {
+        title: "物料数据",
+        href: "/material-master",
+        icon: "clipboard-list",
+        number: "03+"
     },
     {
         title: "库存管理",
@@ -33,6 +39,12 @@ export const mainNav: NavItem[] = [
         title: "配方配置",
         href: "/formula",
         number: "05"
+    },
+    {
+        title: "数据统计",
+        href: "/statistics",
+        icon: "bar-chart",
+        number: "06"
     },
     {
         title: "仪表盘",

@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "IBM Plex Sans", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
-  --radius: 0px;
-  --radius-lg: 0px;
-  --radius-md: 0px;
-  --radius-sm: 0px;
+  --font-sans: "Inter", "Helvetica Neue", sans-serif;
+  --font-mono: "ui-monospace", "SFMono-Regular", "Menlo", monospace;
+  --radius: 0.75rem;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -41,35 +41,35 @@
   Re-declaring the HSL values for the theme variables above to consume.
 */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 0%;
+  --background: 210 40% 98%;
+  --foreground: 222.2 84% 4.9%;
 
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 0%;
+  --card-foreground: 222.2 84% 4.9%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 0%;
+  --popover-foreground: 222.2 84% 4.9%;
 
-  --primary: 0 0% 0%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
 
-  --secondary: 0 0% 96.1%;
-  --secondary-foreground: 0 0% 0%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
 
-  --muted: 0 0% 96.1%;
-  --muted-foreground: 0 0% 45.1%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
 
-  --accent: 0 0% 96.1%;
-  --accent-foreground: 0 0% 0%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
 
   --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 210 40% 98%;
 
-  --border: 0 0% 0%;
-  --input: 0 0% 89.8%;
-  --ring: 0 0% 0%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
 
-  --radius: 0rem;
+  --radius: 0.75rem;
 }
 
 .dark {
@@ -109,5 +109,16 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
   }
 }

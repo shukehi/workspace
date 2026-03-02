@@ -1,156 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, h, computed } from 'vue'
-import { api } from '@/lib/api'
-import type { Order } from '@/types/order'
-import type { ColumnDef } from '@tanstack/vue-table'
-import DataTable from '@/components/data-table/DataTable.vue'
-import { Button } from '@/components/ui/button'
-
-import { useProcurementStore } from '@/stores/useProcurementStore';
-import EditOrderDialog from '@/components/procurement/EditOrderDialog.vue';
-
-const store = useProcurementStore();
-const data = computed(() => store.sortedOrders); // Sort by date desc
-
-// Edit Dialog State
-const editDialogOpen = ref(false);
-const editingOrder = ref<Order | null>(null);
-
-function openEditDialog(order: Order) {
-    editingOrder.value = order;
-    editDialogOpen.value = true;
-}
-
-// Remove loading logic for now as it's sync
-// async function fetchData() { ... }
-
-onMounted(() => {
-    // Store autoloads from localstorage
-})
-const columns: ColumnDef<Order>[] = [
-  {
-    accessorKey: 'order_no',
-    header: '采购单号',
-    cell: ({ row }) => h('div', { class: 'font-mono font-bold' }, row.getValue('order_no')),
-  },
-  {
-    accessorKey: 'supplier',
-    header: '供应商',
-  },
-  {
-    accessorKey: 'created_at',
-    header: '日期',
-    cell: ({ row }) => {
-        const date = new Date(row.getValue('created_at'));
-        return h('div', { class: 'font-mono text-xs' }, date.toLocaleDateString())
-    }
-  },
-  {
-    accessorKey: 'total_amount',
-    header: '总金额',
-     cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('total_amount'));
-        return h('div', { class: 'font-mono text-right' }, `$${amount.toLocaleString()}`)
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: '状态',
-    cell: ({ row }) => {
-        const status = row.getValue('status') as string;
-        let style = 'bg-white text-black border-black'; // default
-        
-        switch(status) {
-            case 'draft': style = 'bg-neutral-100 text-neutral-500 border-neutral-300 dashed'; break; // Draft: Grey
-            case 'completed': style = 'bg-black text-white border-black'; break; // Completed: Black
-            case 'processing': style = 'bg-white text-black border-black border-dotted'; break; // Processing: Dotted
-            case 'submitted': style = 'bg-white text-black border-black'; break; 
-        }
-
-        return h('div', { 
-            class: `font-mono uppercase text-[10px] px-2 py-0.5 border inline-block ${style}` 
-        }, status)
-    },
-  },
-  {
-    id: 'actions',
-    header: '操作',
-    cell: ({ row }) => {
-      return h('div', { class: 'flex gap-2 justify-end' }, [
-          h(Button, {
-            variant: 'outline',
-            size: 'sm',
-            class: 'h-6 text-xs',
-            onClick: async () => {
-                console.log('Downloading PDF...', row.original.order_no);
-                try {
-                    // Adapt the order object to match backend expectations
-                    // Backend expects: { poNumber, order: { list: items... } }
-                    const payload = {
-                        poNumber: row.original.order_no,
-                        order: {
-                            customerName: 'Internal', // Mock
-                            code: row.original.supplier,
-                            list: row.original.items.map(item => ({
-                                product_name: item.name,
-                                model_name: item.model,
-                                quantity: item.quantity,
-                                unit: item.unit || 'pcs'
-                            }))
-                        }
-                    };
-                    await api.downloadPDF('/pdf/generate', payload, `${row.original.order_no}.pdf`);
-                } catch (e) {
-                    console.error('Download failed', e);
-                    alert('PDF Download Failed (Ensure Backend is running and VITE_USE_MOCK=false)');
-                }
-            }
-          }, () => 'PDF'),
-          h(Button, {
-            variant: 'outline',
-            size: 'sm',
-            class: 'h-6 text-xs',
-            onClick: () => {
-                console.log('Edit Order', row.original.id);
-                // alert('编辑功能开发中 (Coming Soon)');
-                openEditDialog(row.original);
-            }
-          }, () => 'Edit')
-      ])
-    },
-  },
-]
-
-
-// Store handles data loading
-
+import { AlertCircle } from 'lucide-vue-next'
 </script>
 
 <template>
-  <div class="p-8 h-full flex flex-col">
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-mono font-bold uppercase">采购管理</h1>
-            <p class="font-mono text-sm text-neutral-500 mt-1">管理采购订单与供应商。</p>
-        </div>
-        <div class="flex gap-2">
-            <Button variant="outline" @click="store.clearOrders()">
-                清空数据
-            </Button>
-            <Button>
-                + 新建订单
-            </Button>
-        </div>
+  <div class="p-8 h-full flex flex-col items-center justify-center text-center">
+    <div class="max-w-md w-full p-8 border-2 border-slate-200 rounded-xl bg-white shadow-sm flex flex-col items-center">
+      <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-6">
+        <AlertCircle class="w-8 h-8" />
+      </div>
+      <h1 class="text-2xl font-semibold text-slate-900 mb-2">采购管理</h1>
+      <p class="text-slate-500 mb-8">采购管理功能即将上线，包含采购计划制定、供应商管理、采购入库通知等功能。</p>
+      <router-link to="/" class="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium">
+        返回控制台
+      </router-link>
     </div>
-
-    <div class="flex-1 overflow-auto">
-        <DataTable :columns="columns" :data="data" />
-    </div>
-
-    <!-- Edit Dialog -->
-    <EditOrderDialog 
-        v-model:open="editDialogOpen"
-        :order="editingOrder"
-    />
   </div>
 </template>

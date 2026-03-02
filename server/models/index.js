@@ -1,6 +1,7 @@
 const sequelize = require('../config/database');
 const Order = require('./Order');
 const OrderItem = require('./OrderItem');
+const Material = require('./Material');
 
 // Define Relationships
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
@@ -24,5 +25,6 @@ module.exports = {
     sequelize,
     initDB,
     Order,
-    OrderItem
+    OrderItem,
+    Material
 };

@@ -56,13 +56,13 @@ const handleGenerate = () => {
     <div class="h-full flex flex-col space-y-4 p-8 pt-6">
         <div class="flex items-center justify-between space-y-2">
             <div>
-                <h2 class="text-3xl font-bold tracking-tight">订单数据源</h2>
-                <p class="text-muted-foreground">加载 ERP 合同订单并生成采购计划。</p>
+                <h2 class="text-3xl font-semibold text-slate-900">订单数据源</h2>
+                <p class="text-slate-500 mt-1">加载 ERP 合同订单并生成采购计划。</p>
             </div>
         </div>
 
         <!-- Search Bar -->
-        <div class="flex items-center space-x-2 bg-white/5 p-4 border rounded-lg">
+        <div class="flex items-center space-x-2 bg-white p-4 border border-slate-200 rounded-xl shadow-sm">
             <Input 
                 v-model="contractInput" 
                 placeholder="输入合同编号 (如 C12345)..." 
@@ -75,8 +75,8 @@ const handleGenerate = () => {
             
             <div v-if="store.currentOrder" class="ml-auto flex items-center gap-4 text-sm">
                  <div class="flex flex-col items-end">
-                    <span class="font-bold">{{ store.currentOrder.customerName }}</span>
-                    <span class="font-mono text-xs text-muted-foreground">{{ store.currentOrder.code }}</span>
+                    <span class="font-semibold text-slate-900">{{ store.currentOrder.customerName }}</span>
+                    <span class="font-mono text-xs text-slate-500">{{ store.currentOrder.code }}</span>
                  </div>
                  <GeneratePODialog />
             </div>
@@ -88,13 +88,13 @@ const handleGenerate = () => {
         </div>
 
         <!-- Data Table -->
-        <div class="flex-1 rounded-md overflow-hidden bg-background">
+        <div class="flex-1 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm p-4">
             <DataTable 
                 v-if="store.hasOrder"
                 :columns="columns" 
                 :data="store.orderItems" 
             />
-            <div v-else class="h-full flex items-center justify-center text-muted-foreground">
+            <div v-else class="h-full flex items-center justify-center text-slate-400">
                 请输入合同号以加载数据
             </div>
         </div>

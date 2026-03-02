@@ -37,6 +37,16 @@ const router = createRouter({
                     path: '/procurement',
                     name: 'procurement',
                     component: () => import('@/views/Procurement.vue')
+                },
+                {
+                    path: '/material-master',
+                    name: 'material-master',
+                    component: () => import('@/views/MaterialManagement.vue')
+                },
+                {
+                    path: '/statistics',
+                    name: 'statistics',
+                    component: () => import('@/views/Statistics.vue')
                 }
             ]
         }

@@ -32,7 +32,7 @@ const columns: ColumnDef<ColorFormula>[] = [
     cell: ({ row }) => {
         const status = row.getValue('status') as string;
         return h('div', { 
-            class: `font-mono uppercase text-xs border border-black px-1 py-0.5 inline-block ${status === 'active' ? 'bg-black text-white' : 'bg-white text-gray-400'}` 
+            class: `text-xs px-2 py-1 rounded-full inline-block font-medium ${status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}` 
         }, status)
     },
   },
@@ -43,7 +43,7 @@ const columns: ColumnDef<ColorFormula>[] = [
       return h(Button, {
         variant: 'outline',
         size: 'sm',
-        class: 'h-6 text-xs rounded-[0px] border-black hover:bg-black hover:text-white uppercase',
+        class: 'h-8 text-xs rounded-lg border-slate-200 hover:bg-slate-50 hover:text-slate-900',
         onClick: () => {
             console.log('View BOM Details', row.original.id);
             alert(`BOM for ${row.original.id}: \n` + JSON.stringify(configLoader.getFormulas()[row.original.id]?.bom, null, 2));
@@ -87,15 +87,15 @@ onMounted(() => {
   <div class="p-8 h-full flex flex-col">
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-mono font-bold uppercase">配方配置</h1>
-            <p class="font-mono text-sm text-neutral-500 mt-1">管理产品颜色配方数据 (已同步)。</p>
+            <h1 class="text-3xl font-semibold text-slate-900">配方配置</h1>
+            <p class="text-sm text-slate-500 mt-1">管理产品颜色配方数据 (已同步)。</p>
         </div>
-        <Button class="rounded-[0px] bg-black text-white hover:bg-neutral-800 font-mono uppercase">
+        <Button class="rounded-lg bg-slate-900 text-white hover:bg-slate-800 shadow-sm transition-all">
             + 新增配方
         </Button>
     </div>
 
-    <div class="flex-1 overflow-auto rounded-md">
+    <div class="flex-1 overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm p-4">
         <DataTable :columns="columns" :data="data" />
     </div>
   </div>

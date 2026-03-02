@@ -11,7 +11,7 @@ const cors = require('cors');
 const path = require('path');
 const config = require('./config');
 const routes = require('./routes');
-const { initDB } = require('./models');
+const { initDB, sequelize } = require('./models');
 
 const app = express();
 
@@ -80,10 +80,7 @@ async function startServer() {
             console.log(`📌 运行环境: ${config.server.env}`);
             console.log('='.repeat(60));
             console.log('📋 可用的功能:');
-            console.log(`  - 订单查询系统: http://localhost:${config.server.port}/`);
-            console.log(`  - 库存管理: http://localhost:${config.server.port}/inventory.html`);
-            console.log(`  - 采购管理: http://localhost:${config.server.port}/procurement.html`);
-            console.log(`  - 统计分析: http://localhost:${config.server.port}/statistics.html`);
+            console.log(`  - 系统控制台: http://localhost:${config.server.port}/`);
             console.log('\n📡 API 端点:');
             console.log(`  - ${config.api.prefix}${config.api.endpoints.orderDetail} - 查询订单详情（代理到 ERP）`);
             console.log('\n🔧 配置信息:');
@@ -101,13 +98,13 @@ async function startServer() {
 // 优雅关闭
 process.on('SIGTERM', async () => {
     console.log('\n收到 SIGTERM 信号，正在关闭服务器...');
-    await closeConnection();
+    await sequelize.close();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('\n收到 SIGINT 信号，正在关闭服务器...');
-    await closeConnection();
+    await sequelize.close();
     process.exit(0);
 });
 

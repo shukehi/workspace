@@ -8,8 +8,8 @@ import { AlertCircle } from 'lucide-vue-next'
       <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-6">
         <AlertCircle class="w-8 h-8" />
       </div>
-      <h1 class="text-2xl font-semibold text-slate-900 mb-2">库存管理</h1>
-      <p class="text-slate-500 mb-8">库存管理功能即将上线，包含商品库存查询、出入库记录、库存预警等功能。</p>
+      <h1 class="text-2xl font-semibold text-slate-900 mb-2">数据统计</h1>
+      <p class="text-slate-500 mb-8">数据统计功能即将上线，包含订单数据分析、物料消耗统计、业绩报表等功能。</p>
       <router-link to="/" class="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium">
         返回控制台
       </router-link>
