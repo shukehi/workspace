@@ -43,7 +43,15 @@ watch(selectedCategories, (newVal) => {
         .filter(p => newVal.includes(p.category))
         .map(p => ({ supplier: p.supplierName, category: p.category }));
     selectedGroups.value = newGroups;
-});
+}, { deep: true });
+
+const toggleCategory = (cat: string, checked: boolean) => {
+    if (checked && !selectedCategories.value.includes(cat)) {
+        selectedCategories.value.push(cat);
+    } else if (!checked) {
+        selectedCategories.value = selectedCategories.value.filter(c => c !== cat);
+    }
+};
 
 // Load proposals when dialog opens
 watch(open, (isOpen) => {
@@ -79,19 +87,7 @@ const handleConfirm = async () => {
     }
 };
 
-const isSelected = (group: any) => selectedGroups.value.some(g => g.supplier === group.supplierName && g.category === group.category);
 
-const toggleSelection = (group: any) => {
-    if (isSelected(group)) {
-        selectedGroups.value = selectedGroups.value.filter(g => !(g.supplier === group.supplierName && g.category === group.category));
-    } else {
-        selectedGroups.value.push({ supplier: group.supplierName, category: group.category });
-    }
-};
-
-const filteredProposals = computed(() => {
-    return proposals.value.filter(p => selectedCategories.value.includes(p.category));
-});
 </script>
 
 <template>
@@ -105,7 +101,7 @@ const filteredProposals = computed(() => {
       <DialogHeader>
         <DialogTitle>生成采购提案</DialogTitle>
         <DialogDescription>
-          请确认按供应商拆分的采购建议。取消勾选以跳过某些供应商。
+          请确认并选择需要生成的采购类别。
         </DialogDescription>
       </DialogHeader>
       
@@ -115,53 +111,32 @@ const filteredProposals = computed(() => {
         </div>
 
         <div v-else class="space-y-4">
-            <!-- Category Filter -->
-            <div class="flex flex-wrap gap-4 items-center p-3 bg-muted/30 rounded-md">
-                <span class="text-sm font-medium text-muted-foreground mr-2">选择类别:</span>
-                <label v-for="cat in availableCategories" :key="cat" class="flex items-center space-x-2 text-sm cursor-pointer">
-                    <Checkbox :checked="selectedCategories.includes(cat)" @update:checked="(checked: boolean) => {
-                        if (checked) selectedCategories.push(cat);
-                        else selectedCategories = selectedCategories.filter(c => c !== cat);
-                    }" />
-                    <span>{{ cat }}</span>
-                </label>
-            </div>
-
-            <!-- Proposals Table -->
+            <!-- Categorized Table -->
             <div class="border rounded-md">
                 <div class="grid grid-cols-12 gap-4 p-3 bg-muted/50 font-medium text-sm border-b">
-                    <div class="col-span-1">选择</div>
-                    <div class="col-span-2">类别</div>
-                    <div class="col-span-3">供应商</div>
-                    <div class="col-span-4">摘要</div>
-                    <div class="col-span-2 text-right">项数</div>
+                    <div class="col-span-2 text-center">选择</div>
+                    <div class="col-span-4">资源类别</div>
+                    <div class="col-span-3 text-right">生成订单数</div>
+                    <div class="col-span-3 text-right">包含物料项数</div>
                 </div>
                 
-                <div v-if="filteredProposals.length === 0" class="p-4 text-center text-sm text-muted-foreground">
-                    请勾选要生成的类别。
-                </div>
-
-                <div v-for="group in filteredProposals" :key="group.category + group.supplierName" 
+                <div v-for="cat in availableCategories" :key="cat" 
                      class="grid grid-cols-12 gap-4 p-3 items-center hover:bg-muted/10 transition-colors border-b last:border-0"
                 >
-                    <div class="col-span-1 flex justify-center">
+                    <div class="col-span-2 flex justify-center">
                         <Checkbox 
-                            :checked="isSelected(group)"
-                            @update:checked="toggleSelection(group)"
+                            :checked="selectedCategories.includes(cat)"
+                            @update:checked="(checked: boolean) => toggleCategory(cat, checked)"
                         />
                     </div>
-                    <div class="col-span-2 font-medium text-muted-foreground">
-                        {{ group.category }}
+                    <div class="col-span-4 font-medium text-foreground">
+                        {{ cat }}
                     </div>
-                    <div class="col-span-3 font-medium truncate">
-                        {{ group.supplierName }}
+                    <div class="col-span-3 text-right text-muted-foreground">
+                        {{ proposals.filter(p => p.category === cat).length }}
                     </div>
-                    <div class="col-span-4 text-sm text-muted-foreground truncate">
-                        {{ group.items.slice(0, 3).map((i:any) => i.name).join(', ') }} 
-                        <span v-if="group.items.length > 3">...</span>
-                    </div>
-                    <div class="col-span-2 text-right font-mono text-sm">
-                        {{ group.items.length }}
+                    <div class="col-span-3 text-right font-mono text-sm">
+                        {{ proposals.filter(p => p.category === cat).reduce((sum, p) => sum + p.items.length, 0) }}
                     </div>
                 </div>
             </div>
