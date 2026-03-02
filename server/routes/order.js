@@ -5,7 +5,7 @@ const orderService = require('../services/OrderService');
 // GET /api/orders
 router.get('/', async (req, res) => {
     try {
-        const orders = await orderService.getAllOrders();
+        const orders = await orderService.getAllOrders(req.query.category);
         res.json(orders);
     } catch (e) {
         console.error('Fetch orders failed', e);

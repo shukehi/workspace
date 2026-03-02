@@ -9,6 +9,7 @@
         "preview": "vite preview",
         "server:dev": "NODE_ENV=development node server/index.js",
         "server:prod": "node server/index.js",
+        "db:migrate:add-order-category": "node server/scripts/migrate_add_order_category.js",
         "start": "npm run server:prod"
     },
     "dependencies": {

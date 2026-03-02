@@ -1,8 +1,14 @@
 const { Order, OrderItem, sequelize } = require('../models');
 
 class OrderService {
-    async getAllOrders() {
+    async getAllOrders(category) {
+        const where = {};
+        if (typeof category === 'string' && category.trim()) {
+            where.category = category.trim();
+        }
+
         return await Order.findAll({
+            where,
             include: [{ model: OrderItem, as: 'items' }],
             order: [['created_at', 'DESC']]
         });
@@ -20,6 +26,7 @@ class OrderService {
             const order = await Order.create({
                 order_no: data.order_no,
                 supplier: data.supplier,
+                category: data.category || null,
                 status: data.status || 'draft',
                 metadata: data.metadata || {},
                 created_at: data.created_at,
@@ -50,6 +57,7 @@ class OrderService {
 
             await order.update({
                 supplier: data.supplier,
+                category: data.category === undefined ? order.category : data.category,
                 status: data.status,
                 metadata: data.metadata,
                 delivery_date: data.delivery_date
