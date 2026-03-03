@@ -2,8 +2,8 @@ import AxiosMockAdapter from 'axios-mock-adapter';
 import { axiosInstance } from '@/lib/api';
 import type { Order } from '@/types/order';
 
-// Only enable mock in development and if VITE_USE_MOCK is 'true'
-if (import.meta.env.DEV) {
+// Only enable mock in development and explicit opt-in.
+if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true') {
     console.log('[Mock] Initializing Mock Server...');
 
     const mock = new AxiosMockAdapter(axiosInstance, { delayResponse: 500 });
@@ -11,11 +11,11 @@ if (import.meta.env.DEV) {
 
     // Order Mock (Generate 15 orders)
     const mockOrders: Order[] = Array.from({ length: 15 }).map((_, i) => ({
-        id: `ord_${i + 1}`,
+        id: i + 1,
         order_no: `PO-20260201-${String(i + 1).padStart(3, '0')}`,
         supplier: i % 2 === 0 ? 'Alpha Steel Co.' : 'Beta Bolts',
         items: [
-            { id: `item_${i}_1`, material_id: 'm_1', name: 'Steel Plate', model: 'SP-202', quantity: 50 + i, unit: 'pcs', total: (50 + i) * 100 }
+            { id: (i * 1000) + 1, material_id: 'm_1', name: 'Steel Plate', model: 'SP-202', quantity: 50 + i, unit: 'pcs', total: (50 + i) * 100 }
         ],
         total_amount: (50 + i) * 100,
         status: i === 0 ? 'draft' : i === 1 ? 'submitted' : i % 3 === 0 ? 'completed' : 'processing',
@@ -27,7 +27,7 @@ if (import.meta.env.DEV) {
 
     // Example:    // Inventory Mock (20 sample items)
     const mockInventory = Array.from({ length: 20 }).map((_, i) => ({
-        id: `inv_${i + 1}`,
+        id: i + 1,
         category: i % 3 === 0 ? 'Raw Material' : i % 3 === 1 ? 'Component' : 'Finished Goods',
         model: `MDL-${1000 + i}`,
         name: `Item Name ${i + 1}`,

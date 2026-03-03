@@ -21,7 +21,7 @@ async function fetchStats() {
         const [ordersRes, inventoryRes, formulasRes] = await Promise.all([
             api.get<any[]>('/orders'),
             api.get<any[]>('/inventory'),
-            api.get<any[]>('/formulas')
+            api.get<any[]>('/config/formulas')
         ]);
 
         // Simple calculation logic (could be moved to stores for complexity)

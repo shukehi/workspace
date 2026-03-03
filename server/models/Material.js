@@ -40,6 +40,14 @@ const Material = sequelize.define('Material', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    stock_quantity: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    min_stock: {
+        type: DataTypes.FLOAT,
+        defaultValue: 100
+    },
     aliases: {
         type: DataTypes.JSON, // Store list of strings ["alias1", "alias2"]
         defaultValue: []

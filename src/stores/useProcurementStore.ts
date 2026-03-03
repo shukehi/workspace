@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
 
 export const useProcurementStore = defineStore('procurement', () => {
@@ -19,9 +19,9 @@ export const useProcurementStore = defineStore('procurement', () => {
     async function fetchOrders() {
         loading.value = true;
         try {
-            const res = await axios.get('/api/orders');
+            const res = await api.get<Order[]>('/orders');
             // Backend returns sorted by created_at DESC usually, but we can sort again if needed
-            purchaseOrders.value = res.data;
+            purchaseOrders.value = res;
         } catch (e) {
             console.error('Failed to fetch orders', e);
         } finally {
@@ -31,19 +31,19 @@ export const useProcurementStore = defineStore('procurement', () => {
 
     async function addOrder(order: Order) {
         try {
-            const res = await axios.post('/api/orders', order);
+            const res = await api.post<Order>('/orders', order);
             // Replace the temp order with the real one from DB (with ID)
-            purchaseOrders.value.unshift(res.data);
-            return res.data;
+            purchaseOrders.value.unshift(res);
+            return res;
         } catch (e) {
             console.error('Failed to add order', e);
             throw e;
         }
     }
 
-    async function deleteOrder(id: string) {
+    async function deleteOrder(id: number) {
         try {
-            await axios.delete(`/api/orders/${id}`);
+            await api.delete(`/orders/${id}`);
             purchaseOrders.value = purchaseOrders.value.filter(o => o.id !== id);
         } catch (e) {
             console.error('Failed to delete order', e);
@@ -51,11 +51,11 @@ export const useProcurementStore = defineStore('procurement', () => {
         }
     }
 
-    async function bulkDelete(ids: string[]) {
+    async function bulkDelete(ids: number[]) {
         loading.value = true;
         try {
             // Sequential deletion to ensure DB integrity, or use Promise.all for speed
-            await Promise.all(ids.map(id => axios.delete(`/api/orders/${id}`)));
+            await Promise.all(ids.map(id => api.delete(`/orders/${id}`)));
             purchaseOrders.value = purchaseOrders.value.filter(o => !ids.includes(o.id));
         } catch (e) {
             console.error('Bulk delete failed', e);
@@ -65,10 +65,10 @@ export const useProcurementStore = defineStore('procurement', () => {
         }
     }
 
-    async function bulkUpdateStatus(ids: string[], status: Order['status']) {
+    async function bulkUpdateStatus(ids: number[], status: Order['status']) {
         loading.value = true;
         try {
-            await Promise.all(ids.map(id => axios.put(`/api/orders/${id}`, { status })));
+            await Promise.all(ids.map(id => api.put(`/orders/${id}`, { status })));
             // Refresh local state
             ids.forEach(id => {
                 const index = purchaseOrders.value.findIndex(o => o.id === id);
@@ -88,12 +88,12 @@ export const useProcurementStore = defineStore('procurement', () => {
         purchaseOrders.value = [];
     }
 
-    async function updateOrder(id: string, updates: Partial<Order>) {
+    async function updateOrder(id: number, updates: Partial<Order>) {
         try {
-            const res = await axios.put(`/api/orders/${id}`, updates);
+            const res = await api.put<Order>(`/orders/${id}`, updates);
             const index = purchaseOrders.value.findIndex(o => o.id === id);
             if (index !== -1) {
-                purchaseOrders.value[index] = res.data;
+                purchaseOrders.value[index] = res;
             }
         } catch (e) {
             console.error('Failed to update order', e);

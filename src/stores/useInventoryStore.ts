@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import type { InventoryItem } from '@/types/inventory';
 
 export const useInventoryStore = defineStore('inventory', () => {
@@ -23,8 +23,8 @@ export const useInventoryStore = defineStore('inventory', () => {
     async function fetchInventory() {
         loading.value = true;
         try {
-            const res = await axios.get('/api/inventory');
-            items.value = res.data;
+            const res = await api.get<InventoryItem[]>('/inventory');
+            items.value = res;
         } catch (e) {
             console.error('Failed to fetch inventory', e);
         } finally {
@@ -32,12 +32,12 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
-    async function updateStock(id: string, newQuantity: number) {
+    async function updateStock(id: number, newQuantity: number) {
         try {
-            const res = await axios.put(`/api/inventory/${id}`, { stock_quantity: newQuantity });
+            const res = await api.put<InventoryItem>(`/inventory/${id}`, { stock_quantity: newQuantity });
             const index = items.value.findIndex(i => i.id === id);
             if (index !== -1) {
-                items.value[index] = res.data;
+                items.value[index] = res;
             }
         } catch (e) {
             console.error('Failed to update stock', e);
