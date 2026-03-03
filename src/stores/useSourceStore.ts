@@ -83,14 +83,23 @@ export const useSourceStore = defineStore('source', () => {
         }
     }
 
-    async function calculateMaterials() {
+    async function calculateMaterials(itemsToProcess?: any[]) {
         if (!currentOrder.value) return;
 
         try {
             // Ensure config is loaded
             await configLoader.loadAll();
 
-            const items = currentOrder.value.list.map((item: any, index: number) => ({
+            // Use provided items or default to all items from current order
+            const targetItems = itemsToProcess || currentOrder.value.list;
+            
+            if (!targetItems || targetItems.length === 0) {
+                materialRequirements.value = null;
+                hardwareRequirements.value = null;
+                return;
+            }
+
+            const items = targetItems.map((item: any, index: number) => ({
                 ...item,
                 _originOrder: currentOrder.value.code,
                 _originIndex: index
@@ -105,19 +114,19 @@ export const useSourceStore = defineStore('source', () => {
 
             // Call Legacy Engine for Hardware (Dependency Injected)
             const cylinderData = extractCylinderData(
-                currentOrder.value.list, // Use raw list for extractors as they expect it
-                currentOrder.value,      // Order Info
+                targetItems, 
+                currentOrder.value,
                 configLoader.getCylinderMapping()
             );
 
             const lockForkData = extractLockForkData(
-                currentOrder.value.list,
+                targetItems,
                 currentOrder.value,
                 configLoader.getLockForkMapping()
             );
 
             const packagingData = extractPackagingData(
-                currentOrder.value.list,
+                targetItems,
                 configLoader.getPackagingMapping()
             );
 

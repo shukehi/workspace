@@ -36,6 +36,7 @@ class OrderService {
             if (data.items && data.items.length > 0) {
                 const items = data.items.map(item => ({
                     ...item,
+                    id: undefined, // ❌ 重要：剥离前端的字符串 ID，允许数据库自增
                     order_id: order.id
                 }));
                 await OrderItem.bulkCreate(items, { transaction });
@@ -70,7 +71,7 @@ class OrderService {
 
                 const items = data.items.map(item => ({
                     ...item,
-                    id: undefined, // ensure new IDs
+                    id: undefined, // ❌ 重要：剥离 ID 以便重新插入时生成新的整数 ID
                     order_id: id
                 }));
                 await OrderItem.bulkCreate(items, { transaction });
