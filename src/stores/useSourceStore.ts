@@ -2,11 +2,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
-// @ts-ignore
-import { calculateMaterialRequirements } from '@/lib/legacy/materialDecomposer';
-// @ts-ignore
-import { extractCylinderData, extractLockForkData, extractPackagingData } from '@/lib/legacy/dataExtractors';
 import { configLoader } from '@/services/configLoader';
+import { calculateMaterialsFromLegacyEngine, extractHardwareFromLegacyEngine } from '@/lib/legacy/facade';
 
 export const useSourceStore = defineStore('source', () => {
     // State
@@ -106,36 +103,20 @@ export const useSourceStore = defineStore('source', () => {
             }));
 
             // Call Legacy Engine for Materials
-            const result = calculateMaterialRequirements(
+            const result = calculateMaterialsFromLegacyEngine(
                 items,
                 configLoader.getFormulas(),
                 configLoader.getMaterials()
             );
 
-            // Call Legacy Engine for Hardware (Dependency Injected)
-            const cylinderData = extractCylinderData(
-                targetItems, 
-                currentOrder.value,
-                configLoader.getCylinderMapping()
-            );
-
-            const lockForkData = extractLockForkData(
-                targetItems,
-                currentOrder.value,
-                configLoader.getLockForkMapping()
-            );
-
-            const packagingData = extractPackagingData(
-                targetItems,
-                configLoader.getPackagingMapping()
-            );
+            const hardwareResult = extractHardwareFromLegacyEngine(targetItems, currentOrder.value, {
+                cylinderMapping: configLoader.getCylinderMapping(),
+                lockForkMapping: configLoader.getLockForkMapping(),
+                packagingMapping: configLoader.getPackagingMapping()
+            });
 
             materialRequirements.value = result;
-            hardwareRequirements.value = {
-                cylinders: cylinderData,
-                lockForks: lockForkData,
-                packaging: packagingData
-            };
+            hardwareRequirements.value = hardwareResult;
 
             console.log('✅ BOM Calculation complete:', result);
             console.log('✅ Hardware Calculation complete:', hardwareRequirements.value);

@@ -17,8 +17,17 @@ const axiosInstance: AxiosInstance = axios.create({
 
 axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
-        // Directly return the data payload for convenience
-        return response.data;
+        // Normalize both raw payloads and envelope payloads ({ success, data }).
+        const payload = response.data;
+        if (
+            payload &&
+            typeof payload === 'object' &&
+            'success' in payload &&
+            'data' in payload
+        ) {
+            return payload.data;
+        }
+        return payload;
     },
     (error) => {
         const message = error.response?.data?.message || error.message || 'Unknown Error';

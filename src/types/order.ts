@@ -1,6 +1,6 @@
 export interface OrderItem {
-    id: string;
-    material_id: string;
+    id: number;
+    material_id: string | number;
     name: string;
     model: string;
     quantity: number;
@@ -14,7 +14,7 @@ export interface OrderItem {
 }
 
 export interface Order {
-    id: string;
+    id: number;
     order_no: string;
     supplier: string;
     items: OrderItem[];

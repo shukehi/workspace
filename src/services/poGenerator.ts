@@ -42,7 +42,7 @@ export class POGenerator {
 
                 group.materials.forEach((mat: any, idx: number) => {
                     target.items.push({
-                        id: `mat_${Date.now()}_${idx}`,
+                        id: 0,
                         material_id: mat.materialId,
                         name: mat.materialId, // Material ID is usually descriptive enough or use mapping
                         model: mat.materialId,
@@ -64,7 +64,7 @@ export class POGenerator {
                 const target = ensureGroup(supplier, '锁芯');
 
                 target.items.push({
-                    id: `cyl_${Date.now()}_${idx}`,
+                    id: 0,
                     material_id: cyl.type,
                     name: '锁芯',
                     model: cyl.type, // Contains detailed spec e.g. "72.5+37.5"
@@ -82,7 +82,7 @@ export class POGenerator {
                 const target = ensureGroup(supplier, '锁叉');
 
                 target.items.push({
-                    id: `fork_${Date.now()}_${idx}`,
+                    id: 0,
                     material_id: fork.type,
                     name: '锁叉',
                     model: fork.type,
@@ -103,7 +103,7 @@ export class POGenerator {
                 const target = ensureGroup(supplier, '包装');
 
                 target.items.push({
-                    id: `pkg_${Date.now()}_${idx}`,
+                    id: 0,
                     material_id: pkg.spec,
                     name: matchedName, // Use standardized name
                     model: pkg.spec,
@@ -127,7 +127,7 @@ export class POGenerator {
             if (!isSelected) return;
 
             orders.push({
-                id: `po_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                id: 0,
                 order_no: `PO-${contractCode}-${group.category}-${group.supplierName}`,
                 supplier: group.supplierName,
                 // Add category here, assuming types/order.ts Order might need category field. (Need to check if it does, wait)
