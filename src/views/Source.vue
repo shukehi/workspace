@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useSourceStore } from '@/stores/useSourceStore';
 import { sourceColumns } from '@/components/source/SourceColumns';
 import GeneratePODialog from '@/components/source/GeneratePODialog.vue';
@@ -7,36 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import DataTable from '@/components/data-table/DataTable.vue';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { CheckCircle2, AlertCircle } from 'lucide-vue-next';
+import { Search } from 'lucide-vue-next';
 
 const store = useSourceStore();
 const contractInput = ref('');
-const selectedRows = ref<any[]>([]);
 
 // Handle search
 const handleSearch = () => {
     if (contractInput.value) {
         store.fetchContract(contractInput.value);
-        // Reset selection on new search
-        selectedRows.value = [];
     }
 };
-
-// Handle Selection Change
-const onSelectionChange = (rows: any[]) => {
-    selectedRows.value = rows;
-};
-
-// Re-calculate BOM whenever selection changes
-watch(selectedRows, (newSelection) => {
-    if (store.hasOrder) {
-        // If nothing selected, calculate for ALL (default behavior) or NONE?
-        // User expected "according to selection", so we only calculate for selection
-        // but if they just loaded the order and haven't selected anything, we might show nothing.
-        // Let's make it explicit: only calculate what is selected.
-        store.calculateMaterials(newSelection);
-    }
-}, { deep: true });
 
 // Dynamic columns generation
 const columns = computed<ColumnDef<any>[]>(() => {
@@ -97,20 +78,9 @@ const columns = computed<ColumnDef<any>[]>(() => {
                  </div>
                  
                  <div class="flex items-center gap-4">
-                    <div v-if="selectedRows.length > 0" class="flex flex-col items-center px-4 py-1 bg-yellow-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        <span class="text-[10px] font-black uppercase tracking-widest">已选定项</span>
-                        <span class="font-mono font-black text-xl leading-none">{{ selectedRows.length }}</span>
-                    </div>
-                    
-                    <GeneratePODialog :disabled="selectedRows.length === 0" />
+                    <GeneratePODialog :disabled="!store.hasOrder" />
                  </div>
             </div>
-        </div>
-
-        <!-- Hint for Selection -->
-        <div v-if="store.hasOrder && selectedRows.length === 0" class="flex items-center gap-2 p-3 bg-blue-50 border-2 border-blue-600 text-blue-700 rounded-none animate-pulse">
-            <AlertCircle class="w-5 h-5" />
-            <span class="text-xs font-bold uppercase tracking-wider">请在下方表格中勾选需要生成采购单的项。</span>
         </div>
 
         <!-- Data Table -->
@@ -119,8 +89,7 @@ const columns = computed<ColumnDef<any>[]>(() => {
                 v-if="store.hasOrder"
                 :columns="columns" 
                 :data="store.orderItems" 
-                :enable-selection="true"
-                @selection-change="onSelectionChange"
+                :enable-selection="false"
             />
             <div v-else class="h-full flex flex-col items-center justify-center text-slate-300 space-y-4 opacity-50">
                 <div class="w-20 h-20 border-4 border-slate-200 rounded-full flex items-center justify-center">

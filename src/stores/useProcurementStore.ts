@@ -3,6 +3,28 @@ import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
 
+function isValidOrder(order: any): order is Order {
+    return !!order && typeof order === 'object' && typeof order.created_at === 'string';
+}
+
+function logInvalidOrders(source: string, orders: any[]) {
+    if (!Array.isArray(orders)) return;
+    const invalid = orders
+        .map((order, index) => ({ order, index }))
+        .filter(({ order }) => !isValidOrder(order))
+        .map(({ order, index }) => ({
+            index,
+            type: order === null ? 'null' : typeof order,
+            id: order?.id,
+            order_no: order?.order_no,
+            created_at: order?.created_at
+        }));
+
+    if (invalid.length > 0) {
+        console.warn(`[ProcurementStore] invalid orders from ${source}:`, invalid);
+    }
+}
+
 export const useProcurementStore = defineStore('procurement', () => {
     // State
     const purchaseOrders = ref<Order[]>([]);
@@ -10,9 +32,11 @@ export const useProcurementStore = defineStore('procurement', () => {
 
     // Getters
     const sortedOrders = computed(() => {
-        return [...purchaseOrders.value].sort((a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        return purchaseOrders.value
+            .filter(isValidOrder)
+            .sort((a, b) =>
+                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+            );
     });
 
     // Actions
@@ -20,8 +44,9 @@ export const useProcurementStore = defineStore('procurement', () => {
         loading.value = true;
         try {
             const res = await api.get<Order[]>('/orders');
+            logInvalidOrders('GET /orders', Array.isArray(res) ? res : []);
             // Backend returns sorted by created_at DESC usually, but we can sort again if needed
-            purchaseOrders.value = res;
+            purchaseOrders.value = Array.isArray(res) ? res.filter(isValidOrder) : [];
         } catch (e) {
             console.error('Failed to fetch orders', e);
         } finally {
@@ -33,6 +58,14 @@ export const useProcurementStore = defineStore('procurement', () => {
         try {
             const res = await api.post<Order>('/orders', order);
             // Replace the temp order with the real one from DB (with ID)
+            if (!isValidOrder(res)) {
+                console.warn('[ProcurementStore] invalid payload from POST /orders:', {
+                    id: (res as any)?.id,
+                    order_no: (res as any)?.order_no,
+                    created_at: (res as any)?.created_at
+                });
+                throw new Error('Invalid order payload returned by /api/orders');
+            }
             purchaseOrders.value.unshift(res);
             return res;
         } catch (e) {
@@ -44,7 +77,7 @@ export const useProcurementStore = defineStore('procurement', () => {
     async function deleteOrder(id: number) {
         try {
             await api.delete(`/orders/${id}`);
-            purchaseOrders.value = purchaseOrders.value.filter(o => o.id !== id);
+            purchaseOrders.value = purchaseOrders.value.filter(o => o && o.id !== id);
         } catch (e) {
             console.error('Failed to delete order', e);
             throw e;
@@ -56,7 +89,7 @@ export const useProcurementStore = defineStore('procurement', () => {
         try {
             // Sequential deletion to ensure DB integrity, or use Promise.all for speed
             await Promise.all(ids.map(id => api.delete(`/orders/${id}`)));
-            purchaseOrders.value = purchaseOrders.value.filter(o => !ids.includes(o.id));
+            purchaseOrders.value = purchaseOrders.value.filter(o => o && !ids.includes(o.id));
         } catch (e) {
             console.error('Bulk delete failed', e);
             throw e;
@@ -71,7 +104,7 @@ export const useProcurementStore = defineStore('procurement', () => {
             await Promise.all(ids.map(id => api.put(`/orders/${id}`, { status })));
             // Refresh local state
             ids.forEach(id => {
-                const index = purchaseOrders.value.findIndex(o => o.id === id);
+                const index = purchaseOrders.value.findIndex(o => o && o.id === id);
                 if (index !== -1) {
                     purchaseOrders.value[index].status = status;
                 }
@@ -91,8 +124,16 @@ export const useProcurementStore = defineStore('procurement', () => {
     async function updateOrder(id: number, updates: Partial<Order>) {
         try {
             const res = await api.put<Order>(`/orders/${id}`, updates);
-            const index = purchaseOrders.value.findIndex(o => o.id === id);
+            const index = purchaseOrders.value.findIndex(o => o && o.id === id);
             if (index !== -1) {
+                if (!isValidOrder(res)) {
+                    console.warn('[ProcurementStore] invalid payload from PUT /orders/:id', {
+                        id: (res as any)?.id,
+                        order_no: (res as any)?.order_no,
+                        created_at: (res as any)?.created_at
+                    });
+                    throw new Error('Invalid order payload returned by PUT /api/orders/:id');
+                }
                 purchaseOrders.value[index] = res;
             }
         } catch (e) {

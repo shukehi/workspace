@@ -1,5 +1,14 @@
 const { Order, OrderItem, sequelize } = require('../models');
 
+function normalizeOrderForLog(order, index) {
+    return {
+        index,
+        id: order?.id,
+        order_no: order?.order_no,
+        created_at: order?.created_at
+    };
+}
+
 class OrderService {
     async getAllOrders(category) {
         const where = {};
@@ -7,11 +16,22 @@ class OrderService {
             where.category = category.trim();
         }
 
-        return await Order.findAll({
+        const orders = await Order.findAll({
             where,
             include: [{ model: OrderItem, as: 'items' }],
             order: [['created_at', 'DESC']]
         });
+
+        const invalidOrders = orders
+            .map((order, index) => ({ order, index }))
+            .filter(({ order }) => !order || !order.created_at)
+            .map(({ order, index }) => normalizeOrderForLog(order, index));
+
+        if (invalidOrders.length > 0) {
+            console.warn('[OrderService] getAllOrders found records with missing created_at:', invalidOrders);
+        }
+
+        return orders;
     }
 
     async getOrderById(id) {
@@ -23,13 +43,21 @@ class OrderService {
     async createOrder(data) {
         const transaction = await sequelize.transaction();
         try {
+            if (!data.created_at) {
+                console.warn('[OrderService] createOrder payload missing created_at, falling back to current timestamp', {
+                    order_no: data.order_no,
+                    category: data.category,
+                    supplier: data.supplier
+                });
+            }
+
             const order = await Order.create({
                 order_no: data.order_no,
                 supplier: data.supplier,
                 category: data.category || null,
                 status: data.status || 'draft',
                 metadata: data.metadata || {},
-                created_at: data.created_at,
+                created_at: data.created_at || new Date().toISOString(),
                 delivery_date: data.delivery_date
             }, { transaction });
 

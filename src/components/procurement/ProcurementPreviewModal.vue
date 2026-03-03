@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Printer, X, Maximize2 } from 'lucide-vue-next';
+import { Printer, X } from 'lucide-vue-next';
 import type { Order } from '@/types/order';
 
 const props = defineProps<{
@@ -59,53 +59,34 @@ const handleClose = () => {
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden border-none bg-slate-900/10 backdrop-blur-xl">
-      <!-- Custom Header for Preview -->
-      <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shrink-0 shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <Printer class="w-5 h-5" />
-            </div>
-            <div>
-                <DialogTitle class="text-lg font-bold text-slate-900">采购单预览</DialogTitle>
-                <p class="text-xs text-slate-500 font-mono" v-if="order">{{ order.order_no }}</p>
-            </div>
+    <DialogContent class="max-w-[1000px] max-h-[90vh] flex flex-col p-0 gap-0 bg-neutral-100">
+      <!-- Toolbar -->
+      <div class="px-6 py-4 bg-white border-b flex justify-between items-center sticky top-0 z-10">
+        <div>
+          <DialogTitle class="text-lg font-bold">查看采购单</DialogTitle>
+          <p class="text-xs text-slate-500 font-mono" v-if="order">{{ order.order_no }}</p>
         </div>
-        
-        <div class="flex items-center gap-2">
-          <Button variant="default" size="sm" class="bg-emerald-600 hover:bg-emerald-700 text-white" @click="handlePrint">
+
+        <div class="flex gap-2">
+          <Button size="sm" class="bg-emerald-600 hover:bg-emerald-700 text-white" @click="handlePrint">
             <Printer class="w-4 h-4 mr-2" />
             立即打印
           </Button>
-          <Button variant="ghost" size="icon" class="text-slate-400 hover:text-slate-600 hover:bg-slate-100" @click="handleClose">
-            <X class="w-5 h-5" />
-          </Button>
+          <Button variant="outline" size="sm" @click="handleClose">关闭</Button>
         </div>
       </div>
 
-      <!-- Preview Body (Iframe) -->
-      <div class="flex-1 bg-slate-100/50 p-4 md:p-8 overflow-auto flex justify-center">
-        <div class="w-full max-w-4xl h-full bg-white shadow-2xl rounded-sm border border-slate-200 relative overflow-hidden group">
-            <iframe 
-                ref="iframeRef"
-                :src="previewUrl" 
-                class="w-full h-full border-none pointer-events-auto"
-                title="Order Preview"
-            ></iframe>
-            
-            <!-- Floating hint -->
-            <div class="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 backdrop-blur px-3 py-1 rounded text-white text-[10px] uppercase font-mono tracking-widest pointer-events-none">
-                A4 Portrait Layout
-            </div>
+      <!-- Preview Body -->
+      <div class="flex-1 overflow-auto p-6">
+        <div class="bg-white shadow-sm border border-neutral-200 p-0 max-w-[210mm] mx-auto min-h-[500px] overflow-hidden">
+          <iframe
+            ref="iframeRef"
+            :src="previewUrl"
+            class="w-full h-[1200px] border-none"
+            title="Order Preview"
+          ></iframe>
         </div>
       </div>
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-/* Ensure the dialog content takes full height as specified */
-:deep([data-radix-popper-content-wrapper]) {
-    height: 100%;
-}
-</style>

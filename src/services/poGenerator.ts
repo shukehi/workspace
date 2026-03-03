@@ -1,6 +1,8 @@
 
 import { useSourceStore } from '@/stores/useSourceStore';
 import { packagingMatcher } from '@/lib/packagingMatcher';
+import { configLoader } from '@/services/configLoader';
+import { parseQuantity } from '@/lib/legacy/parsers';
 import type { Order, OrderItem } from '@/types/order';
 
 interface SupplierGroup {
@@ -17,7 +19,72 @@ export class POGenerator {
         this.sourceStore = useSourceStore();
     }
 
-    generateProposal(): SupplierGroup[] {
+    private buildPackagingItems(mergeSameSpec: boolean): SupplierGroup[] {
+        const groups: Record<string, SupplierGroup> = {};
+
+        const ensureGroup = (supplier: string) => {
+            const key = `包装_${supplier}`;
+            if (!groups[key]) {
+                groups[key] = {
+                    supplierName: supplier,
+                    category: '包装',
+                    items: [],
+                    totalCost: 0
+                };
+            }
+            return groups[key];
+        };
+
+        if (mergeSameSpec) {
+            const hardware = this.sourceStore.hardwareRequirements;
+            if (hardware?.packaging) {
+                Object.values(hardware.packaging).forEach((pkg: any) => {
+                    const internalName = pkg.internalName || pkg.spec;
+                    const matchedName = packagingMatcher.match(internalName);
+                    const supplier = pkg.supplierName || '方亮包装';
+                    const target = ensureGroup(supplier);
+
+                    target.items.push({
+                        id: 0,
+                        material_id: pkg.spec,
+                        name: matchedName,
+                        model: pkg.spec,
+                        quantity: pkg.totalQty,
+                        unit: '套',
+                        remark: `原名: ${internalName}`
+                    });
+                });
+            }
+            return Object.values(groups);
+        }
+
+        const orderItems = this.sourceStore.currentOrder?.list || [];
+        const packagingMapping = configLoader.getPackagingMapping();
+        const mappings = packagingMapping?.mappings || packagingMapping || {};
+
+        orderItems.forEach((item: any) => {
+            const internalName = item.bz || '未知包装';
+            const supplier = mappings[internalName] || `${internalName} (未匹配)`;
+            const target = ensureGroup(supplier);
+            const matchedName = packagingMatcher.match(internalName);
+
+            target.items.push({
+                id: 0,
+                material_id: item.spec || internalName,
+                name: matchedName,
+                model: item.spec || '-',
+                quantity: parseQuantity(item.qty),
+                unit: '套',
+                remark: `原名: ${internalName}`
+            });
+        });
+
+        return Object.values(groups);
+    }
+
+    generateProposal(options?: { mergeSameSpec?: boolean }): SupplierGroup[] {
+        const mergeSameSpec = options?.mergeSameSpec ?? true;
+        packagingMatcher.syncFromMapping(configLoader.getPackagingMapping());
         const proposal: Record<string, SupplierGroup> = {};
 
         const ensureGroup = (supplier: string, category: string) => {
@@ -93,32 +160,21 @@ export class POGenerator {
             });
         }
 
-        if (hardware?.packaging) {
-            Object.values(hardware.packaging).forEach((pkg: any, idx: number) => {
-                const internalName = pkg.internalName || pkg.spec; // Assuming internalName might be available or fallback to spec
+        this.buildPackagingItems(mergeSameSpec).forEach(group => {
+            const target = ensureGroup(group.supplierName, group.category);
+            target.items.push(...group.items);
+        });
 
-                // Use Matcher
-                const matchedName = packagingMatcher.match(internalName);
-                const supplier = pkg.supplierName || '方亮包装'; // Default to 方亮 if not set
-                const target = ensureGroup(supplier, '包装');
-
-                target.items.push({
-                    id: 0,
-                    material_id: pkg.spec,
-                    name: matchedName, // Use standardized name
-                    model: pkg.spec,
-                    quantity: pkg.totalQty,
-                    unit: '套',
-                    remark: `原名: ${internalName}` // Keep trace of original
-                });
-            });
+        const unmatched = packagingMatcher.consumeUnmatchedSummary();
+        if (unmatched.length > 0) {
+            console.warn('[PackagingMatcher] unmatched packaging names (top):', unmatched);
         }
 
         return Object.values(proposal);
     }
 
-    createOrders(selectedGroups: { supplier: string; category: string }[]): Order[] {
-        const proposal = this.generateProposal();
+    createOrders(selectedGroups: { supplier: string; category: string }[], options?: { mergeSameSpec?: boolean }): Order[] {
+        const proposal = this.generateProposal(options);
         const orders: Order[] = [];
         const contractCode = this.sourceStore.currentOrder?.code || 'UNKNOWN';
 
