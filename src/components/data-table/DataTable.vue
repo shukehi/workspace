@@ -8,7 +8,7 @@ import {
   getFilteredRowModel,
 } from '@tanstack/vue-table'
 import type { ColumnDef, SortingState, ColumnFiltersState, VisibilityState } from '@tanstack/vue-table'
-import { ref, watch, defineExpose } from 'vue'
+import { computed, ref, watch, defineExpose } from 'vue'
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ const props = defineProps<{
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   enableSelection?: boolean
+  searchColumnId?: string
 }>()
 
 const emit = defineEmits<{
@@ -56,6 +57,23 @@ const table = useVueTable({
   },
 })
 
+const activeSearchColumnId = computed(() => {
+  if (props.searchColumnId && table.getColumn(props.searchColumnId)) {
+    return props.searchColumnId
+  }
+
+  const fallback = table
+    .getAllLeafColumns()
+    .find((col) => col.id !== 'actions')?.id
+
+  return fallback || ''
+})
+
+const activeSearchColumn = computed(() => {
+  if (!activeSearchColumnId.value) return null
+  return table.getColumn(activeSearchColumnId.value) || null
+})
+
 // Watch selection and emit
 watch(rowSelection, () => {
     const selectedRows = table.getSelectedRowModel().rows.map(row => row.original);
@@ -81,8 +99,8 @@ defineExpose({
             <Input 
                 class="rounded-[0px] border-black border-2 font-mono placeholder:uppercase pl-10" 
                 placeholder="快速筛选..." 
-                :model-value="(table.getColumn('productModelName')?.getFilterValue() as string) ?? ''"
-                @update:model-value="table.getColumn('productModelName')?.setFilterValue($event)"
+                :model-value="(activeSearchColumn?.getFilterValue() as string) ?? ''"
+                @update:model-value="activeSearchColumn?.setFilterValue($event)"
             />
             <div class="absolute left-3 top-1/2 -translate-y-1/2 text-black/50 group-focus-within:text-black">
                 🔍

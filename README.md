@@ -6,7 +6,7 @@
 
 - 前端主应用：`src/`（Vue 3 + Pinia + Vue Router + TypeScript）
 - 后端服务：`server/`（Express + Sequelize + SQLite）
-- 打印预览遗留链路：`public/order-preview.html`（仍在使用）
+- 打印预览：已迁移到 `src/views/PrintPreview.vue`（路由 `/print-preview`）
 - Mock 模式：仅在 `VITE_USE_MOCK=true` 时启用
 
 ## 功能模块

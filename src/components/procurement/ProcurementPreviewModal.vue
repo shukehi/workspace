@@ -22,7 +22,7 @@ const emit = defineEmits<{
 const iframeRef = ref<HTMLIFrameElement | null>(null);
 const previewUrl = ref('');
 
-// --- Sync Data to LocalStorage (Bridge to Legacy Template) ---
+// --- Sync Data to LocalStorage (Bridge to Print Preview Route) ---
 const preparePreviewData = (order: Order) => {
     const orderForPrint = {
         customerName: order.supplier,
@@ -30,14 +30,14 @@ const preparePreviewData = (order: Order) => {
         list: order.items || []
     };
 
-    // Legacy expectations from public/order-preview.html
+    // Print preview route reads the same keys.
     localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
     localStorage.setItem('_order_preview_po_number', order.order_no);
     localStorage.setItem('_order_preview_category', order.category || '采购单');
     localStorage.removeItem('_order_preview_auto_print');
 
     // Set URL with timestamp to prevent caching
-    previewUrl.value = `/order-preview.html?t=${Date.now()}`;
+    previewUrl.value = `/print-preview?embedded=1&t=${Date.now()}`;
 };
 
 watch(() => props.open, (isOpen) => {
