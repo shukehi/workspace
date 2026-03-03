@@ -8,19 +8,6 @@ import {
   getFilteredRowModel,
 } from '@tanstack/vue-table'
 import type { ColumnDef, SortingState, ColumnFiltersState, VisibilityState } from '@tanstack/vue-table'
-import { ref } from 'vue'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-
 import { ref, watch, defineExpose } from 'vue'
 import {
   Table,
@@ -70,7 +57,7 @@ const table = useVueTable({
 })
 
 // Watch selection and emit
-watch(rowSelection, (val) => {
+watch(rowSelection, () => {
     const selectedRows = table.getSelectedRowModel().rows.map(row => row.original);
     emit('selection-change', selectedRows);
 }, { deep: true });
@@ -115,7 +102,7 @@ defineExpose({
                 <Checkbox 
                     class="border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
                     :checked="table.getIsAllPageRowsSelected()"
-                    @update:checked="(value) => table.toggleAllPageRowsSelected(!!value)"
+                    @update:checked="(value: boolean | string) => table.toggleAllPageRowsSelected(!!value)"
                 />
             </TableHead>
 
@@ -141,7 +128,7 @@ defineExpose({
                 <Checkbox 
                     class="border-black"
                     :checked="row.getIsSelected()"
-                    @update:checked="(value) => row.toggleSelected(!!value)"
+                    @update:checked="(value: boolean | string) => row.toggleSelected(!!value)"
                 />
               </TableCell>
 

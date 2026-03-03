@@ -141,7 +141,10 @@ export const useProcurementStore = defineStore('procurement', () => {
         fetchOrders,
         addOrder,
         deleteOrder,
+        bulkDelete,
+        bulkUpdateStatus,
         updateOrder,
-        clearOrders
+        clearOrders,
+        exportToCSV
     };
 });
