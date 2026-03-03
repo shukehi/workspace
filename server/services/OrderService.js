@@ -86,9 +86,18 @@ class OrderService {
     }
 
     async deleteOrder(id) {
-        // Cascade delete is handled by DB FK usually, but Sequelize define expects manual or hooks
-        // We set onDelete: CASCADE in models/index.js so simple destroy is enough
-        return await Order.destroy({ where: { id } });
+        const transaction = await sequelize.transaction();
+        try {
+            // SQLite environments may not always enforce ON DELETE CASCADE consistently.
+            // Delete children explicitly to keep behavior deterministic.
+            await OrderItem.destroy({ where: { order_id: id }, transaction });
+            const deleted = await Order.destroy({ where: { id }, transaction });
+            await transaction.commit();
+            return deleted;
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
     }
 }
 

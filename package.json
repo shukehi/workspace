@@ -5,6 +5,8 @@
     "main": "server/index.js",
     "scripts": {
         "dev": "vite",
+        "type-check": "vue-tsc --noEmit",
+        "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
         "build": "vue-tsc --noEmit && vite build",
         "preview": "vite preview",
         "server:dev": "NODE_ENV=development node server/index.js",
