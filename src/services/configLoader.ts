@@ -49,7 +49,7 @@ class ConfigLoaderService {
     }
 
     async loadFormulasFromApi() {
-        const formulas = await api.get<Record<string, any>>('/formulas');
+        const formulas = await api.get<Record<string, any>>('/config/formulas/published-map');
         this.colorFormulas = formulas && typeof formulas === 'object' ? formulas : {};
     }
 

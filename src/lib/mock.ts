@@ -81,18 +81,17 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true') {
     }));
     mock.onGet('/inventory').reply(200, mockInventory);
 
-    // Color Formula Mock (compat /api/formulas mapping shape)
+    // Color Formula Mock (published map shape)
     const mockFormulas: Record<string, any> = {
         TEST_BLUE: {
             displayName: 'Classic Blue',
-            category: 'Default',
             bom: [
                 { materialId: 'm_1', position: 'main', usage: { single: 1, double: 2, paired: 2 } },
                 { materialId: 'm_2', position: 'main', usage: { single: 0.4, double: 0.8, paired: 0.8 } }
             ]
         }
     };
-    mock.onGet('/formulas').reply(200, mockFormulas);
+    mock.onGet('/config/formulas/published-map').reply(200, mockFormulas);
 
     // IMPORTANT: Allow all other requests to pass through to the real server
     mock.onAny().passThrough();

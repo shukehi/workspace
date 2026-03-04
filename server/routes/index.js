@@ -6,11 +6,14 @@
 const express = require('express');
 const apiRoutes = require('./api');
 const config = require('../config');
+const configDataRoutes = require('./configData');
+const formulasConfigRoutes = require('./formulasConfig');
 
 const router = express.Router();
 
-// Config Data 路由 (轻后端) - 优先匹配
-router.use('/api/config', require('./configData'));
+// Config Data 路由
+router.use('/api/config/formulas', formulasConfigRoutes);
+router.use('/api/config', configDataRoutes);
 
 // API 路由 (包含代理，放在后面)
 router.use(config.api.prefix, apiRoutes);

@@ -9,7 +9,7 @@ const tempDbPath = path.join(os.tmpdir(), `formula-routes-${Date.now()}.sqlite`)
 process.env.DB_STORAGE = tempDbPath;
 
 const configRoutes = require('../server/routes/configData');
-const formulasCompatRoutes = require('../server/routes/formulas');
+const formulasConfigRoutes = require('../server/routes/formulasConfig');
 const { initDB, sequelize, Material } = require('../server/models');
 
 let server;
@@ -18,8 +18,8 @@ let baseUrl;
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '5mb' }));
+  app.use('/api/config/formulas', formulasConfigRoutes);
   app.use('/api/config', configRoutes);
-  app.use('/api/formulas', formulasCompatRoutes);
 
   return await new Promise((resolve) => {
     const s = app.listen(0, () => {
@@ -45,15 +45,14 @@ test.before(async () => {
   baseUrl = started.baseUrl;
 });
 
-test('formula lifecycle: create -> update draft -> publish -> compat read', async () => {
+test('formula lifecycle: create -> update draft -> publish -> published map', async () => {
   const createRes = await fetch(`${baseUrl}/api/config/formulas`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
     body: JSON.stringify({
       formulaKey: 'TEST_F001',
       displayName: '测试配方',
-      category: 'Default',
-      bom: [{ materialId: 'M-001', position: 'main', usage: { single: 1, double: 2, paired: 2 } }],
+      bom: [{ materialId: 'M-001', position: 'main', materialCategory: '油漆', supplier: '供应商A', usage: { single: 1, double: 2, paired: 2 } }],
       changeNote: 'create'
     })
   });
@@ -66,7 +65,7 @@ test('formula lifecycle: create -> update draft -> publish -> compat read', asyn
     headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
     body: JSON.stringify({
       revision: created.revision.revision,
-      bom: [{ materialId: 'M-001', position: 'main', usage: { single: 1, double: 1.5, paired: 2 } }],
+      bom: [{ materialId: 'M-001', position: 'main', materialCategory: '油漆', supplier: '供应商A', usage: { single: 1, double: 1.5, paired: 2 } }],
       changeNote: 'draft update'
     })
   });
@@ -86,10 +85,12 @@ test('formula lifecycle: create -> update draft -> publish -> compat read', asyn
   const published = await publishRes.json();
   assert.equal(published.success, true);
 
-  const compatRes = await fetch(`${baseUrl}/api/formulas`);
-  assert.equal(compatRes.status, 200);
-  const compatData = await compatRes.json();
-  assert.ok(compatData.TEST_F001);
+  const publishedMapRes = await fetch(`${baseUrl}/api/config/formulas/published-map`);
+  assert.equal(publishedMapRes.status, 200);
+  const publishedMap = await publishedMapRes.json();
+  assert.ok(publishedMap.TEST_F001);
+  assert.equal(publishedMap.TEST_F001.displayName, '测试配方');
+  assert.ok(Array.isArray(publishedMap.TEST_F001.bom));
 });
 
 test('GET /api/config/formulas returns paged shape', async () => {
@@ -101,17 +102,16 @@ test('GET /api/config/formulas returns paged shape', async () => {
   assert.equal(typeof body.page, 'number');
 });
 
-test('compat GET /api/formulas is read-only and deprecated', async () => {
+test('/api/formulas is not mounted', async () => {
   const getRes = await fetch(`${baseUrl}/api/formulas`);
-  assert.equal(getRes.status, 200);
-  assert.equal(getRes.headers.get('x-api-deprecated'), 'true');
+  assert.equal(getRes.status, 404);
 
   const postRes = await fetch(`${baseUrl}/api/formulas`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({})
   });
-  assert.equal(postRes.status, 405);
+  assert.equal(postRes.status, 404);
 });
 
 test.after(async () => {
