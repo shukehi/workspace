@@ -14,6 +14,9 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true') {
         id: i + 1,
         order_no: `PO-20260201-${String(i + 1).padStart(3, '0')}`,
         supplier: i % 2 === 0 ? 'Alpha Steel Co.' : 'Beta Bolts',
+        metadata: {
+            customer_name: `Mock Customer ${i + 1}`
+        },
         items: [
             { id: (i * 1000) + 1, material_id: 'm_1', name: 'Steel Plate', model: 'SP-202', quantity: 50 + i, unit: 'pcs', total: (50 + i) * 100 }
         ],
@@ -24,6 +27,45 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true') {
 
     // Mock Endpoints
     mock.onGet('/orders').reply(200, mockOrders);
+    mock.onPost('/orders').reply((config) => {
+        const payload = config.data ? JSON.parse(config.data) : {};
+        const nextId = mockOrders.reduce((max, o) => Math.max(max, Number(o.id) || 0), 0) + 1;
+        const created: Order = {
+            id: nextId,
+            order_no: payload.order_no || `PO-MOCK-${Date.now()}`,
+            supplier: payload.supplier || 'Mock Supplier',
+            metadata: payload.metadata || {},
+            items: Array.isArray(payload.items) ? payload.items : [],
+            total_amount: Number(payload.total_amount || 0),
+            status: payload.status || 'draft',
+            created_at: payload.created_at || new Date().toISOString(),
+            category: payload.category
+        };
+        mockOrders.unshift(created);
+        return [200, created];
+    });
+    mock.onPut(/\/orders\/\d+$/).reply((config) => {
+        const id = Number(config.url?.split('/').pop());
+        const payload = config.data ? JSON.parse(config.data) : {};
+        const index = mockOrders.findIndex((o) => o.id === id);
+        if (index === -1) return [404, { error: 'Not found' }];
+
+        const current = mockOrders[index];
+        mockOrders[index] = {
+            ...current,
+            ...payload,
+            id: current.id,
+            order_no: payload.order_no || current.order_no,
+            created_at: payload.created_at || current.created_at
+        };
+        return [200, mockOrders[index]];
+    });
+    mock.onDelete(/\/orders\/\d+$/).reply((config) => {
+        const id = Number(config.url?.split('/').pop());
+        const index = mockOrders.findIndex((o) => o.id === id);
+        if (index !== -1) mockOrders.splice(index, 1);
+        return [200, { success: true }];
+    });
 
     // Example:    // Inventory Mock (20 sample items)
     const mockInventory = Array.from({ length: 20 }).map((_, i) => ({

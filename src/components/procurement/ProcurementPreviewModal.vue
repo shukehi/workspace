@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ const previewUrl = ref('');
 // --- Sync Data to LocalStorage (Bridge to Print Preview Route) ---
 const preparePreviewData = (order: Order) => {
     const orderForPrint = {
-        customerName: order.supplier,
+        customerName: order.metadata?.customer_name || order.supplier,
         code: order.order_no,
         list: order.items || []
     };
@@ -60,6 +61,10 @@ const handleClose = () => {
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-[1000px] max-h-[90vh] flex flex-col p-0 gap-0 bg-neutral-100">
+      <DialogHeader class="sr-only">
+        <DialogTitle>查看采购单</DialogTitle>
+        <DialogDescription>采购单打印预览窗口，可直接打印当前订单。</DialogDescription>
+      </DialogHeader>
       <!-- Toolbar -->
       <div class="px-6 py-4 bg-white border-b flex justify-between items-center sticky top-0 z-10">
         <div>

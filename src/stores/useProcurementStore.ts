@@ -7,6 +7,22 @@ function isValidOrder(order: any): order is Order {
     return !!order && typeof order === 'object' && typeof order.created_at === 'string';
 }
 
+function normalizeOrderPayload(payload: any): Order | null {
+    let candidate = payload;
+
+    if (candidate && typeof candidate === 'object') {
+        if (candidate.data) candidate = candidate.data;
+        else if (candidate.order) candidate = candidate.order;
+        else if (Array.isArray(candidate.rows) && candidate.rows.length > 0) candidate = candidate.rows[0];
+    }
+
+    if (candidate && typeof candidate === 'object' && candidate.created_at instanceof Date) {
+        candidate = { ...candidate, created_at: candidate.created_at.toISOString() };
+    }
+
+    return isValidOrder(candidate) ? candidate : null;
+}
+
 function logInvalidOrders(source: string, orders: any[]) {
     if (!Array.isArray(orders)) return;
     const invalid = orders
@@ -57,17 +73,20 @@ export const useProcurementStore = defineStore('procurement', () => {
     async function addOrder(order: Order) {
         try {
             const res = await api.post<Order>('/orders', order);
+            const normalized = normalizeOrderPayload(res);
             // Replace the temp order with the real one from DB (with ID)
-            if (!isValidOrder(res)) {
+            if (!normalized) {
                 console.warn('[ProcurementStore] invalid payload from POST /orders:', {
                     id: (res as any)?.id,
                     order_no: (res as any)?.order_no,
-                    created_at: (res as any)?.created_at
+                    created_at: (res as any)?.created_at,
+                    payloadType: typeof res,
+                    payloadKeys: res && typeof res === 'object' ? Object.keys(res as any) : []
                 });
                 throw new Error('Invalid order payload returned by /api/orders');
             }
-            purchaseOrders.value.unshift(res);
-            return res;
+            purchaseOrders.value.unshift(normalized);
+            return normalized;
         } catch (e) {
             console.error('Failed to add order', e);
             throw e;
@@ -124,9 +143,10 @@ export const useProcurementStore = defineStore('procurement', () => {
     async function updateOrder(id: number, updates: Partial<Order>) {
         try {
             const res = await api.put<Order>(`/orders/${id}`, updates);
+            const normalized = normalizeOrderPayload(res);
             const index = purchaseOrders.value.findIndex(o => o && o.id === id);
             if (index !== -1) {
-                if (!isValidOrder(res)) {
+                if (!normalized) {
                     console.warn('[ProcurementStore] invalid payload from PUT /orders/:id', {
                         id: (res as any)?.id,
                         order_no: (res as any)?.order_no,
@@ -134,7 +154,7 @@ export const useProcurementStore = defineStore('procurement', () => {
                     });
                     throw new Error('Invalid order payload returned by PUT /api/orders/:id');
                 }
-                purchaseOrders.value[index] = res;
+                purchaseOrders.value[index] = normalized;
             }
         } catch (e) {
             console.error('Failed to update order', e);

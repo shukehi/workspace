@@ -6,7 +6,7 @@
 
 
 // import { PACKAGING_MAPPING } from '../config/index.js';
-import { parseQuantity } from './parsers';
+import { parseQuantity, parseQuantityPair } from './parsers';
 
 /**
  * 渲染包装采购汇总表
@@ -51,24 +51,34 @@ export function aggregatePackaging(items, PACKAGING_MAPPING = {}) {
 
     items.forEach(item => {
         const internalName = item.bz || "未知";
-        // Map to supplier name, default to internal name along with a marker if not found
+        // mappings maps internal packaging name -> external packaging name, not supplier.
         const mappings = PACKAGING_MAPPING.mappings || PACKAGING_MAPPING;
-        const supplierName = mappings[internalName] || internalName + " (未匹配)";
+        const supplierName = PACKAGING_MAPPING.supplierName || "方亮包装";
+        const externalName = mappings[internalName] || internalName + " (未匹配)";
         const spec = item.spec || "未知规格";
+        const mb = item.mb || "-";
         const qty = parseQuantity(item.qty);
+        const qtyPair = parseQuantityPair(item.qty);
 
-        // Create a unique key for grouping: Name + Spec
-        const groupKey = `${supplierName}|${spec}`;
+        // Keep edge type in grouping key so merged rows still preserve correct "门边" values.
+        const groupKey = `${supplierName}|${externalName}|${spec}|${mb}`;
 
         if (!groups[groupKey]) {
             groups[groupKey] = {
+                internalName: internalName,
+                externalName: externalName,
                 supplierName: supplierName,
                 spec: spec,
+                mb: mb,
+                totalLeft: 0,
+                totalRight: 0,
                 totalQty: 0
             };
         }
 
         groups[groupKey].totalQty += qty;
+        groups[groupKey].totalLeft += qtyPair.left;
+        groups[groupKey].totalRight += qtyPair.right;
     });
 
     return groups;

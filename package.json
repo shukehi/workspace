@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "vite",
         "type-check": "vue-tsc --noEmit",
-        "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
+        "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\" && tsx --test \"tests/**/*.test.ts\"",
         "build": "vue-tsc --noEmit && vite build",
         "preview": "vite preview",
         "server:dev": "NODE_ENV=development node server/index.js",
@@ -45,6 +45,7 @@
         "axios-mock-adapter": "^2.1.0",
         "postcss": "^8.5.6",
         "tailwindcss": "^4.1.18",
+        "tsx": "^4.21.0",
         "typescript": "^5.9.3",
         "vite": "^7.3.1",
         "vue": "^3.5.27",

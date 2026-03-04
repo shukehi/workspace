@@ -25,8 +25,14 @@ async function fetchStats() {
         ]);
 
         // Simple calculation logic (could be moved to stores for complexity)
-        const activeOrders = ordersRes.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
-        const inventoryValue = inventoryRes.reduce((acc, curr) => acc + ((curr.stock_quantity || 0) * 10), 0);
+        const orders = Array.isArray(ordersRes) ? ordersRes : [];
+        const inventory = Array.isArray(inventoryRes) ? inventoryRes : [];
+        const formulasCount = Array.isArray(formulasRes)
+            ? formulasRes.length
+            : (formulasRes && typeof formulasRes === 'object' ? Object.keys(formulasRes).length : 0);
+
+        const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
+        const inventoryValue = inventory.reduce((acc, curr) => acc + ((curr.stock_quantity || 0) * 10), 0);
 
         stats.value = [
             { 
@@ -41,7 +47,7 @@ async function fetchStats() {
             },
             { 
                 label: 'Formulas', 
-                value: formulasRes.length.toString(),
+                value: formulasCount.toString(),
                 desc: 'Active color recipes'
             },
         ]

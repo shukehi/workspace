@@ -114,17 +114,30 @@ class OrderService {
     }
 
     async deleteOrder(id) {
-        const transaction = await sequelize.transaction();
-        try {
-            // SQLite environments may not always enforce ON DELETE CASCADE consistently.
-            // Delete children explicitly to keep behavior deterministic.
-            await OrderItem.destroy({ where: { order_id: id }, transaction });
-            const deleted = await Order.destroy({ where: { id }, transaction });
-            await transaction.commit();
-            return deleted;
-        } catch (error) {
-            await transaction.rollback();
-            throw error;
+        const parsedId = Number(id);
+        if (!Number.isInteger(parsedId) || parsedId <= 0) {
+            throw new Error('INVALID_ID');
+        }
+
+        const maxAttempts = 3;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const transaction = await sequelize.transaction();
+            try {
+                // SQLite environments may not always enforce ON DELETE CASCADE consistently.
+                // Delete children explicitly to keep behavior deterministic.
+                await OrderItem.destroy({ where: { order_id: parsedId }, transaction });
+                const deleted = await Order.destroy({ where: { id: parsedId }, transaction });
+                await transaction.commit();
+                return deleted;
+            } catch (error) {
+                await transaction.rollback();
+                const isBusy = error && (error.name === 'SequelizeTimeoutError' || String(error.message || '').includes('SQLITE_BUSY'));
+                if (isBusy && attempt < maxAttempts) {
+                    await new Promise((resolve) => setTimeout(resolve, 80 * attempt));
+                    continue;
+                }
+                throw error;
+            }
         }
     }
 }

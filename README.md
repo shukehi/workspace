@@ -126,6 +126,8 @@ npm run build
 - `POST /api/orders`：创建采购单
 - `PUT /api/orders/:id`：更新采购单
 - `DELETE /api/orders/:id`：删除采购单
+- `POST /api/contracts/cache`：缓存 ERP 原始合同快照
+- `GET /api/contracts/:code`：读取缓存合同
 - `GET /api/materials`：物料检索
 - `POST /api/materials`：新增物料
 - `PUT /api/materials/:id`：更新物料
@@ -145,6 +147,7 @@ npm run build
 - [工程开发约定](docs/ENGINEERING_CONVENTIONS.md)
 - [优化计划（阶段跟踪）](docs/OPTIMIZATION_PLAN_2026-03-03.md)
 - [legacy 清理计划](docs/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md)
+- [PO 字段契约](docs/PO_FIELD_CONTRACT.md)
 
 ## 说明
 

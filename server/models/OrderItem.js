@@ -15,6 +15,34 @@ const OrderItem = sequelize.define('OrderItem', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    supplier: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    internal_name: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    external_name: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    type: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    spec: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    mb: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    eccentricity: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     model: {
         type: DataTypes.STRING,
         allowNull: true
@@ -22,6 +50,14 @@ const OrderItem = sequelize.define('OrderItem', {
     quantity: {
         type: DataTypes.FLOAT,
         defaultValue: 0
+    },
+    quantity_left: {
+        type: DataTypes.FLOAT,
+        allowNull: true
+    },
+    quantity_right: {
+        type: DataTypes.FLOAT,
+        allowNull: true
     },
     unit: {
         type: DataTypes.STRING,

@@ -67,6 +67,16 @@ export const useSourceStore = defineStore('source', () => {
             // We reuse the response directly as it closely matches what legacy logic expects
             // Ideally we should run DataNormalizer here if needed for deeper cleaning
             currentOrder.value = orderData;
+            console.log('📦 Fetched contract JSON:', orderData);
+            console.log('📦 Fetched contract JSON (formatted):\n' + JSON.stringify(orderData, null, 2));
+
+            // Persist raw ERP contract snapshot for audit/replay.
+            // Non-blocking: cache failure should not break sourcing flow.
+            try {
+                await api.post('/contracts/cache', orderData);
+            } catch (cacheErr) {
+                console.warn('[SourceStore] failed to cache ERP contract snapshot:', cacheErr);
+            }
 
             // 3. Auto-calculate materials on load
             await calculateMaterials();

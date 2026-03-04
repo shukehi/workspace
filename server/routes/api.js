@@ -11,6 +11,8 @@ const orderRoutes = require('./order');
 const materialRoutes = require('./material');
 const inventoryRoutes = require('./inventory');
 const formulasRoutes = require('./formulas');
+const contractRoutes = require('./contracts');
+const contractCacheService = require('../services/ContractCacheService');
 
 const router = express.Router();
 
@@ -18,6 +20,19 @@ const router = express.Router();
  * Order Management API (SQLite)
  */
 router.use('/orders', orderRoutes);
+router.get('/contracts', async (req, res) => {
+    try {
+        const result = await contractCacheService.listContracts(req.query);
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (e) {
+        console.error('List cached contracts failed', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+router.use('/contracts', contractRoutes);
 router.use('/materials', materialRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/formulas', formulasRoutes);

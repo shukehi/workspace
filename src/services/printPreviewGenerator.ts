@@ -8,6 +8,23 @@ interface PrintOrder {
     list?: any[];
 }
 
+interface NormalizedPrintItem {
+    supplier?: string;
+    internal_name?: string;
+    external_name?: string;
+    name?: string;
+    type?: string;
+    spec?: string;
+    model?: string;
+    mb?: string;
+    eccentricity?: string;
+    qtyLeft?: number;
+    qtyRight?: number;
+    quantity?: number;
+    unit?: string;
+    remark?: string;
+}
+
 const CATEGORY_CONFIGS: Record<PrintCategory, { title: string; headers: string[]; fields: string[]; groupBy: string }> = {
     packaging: {
         title: '包装采购订单',
@@ -29,7 +46,7 @@ const CATEGORY_CONFIGS: Record<PrintCategory, { title: string; headers: string[]
     },
     lock: {
         title: '锁叉采购订单',
-        headers: ['序号', '边锁型号', '规格', '数量', '单位', '备注'],
+        headers: ['序号', '产品名称', '规格', '数量', '单位', '备注'],
         fields: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
         groupBy: 'supplier'
     }
@@ -43,6 +60,84 @@ function parseQuantityPair(qtyStr: any) {
     const leftVal = Number.parseFloat(parts[0]) || 0;
     const rightVal = Number.parseFloat(parts[1]) || leftVal;
     return { left: leftVal, right: rightVal };
+}
+
+function resolvePackagingInternalName(item: any) {
+    return (
+        item?.internalName ||
+        item?.internal_name ||
+        item?.bz ||
+        item?.name ||
+        item?.model ||
+        '无名称'
+    );
+}
+
+function resolveLeftRightQty(item: any) {
+    if (item?.qty !== undefined && item?.qty !== null && item?.qty !== '') {
+        return parseQuantityPair(item.qty);
+    }
+
+    const left = Number(item?.quantity_left || 0);
+    const right = Number(item?.quantity_right || 0);
+    if (left > 0 || right > 0) {
+        return { left, right };
+    }
+
+    const quantity = Number(item?.quantity || 0);
+    return { left: quantity, right: 0 };
+}
+
+function normalizeItemForCategory(item: any, category: PrintCategory): NormalizedPrintItem {
+    if (category === 'packaging') {
+        const qty = resolveLeftRightQty(item);
+        return {
+            supplier: item?.supplier,
+            internal_name: resolvePackagingInternalName(item),
+            external_name: item?.external_name || item?.name,
+            name: item?.name || item?.productModelName,
+            spec: item?.spec || item?.model || '-',
+            mb: item?.mb || item?.orientation || '-',
+            qtyLeft: qty.left,
+            qtyRight: qty.right,
+            quantity: Number(item?.quantity || 0),
+            unit: item?.unit || '套',
+            remark: item?.remark || ''
+        };
+    }
+
+    if (category === 'cylinder') {
+        return {
+            supplier: item?.supplier,
+            type: item?.type || item?.name || '-',
+            eccentricity: item?.eccentricity || '-',
+            quantity: Number(item?.quantity || 0),
+            remark: item?.remark || ''
+        };
+    }
+
+    if (category === 'lock') {
+        return {
+            supplier: item?.supplier,
+            type: item?.type || item?.name || '-',
+            spec: item?.spec || item?.model || '-',
+            quantity: Number(item?.quantity || 0),
+            unit: item?.unit || '个',
+            remark: item?.remark || ''
+        };
+    }
+
+    return {
+        supplier: item?.supplier,
+        type: item?.type || item?.name || '-',
+        spec: item?.spec || item?.model || '-',
+        quantity: Number(item?.quantity || 0),
+        remark: item?.remark || ''
+    };
+}
+
+function normalizeItemsForCategory(items: any[], category: PrintCategory): NormalizedPrintItem[] {
+    return (items || []).map((item) => normalizeItemForCategory(item, category));
 }
 
 export function normalizePrintCategory(category: string | undefined): PrintCategory {
@@ -70,13 +165,13 @@ async function loadPrintTemplate() {
     return templateCache;
 }
 
-function groupItemsByPackaging(items: any[], packagingMapping: any) {
-    const groups: Record<string, any> = {};
+function groupItemsByPackaging(items: NormalizedPrintItem[], packagingMapping: any) {
+    const groups: Record<string, { internalName: string; externalName: string; items: NormalizedPrintItem[] }> = {};
     const mappings = packagingMapping?.mappings || packagingMapping || {};
 
     (items || []).forEach((item) => {
-        const internalName = item.bz || '无名称';
-        const externalName = mappings[internalName] || '未匹配';
+        const internalName = item.internal_name || '无名称';
+        const externalName = item.external_name || mappings[internalName] || item.name || '未匹配';
 
         if (!groups[internalName]) {
             groups[internalName] = {
@@ -91,16 +186,16 @@ function groupItemsByPackaging(items: any[], packagingMapping: any) {
     return groups;
 }
 
-function groupItemsByCategory(items: any[], category: PrintCategory, packagingMapping: any) {
+function groupItemsByCategory(items: NormalizedPrintItem[], category: PrintCategory, packagingMapping: any) {
     if (category === 'packaging') {
         return groupItemsByPackaging(items, packagingMapping);
     }
 
     const config = CATEGORY_CONFIGS[category];
-    const groups: Record<string, any> = {};
+    const groups: Record<string, { supplier: string; items: NormalizedPrintItem[] }> = {};
 
     (items || []).forEach((item) => {
-        const key = item[config.groupBy] || '未分类';
+        const key = (item as any)[config.groupBy] || '未分类';
         if (!groups[key]) {
             groups[key] = {
                 supplier: item.supplier || key,
@@ -119,7 +214,8 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
     const template = await loadPrintTemplate();
     const config = CATEGORY_CONFIGS[category];
     const packagingMapping = configLoader.getPackagingMapping();
-    const groups = groupItemsByCategory(order.list || [], category, packagingMapping);
+    const normalizedItems = normalizeItemsForCategory(order.list || [], category);
+    const groups = groupItemsByCategory(normalizedItems, category, packagingMapping);
 
     printOutput.innerHTML = '';
 
@@ -160,11 +256,13 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
             if (deliveryEl) deliveryEl.value = today;
 
             if (category === 'packaging') {
+                const pkgGroup = group as { internalName: string; externalName: string; items: NormalizedPrintItem[] };
                 if (supplierEl) supplierEl.textContent = packagingMapping?.supplierName || '默认供应商';
-                if (intPkgEl) intPkgEl.textContent = group.internalName || groupKey;
-                if (extPkgEl) extPkgEl.textContent = group.externalName || groupKey;
+                if (intPkgEl) intPkgEl.textContent = pkgGroup.internalName || groupKey;
+                if (extPkgEl) extPkgEl.textContent = pkgGroup.externalName || groupKey;
             } else {
-                if (supplierEl) supplierEl.textContent = group.supplier || groupKey;
+                const normalGroup = group as { supplier: string; items: NormalizedPrintItem[] };
+                if (supplierEl) supplierEl.textContent = normalGroup.supplier || groupKey;
                 if (intPkgEl) intPkgEl.textContent = '-';
                 if (extPkgEl) extPkgEl.textContent = '-';
             }
@@ -177,23 +275,23 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
             const tbody = clone.querySelector('.p-tbody') as HTMLTableSectionElement | null;
             if (!tbody) continue;
 
-            pageItems.forEach((item: any, index: number) => {
+            pageItems.forEach((item: NormalizedPrintItem, index: number) => {
                 const tr = document.createElement('tr');
                 config.fields.forEach((field) => {
                     const td = document.createElement('td');
                     let value: string | number = '-';
 
                     if (field === 'no') value = startIdx + index + 1;
-                    else if (field === 'productModelName') value = item.productModelName || item.name || '-';
+                    else if (field === 'productModelName') value = item.name || '-';
                     else if (field === 'spec') value = item.spec || item.model || '-';
-                    else if (field === 'mb') value = item.mb || item.orientation || '-';
-                    else if (field === 'qtyLeft') value = parseQuantityPair(item.qty).left;
-                    else if (field === 'qtyRight') value = parseQuantityPair(item.qty).right;
+                    else if (field === 'mb') value = item.mb || '-';
+                    else if (field === 'qtyLeft') value = Number(item.qtyLeft || 0);
+                    else if (field === 'qtyRight') value = Number(item.qtyRight || 0);
                     else if (field === 'type') value = item.type || item.name || '-';
                     else if (field === 'eccentricity') value = item.eccentricity || '-';
-                    else if (field === 'quantity') value = item.quantity || 0;
+                    else if (field === 'quantity') value = Number(item.quantity || 0);
                     else if (field === 'unit') value = item.unit || '根';
-                    else if (field === 'remark') value = item.remark || '';
+                    else if (field === 'remark') value = category === 'packaging' ? '' : (item.remark || '');
 
                     td.textContent = String(value);
                     tr.appendChild(td);
@@ -208,16 +306,15 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
                 if (category === 'packaging') {
                     let groupTotalLeft = 0;
                     let groupTotalRight = 0;
-                    items.forEach((item: any) => {
-                        const qty = parseQuantityPair(item.qty);
-                        groupTotalLeft += qty.left;
-                        groupTotalRight += qty.right;
+                    items.forEach((item: NormalizedPrintItem) => {
+                        groupTotalLeft += Number(item.qtyLeft || 0);
+                        groupTotalRight += Number(item.qtyRight || 0);
                     });
 
                     totalRow.innerHTML = `<td colspan="4" style="text-align: right;">合计</td><td>${groupTotalLeft}</td><td>${groupTotalRight}</td><td></td>`;
                 } else {
                     let groupTotal = 0;
-                    items.forEach((item: any) => {
+                    items.forEach((item: NormalizedPrintItem) => {
                         groupTotal += Number(item.quantity || 0);
                     });
                     const colspanCount = config.fields.length - (category === 'lock' ? 3 : 2);

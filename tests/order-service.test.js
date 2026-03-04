@@ -30,9 +30,18 @@ test('OrderService CRUD and category filter', async (t) => {
     created_at: new Date().toISOString(),
     items: [
       {
+        supplier: '方亮包装',
+        internal_name: '3层黄卡美+C单瓦纸箱',
+        external_name: '美+C单瓦',
+        type: '90AB微珠锌合金锁芯 ORIGINAL&SED(TURKEY)',
+        spec: '960*2050/7/内开外包',
+        mb: '新元宝边',
+        eccentricity: '34.5*55.5/中心孔偏心',
         name: 'Test Item',
         model: 'MODEL-X',
         quantity: 3,
+        quantity_left: 1,
+        quantity_right: 2,
         unit: 'pcs',
         price: 10,
         remark: 'created by test'
@@ -46,6 +55,12 @@ test('OrderService CRUD and category filter', async (t) => {
   assert.equal(created.category, '包装');
   assert.equal(created.items.length, 1);
   assert.equal(created.items[0].name, 'Test Item');
+  assert.equal(created.items[0].supplier, '方亮包装');
+  assert.equal(created.items[0].internal_name, '3层黄卡美+C单瓦纸箱');
+  assert.equal(created.items[0].external_name, '美+C单瓦');
+  assert.equal(created.items[0].eccentricity, '34.5*55.5/中心孔偏心');
+  assert.equal(created.items[0].quantity_left, 1);
+  assert.equal(created.items[0].quantity_right, 2);
 
   const fetched = await orderService.getOrderById(created.id);
   assert.ok(fetched);
