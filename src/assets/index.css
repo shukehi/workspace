@@ -122,3 +122,61 @@
     transform: translateY(10px);
   }
 }
+
+@layer components {
+  .menu-group-trigger {
+    @apply w-full flex items-center justify-between rounded-md px-2.5 py-2 text-xs text-muted-foreground/90 hover:bg-muted/40 hover:text-foreground transition-colors;
+  }
+
+  .menu-group-title {
+    @apply font-medium tracking-wide uppercase;
+  }
+
+  .menu-group-panel {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 160ms ease, opacity 120ms ease;
+  }
+
+  .menu-group-panel-open {
+    max-height: 420px;
+    opacity: 1;
+  }
+
+  .menu-group-panel-inner {
+    @apply space-y-1 pb-1;
+  }
+
+  .menu-item {
+    @apply relative flex h-10 items-center gap-2.5 rounded-md px-3 text-sm text-muted-foreground hover:bg-muted/45 hover:text-foreground transition-all;
+  }
+
+  .menu-item::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    border-radius: 9999px;
+    background: transparent;
+    transition: background-color 150ms ease;
+  }
+
+  .menu-item-active {
+    @apply bg-muted/70 text-foreground font-medium;
+  }
+
+  .menu-item-active::before {
+    background: hsl(var(--primary));
+  }
+
+  .menu-item-icon {
+    @apply h-4 w-4 shrink-0 text-muted-foreground;
+  }
+
+  .menu-item-active .menu-item-icon {
+    @apply text-foreground;
+  }
+}

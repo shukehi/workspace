@@ -8,11 +8,11 @@ import Sidebar from './Sidebar.vue';
 <template>
   <Sheet>
     <SheetTrigger as-child>
-       <Button variant="ghost" size="icon" class="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg">
+       <Button variant="ghost" size="icon" class="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md">
           <Menu class="w-6 h-6" />
        </Button>
     </SheetTrigger>
-    <SheetContent side="left" class="p-0 border-r border-border w-72 rounded-lg">
+    <SheetContent side="left" class="p-0 border-r border-border w-80 max-w-[88vw] rounded-none">
         <Sidebar class="w-full h-full border-none" />
     </SheetContent>
   </Sheet>

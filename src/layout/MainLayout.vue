@@ -10,11 +10,11 @@ import Toaster from '@/components/ui/Toaster.vue';
     <Toaster />
 
     <!-- Desktop Sidebar -->
-    <Sidebar class="hidden md:block w-64 flex-shrink-0 border-r border-border bg-background  z-10" />
+    <Sidebar class="hidden md:block w-72 flex-shrink-0 border-r border-border bg-background z-10" />
 
     <!-- Mobile Header -->
-    <div class="md:hidden h-14 border-b border-border flex items-center px-4 justify-between bg-background text-foreground  z-20 sticky top-0">
-        <span class="font-semibold">System V2</span>
+    <div class="md:hidden h-14 border-b border-border flex items-center px-4 justify-between bg-background/95 text-foreground z-20 sticky top-0 backdrop-blur-sm">
+        <span class="text-sm font-semibold tracking-wide">Order System</span>
         <MobileNav />
     </div>
 
