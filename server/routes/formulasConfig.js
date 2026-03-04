@@ -1,5 +1,5 @@
 const express = require('express');
-const FormulaService = require('../services/FormulaService');
+const FormulaService = require('../services/formulas');
 
 const router = express.Router();
 
