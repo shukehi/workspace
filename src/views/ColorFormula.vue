@@ -27,16 +27,14 @@ onMounted(() => {
 
     <Card>
       <CardContent class="p-4 grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Input v-model="manager.keyword" placeholder="搜索配方编码/名称" class="lg:col-span-4" />
+        <Input v-model="manager.keyword" placeholder="搜索配方编码/名称" class="lg:col-span-6" />
         <select v-model="manager.statusFilter" class="h-9 rounded-md border bg-background px-3 text-sm lg:col-span-2">
           <option value="">全部状态</option>
           <option value="draft">draft</option>
           <option value="published">published</option>
           <option value="archived">archived</option>
         </select>
-        <Input v-model="manager.newFormulaKey" placeholder="新配方编码" class="lg:col-span-3" />
-        <Input v-model="manager.newDisplayName" placeholder="新配方名称" class="lg:col-span-3" />
-        <div class="lg:col-span-8"></div>
+        <div class="lg:col-span-4"></div>
         <Button class="lg:col-span-2" @click="manager.createFormula">+ 新增配方</Button>
       </CardContent>
     </Card>
@@ -44,7 +42,7 @@ onMounted(() => {
     <div class="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-4 overflow-hidden">
       <FormulaListPanel
         :list="manager.list"
-        :total="manager.total"
+        :total="manager.displayTotal"
         :selected-key="manager.selectedKey"
         :loading="manager.loading"
         :loading-more="manager.loadingMore"
@@ -95,14 +93,16 @@ onMounted(() => {
             </div>
 
             <div class="flex flex-wrap gap-2">
-              <Button :disabled="manager.saving || !manager.draftRevision" @click="manager.saveDraft">
+              <Button :disabled="manager.saving || !manager.detail" @click="manager.saveDraft">
                 {{ manager.saving ? '保存中...' : '保存草稿' }}
               </Button>
               <Button :disabled="manager.publishing || !manager.draftRevision" variant="outline" @click="manager.publishFormula">
                 {{ manager.publishing ? '发布中...' : '发布' }}
               </Button>
-              <Button variant="outline" :disabled="!manager.detail" @click="manager.archiveFormula">归档</Button>
-              <Button variant="destructive" :disabled="!manager.detail" @click="manager.deleteFormula">删除</Button>
+              <Button variant="outline" :disabled="!manager.detail || manager.isLocalDraftSelected" @click="manager.archiveFormula">归档</Button>
+              <Button variant="destructive" :disabled="!manager.detail" @click="manager.deleteFormula">
+                {{ manager.isLocalDraftSelected ? '取消新增' : '删除' }}
+              </Button>
             </div>
           </template>
         </CardContent>

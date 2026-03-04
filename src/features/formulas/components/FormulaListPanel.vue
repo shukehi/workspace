@@ -21,6 +21,19 @@ const emit = defineEmits<{
 const listContainerRef = ref<HTMLDivElement | null>(null);
 const loadMoreTriggerRef = ref<HTMLDivElement | null>(null);
 
+function isLocalDraft(item: FormulaSummary) {
+  return item.formulaKey.startsWith('__local_draft__:');
+}
+
+function getRowTitle(item: FormulaSummary) {
+  if (isLocalDraft(item)) {
+    return item.displayName?.trim() || '未命名配方';
+  }
+  return item.formulaKey === item.displayName
+    ? item.displayName
+    : `${item.formulaKey} - ${item.displayName}`;
+}
+
 function requestLoadMore() {
   if (!props.loading && !props.loadingMore && props.hasMore) {
     emit('load-more');
@@ -86,9 +99,11 @@ watch(
           @click="emit('select', item.formulaKey)"
         >
           <div class="text-[13px] font-medium leading-5">
-            {{ item.formulaKey === item.displayName ? item.displayName : `${item.formulaKey} - ${item.displayName}` }}
+            {{ getRowTitle(item) }}
           </div>
-          <div class="text-[11px] text-muted-foreground mt-1">{{ item.status }} · rev {{ item.activeRevision ?? '-' }}</div>
+          <div class="text-[11px] text-muted-foreground mt-1">
+            {{ isLocalDraft(item) ? '未保存草稿' : `${item.status} · rev ${item.activeRevision ?? '-'}` }}
+          </div>
         </button>
         <div ref="loadMoreTriggerRef" class="h-1 w-full"></div>
         <div v-if="loadingMore" class="p-3 text-center text-xs text-muted-foreground">加载更多...</div>
