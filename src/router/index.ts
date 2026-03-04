@@ -5,6 +5,11 @@ const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
+            path: '/print-preview',
+            name: 'print-preview',
+            component: () => import('@/views/PrintPreview.vue')
+        },
+        {
             path: '/',
             component: MainLayout,
             children: [
@@ -47,6 +52,11 @@ const router = createRouter({
                     path: '/statistics',
                     name: 'statistics',
                     component: () => import('@/views/Statistics.vue')
+                },
+                {
+                    path: '/contracts-history',
+                    name: 'contracts-history',
+                    component: () => import('@/views/ContractsHistory.vue')
                 }
             ]
         }

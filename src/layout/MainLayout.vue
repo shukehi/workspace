@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import Sidebar from './Sidebar.vue';
 import MobileNav from './MobileNav.vue';
+import Toaster from '@/components/ui/Toaster.vue';
 </script>
 
 <template>
   <div class="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <!-- Toasts -->
+    <Toaster />
+
     <!-- Desktop Sidebar -->
     <Sidebar class="hidden md:block w-64 flex-shrink-0 border-r border-slate-200 bg-white shadow-sm z-10" />
 

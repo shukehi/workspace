@@ -33,3 +33,16 @@
 ## 下一步工作：
 后端：按照此契约创建并开发对应分支（如 `feat/01-backend-category-api`）。
 前端：由于已具备此契约标准，前端将前往并在 `feat/01-frontend-category-po` 分支上开始利用 Mock 数据开发面板功能。
+
+## 状态更新（2026-03-02）
+- 后端状态：✅ 已完成
+- 后端提交：`a7f6f74` (`feat(backend): add order category field and migration`)
+- 已实现范围：
+  - `orders` 模型新增 `category` 字段
+  - `POST /api/orders`、`PUT /api/orders/:id` 支持 `category`
+  - `GET /api/orders`、`GET /api/orders/:id` 返回 `category`
+  - 新增 `GET /api/orders?category=...` 筛选
+  - 新增迁移脚本：`npm run db:migrate:add-order-category`
+- 待完成：
+  - 前端接入与联调验证
+  - 前后端验收后再关闭 Issue

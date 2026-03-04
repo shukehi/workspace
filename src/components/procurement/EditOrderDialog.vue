@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
@@ -53,8 +54,10 @@ watch(
       // Ensure metadata exists
       if (!copy.metadata) copy.metadata = {};
       
-      // Auto-fill missing names using Matcher
-      if (!copy.metadata.external_name && copy.items && copy.items.length > 0) {
+      const isPackagingOrder = copy.category && String(copy.category).includes('包装');
+
+      // Auto-fill missing names using packaging matcher only for packaging orders
+      if (isPackagingOrder && !copy.metadata.external_name && copy.items && copy.items.length > 0) {
           // Heuristic: If it looks like packaging, try to match
           const firstItem = copy.items[0];
           const matched = packagingMatcher.match(firstItem.model || firstItem.name);
@@ -99,6 +102,10 @@ const handleSave = () => {
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-[1000px] max-h-[90vh] flex flex-col p-0 gap-0 bg-neutral-100">
+      <DialogHeader class="sr-only">
+        <DialogTitle>编辑采购单</DialogTitle>
+        <DialogDescription>编辑采购单基础信息和明细项数据。</DialogDescription>
+      </DialogHeader>
       
       <!-- Toolbar -->
       <div class="px-6 py-4 bg-white border-b flex justify-between items-center sticky top-0 z-10">

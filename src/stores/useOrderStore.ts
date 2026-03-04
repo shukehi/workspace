@@ -29,7 +29,7 @@ export const useOrderStore = defineStore('order', () => {
 
     function createDraft() {
         currentOrder.value = {
-            id: '',
+            id: 0,
             order_no: '',
             supplier: '',
             items: [],

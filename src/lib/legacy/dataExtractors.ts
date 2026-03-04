@@ -20,6 +20,7 @@ export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING 
     // const { CYLINDER_MAPPING } = await import('../config/index.js');
     const customLogos = CYLINDER_MAPPING.customLogos || [];
     const cylinderMap = {};
+    const unmatchedCylinderMap = {};
 
     // 助手：检测文本中的 Logo
     const detectLogo = (text) => {
@@ -120,10 +121,22 @@ export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING 
                 detectLogo(orderInfo.customerName);
 
             // E. 获取映射
-            const mapping = CYLINDER_MAPPING.mappings?.[cylinderName] || {
+            const mappingFromConfig = CYLINDER_MAPPING.mappings?.[cylinderName];
+            const mapping = mappingFromConfig || {
                 supplier: "未知供应商",
                 template: `{code}${cylinderName}`
             };
+
+            if (!mappingFromConfig) {
+                if (!unmatchedCylinderMap[cylinderName]) {
+                    unmatchedCylinderMap[cylinderName] = {
+                        count: 0,
+                        samples: new Set()
+                    };
+                }
+                unmatchedCylinderMap[cylinderName].count += 1;
+                if (item.spec) unmatchedCylinderMap[cylinderName].samples.add(item.spec);
+            }
 
             // F. 组装数据
             let externalName = mapping.template.replace('{code}', dimensionRule.code);
@@ -167,6 +180,19 @@ export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING 
         // 处理副锁
         process(item.fssx, item.fshz || '', 'secondary');
     });
+
+    const unmatchedEntries = Object.entries(unmatchedCylinderMap);
+    if (unmatchedEntries.length > 0) {
+        const summary = unmatchedEntries
+            .sort((a, b) => b[1].count - a[1].count)
+            .slice(0, 10)
+            .map(([name, info]) => ({
+                cylinderName: name,
+                count: info.count,
+                sampleSpecs: Array.from(info.samples).slice(0, 3)
+            }));
+        console.warn('⚠️ [CylinderMapping] 未命中锁芯映射（TOP 10）:', summary);
+    }
 
     return Object.values(cylinderMap);
 }

@@ -19,7 +19,7 @@ module.exports = {
     // 数据库配置
     database: {
         dialect: 'sqlite',
-        storage: './data/database.sqlite',
+        storage: process.env.DB_STORAGE || './data/database.sqlite',
         logging: process.env.NODE_ENV === 'development' ? console.log : false
     },
 

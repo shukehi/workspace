@@ -22,41 +22,76 @@ const props = defineProps<{
 }>();
 
 const open = ref(false);
+const mergeConfirmOpen = ref(false);
 const generator = new POGenerator();
 const procurementStore = useProcurementStore();
 const sourceStore = useSourceStore();
 const router = useRouter();
 
 const proposals = ref<any[]>([]);
-const selectedSuppliers = ref<string[]>([]);
+const pendingGroups = ref<{supplier: string; category: string}[]>([]);
 const isGenerating = ref(false);
+
+const availableCategories = computed(() => {
+    return Array.from(new Set(proposals.value.map(p => p.category)));
+});
+
+const selectedCategories = ref<string[]>([]);
+const selectedGroups = computed<{supplier: string; category: string}[]>(() => {
+    return proposals.value
+        .filter(p => selectedCategories.value.includes(p.category))
+        .map(p => ({ supplier: p.supplierName, category: p.category }));
+});
+
+const confirmButtonText = computed(() => {
+    if (isGenerating.value) return '生成中...';
+    if (selectedGroups.value.length === 0) return '请选择类别';
+    return `生成 ${selectedGroups.value.length} 张采购单`;
+});
+
+const toggleCategory = (cat: string, checked: boolean | 'indeterminate') => {
+    const isChecked = checked === true;
+    if (isChecked && !selectedCategories.value.includes(cat)) {
+        selectedCategories.value.push(cat);
+    } else if (!isChecked) {
+        selectedCategories.value = selectedCategories.value.filter(c => c !== cat);
+    }
+};
+
+const handleCategoryClick = (cat: string) => {
+    const isCurrentlyChecked = selectedCategories.value.includes(cat);
+    toggleCategory(cat, !isCurrentlyChecked);
+};
 
 // Load proposals when dialog opens
 watch(open, (isOpen) => {
     if (isOpen && sourceStore.hasOrder) {
         const results = generator.generateProposal();
         proposals.value = results;
-        // Default select all
-        selectedSuppliers.value = results.map(p => p.supplierName);
+        // Default: no category selected, wait for user explicit choice
+        selectedCategories.value = [];
+    } else if (!isOpen) {
+        selectedCategories.value = [];
+        pendingGroups.value = [];
     }
 });
 
-const handleConfirm = async () => {
-    if (selectedSuppliers.value.length === 0) return;
-    
+const generateWithOption = async (mergeSameSpec: boolean) => {
     isGenerating.value = true;
     try {
-        const orders = generator.createOrders(selectedSuppliers.value);
-        
-        // Add to store
-        orders.forEach(order => {
-            procurementStore.addOrder(order);
-        });
+        const orders = generator.createOrders(pendingGroups.value, { mergeSameSpec });
 
+        // Add to store sequentially to avoid SQLite write lock under concurrent POSTs
+        for (const order of orders) {
+            await procurementStore.addOrder(order);
+        }
+
+        mergeConfirmOpen.value = false;
         open.value = false;
-        
+        pendingGroups.value = [];
+
         // Navigate to Procurement
-        router.push('/procurement');
+        await router.push('/procurement');
     } catch (e) {
         console.error(e);
         alert('Failed to generate orders');
@@ -65,19 +100,24 @@ const handleConfirm = async () => {
     }
 };
 
-const toggleSelection = (supplier: string) => {
-    if (selectedSuppliers.value.includes(supplier)) {
-        selectedSuppliers.value = selectedSuppliers.value.filter(s => s !== supplier);
-    } else {
-        selectedSuppliers.value.push(supplier);
+const handleConfirm = () => {
+    if (selectedGroups.value.length === 0) return;
+    pendingGroups.value = [...selectedGroups.value];
+    const hasPackaging = selectedGroups.value.some(group => group.category === '包装');
+    if (hasPackaging) {
+        mergeConfirmOpen.value = true;
+        return;
     }
+    generateWithOption(false);
 };
+
+
 </script>
 
 <template>
   <Dialog v-model:open="open">
     <DialogTrigger as-child>
-      <Button variant="default" :disabled="disabled || !sourceStore.hardwareRequirements">
+      <Button variant="default" :disabled="disabled || !sourceStore.hasOrder">
         一键生成采购单
       </Button>
     </DialogTrigger>
@@ -85,7 +125,7 @@ const toggleSelection = (supplier: string) => {
       <DialogHeader>
         <DialogTitle>生成采购提案</DialogTitle>
         <DialogDescription>
-          请确认按供应商拆分的采购建议。取消勾选以跳过某些供应商。
+          请确认并选择需要生成的采购类别。
         </DialogDescription>
       </DialogHeader>
       
@@ -94,32 +134,34 @@ const toggleSelection = (supplier: string) => {
             没有发现需要采购的物料。
         </div>
 
-        <div v-else class="border rounded-md">
-            <div class="grid grid-cols-12 gap-4 p-3 bg-muted/50 font-medium text-sm border-b">
-                <div class="col-span-1">选择</div>
-                <div class="col-span-4">供应商</div>
-                <div class="col-span-5">摘要</div>
-                <div class="col-span-2 text-right">项数</div>
-            </div>
-            
-            <div v-for="group in proposals" :key="group.supplierName" 
-                 class="grid grid-cols-12 gap-4 p-3 items-center hover:bg-muted/10 transition-colors border-b last:border-0"
-            >
-                <div class="col-span-1 flex justify-center">
-                    <Checkbox 
-                        :checked="selectedSuppliers.includes(group.supplierName)"
-                        @update:checked="toggleSelection(group.supplierName)"
-                    />
+        <div v-else class="space-y-4">
+            <!-- Categorized Table -->
+            <div class="border rounded-md">
+                <div class="grid grid-cols-12 gap-4 p-3 bg-muted/50 font-medium text-sm border-b">
+                    <div class="col-span-2 text-center">选择</div>
+                    <div class="col-span-4">资源类别</div>
+                    <div class="col-span-3 text-right">生成订单数</div>
+                    <div class="col-span-3 text-right">包含物料项数</div>
                 </div>
-                <div class="col-span-4 font-medium">
-                    {{ group.supplierName }}
-                </div>
-                <div class="col-span-5 text-sm text-muted-foreground truncate">
-                    {{ group.items.slice(0, 3).map((i:any) => i.name).join(', ') }} 
-                    <span v-if="group.items.length > 3">...</span>
-                </div>
-                <div class="col-span-2 text-right font-mono text-sm">
-                    {{ group.items.length }}
+                
+                <div v-for="cat in availableCategories" :key="cat" 
+                     class="grid grid-cols-12 gap-4 p-3 items-center hover:bg-muted/10 transition-colors border-b last:border-0"
+                >
+                    <div class="col-span-2 flex justify-center">
+                        <Checkbox 
+                            :checked="selectedCategories.includes(cat)"
+                            @click="handleCategoryClick(cat)"
+                        />
+                    </div>
+                    <div class="col-span-4 font-medium text-foreground">
+                        {{ cat }}
+                    </div>
+                    <div class="col-span-3 text-right text-muted-foreground">
+                        {{ proposals.filter(p => p.category === cat).length }}
+                    </div>
+                    <div class="col-span-3 text-right font-mono text-sm">
+                        {{ proposals.filter(p => p.category === cat).reduce((sum, p) => sum + p.items.length, 0) }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -127,8 +169,26 @@ const toggleSelection = (supplier: string) => {
 
       <DialogFooter>
         <Button variant="outline" @click="open = false">取消</Button>
-        <Button @click="handleConfirm" :disabled="selectedSuppliers.length === 0 || isGenerating">
-            {{ isGenerating ? '生成中...' : `生成 ${selectedSuppliers.length} 张采购单` }}
+        <Button @click="handleConfirm" :disabled="selectedGroups.length === 0 || isGenerating">
+            {{ confirmButtonText }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <Dialog v-model:open="mergeConfirmOpen">
+    <DialogContent class="sm:max-w-[520px]">
+      <DialogHeader>
+        <DialogTitle>是否合并相同规格尺寸？</DialogTitle>
+        <DialogDescription>
+          选择“合并”会将同规格尺寸汇总为一条明细；选择“不合并”则保留逐项明细。
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" :disabled="isGenerating" @click="mergeConfirmOpen = false">返回修改</Button>
+        <Button variant="outline" :disabled="isGenerating" @click="generateWithOption(false)">不合并</Button>
+        <Button :disabled="isGenerating" @click="generateWithOption(true)">
+          {{ isGenerating ? '生成中...' : '合并后生成' }}
         </Button>
       </DialogFooter>
     </DialogContent>

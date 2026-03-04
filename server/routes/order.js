@@ -5,7 +5,7 @@ const orderService = require('../services/OrderService');
 // GET /api/orders
 router.get('/', async (req, res) => {
     try {
-        const orders = await orderService.getAllOrders();
+        const orders = await orderService.getAllOrders(req.query.category);
         res.json(orders);
     } catch (e) {
         console.error('Fetch orders failed', e);
@@ -49,10 +49,21 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/orders/:id
 router.delete('/:id', async (req, res) => {
     try {
-        await orderService.deleteOrder(req.params.id);
-        res.json({ success: true });
+        const deleted = await orderService.deleteOrder(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Order not found', id: req.params.id });
+        }
+        res.json({ success: true, deleted });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        console.error('Delete order failed', {
+            id: req.params.id,
+            message: e.message,
+            stack: e.stack
+        });
+        if (e.message === 'INVALID_ID') {
+            return res.status(400).json({ error: 'Invalid order id' });
+        }
+        res.status(500).json({ error: e.message, id: req.params.id });
     }
 });
 

@@ -1,5 +1,5 @@
 export interface InventoryItem {
-    id: string;
+    id: number;
     category: string;
     model: string;
     name: string;

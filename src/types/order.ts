@@ -1,6 +1,14 @@
 export interface OrderItem {
-    id: string;
-    material_id: string;
+    id: number;
+    material_id: string | number;
+    supplier?: string;
+    // Unified semantic fields used by print/preview pipeline
+    internal_name?: string;
+    external_name?: string;
+    type?: string;
+    spec?: string;
+    mb?: string;
+    eccentricity?: string;
     name: string;
     model: string;
     quantity: number;
@@ -14,16 +22,18 @@ export interface OrderItem {
 }
 
 export interface Order {
-    id: string;
+    id: number;
     order_no: string;
     supplier: string;
     items: OrderItem[];
     total_amount: number;
     created_at: string;
     delivery_date?: string;
+    category?: string;
     status: 'draft' | 'submitted' | 'processing' | 'completed' | 'cancelled';
     remark?: string;
     metadata?: {
+        customer_name?: string;
         internal_name?: string;
         external_name?: string;
         [key: string]: any;

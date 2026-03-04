@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import DataTable from '@/components/common/DataTable.vue';
+import DataTable from '@/components/data-table/DataTable.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import axios from 'axios';
+import { api } from '@/lib/api';
 import { Search, Plus, Edit2 } from 'lucide-vue-next';
 
 interface Material {
@@ -57,10 +57,10 @@ const columns = [
 const fetchMaterials = async () => {
     loading.value = true;
     try {
-        const res = await axios.get('/api/materials', {
+        const res = await api.get<Material[]>('/materials', {
             params: { q: searchQuery.value }
         });
-        materials.value = res.data;
+        materials.value = res;
     } catch (e) {
         console.error(e);
     } finally {
@@ -76,9 +76,9 @@ const handleEdit = (material: Material) => {
 const handleSave = async () => {
     try {
         if (editingMaterial.value.id) {
-            await axios.put(`/api/materials/${editingMaterial.value.id}`, editingMaterial.value);
+            await api.put(`/materials/${editingMaterial.value.id}`, editingMaterial.value);
         } else {
-            await axios.post('/api/materials', editingMaterial.value);
+            await api.post('/materials', editingMaterial.value);
         }
         isEditDialogOpen.value = false;
         fetchMaterials();

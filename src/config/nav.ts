@@ -47,6 +47,12 @@ export const mainNav: NavItem[] = [
         number: "06"
     },
     {
+        title: "历史合同",
+        href: "/contracts-history",
+        icon: "archive",
+        number: "07"
+    },
+    {
         title: "仪表盘",
         href: "/",
         number: "00"

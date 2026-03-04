@@ -1,5 +1,5 @@
 
-import { DataNormalizer } from '@/lib/legacy/dataNormalizer';
+import { normalizeMaterialCatalog } from '@/lib/legacy/facade';
 
 // Types for our configuration data
 export interface MaterialCatalog {
@@ -46,7 +46,7 @@ class ConfigLoaderService {
         const res = await fetch('/data/materials-catalog.json');
         if (!res.ok) throw new Error('Failed to load materials catalog');
         const raw = await res.json();
-        this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(raw);
+        this.materialCatalog = normalizeMaterialCatalog(raw);
     }
 
     async loadFormulas() {

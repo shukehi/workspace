@@ -9,24 +9,15 @@ export interface PackagingRule {
  * Replaces the legacy key-value mapping with robust regex-based matching.
  */
 class PackagingMatcher {
-    private rules: PackagingRule[] = [
-        // Rules derived from legacy packaging-mapping.json
-        // Using regex allows partial matching and ignores whitespace/case
-        { pattern: /罗曼蒂克/i, target: "罗曼蒂克" },
-        { pattern: /美\+C.*单瓦/i, target: "美+C单瓦" }, // Matches "3层黄卡美+C单瓦纸箱"
-        { pattern: /白卡.*三层/i, target: "白+C单瓦+二层高瓦" },
-        { pattern: /美\+C.*五层/i, target: "美+C五层" },
-        { pattern: /五层.*白卡.*加硬/i, target: "白+C五层加硬" },
-        { pattern: /5层.*白卡.*加硬/i, target: "白+C五层加硬" },
-        { pattern: /美\+C.*二层高瓦/i, target: "美+C单瓦+二层高瓦" },
-        { pattern: /美\+C.*双瓦.*BE瓦/i, target: "美+C双瓦二层高瓦(BE瓦)" },
-        { pattern: /五层.*黄卡.*加硬/i, target: "B+C五层加硬" },
-        { pattern: /5层.*黄卡.*加硬/i, target: "B+C五层加硬" },
-        { pattern: /俄卡.*C.*双瓦/i, target: "俄卡*C双瓦" },
-
-        // Catch-all patterns for common variations (Future proofing)
+    // Minimal fallback rules. Primary matching comes from mapping JSON.
+    private fallbackRules: PackagingRule[] = [
         { pattern: /单瓦/i, target: "单瓦通用" },
     ];
+    private exactMap = new Map<string, string>();
+    private normalizedMap = new Map<string, string>();
+    private normalizedKeysByLength: string[] = [];
+    private mappingVersion = '';
+    private unmatchedCounts = new Map<string, number>();
 
     /**
      * Normalize the input string:
@@ -35,7 +26,44 @@ class PackagingMatcher {
      * - Normalize punctuation if needed
      */
     private normalize(input: string): string {
-        return input ? input.trim() : '';
+        if (!input) return '';
+        return input
+            .trim()
+            .toLowerCase()
+            .replace(/[（【［]/g, '(')
+            .replace(/[）】］]/g, ')')
+            .replace(/\s+/g, '');
+    }
+
+    private computeMappingVersion(mappingObj: Record<string, any>): string {
+        const pairs = Object.entries(mappingObj)
+            .filter(([k, v]) => typeof k === 'string' && typeof v === 'string')
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}=>${v}`);
+        return pairs.join('|');
+    }
+
+    public syncFromMapping(packagingMapping: any) {
+        const mappingObj = (packagingMapping?.mappings || packagingMapping || {}) as Record<string, any>;
+        const nextVersion = this.computeMappingVersion(mappingObj);
+        if (!nextVersion || nextVersion === this.mappingVersion) return;
+
+        this.exactMap.clear();
+        this.normalizedMap.clear();
+
+        Object.entries(mappingObj).forEach(([rawKey, rawValue]) => {
+            if (typeof rawKey !== 'string' || typeof rawValue !== 'string') return;
+            const key = rawKey.trim();
+            const value = rawValue.trim();
+            if (!key || !value) return;
+
+            this.exactMap.set(key, value);
+            this.normalizedMap.set(this.normalize(key), value);
+        });
+
+        this.normalizedKeysByLength = Array.from(this.normalizedMap.keys())
+            .sort((a, b) => b.length - a.length);
+        this.mappingVersion = nextVersion;
     }
 
     /**
@@ -46,16 +74,29 @@ class PackagingMatcher {
     public match(internalName: string): string {
         if (!internalName) return "未知包装";
 
-        const normalizedInput = this.normalize(internalName);
+        const rawInput = internalName.trim();
+        if (this.exactMap.has(rawInput)) {
+            return this.exactMap.get(rawInput)!;
+        }
 
-        // Sort rules by priority (if we add priority later), currently order matters
-        for (const rule of this.rules) {
+        const normalizedInput = this.normalize(rawInput);
+        if (this.normalizedMap.has(normalizedInput)) {
+            return this.normalizedMap.get(normalizedInput)!;
+        }
+
+        for (const key of this.normalizedKeysByLength) {
+            if (key && normalizedInput.includes(key)) {
+                return this.normalizedMap.get(key)!;
+            }
+        }
+
+        for (const rule of this.fallbackRules) {
             if (rule.pattern.test(normalizedInput)) {
-                // console.debug(`✅ Matched '${internalName}' to '${rule.target}' via ${rule.pattern}`);
                 return rule.target;
             }
         }
 
+        this.unmatchedCounts.set(rawInput, (this.unmatchedCounts.get(rawInput) || 0) + 1);
         return `${internalName} (未匹配)`;
     }
 
@@ -63,7 +104,17 @@ class PackagingMatcher {
      * Add a new rule dynamically
      */
     public addRule(rule: PackagingRule) {
-        this.rules.unshift(rule); // Add to top for higher priority
+        this.fallbackRules.unshift(rule); // Add to top for higher priority
+    }
+
+    public consumeUnmatchedSummary(limit = 10) {
+        if (this.unmatchedCounts.size === 0) return [];
+        const summary = Array.from(this.unmatchedCounts.entries())
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, limit);
+        this.unmatchedCounts.clear();
+        return summary;
     }
 }
 

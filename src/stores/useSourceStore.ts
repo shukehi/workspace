@@ -2,11 +2,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
-// @ts-ignore
-import { calculateMaterialRequirements } from '@/lib/legacy/materialDecomposer';
-// @ts-ignore
-import { extractCylinderData, extractLockForkData, extractPackagingData } from '@/lib/legacy/dataExtractors';
 import { configLoader } from '@/services/configLoader';
+import { calculateMaterialsFromLegacyEngine, extractHardwareFromLegacyEngine } from '@/lib/legacy/facade';
 
 export const useSourceStore = defineStore('source', () => {
     // State
@@ -70,6 +67,16 @@ export const useSourceStore = defineStore('source', () => {
             // We reuse the response directly as it closely matches what legacy logic expects
             // Ideally we should run DataNormalizer here if needed for deeper cleaning
             currentOrder.value = orderData;
+            console.log('📦 Fetched contract JSON:', orderData);
+            console.log('📦 Fetched contract JSON (formatted):\n' + JSON.stringify(orderData, null, 2));
+
+            // Persist raw ERP contract snapshot for audit/replay.
+            // Non-blocking: cache failure should not break sourcing flow.
+            try {
+                await api.post('/contracts/cache', orderData);
+            } catch (cacheErr) {
+                console.warn('[SourceStore] failed to cache ERP contract snapshot:', cacheErr);
+            }
 
             // 3. Auto-calculate materials on load
             await calculateMaterials();
@@ -83,50 +90,43 @@ export const useSourceStore = defineStore('source', () => {
         }
     }
 
-    async function calculateMaterials() {
+    async function calculateMaterials(itemsToProcess?: any[]) {
         if (!currentOrder.value) return;
 
         try {
             // Ensure config is loaded
             await configLoader.loadAll();
 
-            const items = currentOrder.value.list.map((item: any, index: number) => ({
+            // Use provided items or default to all items from current order
+            const targetItems = itemsToProcess || currentOrder.value.list;
+            
+            if (!targetItems || targetItems.length === 0) {
+                materialRequirements.value = null;
+                hardwareRequirements.value = null;
+                return;
+            }
+
+            const items = targetItems.map((item: any, index: number) => ({
                 ...item,
                 _originOrder: currentOrder.value.code,
                 _originIndex: index
             }));
 
             // Call Legacy Engine for Materials
-            const result = calculateMaterialRequirements(
+            const result = calculateMaterialsFromLegacyEngine(
                 items,
                 configLoader.getFormulas(),
                 configLoader.getMaterials()
             );
 
-            // Call Legacy Engine for Hardware (Dependency Injected)
-            const cylinderData = extractCylinderData(
-                currentOrder.value.list, // Use raw list for extractors as they expect it
-                currentOrder.value,      // Order Info
-                configLoader.getCylinderMapping()
-            );
-
-            const lockForkData = extractLockForkData(
-                currentOrder.value.list,
-                currentOrder.value,
-                configLoader.getLockForkMapping()
-            );
-
-            const packagingData = extractPackagingData(
-                currentOrder.value.list,
-                configLoader.getPackagingMapping()
-            );
+            const hardwareResult = extractHardwareFromLegacyEngine(targetItems, currentOrder.value, {
+                cylinderMapping: configLoader.getCylinderMapping(),
+                lockForkMapping: configLoader.getLockForkMapping(),
+                packagingMapping: configLoader.getPackagingMapping()
+            });
 
             materialRequirements.value = result;
-            hardwareRequirements.value = {
-                cylinders: cylinderData,
-                lockForks: lockForkData,
-                packaging: packagingData
-            };
+            hardwareRequirements.value = hardwareResult;
 
             console.log('✅ BOM Calculation complete:', result);
             console.log('✅ Hardware Calculation complete:', hardwareRequirements.value);

@@ -1,11 +1,37 @@
 const { Order, OrderItem, sequelize } = require('../models');
 
+function normalizeOrderForLog(order, index) {
+    return {
+        index,
+        id: order?.id,
+        order_no: order?.order_no,
+        created_at: order?.created_at
+    };
+}
+
 class OrderService {
-    async getAllOrders() {
-        return await Order.findAll({
+    async getAllOrders(category) {
+        const where = {};
+        if (typeof category === 'string' && category.trim()) {
+            where.category = category.trim();
+        }
+
+        const orders = await Order.findAll({
+            where,
             include: [{ model: OrderItem, as: 'items' }],
             order: [['created_at', 'DESC']]
         });
+
+        const invalidOrders = orders
+            .map((order, index) => ({ order, index }))
+            .filter(({ order }) => !order || !order.created_at)
+            .map(({ order, index }) => normalizeOrderForLog(order, index));
+
+        if (invalidOrders.length > 0) {
+            console.warn('[OrderService] getAllOrders found records with missing created_at:', invalidOrders);
+        }
+
+        return orders;
     }
 
     async getOrderById(id) {
@@ -17,18 +43,28 @@ class OrderService {
     async createOrder(data) {
         const transaction = await sequelize.transaction();
         try {
+            if (!data.created_at) {
+                console.warn('[OrderService] createOrder payload missing created_at, falling back to current timestamp', {
+                    order_no: data.order_no,
+                    category: data.category,
+                    supplier: data.supplier
+                });
+            }
+
             const order = await Order.create({
                 order_no: data.order_no,
                 supplier: data.supplier,
+                category: data.category || null,
                 status: data.status || 'draft',
                 metadata: data.metadata || {},
-                created_at: data.created_at,
+                created_at: data.created_at || new Date().toISOString(),
                 delivery_date: data.delivery_date
             }, { transaction });
 
             if (data.items && data.items.length > 0) {
                 const items = data.items.map(item => ({
                     ...item,
+                    id: undefined, // ❌ 重要：剥离前端的字符串 ID，允许数据库自增
                     order_id: order.id
                 }));
                 await OrderItem.bulkCreate(items, { transaction });
@@ -50,6 +86,7 @@ class OrderService {
 
             await order.update({
                 supplier: data.supplier,
+                category: data.category === undefined ? order.category : data.category,
                 status: data.status,
                 metadata: data.metadata,
                 delivery_date: data.delivery_date
@@ -62,7 +99,7 @@ class OrderService {
 
                 const items = data.items.map(item => ({
                     ...item,
-                    id: undefined, // ensure new IDs
+                    id: undefined, // ❌ 重要：剥离 ID 以便重新插入时生成新的整数 ID
                     order_id: id
                 }));
                 await OrderItem.bulkCreate(items, { transaction });
@@ -77,9 +114,31 @@ class OrderService {
     }
 
     async deleteOrder(id) {
-        // Cascade delete is handled by DB FK usually, but Sequelize define expects manual or hooks
-        // We set onDelete: CASCADE in models/index.js so simple destroy is enough
-        return await Order.destroy({ where: { id } });
+        const parsedId = Number(id);
+        if (!Number.isInteger(parsedId) || parsedId <= 0) {
+            throw new Error('INVALID_ID');
+        }
+
+        const maxAttempts = 3;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const transaction = await sequelize.transaction();
+            try {
+                // SQLite environments may not always enforce ON DELETE CASCADE consistently.
+                // Delete children explicitly to keep behavior deterministic.
+                await OrderItem.destroy({ where: { order_id: parsedId }, transaction });
+                const deleted = await Order.destroy({ where: { id: parsedId }, transaction });
+                await transaction.commit();
+                return deleted;
+            } catch (error) {
+                await transaction.rollback();
+                const isBusy = error && (error.name === 'SequelizeTimeoutError' || String(error.message || '').includes('SQLITE_BUSY'));
+                if (isBusy && attempt < maxAttempts) {
+                    await new Promise((resolve) => setTimeout(resolve, 80 * attempt));
+                    continue;
+                }
+                throw error;
+            }
+        }
     }
 }
 
