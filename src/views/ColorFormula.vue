@@ -26,16 +26,15 @@ onMounted(() => {
     </div>
 
     <Card>
-      <CardContent class="p-4 grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Input v-model="manager.keyword" placeholder="搜索配方编码/名称" class="lg:col-span-6" />
-        <select v-model="manager.statusFilter" class="h-9 rounded-md border bg-background px-3 text-sm lg:col-span-2">
+      <CardContent class="p-4 flex items-center gap-3">
+        <Button class="shrink-0" @click="manager.createFormula">+ 新增配方</Button>
+        <Input v-model="manager.keyword" placeholder="搜索配方编码/名称" class="flex-1 min-w-0" />
+        <select v-model="manager.statusFilter" class="h-9 w-[180px] shrink-0 rounded-md border bg-background px-3 text-sm">
           <option value="">全部状态</option>
           <option value="draft">draft</option>
           <option value="published">published</option>
           <option value="archived">archived</option>
         </select>
-        <div class="lg:col-span-4"></div>
-        <Button class="lg:col-span-2" @click="manager.createFormula">+ 新增配方</Button>
       </CardContent>
     </Card>
 
