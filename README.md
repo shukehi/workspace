@@ -135,10 +135,30 @@ npm run build
 - `PUT /api/inventory/:id`：更新库存
 - `GET /api/config/materials`：读取材料目录
 - `POST /api/config/materials`：保存材料目录
-- `GET /api/config/formulas`：读取配方
-- `POST /api/config/formulas`：保存配方
+- `GET /api/config/formulas`：配方列表（分页/筛选）
+- `GET /api/config/formulas/:formulaKey`：配方详情（草稿/发布信息）
+- `POST /api/config/formulas`：创建配方（初始草稿）
+- `PUT /api/config/formulas/:formulaKey/draft`：更新草稿（revision 冲突控制）
+- `POST /api/config/formulas/:formulaKey/publish`：发布草稿
+- `POST /api/config/formulas/:formulaKey/archive`：归档配方
+- `POST /api/config/formulas/:formulaKey/rollback`：回滚到历史版本
+- `GET /api/config/formulas/:formulaKey/revisions`：版本历史
 - `GET /api/formulas`：配方兼容读取接口（legacy alias）
-- `POST /api/formulas`：配方兼容保存接口（legacy alias）
+- `POST /api/formulas`：已弃用（只读兼容，不允许写入）
+
+## 配方迁移与回退
+
+JSON 配方迁移到 SQLite：
+
+```bash
+npm run db:migrate:formulas
+```
+
+从 SQLite 导出兼容 JSON（应急回退）：
+
+```bash
+npm run db:export:formulas
+```
 
 ## 开发约定
 

@@ -20,14 +20,14 @@ async function fetchStats() {
     const [ordersRes, inventoryRes, formulasRes] = await Promise.all([
       api.get<any[]>('/orders'),
       api.get<any[]>('/inventory'),
-      api.get<any[]>('/config/formulas')
+      api.get<any>('/config/formulas')
     ]);
 
     const orders = Array.isArray(ordersRes) ? ordersRes : [];
     const inventory = Array.isArray(inventoryRes) ? inventoryRes : [];
-    const formulasCount = Array.isArray(formulasRes)
-      ? formulasRes.length
-      : (formulasRes && typeof formulasRes === 'object' ? Object.keys(formulasRes).length : 0);
+    const formulasCount = Array.isArray(formulasRes?.items)
+      ? formulasRes.items.length
+      : (Array.isArray(formulasRes) ? formulasRes.length : 0);
 
     const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
     const inventoryValue = inventory.reduce((acc, curr) => acc + ((curr.stock_quantity || 0) * 10), 0);

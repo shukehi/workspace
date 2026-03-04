@@ -3,10 +3,17 @@ const Order = require('./Order');
 const OrderItem = require('./OrderItem');
 const Material = require('./Material');
 const ErpContract = require('./ErpContract');
+const FormulaDefinition = require('./FormulaDefinition');
+const FormulaRevision = require('./FormulaRevision');
+const FormulaAuditLog = require('./FormulaAuditLog');
 
 // Define Relationships
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
+FormulaDefinition.hasMany(FormulaRevision, { foreignKey: 'formula_id', as: 'revisions', onDelete: 'CASCADE' });
+FormulaRevision.belongsTo(FormulaDefinition, { foreignKey: 'formula_id' });
+FormulaDefinition.hasMany(FormulaAuditLog, { foreignKey: 'formula_id', as: 'auditLogs', onDelete: 'CASCADE' });
+FormulaAuditLog.belongsTo(FormulaDefinition, { foreignKey: 'formula_id' });
 
 async function ensureOrderItemColumns() {
     const queryInterface = sequelize.getQueryInterface();
@@ -62,5 +69,8 @@ module.exports = {
     Order,
     OrderItem,
     Material,
-    ErpContract
+    ErpContract,
+    FormulaDefinition,
+    FormulaRevision,
+    FormulaAuditLog
 };

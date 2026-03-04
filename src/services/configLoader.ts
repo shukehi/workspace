@@ -1,5 +1,6 @@
 
 import { DataNormalizer } from '@/lib/erp-engine/dataNormalizer';
+import { api } from '@/lib/api';
 
 // Types for our configuration data
 export interface MaterialCatalog {
@@ -47,10 +48,13 @@ class ConfigLoaderService {
         this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(raw);
     }
 
+    async loadFormulasFromApi() {
+        const formulas = await api.get<Record<string, any>>('/formulas');
+        this.colorFormulas = formulas && typeof formulas === 'object' ? formulas : {};
+    }
+
     async loadFormulas() {
-        const res = await fetch('/data/color-formulas.json');
-        if (!res.ok) throw new Error('Failed to load color formulas');
-        this.colorFormulas = await res.json();
+        await this.loadFormulasFromApi();
     }
 
     async loadCylinderMapping() {

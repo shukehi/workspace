@@ -17,12 +17,41 @@ export interface LegacyFormula {
     bom: FormulaBOMItem[];
 }
 
-export interface ColorFormula {
-    id: string; // The Key (e.g. "7233")
-    product_code: string; // displayName
-    formula_name: string; // displayName
+export type FormulaStatus = 'draft' | 'published' | 'archived';
+
+export interface FormulaSummary {
+    id: number;
+    formulaKey: string;
+    displayName: string;
     category: string;
-    material_count: number;
-    version: string;
-    status: 'active' | 'archived';
+    status: FormulaStatus;
+    activeRevision: number | null;
+    updatedAt: string;
+}
+
+export interface FormulaRevisionMeta {
+    id: number;
+    revision: number;
+    state: FormulaStatus;
+    changeNote?: string;
+    createdBy: string;
+    createdAt: string;
+}
+
+export interface FormulaDetail {
+    id: number;
+    formulaKey: string;
+    displayName: string;
+    category: string;
+    status: FormulaStatus;
+    activeRevision: number | null;
+    bom: FormulaBOMItem[];
+    updatedAt: string;
+}
+
+export interface FormulaListResponse {
+    items: FormulaSummary[];
+    total: number;
+    page: number;
+    pageSize: number;
 }

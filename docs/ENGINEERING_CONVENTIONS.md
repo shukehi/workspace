@@ -9,7 +9,8 @@
 1. 所有业务 API 以 `/api` 为前缀。
 2. 配置读写统一使用 `/api/config/*`。
 3. 兼容别名（如 `/api/formulas`）仅用于过渡，不新增新调用方。
-4. 路由变更必须同步更新：
+4. 配方主数据源为 SQLite（`formula_*` 表），`public/data/color-formulas.json` 仅作为迁移输入与回退导出，不作为运行时真源。
+5. 路由变更必须同步更新：
    - 前端调用点
    - README API 列表
    - 回归测试
