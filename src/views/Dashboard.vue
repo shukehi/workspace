@@ -25,9 +25,11 @@ async function fetchStats() {
 
     const orders = Array.isArray(ordersRes) ? ordersRes : [];
     const inventory = Array.isArray(inventoryRes) ? inventoryRes : [];
-    const formulasCount = Array.isArray(formulasRes?.items)
-      ? formulasRes.items.length
-      : (Array.isArray(formulasRes) ? formulasRes.length : 0);
+    const formulasCount = typeof formulasRes?.total === 'number'
+      ? formulasRes.total
+      : (Array.isArray(formulasRes?.items)
+        ? formulasRes.items.length
+        : (Array.isArray(formulasRes) ? formulasRes.length : 0));
 
     const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
     const inventoryValue = inventory.reduce((acc, curr) => acc + ((curr.stock_quantity || 0) * 10), 0);

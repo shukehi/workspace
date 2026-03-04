@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { formulaApi, type MutationError } from '@/services/formulaApi';
 import type {
   FormulaBOMItem,
@@ -57,6 +57,11 @@ export function useFormulaManager() {
   const page = ref(1);
   const pageSize = ref(20);
   const hasMore = computed(() => list.value.length < total.value);
+  const listFetchVersion = ref(0);
+  const pendingListLoads = ref(0);
+  const pendingAppendLoads = ref(0);
+  const initialized = ref(false);
+  const stopHandles: Array<() => void> = [];
 
   const newFormulaKey = ref('');
   const newDisplayName = ref('');
@@ -74,6 +79,15 @@ export function useFormulaManager() {
     bomDraft.value = (detail.value?.bom || []).map((item) => normalizeBomRow(item));
     validationErrors.value = {};
     isDirty.value = false;
+  }
+
+  function clearSelection() {
+    selectedKey.value = '';
+    detail.value = null;
+    draftRevision.value = null;
+    publishedRevision.value = null;
+    revisions.value = [];
+    bomDraft.value = [];
   }
 
   function localValidate(): boolean {
@@ -105,9 +119,12 @@ export function useFormulaManager() {
 
   async function loadList(options: { append?: boolean } = {}) {
     const append = Boolean(options.append);
+    const requestVersion = ++listFetchVersion.value;
     if (append) {
+      pendingAppendLoads.value += 1;
       loadingMore.value = true;
     } else {
+      pendingListLoads.value += 1;
       loading.value = true;
     }
 
@@ -119,6 +136,8 @@ export function useFormulaManager() {
         pageSize: pageSize.value
       });
 
+      if (requestVersion !== listFetchVersion.value) return;
+
       const incoming = result.items || [];
       total.value = Number(result.total || 0);
       if (append) {
@@ -129,17 +148,24 @@ export function useFormulaManager() {
         list.value = incoming;
       }
 
-      if (!selectedKey.value && list.value.length > 0) {
-        await loadDetail(list.value[0].formulaKey, true);
+      const selectedExists = list.value.some((item) => item.formulaKey === selectedKey.value);
+      if (!selectedExists) {
+        if (list.value.length > 0) {
+          await loadDetail(list.value[0].formulaKey, true);
+        } else {
+          clearSelection();
+        }
       }
     } catch (error) {
       console.error(error);
       toast({ title: '加载配方列表失败', variant: 'destructive' });
     } finally {
       if (append) {
-        loadingMore.value = false;
+        pendingAppendLoads.value = Math.max(0, pendingAppendLoads.value - 1);
+        loadingMore.value = pendingAppendLoads.value > 0;
       } else {
-        loading.value = false;
+        pendingListLoads.value = Math.max(0, pendingListLoads.value - 1);
+        loading.value = pendingListLoads.value > 0;
       }
     }
   }
@@ -328,11 +354,7 @@ export function useFormulaManager() {
     try {
       await formulaApi.remove(selectedKey.value || detail.value.formulaKey, { reason });
       toast({ title: '配方已删除', variant: 'success' });
-      selectedKey.value = '';
-      detail.value = null;
-      draftRevision.value = null;
-      publishedRevision.value = null;
-      revisions.value = [];
+      clearSelection();
       page.value = 1;
       await loadList();
     } catch (error: any) {
@@ -342,18 +364,28 @@ export function useFormulaManager() {
   }
 
   function initialize() {
-    watch([keyword, statusFilter], () => {
+    if (initialized.value) return;
+    initialized.value = true;
+
+    stopHandles.push(watch([keyword, statusFilter], () => {
       page.value = 1;
       total.value = 0;
       loadList({ append: false });
-    });
+    }));
 
-    watch(isDirty, () => {
+    stopHandles.push(watch(isDirty, () => {
       window.onbeforeunload = isDirty.value ? () => '当前有未保存改动' : null;
-    }, { immediate: true });
+    }, { immediate: true }));
 
     loadList();
   }
+
+  onBeforeUnmount(() => {
+    window.onbeforeunload = null;
+    stopHandles.forEach((stop) => stop());
+    stopHandles.length = 0;
+    initialized.value = false;
+  });
 
   return {
     loading,
