@@ -3,7 +3,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
 import { configLoader } from '@/services/configLoader';
-import { calculateMaterialsFromLegacyEngine, extractHardwareFromLegacyEngine } from '@/lib/legacy/facade';
+import { calculateMaterialRequirements } from '@/lib/erp-engine/materialDecomposer';
+import { extractCylinderData, extractLockForkData, extractPackagingData } from '@/lib/erp-engine/dataExtractors';
 
 export const useSourceStore = defineStore('source', () => {
     // State
@@ -67,8 +68,6 @@ export const useSourceStore = defineStore('source', () => {
             // We reuse the response directly as it closely matches what legacy logic expects
             // Ideally we should run DataNormalizer here if needed for deeper cleaning
             currentOrder.value = orderData;
-            console.log('📦 Fetched contract JSON:', orderData);
-            console.log('📦 Fetched contract JSON (formatted):\n' + JSON.stringify(orderData, null, 2));
 
             // Persist raw ERP contract snapshot for audit/replay.
             // Non-blocking: cache failure should not break sourcing flow.
@@ -112,24 +111,20 @@ export const useSourceStore = defineStore('source', () => {
                 _originIndex: index
             }));
 
-            // Call Legacy Engine for Materials
-            const result = calculateMaterialsFromLegacyEngine(
+            const result = calculateMaterialRequirements(
                 items,
                 configLoader.getFormulas(),
                 configLoader.getMaterials()
             );
 
-            const hardwareResult = extractHardwareFromLegacyEngine(targetItems, currentOrder.value, {
-                cylinderMapping: configLoader.getCylinderMapping(),
-                lockForkMapping: configLoader.getLockForkMapping(),
-                packagingMapping: configLoader.getPackagingMapping()
-            });
+            const hardwareResult = {
+                cylinders: extractCylinderData(targetItems, currentOrder.value, configLoader.getCylinderMapping()),
+                lockForks: extractLockForkData(targetItems, currentOrder.value, configLoader.getLockForkMapping()),
+                packaging: extractPackagingData(targetItems, configLoader.getPackagingMapping())
+            };
 
             materialRequirements.value = result;
             hardwareRequirements.value = hardwareResult;
-
-            console.log('✅ BOM Calculation complete:', result);
-            console.log('✅ Hardware Calculation complete:', hardwareRequirements.value);
 
         } catch (e) {
             console.error('Calculation failed', e);

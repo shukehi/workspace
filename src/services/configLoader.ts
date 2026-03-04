@@ -1,5 +1,5 @@
 
-import { normalizeMaterialCatalog } from '@/lib/legacy/facade';
+import { DataNormalizer } from '@/lib/erp-engine/dataNormalizer';
 
 // Types for our configuration data
 export interface MaterialCatalog {
@@ -26,7 +26,6 @@ class ConfigLoaderService {
         if (this.isLoaded) return;
 
         try {
-            console.log('🔄 Loading configuration...');
             await Promise.all([
                 this.loadMaterials(),
                 this.loadFormulas(),
@@ -35,7 +34,6 @@ class ConfigLoaderService {
                 this.loadPackagingMapping()
             ]);
             this.isLoaded = true;
-            console.log('✅ Configuration loaded successfully');
         } catch (e) {
             console.error('❌ Failed to load configuration', e);
             throw e;
@@ -46,7 +44,7 @@ class ConfigLoaderService {
         const res = await fetch('/data/materials-catalog.json');
         if (!res.ok) throw new Error('Failed to load materials catalog');
         const raw = await res.json();
-        this.materialCatalog = normalizeMaterialCatalog(raw);
+        this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(raw);
     }
 
     async loadFormulas() {

@@ -10,7 +10,7 @@ export const createInventoryColumns = (actions: {
     {
         accessorKey: 'model',
         header: '物料型号',
-        cell: ({ row }) => h('div', { class: 'font-mono font-bold text-slate-900' }, row.getValue('model'))
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('model'))
     },
     {
         accessorKey: 'category',
@@ -18,7 +18,7 @@ export const createInventoryColumns = (actions: {
         cell: ({ row }) => {
             const category = row.getValue<string>('category');
             return h('span', {
-                class: 'px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-slate-200 bg-slate-50 text-slate-600'
+                class: 'px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-border bg-muted/40 text-muted-foreground'
             }, category);
         }
     },
@@ -31,7 +31,7 @@ export const createInventoryColumns = (actions: {
             const isLow = qty <= min;
             
             return h('div', { 
-                class: `flex items-center gap-2 font-mono font-bold ${isLow ? 'text-rose-600' : 'text-emerald-600'}` 
+                class: `flex items-center gap-2 font-medium ${isLow ? 'text-rose-600' : 'text-emerald-600'}` 
             }, [
                 isLow ? h(AlertTriangle, { class: 'w-4 h-4' }) : null,
                 h('span', `${qty} ${row.original.unit}`)
@@ -41,14 +41,14 @@ export const createInventoryColumns = (actions: {
     {
         accessorKey: 'supplier',
         header: '常规供应商',
-        cell: ({ row }) => h('div', { class: 'text-slate-500' }, row.getValue('supplier'))
+        cell: ({ row }) => h('div', { class: 'text-muted-foreground' }, row.getValue('supplier'))
     },
     {
         accessorKey: 'last_updated',
         header: '最后更新',
         cell: ({ row }) => {
             const date = new Date(row.getValue<string>('last_updated'));
-            return h('div', { class: 'text-slate-400 text-xs' }, date.toLocaleDateString());
+            return h('div', { class: 'text-muted-foreground text-xs' }, date.toLocaleDateString());
         }
     },
     {
@@ -59,7 +59,7 @@ export const createInventoryColumns = (actions: {
             return h(Button, {
                 variant: 'ghost',
                 size: 'icon',
-                class: 'h-8 w-8 text-slate-400 hover:text-blue-600',
+                class: 'h-8 w-8 text-muted-foreground hover:text-blue-600',
                 onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onEdit(item); }
             }, () => h(Edit2, { class: 'h-4 w-4' }));
         }

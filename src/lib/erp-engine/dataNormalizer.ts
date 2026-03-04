@@ -1,9 +1,12 @@
-// @ts-nocheck
 /**
  * Data Normalizer
  * Standardizes data structures to ensure consistency across the application.
  * Prevents "undefined" errors by filling missing fields with defaults.
  */
+
+type RawMaterial = Record<string, any> | null | undefined;
+type MaterialCatalog = Record<string, RawMaterial>;
+type NormalizedCatalog = Record<string, Record<string, any>>;
 
 export const DataNormalizer = {
     /**
@@ -14,7 +17,7 @@ export const DataNormalizer = {
      * @param {Object} rawMaterial - The raw material data object
      * @returns {Object} Normalized material object
      */
-    normalizeMaterial(key, rawMaterial) {
+    normalizeMaterial(key: string, rawMaterial: RawMaterial): Record<string, any> {
         if (!rawMaterial) {
             return {
                 id: key,
@@ -49,12 +52,12 @@ export const DataNormalizer = {
      * @param {Object} catalog - Raw catalog object { "id1": {data}, "id2": {data} }
      * @returns {Object} Normalized catalog
      */
-    normalizeMaterialCatalog(catalog) {
+    normalizeMaterialCatalog(catalog: MaterialCatalog | null | undefined): NormalizedCatalog {
         if (!catalog || typeof catalog !== 'object') return {};
 
-        const normalized = {};
-        Object.keys(catalog).forEach(key => {
-            normalized[key] = this.normalizeMaterial(key, catalog[key]);
+        const normalized: NormalizedCatalog = {};
+        Object.keys(catalog).forEach((key) => {
+            normalized[key] = this.normalizeMaterial(key, catalog[key] as RawMaterial);
         });
         return normalized;
     }
