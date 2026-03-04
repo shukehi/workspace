@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const contractCacheService = require('../services/ContractCacheService');
 
+function isSqliteReadonlyError(err) {
+    if (!err) return false;
+    const msg = String(err.message || '');
+    const code = String(err.code || err?.original?.code || '');
+    return msg.includes('SQLITE_READONLY') || code === 'SQLITE_READONLY';
+}
+
 // GET /api/contracts
 router.get('/', async (req, res) => {
     try {
@@ -30,6 +37,14 @@ router.post('/cache', async (req, res) => {
     } catch (e) {
         if (e.message === 'INVALID_PAYLOAD' || e.message === 'MISSING_CONTRACT_CODE') {
             return res.status(400).json({ success: false, error: e.message });
+        }
+        if (isSqliteReadonlyError(e)) {
+            console.warn('Cache contract skipped due to readonly database:', e.message);
+            return res.status(200).json({
+                success: true,
+                status: 'skipped_readonly',
+                warning: 'SQLITE_READONLY'
+            });
         }
         console.error('Cache contract failed', e);
         res.status(500).json({ success: false, error: e.message });
