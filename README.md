@@ -136,15 +136,15 @@ npm run build
 - `GET /api/config/materials`：读取材料目录
 - `POST /api/config/materials`：保存材料目录
 - `GET /api/config/formulas`：配方列表（分页/筛选）
+- `GET /api/config/formulas/published-map`：已发布配方映射（物料计算链路）
 - `GET /api/config/formulas/:formulaKey`：配方详情（草稿/发布信息）
 - `POST /api/config/formulas`：创建配方（初始草稿）
 - `PUT /api/config/formulas/:formulaKey/draft`：更新草稿（revision 冲突控制）
 - `POST /api/config/formulas/:formulaKey/publish`：发布草稿
 - `POST /api/config/formulas/:formulaKey/archive`：归档配方
 - `POST /api/config/formulas/:formulaKey/rollback`：回滚到历史版本
+- `DELETE /api/config/formulas/:formulaKey`：删除配方
 - `GET /api/config/formulas/:formulaKey/revisions`：版本历史
-- `GET /api/formulas`：配方兼容读取接口（legacy alias）
-- `POST /api/formulas`：已弃用（只读兼容，不允许写入）
 
 ## 配方迁移与回退
 

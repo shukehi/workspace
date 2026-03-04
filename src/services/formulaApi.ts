@@ -25,7 +25,7 @@ interface MutationResponse {
 }
 
 export const formulaApi = {
-  list(params: { keyword?: string; category?: string; status?: string; page?: number; pageSize?: number }) {
+  list(params: { keyword?: string; status?: string; page?: number; pageSize?: number }) {
     return api.get<FormulaListResponse>('/config/formulas', { params });
   },
   detail(formulaKey: string) {
@@ -34,7 +34,6 @@ export const formulaApi = {
   create(payload: {
     formulaKey: string;
     displayName: string;
-    category: string;
     bom: FormulaBOMItem[];
     changeNote?: string;
   }) {
@@ -42,6 +41,8 @@ export const formulaApi = {
   },
   updateDraft(formulaKey: string, payload: {
     revision: number;
+    formulaKey: string;
+    displayName: string;
     bom: FormulaBOMItem[];
     changeNote?: string;
   }) {
@@ -66,6 +67,12 @@ export const formulaApi = {
     return api.post<{ success: boolean; revision: number } & MutationResponse>(
       `/config/formulas/${encodeURIComponent(formulaKey)}/rollback`,
       payload
+    );
+  },
+  remove(formulaKey: string, payload: { reason?: string }) {
+    return api.delete<{ success: boolean } & MutationResponse>(
+      `/config/formulas/${encodeURIComponent(formulaKey)}`,
+      { data: payload }
     );
   },
   revisions(formulaKey: string) {

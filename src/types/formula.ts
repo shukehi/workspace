@@ -8,12 +8,14 @@ export interface FormulaUsage {
 export interface FormulaBOMItem {
     materialId: string;
     position: string;
+    materialCategory: '转印纸' | '油漆' | '塑粉' | '';
+    supplier: string;
     usage: FormulaUsage;
 }
 
 export interface LegacyFormula {
     displayName: string;
-    category: string;
+    category?: string;
     bom: FormulaBOMItem[];
 }
 
@@ -23,7 +25,6 @@ export interface FormulaSummary {
     id: number;
     formulaKey: string;
     displayName: string;
-    category: string;
     status: FormulaStatus;
     activeRevision: number | null;
     updatedAt: string;
@@ -42,7 +43,6 @@ export interface FormulaDetail {
     id: number;
     formulaKey: string;
     displayName: string;
-    category: string;
     status: FormulaStatus;
     activeRevision: number | null;
     bom: FormulaBOMItem[];

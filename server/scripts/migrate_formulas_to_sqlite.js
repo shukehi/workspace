@@ -34,19 +34,17 @@ async function migrate() {
             }
 
             const displayName = String(value?.displayName || formulaKey);
-            const category = String(value?.category || 'Default');
             const bom = Array.isArray(value?.bom) ? value.bom : [];
             const payload = JSON.stringify({
                 formulaKey,
                 displayName,
-                category,
                 bom
             });
 
             const definition = await FormulaDefinition.create({
                 formula_key: formulaKey,
                 display_name: displayName,
-                category,
+                category: '',
                 status: 'published',
                 active_revision: 1
             }, { transaction: tx });
