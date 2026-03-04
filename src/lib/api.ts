@@ -49,7 +49,7 @@ export const api = {
 
     // Special method for downloading binary files
     downloadPDF: async (url: string, data: any, filename: string) => {
-        const response = await axiosInstance.post(url, data, {
+        const payload = await axiosInstance.post<Blob, Blob>(url, data, {
             responseType: 'blob', // Important for binary data
             headers: {
                 'Content-Type': 'application/json',
@@ -57,8 +57,9 @@ export const api = {
         });
 
         // Create a link to download the blob
-        // @ts-ignore
-        const blob = new Blob([response], { type: 'application/pdf' });
+        const blob = payload instanceof Blob
+            ? payload
+            : new Blob([payload], { type: 'application/pdf' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = filename;
