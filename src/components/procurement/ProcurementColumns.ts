@@ -13,7 +13,7 @@ export const createColumns = (actions: {
     {
         accessorKey: 'order_no',
         header: '订单号',
-        cell: ({ row }) => h('div', { class: 'font-mono font-bold text-slate-900' }, row.getValue('order_no'))
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('order_no'))
     },
     {
         accessorKey: 'category',
@@ -21,21 +21,21 @@ export const createColumns = (actions: {
         cell: ({ row }) => {
             const category = row.getValue<string>('category') || '常规';
             return h('span', {
-                class: 'px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-slate-200 bg-slate-50 text-slate-600'
+                class: 'px-2 py-0.5 rounded text-[10px] font-medium border border-border bg-muted/40 text-muted-foreground'
             }, category);
         }
     },
     {
         accessorKey: 'supplier',
         header: '供应商',
-        cell: ({ row }) => h('div', { class: 'text-slate-600' }, row.getValue('supplier'))
+        cell: ({ row }) => h('div', { class: 'text-muted-foreground' }, row.getValue('supplier'))
     },
     {
         accessorKey: 'created_at',
         header: '下单日期',
         cell: ({ row }) => {
             const date = new Date(row.getValue<string>('created_at'));
-            return h('div', { class: 'text-slate-500 text-sm' }, date.toLocaleDateString());
+            return h('div', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString());
         }
     },
     {
@@ -43,7 +43,7 @@ export const createColumns = (actions: {
         header: '金额',
         cell: ({ row }) => {
             const amount = row.getValue<number>('total_amount') || 0;
-            return h('div', { class: 'font-mono font-medium' }, `¥${amount.toFixed(2)}`);
+            return h('div', { class: 'font-medium' }, `¥${amount.toFixed(2)}`);
         }
     },
     {
@@ -52,7 +52,7 @@ export const createColumns = (actions: {
         cell: ({ row }) => {
             const status = row.getValue<'draft' | 'submitted' | 'processing' | 'completed' | 'cancelled'>('status');
             const statusMap = {
-                draft: { label: '草稿', class: 'bg-slate-100 text-slate-600 border-slate-200' },
+                draft: { label: '草稿', class: 'bg-muted/60 text-muted-foreground border-border' },
                 submitted: { label: '已提交', class: 'bg-blue-50 text-blue-600 border-blue-200' },
                 processing: { label: '处理中', class: 'bg-amber-50 text-amber-600 border-amber-200' },
                 completed: { label: '已完成', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
@@ -60,7 +60,7 @@ export const createColumns = (actions: {
             };
             const config = statusMap[status] || statusMap.draft;
             return h('span', {
-                class: `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${config.class}`
+                class: `px-2 py-0.5 rounded-full text-[10px] font-medium border ${config.class}`
             }, config.label);
         }
     },
@@ -96,19 +96,19 @@ export const createColumns = (actions: {
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',
-                    class: 'h-8 w-8 text-slate-400 hover:text-blue-600',
+                    class: 'h-8 w-8 text-muted-foreground hover:text-blue-600',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onPreview(order); }
                 }, () => h(Eye, { class: 'h-4 w-4' })),
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',
-                    class: 'h-8 w-8 text-slate-400 hover:text-amber-600',
+                    class: 'h-8 w-8 text-muted-foreground hover:text-amber-600',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onEdit(order); }
                 }, () => h(Edit, { class: 'h-4 w-4' })),
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',
-                    class: 'h-8 w-8 text-slate-400 hover:text-rose-600',
+                    class: 'h-8 w-8 text-muted-foreground hover:text-rose-600',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onDelete(order); }
                 }, () => h(Trash2, { class: 'h-4 w-4' }))
             ]);

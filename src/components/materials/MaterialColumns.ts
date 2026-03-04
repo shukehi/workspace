@@ -9,7 +9,7 @@ export const rawColumns: ColumnDef<any>[] = [
     {
         accessorKey: 'totalUsage',
         header: '总用量',
-        cell: ({ row }) => h('div', { class: 'font-mono font-bold' }, row.getValue<number>('totalUsage').toFixed(2))
+        cell: ({ row }) => h('div', { class: 'font-semibold' }, row.getValue<number>('totalUsage').toFixed(2))
     },
     { accessorKey: 'unit', header: '单位' }
 ];
@@ -22,7 +22,7 @@ export const cylinderColumns: ColumnDef<any>[] = [
     {
         accessorKey: 'quantity',
         header: '数量',
-        cell: ({ row }) => h('div', { class: 'font-bold' }, row.getValue('quantity'))
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('quantity'))
     }
 ];
 
@@ -35,7 +35,7 @@ export const forkColumns: ColumnDef<any>[] = [
     {
         accessorKey: 'quantity',
         header: '数量',
-        cell: ({ row }) => h('div', { class: 'font-bold' }, row.getValue('quantity'))
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('quantity'))
     }
 ];
 
@@ -46,6 +46,6 @@ export const packagingColumns: ColumnDef<any>[] = [
     {
         accessorKey: 'totalQty',
         header: '总数量',
-        cell: ({ row }) => h('div', { class: 'font-bold' }, row.getValue('totalQty'))
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('totalQty'))
     }
 ];

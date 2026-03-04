@@ -159,7 +159,7 @@ const handleConfirm = () => {
                     <div class="col-span-3 text-right text-muted-foreground">
                         {{ proposals.filter(p => p.category === cat).length }}
                     </div>
-                    <div class="col-span-3 text-right font-mono text-sm">
+                    <div class="col-span-3 text-right text-sm">
                         {{ proposals.filter(p => p.category === cat).reduce((sum, p) => sum + p.items.length, 0) }}
                     </div>
                 </div>

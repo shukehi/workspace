@@ -5,9 +5,9 @@ import { X, CheckCircle2, AlertCircle, Info } from 'lucide-vue-next';
 const store = useToastStore();
 
 const variants = {
-    default: 'bg-slate-900 text-white border-slate-800',
-    success: 'bg-emerald-600 text-white border-emerald-500',
-    destructive: 'bg-rose-600 text-white border-rose-500'
+    default: 'bg-card text-card-foreground border-border',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    destructive: 'bg-rose-50 text-rose-700 border-rose-200'
 };
 </script>
 
@@ -34,11 +34,11 @@ const variants = {
             </div>
             
             <div class="flex-1">
-                <div class="text-xs font-black uppercase tracking-widest leading-none mb-1">{{ toast.title }}</div>
+                <div class="text-xs font-semibold leading-none mb-1">{{ toast.title }}</div>
                 <div v-if="toast.description" class="text-xs opacity-80 leading-relaxed">{{ toast.description }}</div>
             </div>
 
-            <button @click="store.remove(toast.id)" class="text-white/50 hover:text-white transition-colors">
+            <button @click="store.remove(toast.id)" class="text-muted-foreground hover:text-foreground transition-colors">
                 <X class="w-4 h-4" />
             </button>
         </div>

@@ -5,15 +5,15 @@ import Toaster from '@/components/ui/Toaster.vue';
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+  <div class="min-h-screen bg-muted/20 flex flex-col md:flex-row">
     <!-- Toasts -->
     <Toaster />
 
     <!-- Desktop Sidebar -->
-    <Sidebar class="hidden md:block w-64 flex-shrink-0 border-r border-slate-200 bg-white shadow-sm z-10" />
+    <Sidebar class="hidden md:block w-64 flex-shrink-0 border-r border-border bg-background  z-10" />
 
     <!-- Mobile Header -->
-    <div class="md:hidden h-14 border-b border-slate-200 flex items-center px-4 justify-between bg-white text-slate-900 shadow-sm z-20 sticky top-0">
+    <div class="md:hidden h-14 border-b border-border flex items-center px-4 justify-between bg-background text-foreground  z-20 sticky top-0">
         <span class="font-semibold">System V2</span>
         <MobileNav />
     </div>
