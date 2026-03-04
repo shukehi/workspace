@@ -13,10 +13,14 @@ import {
   ShoppingCart,
   Warehouse
 } from 'lucide-vue-next';
-import { mainNavGroups, type NavIconKey } from '@/config/nav';
+import { mainNavGroups, type NavGroup, type NavIconKey } from '@/config/nav';
 
 const route = useRoute();
-const openGroups = ref<Record<string, boolean>>({});
+const emit = defineEmits<{
+  navigate: [];
+}>();
+type GroupId = NavGroup['id'];
+const openGroups = ref<Partial<Record<GroupId, boolean>>>({});
 
 const iconMap: Record<NavIconKey, Component> = {
   dashboard: LayoutDashboard,
@@ -39,7 +43,7 @@ function isRouteMatch(targetHref: string, currentPath: string): boolean {
   return currentPath === targetHref || currentPath.startsWith(`${targetHref}/`);
 }
 
-function findGroupByPath(path: string): string | null {
+function findGroupByPath(path: string): GroupId | null {
   for (const group of mainNavGroups) {
     if (group.items.some((item) => isRouteMatch(item.href, path))) {
       return group.id;
@@ -48,19 +52,19 @@ function findGroupByPath(path: string): string | null {
   return null;
 }
 
-function setDefaultOpenState(activeGroupId: string | null) {
-  const next: Record<string, boolean> = {};
+function setDefaultOpenState(activeGroupId: GroupId | null) {
+  const next: Partial<Record<GroupId, boolean>> = {};
   for (const group of mainNavGroups) {
     next[group.id] = group.id === activeGroupId;
   }
   openGroups.value = next;
 }
 
-function isGroupOpen(groupId: string): boolean {
+function isGroupOpen(groupId: GroupId): boolean {
   return Boolean(openGroups.value[groupId]);
 }
 
-function toggleGroup(groupId: string) {
+function toggleGroup(groupId: GroupId) {
   openGroups.value = {
     ...openGroups.value,
     [groupId]: !isGroupOpen(groupId)
@@ -69,6 +73,11 @@ function toggleGroup(groupId: string) {
 
 function isItemActive(href: string): boolean {
   return isRouteMatch(href, route.path);
+}
+
+function handleNavigate(navigate: () => void) {
+  navigate();
+  emit('navigate');
 }
 
 const activeGroupId = computed(() => findGroupByPath(route.path));
@@ -114,32 +123,35 @@ watch(
           <ChevronDown class="h-4 w-4 transition-transform duration-150" :class="isGroupOpen(group.id) ? 'rotate-180' : ''" />
         </button>
 
-        <div
-          :id="`menu-group-${group.id}`"
-          class="menu-group-panel"
-          :class="isGroupOpen(group.id) ? 'menu-group-panel-open' : ''"
-        >
-          <div class="menu-group-panel-inner">
-            <router-link
-              v-for="item in group.items"
-              :key="item.href"
-              :to="item.href"
-              custom
-              v-slot="{ href, navigate }"
-            >
-              <a
-                :href="href"
-                class="menu-item"
-                :class="isItemActive(item.href) ? 'menu-item-active' : ''"
-                :aria-current="isItemActive(item.href) ? 'page' : undefined"
-                @click="navigate"
+        <transition name="menu-collapse">
+          <div
+            v-show="isGroupOpen(group.id)"
+            :id="`menu-group-${group.id}`"
+            class="menu-group-panel"
+            :aria-hidden="!isGroupOpen(group.id)"
+          >
+            <div class="menu-group-panel-inner">
+              <router-link
+                v-for="item in group.items"
+                :key="item.href"
+                :to="item.href"
+                custom
+                v-slot="{ href, navigate }"
               >
-                <component :is="resolveIcon(item.icon)" class="menu-item-icon" />
-                <span class="truncate">{{ item.title }}</span>
-              </a>
-            </router-link>
+                <a
+                  :href="href"
+                  class="menu-item"
+                  :class="isItemActive(item.href) ? 'menu-item-active' : ''"
+                  :aria-current="isItemActive(item.href) ? 'page' : undefined"
+                  @click="handleNavigate(navigate)"
+                >
+                  <component :is="resolveIcon(item.icon)" class="menu-item-icon" />
+                  <span class="truncate">{{ item.title }}</span>
+                </a>
+              </router-link>
+            </div>
           </div>
-        </div>
+        </transition>
       </section>
     </nav>
 

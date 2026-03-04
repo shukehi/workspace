@@ -133,19 +133,23 @@
   }
 
   .menu-group-panel {
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-    transition: max-height 160ms ease, opacity 120ms ease;
-  }
-
-  .menu-group-panel-open {
-    max-height: 420px;
-    opacity: 1;
+    @apply overflow-hidden;
   }
 
   .menu-group-panel-inner {
     @apply space-y-1 pb-1;
+  }
+
+  .menu-collapse-enter-active,
+  .menu-collapse-leave-active {
+    transition: opacity 140ms ease, transform 160ms ease;
+    transform-origin: top;
+  }
+
+  .menu-collapse-enter-from,
+  .menu-collapse-leave-to {
+    opacity: 0;
+    transform: translateY(-2px) scaleY(0.98);
   }
 
   .menu-item {

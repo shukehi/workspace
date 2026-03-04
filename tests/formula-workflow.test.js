@@ -91,6 +91,15 @@ test('workflow handles revision conflict and rollback', async () => {
   const publishedMap = await FormulaWorkflow.getPublishedFormulasMap();
   assert.ok(publishedMap.WF_TEST_001);
   assert.equal(publishedMap.WF_TEST_001.displayName, '工作流测试配方');
+
+  const archived = await FormulaWorkflow.archive('WF_TEST_001', {
+    reason: 'archive for published-map filter check',
+    operator: 'tester'
+  });
+  assert.equal(archived.ok, true);
+
+  const archivedMap = await FormulaWorkflow.getPublishedFormulasMap();
+  assert.equal(archivedMap.WF_TEST_001, undefined);
 });
 
 test.after(async () => {

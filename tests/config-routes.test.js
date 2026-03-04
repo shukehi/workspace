@@ -91,6 +91,20 @@ test('formula lifecycle: create -> update draft -> publish -> published map', as
   assert.ok(publishedMap.TEST_F001);
   assert.equal(publishedMap.TEST_F001.displayName, '测试配方');
   assert.ok(Array.isArray(publishedMap.TEST_F001.bom));
+
+  const archiveRes = await fetch(`${baseUrl}/api/config/formulas/TEST_F001/archive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      reason: 'archive for published-map filter check'
+    })
+  });
+  assert.equal(archiveRes.status, 200);
+
+  const archivedMapRes = await fetch(`${baseUrl}/api/config/formulas/published-map`);
+  assert.equal(archivedMapRes.status, 200);
+  const archivedMap = await archivedMapRes.json();
+  assert.equal(archivedMap.TEST_F001, undefined);
 });
 
 test('GET /api/config/formulas returns paged shape', async () => {

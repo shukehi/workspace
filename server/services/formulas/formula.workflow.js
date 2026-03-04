@@ -358,7 +358,7 @@ async function listRevisions(formulaKey) {
 }
 
 async function getPublishedFormulasMap() {
-    const definitions = await FormulaRepository.listDefinitionsByStatuses(['published', 'draft', 'archived']);
+    const definitions = await FormulaRepository.listDefinitionsByStatuses(['published']);
     if (!definitions.length) return {};
 
     const formulaIds = definitions.map((item) => item.id);
