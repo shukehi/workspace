@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 数据提取工具集
  * 负责从原始订单行提取各类采购数据
@@ -9,29 +8,46 @@
 import { parseQuantityPair, parseHeight } from './parsers';
 import { aggregatePackaging } from './packagingTable';
 
+type OrderItem = Record<string, any>;
+type GenericMap = Record<string, any>;
+type CylinderResultRow = {
+    supplier: string;
+    type: string;
+    eccentricity: string;
+    remark: string;
+    quantity: number;
+};
+type LockForkResultRow = {
+    supplier: string;
+    type: string;
+    spec: string;
+    remark: string;
+    quantity: number;
+};
+
 /**
  * 提取锁芯采购数据
  * @param {Array} orderList - 原始订单列表
  * @param {Object} orderInfo - 订单汇总信息（包含 customerName, remark 等）
  * @param {Object} CYLINDER_MAPPING - 注入的配置
  */
-export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING = {}) {
+export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMap = {}, CYLINDER_MAPPING: GenericMap = {}): CylinderResultRow[] {
     // 动态加载配置
     // const { CYLINDER_MAPPING } = await import('../config/index.js');
     const customLogos = CYLINDER_MAPPING.customLogos || [];
-    const cylinderMap = {};
-    const unmatchedCylinderMap = {};
+    const cylinderMap: Record<string, CylinderResultRow> = {};
+    const unmatchedCylinderMap: Record<string, { count: number; samples: Set<string> }> = {};
 
     // 助手：检测文本中的 Logo
-    const detectLogo = (text) => {
+    const detectLogo = (text: unknown): string | undefined => {
 
-        if (!text || typeof text !== 'string') return null;
+        if (!text || typeof text !== 'string') return undefined;
         const upperText = text.toUpperCase();
-        return customLogos.find(logo => upperText.includes(logo.toUpperCase()));
+        return (customLogos as string[]).find((logo: string) => upperText.includes(logo.toUpperCase()));
     };
 
     // 助手：确定钥匙配置（基于客户部门和锁芯型号）
-    const determineKeyConfig = (cylinderName, customerName) => {
+    const determineKeyConfig = (cylinderName: string, customerName: string) => {
         // 规则1：基于客户部门
         if (customerName) {
             if (customerName.includes("三部")) {
@@ -50,7 +66,7 @@ export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING 
         return "【待确认】钥匙配置";
     };
 
-    orderList.forEach(item => {
+    orderList.forEach((item) => {
         // 1. 提取基础属性：门厚 和 开向 (从规格字符串中)
         const parts = (item.spec || '').split('/');
         let thickness = "7";
@@ -69,10 +85,10 @@ export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING 
          * @param {string} shieldValue - 护罩值 (sxhz 或 fshz)
          * @param {string} mode - 'primary' 或 'secondary'
          */
-        const process = (cylinderName, shieldValue, mode) => {
+        const process = (cylinderName: string, shieldValue: string, mode: 'primary' | 'secondary') => {
             if (!cylinderName || cylinderName === '-' || cylinderName === '无') return;
 
-            let dimensionRule = null;
+            let dimensionRule: GenericMap | null = null;
             let specialRemark = "";
 
             // A. 选择规则集
@@ -85,7 +101,7 @@ export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING 
                 : CYLINDER_MAPPING.dimensions;
 
             // B. 匹配特殊规则
-            for (const rule of specialRules) {
+            for (const rule of specialRules as GenericMap[]) {
                 if (rule.thickness && rule.thickness !== thickness) continue;
                 if (shieldValue && shieldValue.includes(rule.keyword)) {
                     const variant = rule.variants[openDirection];
@@ -202,18 +218,9 @@ export function extractCylinderData(orderList, orderInfo = {}, CYLINDER_MAPPING 
  * @param {Array} orderList - 原始订单列表
  * @param {Object} PACKAGING_MAPPING - 注入的配置
  */
-export function extractPackagingData(orderList, PACKAGING_MAPPING) {
+export function extractPackagingData(orderList: OrderItem[], PACKAGING_MAPPING: GenericMap) {
     // connect to imported function
     return aggregatePackaging(orderList, PACKAGING_MAPPING);
-}
-
-/**
- * 提取五金采购数据
- * @param {Array} orderList - 原始订单列表
- */
-export function extractHardwareData(orderList) {
-    // TODO: 实现五金数据提取逻辑
-    return [];
 }
 
 /**
@@ -222,13 +229,13 @@ export function extractHardwareData(orderList) {
  * @param {Object} orderInfo - 订单汇总信息
  * @param {Object} LOCK_FORK_MAPPING - 注入的配置
  */
-export function extractLockForkData(orderList, orderInfo = {}, LOCK_FORK_MAPPING = {}) {
+export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMap = {}, LOCK_FORK_MAPPING: GenericMap = {}): LockForkResultRow[] {
     // 动态加载配置
     // const { LOCK_FORK_MAPPING } = await import('../config/index.js');
-    const lockForkMap = {};
+    const lockForkMap: Record<string, LockForkResultRow> = {};
 
     // 助手：检测吊脚
-    const detectHangingFeet = (xsbz) => {
+    const detectHangingFeet = (xsbz: unknown): number | null => {
         if (!xsbz || typeof xsbz !== 'string') return null;
 
         const keywords = LOCK_FORK_MAPPING.hangingFeet?.keywords || ['吊脚', 'diaojiao'];
@@ -246,7 +253,7 @@ export function extractLockForkData(orderList, orderInfo = {}, LOCK_FORK_MAPPING
     };
 
     // 助手：检测平下档
-    const detectFlatBottomRail = (xsbz) => {
+    const detectFlatBottomRail = (xsbz: unknown): string | null => {
         if (!xsbz || typeof xsbz !== 'string') return null;
 
         if (xsbz.includes('平下档')) {
@@ -261,29 +268,29 @@ export function extractLockForkData(orderList, orderInfo = {}, LOCK_FORK_MAPPING
     };
 
     // 助手：检测边型
-    const detectEdgeType = (mb) => {
+    const detectEdgeType = (mb: unknown): string | null => {
         if (!mb || typeof mb !== 'string') return null;
 
         const edgeTypes = LOCK_FORK_MAPPING.edgeTypes || {};
-        for (const [edgeKey, edgeConfig] of Object.entries(edgeTypes)) {
+        for (const [edgeKey, edgeConfig] of Object.entries(edgeTypes as GenericMap)) {
             if (mb.includes(edgeKey)) {
-                return edgeConfig.nameModifier;
+                return (edgeConfig as GenericMap).nameModifier || null;
             }
         }
         return null;
     };
 
     // 助手：检测锁具类型
-    const detectLockType = (sj, fssj) => {
+    const detectLockType = (sj: unknown, fssj: unknown): GenericMap | null => {
         const lockTypes = LOCK_FORK_MAPPING.lockTypes || {};
 
         // 检查主锁
-        if (sj && lockTypes[sj]) {
+        if (typeof sj === 'string' && lockTypes[sj]) {
             return lockTypes[sj];
         }
 
         // 检查副锁
-        if (fssj && lockTypes[fssj]) {
+        if (typeof fssj === 'string' && lockTypes[fssj]) {
             return lockTypes[fssj];
         }
 
@@ -291,7 +298,7 @@ export function extractLockForkData(orderList, orderInfo = {}, LOCK_FORK_MAPPING
     };
 
     // 助手：格式化尺寸字符串
-    const formatDimension = (base1, base2, adjustment = 0) => {
+    const formatDimension = (base1: number, base2: number, adjustment = 0): string => {
         const total = base1 + base2 + adjustment;
         if (adjustment === 0) {
             return `${base1}*${base2} = ${total}`;
@@ -302,7 +309,7 @@ export function extractLockForkData(orderList, orderInfo = {}, LOCK_FORK_MAPPING
         }
     };
 
-    orderList.forEach(item => {
+    orderList.forEach((item) => {
         // 跳过没有锁叉的订单
         if (!item.sc || item.sc === '-' || item.sc === '无') return;
 
@@ -480,32 +487,5 @@ export function extractLockForkData(orderList, orderInfo = {}, LOCK_FORK_MAPPING
     });
 
     const result = Object.values(lockForkMap);
-    console.log('🔧 Lock Fork Extraction Result:', result);
-    console.log('🔧 Total lock fork items:', result.length);
     return result;
-}
-
-/**
- * 提取边锁采购数据（保留原有函数名以保持兼容性）
- * @param {Array} orderList - 原始订单列表
- */
-export function extractLockData(orderList, orderInfo = {}) {
-    // 调用新的锁叉提取函数
-    return extractLockForkData(orderList, orderInfo);
-}
-
-/**
- * 根据类别获取对应的数据提取器
- * @param {string} category - 类别 (packaging, cylinder, hardware, lock)
- * @returns {Function} 提取器函数
- */
-export function getExtractor(category) {
-    const extractors = {
-        packaging: extractPackagingData,
-        cylinder: extractCylinderData,
-        hardware: extractHardwareData,
-        lock: extractLockData
-    };
-
-    return extractors[category] || null;
 }

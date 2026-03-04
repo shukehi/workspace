@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Material Decomposer
  * Decomposes finished colors into raw materials with usage calculations
@@ -6,13 +5,35 @@
 
 import { parseQuantityPair } from './parsers';
 
+type DoorType = 'single' | 'double' | 'paired';
+type OrderItem = Record<string, any>;
+type FormulasMap = Record<string, any>;
+type CatalogMap = Record<string, any>;
+type RequirementEntry = {
+    materialId: string;
+    material: Record<string, any>;
+    totalUsage: number;
+    details: Array<{
+        orderCode: string;
+        color: string;
+        doorType: DoorType;
+        doorCount: number;
+        usage: number;
+    }>;
+};
+type SupplierGroup = {
+    supplierName: string;
+    materials: RequirementEntry[];
+    totalItems: number;
+};
+
 /**
  * Detect door type based on product name keywords
  * @param {string} qty - Quantity string (kept for potential future hybrid logic, but currently secondary)
  * @param {string} productName - Product model name (e.g., "D-013/JY-229")
  * @returns {string} 'single' | 'double' | 'paired'
  */
-export function detectDoorType(qty, productName = '') {
+export function detectDoorType(qty: unknown, productName = ''): DoorType {
     // Normalize input
     const name = productName ? productName.toString() : '';
 
@@ -35,7 +56,7 @@ export function detectDoorType(qty, productName = '') {
  * @param {string} qty - Quantity like "3/3"
  * @returns {number} Total door count
  */
-export function getDoorCount(qty) {
+export function getDoorCount(qty: string | number | null | undefined): number {
     const { left, right } = parseQuantityPair(qty);
     return left + right;
 }
@@ -47,11 +68,11 @@ export function getDoorCount(qty) {
  * @param {Object} catalog - Materials catalog
  * @returns {Object} Material requirements grouped by supplier
  */
-export function calculateMaterialRequirements(items, formulas, catalog) {
-    const requirements = new Map();
-    const missingFormulas = new Set();
+export function calculateMaterialRequirements(items: OrderItem[], formulas: FormulasMap, catalog: CatalogMap) {
+    const requirements = new Map<string, RequirementEntry>();
+    const missingFormulas = new Set<string>();
 
-    items.forEach(item => {
+    items.forEach((item) => {
         // Skip items excluded from statistics
         if (item._excludeStats) return;
 
@@ -65,7 +86,7 @@ export function calculateMaterialRequirements(items, formulas, catalog) {
         const doorType = detectDoorType(item.qty, item.productModelName);
         const doorCount = getDoorCount(item.qty);
 
-        formula.bom.forEach(bomItem => {
+        formula.bom.forEach((bomItem: Record<string, any>) => {
             const materialId = bomItem.materialId;
             const material = catalog[materialId];
 
@@ -87,14 +108,16 @@ export function calculateMaterialRequirements(items, formulas, catalog) {
             }
 
             const req = requirements.get(materialId);
-            req.totalUsage += totalUsage;
-            req.details.push({
-                orderCode: item._originOrder,
-                color: item.color,
-                doorType,
-                doorCount,
-                usage: totalUsage
-            });
+            if (req) {
+                req.totalUsage += totalUsage;
+                req.details.push({
+                    orderCode: item._originOrder,
+                    color: item.color,
+                    doorType,
+                    doorCount,
+                    usage: totalUsage
+                });
+            }
         });
     });
 
@@ -114,7 +137,7 @@ export function calculateMaterialRequirements(items, formulas, catalog) {
  * Wrapper function for UI consumption
  * Handles calculation and formatting in one go.
  */
-export function getMaterialsForUI(items, formulas, catalog) {
+export function getMaterialsForUI(items: OrderItem[], formulas: FormulasMap, catalog: CatalogMap) {
     // 1. Calculate
     const { requirements, missing } = calculateMaterialRequirements(items, formulas, catalog);
 
@@ -138,10 +161,10 @@ export function getMaterialsForUI(items, formulas, catalog) {
  * @param {Object} catalog - Materials catalog
  * @returns {Object} Requirements grouped by supplier
  */
-function groupBySupplier(requirements, catalog) {
-    const bySupplier = {};
+function groupBySupplier(requirements: Map<string, RequirementEntry>, catalog: CatalogMap): Record<string, SupplierGroup> {
+    const bySupplier: Record<string, SupplierGroup> = {};
 
-    requirements.forEach(req => {
+    requirements.forEach((req) => {
         const supplier = req.material.supplier;
 
         if (!bySupplier[supplier]) {
@@ -165,7 +188,7 @@ function groupBySupplier(requirements, catalog) {
  * @param {number} minOrder - Minimum order quantity
  * @returns {Object} Package calculation result
  */
-export function calculatePackages(totalUsage, minOrder) {
+export function calculatePackages(totalUsage: number, minOrder: number) {
     if (!minOrder || minOrder === 0) {
         return {
             packages: 0,
@@ -190,16 +213,16 @@ export function calculatePackages(totalUsage, minOrder) {
  * @param {Object} groupedRequirements - Requirements grouped by supplier
  * @returns {Object} Summary statistics
  */
-export function getMaterialSummary(groupedRequirements) {
+export function getMaterialSummary(groupedRequirements: Record<string, SupplierGroup>) {
     let totalSuppliers = 0;
     let totalMaterials = 0;
     let totalCost = 0;
 
-    Object.values(groupedRequirements).forEach(group => {
+    Object.values(groupedRequirements).forEach((group) => {
         totalSuppliers++;
         totalMaterials += group.materials.length;
 
-        group.materials.forEach(mat => {
+        group.materials.forEach((mat) => {
             if (mat.material.unitPrice) {
                 totalCost += mat.totalUsage * mat.material.unitPrice;
             }

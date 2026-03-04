@@ -2,7 +2,7 @@
 import { useSourceStore } from '@/stores/useSourceStore';
 import { packagingMatcher } from '@/lib/packagingMatcher';
 import { configLoader } from '@/services/configLoader';
-import { parseQuantity, parseQuantityPair } from '@/lib/legacy/parsers';
+import { parseQuantity, parseQuantityPair } from '@/lib/erp-engine/parsers';
 import type { Order, OrderItem } from '@/types/order';
 import {
     createPackagingOrderItem,
