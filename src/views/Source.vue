@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, h } from 'vue';
 import { useSourceStore } from '@/stores/useSourceStore';
 import { sourceColumns } from '@/components/source/SourceColumns';
 import GeneratePODialog from '@/components/source/GeneratePODialog.vue';
@@ -9,9 +9,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import DataTable from '@/components/data-table/DataTable.vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Search } from 'lucide-vue-next';
+import LongTextCell from '@/components/source/LongTextCell.vue';
 
 const store = useSourceStore();
 const contractInput = ref('');
+const longTextMode = ref<'clip' | 'hover' | 'expand'>('hover');
+
+const longTextColumnKeys = new Set([
+  'productModelName',
+  'spec',
+  'sj',
+  'fssj',
+  'xsbz',
+  'qbbc',
+  'bz',
+]);
 
 const handleSearch = () => {
   if (contractInput.value) {
@@ -36,7 +48,16 @@ const columns = computed<ColumnDef<any>[]>(() => {
     size: col.width || 100,
     cell: ({ row }: any) => {
       const val = row.original[col.key];
-      return val || '-';
+      if (!longTextColumnKeys.has(col.key)) {
+        return val || '-';
+      }
+
+      return h(LongTextCell, {
+        text: val,
+        mode: longTextMode.value,
+        maxWidth: col.width || 180,
+        label: col.label,
+      });
     }
   }));
 
@@ -72,6 +93,30 @@ const columns = computed<ColumnDef<any>[]>(() => {
             {{ store.loading ? 'Fetching...' : '获取合同' }}
           </Button>
 
+          <div class="flex items-center gap-1 rounded-md border bg-background p-1">
+            <button
+              class="px-2 py-1 text-xs rounded-sm transition-colors"
+              :class="longTextMode === 'clip' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
+              @click="longTextMode = 'clip'"
+            >
+              紧凑省略
+            </button>
+            <button
+              class="px-2 py-1 text-xs rounded-sm transition-colors"
+              :class="longTextMode === 'hover' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
+              @click="longTextMode = 'hover'"
+            >
+              悬浮全文
+            </button>
+            <button
+              class="px-2 py-1 text-xs rounded-sm transition-colors"
+              :class="longTextMode === 'expand' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
+              @click="longTextMode = 'expand'"
+            >
+              点击展开
+            </button>
+          </div>
+
           <div v-if="store.currentOrder" class="lg:ml-auto flex items-center gap-3 lg:text-right">
             <div>
               <div class="text-sm font-semibold">{{ store.currentOrder.customerName }}</div>
@@ -91,6 +136,7 @@ const columns = computed<ColumnDef<any>[]>(() => {
           :data="store.orderItems"
           :enable-selection="false"
           density="compact"
+          :use-column-size="true"
         />
         <div v-else class="h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
           <div class="w-12 h-12 rounded-full border flex items-center justify-center bg-background">

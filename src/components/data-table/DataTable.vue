@@ -29,10 +29,12 @@ const props = withDefaults(defineProps<{
   searchColumnId?: string
   density?: 'comfortable' | 'compact'
   toolbar?: boolean
+  useColumnSize?: boolean
 }>(), {
   enableSelection: false,
   density: 'comfortable',
   toolbar: true,
+  useColumnSize: false,
 })
 
 const emit = defineEmits<{
@@ -131,6 +133,7 @@ defineExpose({
               v-for="header in headerGroup.headers"
               :key="header.id"
               class="text-foreground/80"
+              :style="props.useColumnSize ? { width: `${header.getSize()}px`, minWidth: `${header.getSize()}px` } : undefined"
             >
               <FlexRender
                 v-if="!header.isPlaceholder"
@@ -161,6 +164,7 @@ defineExpose({
                 :key="cell.id"
                 class="text-sm"
                 :class="cellPaddingClass"
+                :style="props.useColumnSize ? { width: `${cell.column.getSize()}px`, minWidth: `${cell.column.getSize()}px` } : undefined"
               >
                 <FlexRender
                   :render="cell.column.columnDef.cell"
