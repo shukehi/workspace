@@ -5,11 +5,13 @@ import { getSheetSchema, getDisplayValue } from '../src/features/procurement/ord
 test('schema: packaging columns keep expected order', () => {
   const schema = getSheetSchema('packaging');
   assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark']);
+  assert.equal(schema.columns.find((c) => c.key === 'spec')?.label, '规格');
 });
 
 test('schema: cylinder columns include unit before remark', () => {
   const schema = getSheetSchema('cylinder');
   assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'type', 'eccentricity', 'quantity', 'unit', 'remark']);
+  assert.equal(schema.columns.find((c) => c.key === 'eccentricity')?.label, '规格');
 });
 
 test('display value: spec/mb fallback works for preview consistency', () => {

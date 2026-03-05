@@ -21,7 +21,7 @@ export const CATEGORY_SCHEMAS: Record<PrintCategory, SheetSchema> = {
     columns: [
       { key: 'no', label: '序号', align: 'center', inputType: 'number' },
       { key: 'productModelName', label: '产品名称', align: 'left', inputType: 'text' },
-      { key: 'spec', label: '规格尺寸', align: 'left', inputType: 'text' },
+      { key: 'spec', label: '规格', align: 'left', inputType: 'text' },
       { key: 'mb', label: '门边', align: 'center', inputType: 'text' },
       { key: 'qtyLeft', label: '左数量', align: 'center', inputType: 'number' },
       { key: 'qtyRight', label: '右数量', align: 'center', inputType: 'number' },
@@ -33,7 +33,7 @@ export const CATEGORY_SCHEMAS: Record<PrintCategory, SheetSchema> = {
     columns: [
       { key: 'no', label: '序号', align: 'center', inputType: 'number' },
       { key: 'type', label: '锁芯型号', align: 'left', inputType: 'text' },
-      { key: 'eccentricity', label: '偏心', align: 'left', inputType: 'text' },
+      { key: 'eccentricity', label: '规格', align: 'left', inputType: 'text' },
       { key: 'quantity', label: '数量', align: 'center', inputType: 'number' },
       { key: 'unit', label: '单位', align: 'center', inputType: 'text' },
       { key: 'remark', label: '备注', align: 'left', inputType: 'text' }

@@ -24,12 +24,22 @@ const COLUMN_BASE_WIDTHS: Record<string, number> = {
   remark: 160
 };
 
+const CATEGORY_COMPACT_OVERRIDES: Partial<Record<PrintCategory, Record<string, number>>> = {
+  packaging: {
+    spec: 160
+  },
+  cylinder: {
+    eccentricity: 160
+  }
+};
+
 function buildCategoryDefaultWidths(category: PrintCategory) {
   const schema = getSheetSchema(category);
   const defaults: Record<string, number> = {};
 
   schema.columns.forEach((column) => {
-    defaults[column.key] = COLUMN_BASE_WIDTHS[column.key] || 120;
+    const override = CATEGORY_COMPACT_OVERRIDES[category]?.[column.key];
+    defaults[column.key] = override ?? COLUMN_BASE_WIDTHS[column.key] ?? 120;
   });
 
   const baseline = CATEGORY_BASELINE_TOTAL_WIDTH[category];

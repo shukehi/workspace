@@ -7,9 +7,12 @@ test('sheet width defaults: returns category specific config', () => {
   const cylinder = getDefaultWidths('cylinder');
   const lock = getDefaultWidths('lock');
 
+  assert.equal(packaging.spec, 160);
+  assert.equal(packaging.remark, 194);
   assert.equal(packaging.qtyLeft, 72);
   assert.equal(cylinder.unit, 58);
-  assert.equal(cylinder.remark, 170);
+  assert.equal(cylinder.eccentricity, 160);
+  assert.equal(cylinder.remark, 230);
   assert.equal(lock.quantity, 72);
 });
 
