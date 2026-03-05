@@ -20,8 +20,16 @@ export const createColumns = (actions: {
         header: '类别',
         cell: ({ row }) => {
             const category = row.getValue<string>('category') || '常规';
+            const categoryClassMap: Record<string, string> = {
+                包装: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                锁芯: 'bg-sky-50 text-sky-700 border-sky-200',
+                锁叉: 'bg-amber-50 text-amber-700 border-amber-200',
+                配件: 'bg-slate-100 text-slate-700 border-slate-300',
+                常规: 'bg-muted/40 text-muted-foreground border-border'
+            };
+            const colorClass = categoryClassMap[category] || categoryClassMap.常规;
             return h('span', {
-                class: 'px-2 py-0.5 rounded text-[10px] font-medium border border-border bg-muted/40 text-muted-foreground'
+                class: `px-2 py-0.5 rounded text-[10px] font-medium border ${colorClass}`
             }, category);
         }
     },
@@ -97,18 +105,21 @@ export const createColumns = (actions: {
                     variant: 'ghost',
                     size: 'icon',
                     class: 'h-8 w-8 text-muted-foreground hover:text-blue-600',
+                    title: '查看/打印',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onPreview(order); }
                 }, () => h(Eye, { class: 'h-4 w-4' })),
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',
                     class: 'h-8 w-8 text-muted-foreground hover:text-amber-600',
+                    title: '编辑订单',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onEdit(order); }
                 }, () => h(Edit, { class: 'h-4 w-4' })),
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',
                     class: 'h-8 w-8 text-muted-foreground hover:text-rose-600',
+                    title: '删除订单',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onDelete(order); }
                 }, () => h(Trash2, { class: 'h-4 w-4' }))
             ]);

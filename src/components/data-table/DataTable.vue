@@ -27,14 +27,28 @@ const props = withDefaults(defineProps<{
   data: TData[]
   enableSelection?: boolean
   searchColumnId?: string
+  searchPlaceholder?: string
   density?: 'comfortable' | 'compact'
   toolbar?: boolean
   useColumnSize?: boolean
+  emptyText?: string
+  prevLabel?: string
+  nextLabel?: string
+  pageLabelPrefix?: string
+  pageLabelConnector?: string
+  tableMinWidth?: number
 }>(), {
   enableSelection: false,
+  searchPlaceholder: '快速筛选...',
   density: 'comfortable',
   toolbar: true,
   useColumnSize: false,
+  emptyText: '暂无数据',
+  prevLabel: '上一页',
+  nextLabel: '下一页',
+  pageLabelPrefix: '第',
+  pageLabelConnector: '/',
+  tableMinWidth: 0,
 })
 
 const emit = defineEmits<{
@@ -108,7 +122,7 @@ defineExpose({
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           class="pl-9"
-          placeholder="快速筛选..."
+          :placeholder="searchPlaceholder"
           :model-value="(activeSearchColumn?.getFilterValue() as string) ?? ''"
           @update:model-value="activeSearchColumn?.setFilterValue($event)"
         />
@@ -119,7 +133,7 @@ defineExpose({
     </div>
 
     <div class="flex-1 overflow-auto rounded-lg border bg-card">
-      <Table>
+      <Table :style="props.tableMinWidth > 0 ? { minWidth: `${props.tableMinWidth}px` } : undefined">
         <TableHeader class="sticky top-0 z-10 bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/20">
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
             <TableHead v-if="enableSelection" class="w-12 text-center">
@@ -177,7 +191,7 @@ defineExpose({
           <template v-else>
             <TableRow>
               <TableCell :colspan="columns.length + (enableSelection ? 1 : 0)" class="h-32 text-center text-muted-foreground">
-                No results found.
+                {{ emptyText }}
               </TableCell>
             </TableRow>
           </template>
@@ -185,18 +199,18 @@ defineExpose({
       </Table>
     </div>
 
-    <div class="flex items-center justify-between shrink-0">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shrink-0">
       <div class="text-xs text-muted-foreground">
-        Page {{ table.getState().pagination.pageIndex + 1 }} of {{ table.getPageCount() }}
+        {{ pageLabelPrefix }} {{ table.getState().pagination.pageIndex + 1 }} {{ pageLabelConnector }} {{ table.getPageCount() }}
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 self-start sm:self-auto">
         <Button
           variant="outline"
           size="sm"
           :disabled="!table.getCanPreviousPage()"
           @click="table.previousPage()"
         >
-          Prev
+          {{ prevLabel }}
         </Button>
         <Button
           variant="outline"
@@ -204,7 +218,7 @@ defineExpose({
           :disabled="!table.getCanNextPage()"
           @click="table.nextPage()"
         >
-          Next
+          {{ nextLabel }}
         </Button>
       </div>
     </div>

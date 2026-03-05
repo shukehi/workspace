@@ -2,19 +2,18 @@
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { generatePrintPages, normalizePrintCategory } from '@/services/printPreviewGenerator';
+import { api } from '@/lib/api';
 
-declare global {
-    interface Window {
-        html2pdf?: any;
-    }
-}
+type PrintCategory = 'packaging' | 'cylinder' | 'hardware' | 'lock';
 
 const route = useRoute();
 const printOutputRef = ref<HTMLElement | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const exporting = ref(false);
 
 const poTitle = ref('采购订单预览');
+const currentPONumber = ref('');
 const embedded = computed(() => route.query.embedded === '1' || window.self !== window.top);
 
 const categoryLabels: Record<string, string> = {
@@ -24,22 +23,9 @@ const categoryLabels: Record<string, string> = {
     lock: '锁叉采购订单'
 };
 
-let currentPONumber = '';
+let currentOrderData: any = null;
+let currentCategory: PrintCategory = 'packaging';
 
-function loadHtml2Pdf() {
-    return new Promise<void>((resolve, reject) => {
-        if (window.html2pdf) {
-            resolve();
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load html2pdf.js'));
-        document.head.appendChild(script);
-    });
-}
 
 async function initPreview() {
     try {
@@ -54,7 +40,9 @@ async function initPreview() {
         if (!rawOrderData) throw new Error('未找到订单数据');
 
         const orderData = JSON.parse(rawOrderData);
-        currentPONumber = poNumber || 'order';
+        currentPONumber.value = poNumber || 'order';
+        currentOrderData = orderData;
+        currentCategory = category;
 
         const label = categoryLabels[category] || '采购订单';
         poTitle.value = `${label} ${poNumber}`.trim();
@@ -80,23 +68,23 @@ async function initPreview() {
 }
 
 async function exportPdf() {
+    if (!currentOrderData) {
+        alert('未找到订单数据，无法导出。');
+        return;
+    }
+
     try {
-        await loadHtml2Pdf();
-        if (!printOutputRef.value || !window.html2pdf) return;
-
-        const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `${currentPONumber || 'order'}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        await window.html2pdf().set(opt).from(printOutputRef.value).save();
+        exporting.value = true;
+        await api.downloadPDF('/pdf/generate', {
+            poNumber: currentPONumber.value || 'order',
+            category: currentCategory,
+            order: currentOrderData
+        }, `${currentPONumber.value || 'order'}.pdf`);
     } catch (e) {
         console.error('PDF export failed', e);
         alert('PDF 导出失败');
+    } finally {
+        exporting.value = false;
     }
 }
 
@@ -112,10 +100,15 @@ onMounted(() => {
 <template>
     <div :class="['print-preview-shell', embedded ? 'in-iframe' : '']">
         <div v-if="!embedded" class="controls-bar">
-            <h2>{{ poTitle }}</h2>
+            <div class="controls-title">
+                <h2>{{ poTitle }}</h2>
+                <p v-if="currentPONumber" class="controls-subtitle">订单号：{{ currentPONumber }}</p>
+            </div>
             <div class="controls-actions">
-                <button class="btn btn-primary" @click="handlePrint">打印</button>
-                <button class="btn btn-primary" @click="exportPdf">导出PDF</button>
+                <button class="btn btn-secondary" @click="handlePrint">打印</button>
+                <button class="btn btn-primary" :disabled="exporting" @click="exportPdf">
+                    {{ exporting ? '导出中...' : '导出 PDF' }}
+                </button>
             </div>
         </div>
 
@@ -129,7 +122,7 @@ onMounted(() => {
 @import url('/css/pages/print.css');
 
 .print-preview-shell {
-    background-color: #525659;
+    background: linear-gradient(180deg, #2e3b46 0%, #4f5f6e 100%);
     min-height: 100vh;
     margin: 0;
     padding-top: 60px;
@@ -153,13 +146,27 @@ onMounted(() => {
     top: 0;
     left: 0;
     right: 0;
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid #e5e7eb;
     padding: 12px 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
     z-index: 1000;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    backdrop-filter: blur(10px);
+}
+
+.controls-title h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.controls-subtitle {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #6b7280;
 }
 
 .controls-actions {
@@ -168,16 +175,38 @@ onMounted(() => {
 }
 
 .btn {
-    padding: 8px 16px;
+    padding: 8px 14px;
     border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
 }
 
 .btn-primary {
-    background: #10b981;
+    background: #0f766e;
     color: white;
+    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0d6a63;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #111827;
+    border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #e5e7eb;
 }
 
 .state {

@@ -88,6 +88,31 @@ function resolveLeftRightQty(item: any) {
     return { left: quantity, right: 0 };
 }
 
+function normalizeProductNames(rawName: string | undefined) {
+    if (!rawName) return [];
+
+    const raw = String(rawName).trim();
+    if (!raw) return [];
+
+    const byLine = raw
+        .split('\n')
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+    const source = byLine.length > 1
+        ? byLine
+        : raw.includes(' / ')
+            ? raw.split(/\s+\/\s+/).map((name) => name.trim()).filter(Boolean)
+            : [raw];
+
+    return Array.from(new Set(source));
+}
+
+function formatProductNameDisplay(rawName: string | undefined) {
+    const names = normalizeProductNames(rawName);
+    return names.length > 0 ? names.join('\n') : '-';
+}
+
 function normalizeItemForCategory(item: any, category: PrintCategory): NormalizedPrintItem {
     if (category === 'packaging') {
         const qty = resolveLeftRightQty(item);
@@ -95,7 +120,7 @@ function normalizeItemForCategory(item: any, category: PrintCategory): Normalize
             supplier: item?.supplier,
             internal_name: resolvePackagingInternalName(item),
             external_name: item?.external_name || item?.name,
-            name: item?.name || item?.productModelName,
+            name: formatProductNameDisplay(item?.name || item?.productModelName),
             spec: item?.spec || item?.model || '-',
             mb: item?.mb || item?.orientation || '-',
             qtyLeft: qty.left,
@@ -290,7 +315,7 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
                     else if (field === 'type') value = item.type || item.name || '-';
                     else if (field === 'eccentricity') value = item.eccentricity || '-';
                     else if (field === 'quantity') value = Number(item.quantity || 0);
-                    else if (field === 'unit') value = item.unit || '根';
+                    else if (field === 'unit') value = item.unit || '个';
                     else if (field === 'remark') value = category === 'packaging' ? '' : (item.remark || '');
 
                     td.textContent = String(value);

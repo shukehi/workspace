@@ -16,13 +16,13 @@ import {
   Trash2,
   CheckCircle2,
   PackageCheck,
-  ArrowRight,
   Download,
   TrendingUp,
   Clock,
   CheckCircle,
   Activity,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from 'lucide-vue-next';
 import type { Order } from '@/types/order';
 
@@ -41,6 +41,14 @@ const categories = [
   { id: '配件', label: '其他配件' }
 ];
 
+const statusLabels: Record<Order['status'], string> = {
+  draft: '草稿',
+  submitted: '已提交',
+  processing: '处理中',
+  completed: '已完成',
+  cancelled: '已取消'
+};
+
 const summaryStats = computed(() => {
   const totalAmount = store.purchaseOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
   const pendingCount = store.purchaseOrders.filter(o => ['draft', 'submitted', 'processing'].includes(o.status)).length;
@@ -49,6 +57,29 @@ const summaryStats = computed(() => {
   const todayCount = store.purchaseOrders.filter(o => o.created_at.startsWith(today)).length;
 
   return { totalAmount, pendingCount, completedCount, todayCount };
+});
+
+const categoryOptions = computed(() => {
+  return categories.map((category) => {
+    const count = category.id === 'ALL'
+      ? store.sortedOrders.length
+      : store.sortedOrders.filter((order) => order.category === category.id).length;
+
+    return {
+      ...category,
+      count
+    };
+  });
+});
+
+const tableEmptyText = computed(() => {
+  if (store.loading) return '加载中...';
+  if (searchQuery.value.trim()) return '没有匹配到订单';
+  return '暂无采购订单数据';
+});
+
+const hasActiveFilters = computed(() => {
+  return activeCategory.value !== 'ALL' || searchQuery.value.trim().length > 0;
 });
 
 const filteredOrders = computed(() => {
@@ -67,6 +98,8 @@ const filteredOrders = computed(() => {
   return list;
 });
 
+const visibleOrderCount = computed(() => filteredOrders.value.length);
+
 const isEditDialogOpen = ref(false);
 const isPreviewDialogOpen = ref(false);
 const selectedOrder = ref<Order | null>(null);
@@ -81,7 +114,7 @@ const handleStatusUpdate = async (order: Order, status: Order['status']) => {
     await store.updateOrder(order.id, { status });
     toast({
       title: '状态更新成功',
-      description: `订单 ${order.order_no} 已设为 ${status}`,
+      description: `订单 ${order.order_no} 已设为 ${statusLabels[status]}`,
       variant: 'success'
     });
   } catch {
@@ -137,10 +170,23 @@ const handleBulkStatusUpdate = async (status: Order['status']) => {
   try {
     await store.bulkUpdateStatus(selectedRows.value.map(o => o.id), status);
     selectedRows.value = [];
-    toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${status}`, variant: 'success' });
+    toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${statusLabels[status]}`, variant: 'success' });
   } catch {
     toast({ title: '操作失败', variant: 'destructive' });
   }
+};
+
+const handleManualEntry = () => {
+  toast({
+    title: '功能准备中',
+    description: '手动录入将在后续版本开放',
+    variant: 'default'
+  });
+};
+
+const resetFilters = () => {
+  activeCategory.value = 'ALL';
+  searchQuery.value = '';
 };
 
 const columns = createColumns({
@@ -156,7 +202,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-6 md:p-8 gap-6 bg-muted/20 relative overflow-hidden">
+  <div class="h-full flex flex-col p-4 md:p-8 gap-6 bg-muted/20 relative overflow-hidden">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       <div>
         <h2 class="text-3xl font-semibold tracking-tight">采购管理</h2>
@@ -171,21 +217,21 @@ onMounted(() => {
           <Download class="w-4 h-4 mr-2" />
           导出数据
         </Button>
-        <Button size="sm">
+        <Button size="sm" variant="secondary" @click="handleManualEntry">
           <Plus class="w-4 h-4 mr-2" />
-          手动录入
+          手动录入（开发中）
         </Button>
       </div>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-xs text-muted-foreground">待付总额</CardTitle>
           <TrendingUp class="h-4 w-4 text-emerald-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-semibold">¥{{ summaryStats.totalAmount.toLocaleString() }}</div>
+          <div class="text-lg md:text-2xl font-semibold">¥{{ summaryStats.totalAmount.toLocaleString() }}</div>
         </CardContent>
       </Card>
 
@@ -195,7 +241,7 @@ onMounted(() => {
           <Clock class="h-4 w-4 text-amber-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-semibold">{{ summaryStats.pendingCount }}</div>
+          <div class="text-lg md:text-2xl font-semibold">{{ summaryStats.pendingCount }}</div>
         </CardContent>
       </Card>
 
@@ -205,7 +251,7 @@ onMounted(() => {
           <Activity class="h-4 w-4 text-blue-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-semibold">{{ summaryStats.todayCount }}</div>
+          <div class="text-lg md:text-2xl font-semibold">{{ summaryStats.todayCount }}</div>
         </CardContent>
       </Card>
 
@@ -215,23 +261,25 @@ onMounted(() => {
           <CheckCircle class="h-4 w-4 text-emerald-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-semibold">{{ summaryStats.completedCount }}</div>
+          <div class="text-lg md:text-2xl font-semibold">{{ summaryStats.completedCount }}</div>
         </CardContent>
       </Card>
     </div>
 
     <Card>
       <CardContent class="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex flex-wrap gap-1 rounded-md border bg-background p-1 w-fit">
+        <div class="w-full md:w-auto overflow-x-auto">
+          <div class="flex w-max gap-1 rounded-md border bg-background p-1">
           <button
-            v-for="cat in categories"
+            v-for="cat in categoryOptions"
             :key="cat.id"
             @click="activeCategory = cat.id"
-            class="px-3 py-1.5 text-sm rounded-sm transition-colors"
+            class="px-3 py-1.5 text-sm rounded-sm whitespace-nowrap transition-colors"
             :class="activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
           >
-            {{ cat.label }}
+            {{ cat.label }} ({{ cat.count }})
           </button>
+          </div>
         </div>
 
         <div class="relative w-full md:w-80">
@@ -243,14 +291,24 @@ onMounted(() => {
           />
         </div>
       </CardContent>
+      <div class="px-4 pb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span class="whitespace-nowrap">当前显示 {{ visibleOrderCount }} / {{ store.sortedOrders.length }} 张订单</span>
+        <Button v-if="hasActiveFilters" variant="ghost" size="sm" class="h-7 px-2" @click="resetFilters">
+          清空筛选
+        </Button>
+      </div>
     </Card>
 
     <Card class="flex-1 min-h-0">
-      <CardContent class="p-4 h-full overflow-hidden">
+      <CardContent class="p-2 sm:p-4 h-full overflow-hidden">
+        <p class="px-2 pb-2 text-[11px] text-muted-foreground md:hidden">表格可左右滑动查看更多列</p>
         <DataTable
           :columns="columns"
           :data="filteredOrders"
           :enable-selection="true"
+          :toolbar="false"
+          :empty-text="tableEmptyText"
+          :table-min-width="900"
           density="compact"
           @selection-change="onSelectionChange"
         />
@@ -265,8 +323,8 @@ onMounted(() => {
       leave-from-class="translate-y-0 opacity-100"
       leave-to-class="translate-y-full opacity-0"
     >
-      <div v-if="selectedRows.length > 0" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-        <div class="bg-card text-card-foreground px-4 py-3 rounded-lg shadow-lg flex flex-wrap items-center gap-2 border">
+      <div v-if="selectedRows.length > 0" class="fixed md:absolute bottom-3 md:bottom-6 left-3 right-3 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50">
+        <div class="bg-card text-card-foreground px-3 md:px-4 py-3 rounded-lg shadow-lg flex flex-wrap items-center justify-center md:justify-start gap-2 border w-full md:w-auto">
           <div class="text-xs text-muted-foreground mr-2">已选 {{ selectedRows.length }}</div>
 
           <Button variant="outline" size="sm" @click="handleBulkStatusUpdate('submitted')">
@@ -282,7 +340,7 @@ onMounted(() => {
             <Trash2 class="w-4 h-4 mr-2" /> 删除
           </Button>
           <Button variant="ghost" size="icon" @click="selectedRows = []">
-            <ArrowRight class="w-4 h-4 rotate-90" />
+            <X class="w-4 h-4" />
           </Button>
         </div>
       </div>

@@ -27,6 +27,17 @@ const emit = defineEmits<{
 
 const store = useProcurementStore();
 const form = ref<Partial<Order>>({});
+const saving = ref(false);
+const initialSnapshot = ref('');
+
+const hasUnsavedChanges = computed(() => {
+  if (!initialSnapshot.value) return false;
+  try {
+    return JSON.stringify(form.value) !== initialSnapshot.value;
+  } catch {
+    return false;
+  }
+});
 
 const formattedOrderDate = computed({
   get: () => form.value.created_at ? new Date(form.value.created_at).toISOString().split('T')[0] : '',
@@ -61,27 +72,49 @@ watch(
       }
 
       form.value = copy;
+      initialSnapshot.value = JSON.stringify(copy);
     }
   },
   { immediate: true }
 );
 
-const handleSave = () => {
+const requestClose = () => {
+  if (saving.value) return;
+  if (hasUnsavedChanges.value) {
+    const shouldClose = window.confirm('当前有未保存修改，确定要关闭吗？');
+    if (!shouldClose) return;
+  }
+  emit('update:open', false);
+};
+
+const handleDialogOpenChange = (value: boolean) => {
+  if (value) {
+    emit('update:open', true);
+    return;
+  }
+  requestClose();
+};
+
+const handleSave = async () => {
   if (!form.value.id || !props.order) return;
 
+  saving.value = true;
   try {
-    store.updateOrder(form.value.id, form.value);
+    await store.updateOrder(form.value.id, form.value);
+    initialSnapshot.value = JSON.stringify(form.value);
     emit('saved');
     emit('update:open', false);
   } catch (e) {
     console.error('Update failed', e);
     alert('保存失败');
+  } finally {
+    saving.value = false;
   }
 };
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="$emit('update:open', $event)">
+  <Dialog :open="open" @update:open="handleDialogOpenChange">
     <DialogContent class="max-w-[1100px] max-h-[90vh] flex flex-col p-0 gap-0 bg-background">
       <DialogHeader class="sr-only">
         <DialogTitle>编辑采购单</DialogTitle>
@@ -91,8 +124,8 @@ const handleSave = () => {
       <div class="px-6 py-4 bg-background border-b flex justify-between items-center sticky top-0 z-10">
         <DialogTitle class="text-lg font-semibold">编辑采购单</DialogTitle>
         <div class="flex gap-2">
-          <Button variant="outline" size="sm" @click="$emit('update:open', false)">取消</Button>
-          <Button size="sm" @click="handleSave">保存修改</Button>
+          <Button variant="outline" size="sm" :disabled="saving" @click="requestClose">取消</Button>
+          <Button size="sm" :disabled="saving" @click="handleSave">{{ saving ? '保存中...' : '保存修改' }}</Button>
         </div>
       </div>
 
