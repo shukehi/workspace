@@ -190,8 +190,6 @@ onMounted(() => {
 </template>
 
 <style>
-@import url('/css/pages/print.css');
-
 .print-preview-shell {
   background: #f8fafc;
   min-height: 100vh;
@@ -318,5 +316,36 @@ onMounted(() => {
 
 .state.error {
   color: #fecaca;
+}
+
+@media print {
+  .controls-bar {
+    display: none !important;
+  }
+
+  .print-preview-shell {
+    background: none;
+    padding-top: 0;
+    min-height: auto;
+  }
+
+  #printOutput {
+    padding: 0 !important;
+    gap: 0;
+  }
+
+  #printOutput .order-sheet {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
 }
 </style>
