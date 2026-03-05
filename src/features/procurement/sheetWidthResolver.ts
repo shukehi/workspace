@@ -75,17 +75,26 @@ export function persistLocalCategoryWidths(category: PrintCategory, widths: Reco
   }
 }
 
-export function resolveInitialWidths(categoryRaw: string | undefined, metadataPrintWidths: any) {
+export function resolveSheetWidths(
+  categoryRaw: string | undefined,
+  metadataPrintWidths: any,
+  options?: { preferLocalWhenMissing?: boolean }
+) {
   const category = normalizePrintCategory(categoryRaw);
   const defaults = getDefaultWidths(category);
+  const preferLocalWhenMissing = options?.preferLocalWhenMissing ?? true;
   const hasCustomWidths = !!metadataPrintWidths && typeof metadataPrintWidths === 'object';
   const resolved = hasCustomWidths
     ? sanitizeWidths(metadataPrintWidths, defaults)
-    : loadLocalCategoryWidths(category, defaults);
+    : (preferLocalWhenMissing ? loadLocalCategoryWidths(category, defaults) : { ...defaults });
 
   return {
     category,
     defaults,
     widths: resolved
   };
+}
+
+export function resolveInitialWidths(categoryRaw: string | undefined, metadataPrintWidths: any) {
+  return resolveSheetWidths(categoryRaw, metadataPrintWidths, { preferLocalWhenMissing: true });
 }

@@ -15,7 +15,7 @@ import type { Order } from '@/types/order';
 import { normalizePrintCategory, type PrintCategory, type PrintMode } from '@/features/procurement/docModel';
 import { buildPdfRequestPayload, buildPrintPayloadFromOrder } from '@/features/procurement/orderDraft';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
-import { getDefaultWidths, sanitizeWidths } from '@/features/procurement/sheetWidthResolver';
+import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
 const props = defineProps<{
   open: boolean;
@@ -69,12 +69,19 @@ const previewCategory = computed<PrintCategory>(() => {
   return normalizePrintCategory(props.order?.category);
 });
 
-const previewDefaultWidths = computed(() => getDefaultWidths(previewCategory.value));
-
-const previewColumnWidths = computed(() => {
-  if (!props.order) return { ...previewDefaultWidths.value };
-  return sanitizeWidths(props.order.metadata?.printColumnWidths, previewDefaultWidths.value);
+const previewWidthState = computed(() => {
+  if (!props.order) {
+    return resolveSheetWidths(previewCategory.value, null, { preferLocalWhenMissing: false });
+  }
+  return resolveSheetWidths(
+    props.order.category,
+    props.order.metadata?.printColumnWidths,
+    { preferLocalWhenMissing: false }
+  );
 });
+
+const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
+const previewColumnWidths = computed(() => previewWidthState.value.widths);
 
 const openPrintWindow = (autoPrint: boolean) => {
   if (!props.order) return;

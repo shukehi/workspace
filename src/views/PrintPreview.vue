@@ -5,7 +5,7 @@ import { normalizePrintCategory, normalizePrintMode, type PrintCategory, type Pr
 import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
-import { getDefaultWidths, sanitizeWidths } from '@/features/procurement/sheetWidthResolver';
+import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
 const route = useRoute();
 const loading = ref(true);
@@ -32,12 +32,19 @@ const modeLabels: Record<PrintMode, string> = {
   compact: '简洁版'
 };
 
-const previewDefaultWidths = computed(() => getDefaultWidths(currentCategory.value));
-const previewColumnWidths = computed(() => {
+const previewWidthState = computed(() => {
   const order = previewOrder.value;
-  if (!order) return { ...previewDefaultWidths.value };
-  return sanitizeWidths(order.metadata?.printColumnWidths, previewDefaultWidths.value);
+  if (!order) {
+    return resolveSheetWidths(currentCategory.value, null, { preferLocalWhenMissing: false });
+  }
+  return resolveSheetWidths(
+    order.category,
+    order.metadata?.printColumnWidths,
+    { preferLocalWhenMissing: false }
+  );
 });
+const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
+const previewColumnWidths = computed(() => previewWidthState.value.widths);
 
 function toPreviewOrder(raw: any, category: PrintCategory): Partial<Order> {
   const list = Array.isArray(raw?.list) ? raw.list : (Array.isArray(raw?.items) ? raw.items : []);

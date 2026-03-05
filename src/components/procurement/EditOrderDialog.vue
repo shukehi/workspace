@@ -18,7 +18,7 @@ import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   getDefaultWidths,
   persistLocalCategoryWidths,
-  resolveInitialWidths,
+  resolveSheetWidths,
 } from '@/features/procurement/sheetWidthResolver';
 
 const props = defineProps<{
@@ -84,7 +84,11 @@ watch(
       const normalizedDraft = normalizeOrderDraft(copy);
       form.value = normalizedDraft;
 
-      const resolved = resolveInitialWidths(normalizedDraft.category, normalizedDraft.metadata?.printColumnWidths);
+      const resolved = resolveSheetWidths(
+        normalizedDraft.category,
+        normalizedDraft.metadata?.printColumnWidths,
+        { preferLocalWhenMissing: true }
+      );
       columnWidths.value = resolved.widths;
       if (form.value.metadata) {
         form.value.metadata.printColumnWidths = { ...resolved.widths };

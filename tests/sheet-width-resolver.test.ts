@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getDefaultWidths, sanitizeWidths, resolveInitialWidths } from '../src/features/procurement/sheetWidthResolver';
+import { getDefaultWidths, sanitizeWidths, resolveInitialWidths, resolveSheetWidths } from '../src/features/procurement/sheetWidthResolver';
 
 test('sheet width defaults: returns category specific config', () => {
   const packaging = getDefaultWidths('packaging');
@@ -28,4 +28,12 @@ test('resolveInitialWidths: uses metadata widths when provided', () => {
   assert.equal(resolved.widths.type, 280);
   assert.equal(resolved.widths.quantity, 120);
   assert.equal(resolved.defaults.spec, 180);
+});
+
+test('resolveSheetWidths: can disable local fallback for preview/print shells', () => {
+  const resolved = resolveSheetWidths('五金', null, { preferLocalWhenMissing: false });
+
+  assert.equal(resolved.category, 'hardware');
+  assert.deepEqual(resolved.widths, resolved.defaults);
+  assert.equal(resolved.widths.spec, 220);
 });
