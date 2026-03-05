@@ -61,6 +61,12 @@ function getPrintFieldClass(field) {
     return '';
 }
 
+function getAlignClass(align) {
+    if (align === 'left') return 'col-left';
+    if (align === 'right') return 'col-right';
+    return 'col-center';
+}
+
 // Load packaging mapping configuration
 let packagingConfig = null;
 function loadPackagingConfig() {
@@ -455,7 +461,8 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig, pr
                 .map((header, index) => {
                     const field = categoryConfig.fields[index];
                     const fieldClass = getPrintFieldClass(field);
-                    return `<th class="${fieldClass}">${header}</th>`;
+                    const alignClass = getAlignClass(categoryConfig.columns?.[index]?.align);
+                    return `<th class="${fieldClass} ${alignClass}">${header}</th>`;
                 })
                 .join('');
         }
@@ -467,13 +474,14 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig, pr
 
         items.forEach((item, index) => {
             const tr = doc.createElement('tr');
-            categoryConfig.fields.forEach((field) => {
+            categoryConfig.fields.forEach((field, fieldIndex) => {
                 const td = doc.createElement('td');
                 td.textContent = String(getCellValue(item, field, index + 1, category));
                 const fieldClass = getPrintFieldClass(field);
                 if (fieldClass) {
                     td.classList.add(fieldClass);
                 }
+                td.classList.add(getAlignClass(categoryConfig.columns?.[fieldIndex]?.align));
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);

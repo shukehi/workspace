@@ -210,6 +210,21 @@ body.print-mode #printOutput {
     line-height: 1.4;
 }
 
+.print-table th.col-left,
+.print-table td.col-left {
+    text-align: left;
+}
+
+.print-table th.col-center,
+.print-table td.col-center {
+    text-align: center;
+}
+
+.print-table th.col-right,
+.print-table td.col-right {
+    text-align: right;
+}
+
 .print-table tbody tr:not(.total-row) td {
     height: 38px;
 }
@@ -229,16 +244,10 @@ body.print-mode #printOutput {
     border-bottom: 0;
 }
 
-.print-table td:nth-child(2) {
-    white-space: pre-line;
-    text-align: left;
-    line-height: 1.45;
-}
-
 .print-table th:last-child,
 .print-table td:last-child {
     width: auto !important;
-    min-width: 88px;
+    min-width: 160px;
     word-break: break-word;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
@@ -259,66 +268,6 @@ body.print-mode #printOutput {
     background-color: #f9fafb;
     font-weight: 600;
 }
-
-/* 列宽策略：按采购类别分别控制 */
-.print-table.category-packaging th:nth-child(1) {
-    width: 40px;
-}
-
-.print-table.category-packaging th:nth-child(2) {
-    width: 205px;
-}
-
-.print-table.category-packaging th:nth-child(3) {
-    width: 145px;
-}
-
-.print-table.category-packaging th:nth-child(4) {
-    width: 58px;
-}
-
-.print-table.category-packaging th:nth-child(5),
-.print-table.category-packaging th:nth-child(6) {
-    width: 58px;
-}
-
-.print-table.category-cylinder th:nth-child(1),
-.print-table.category-hardware th:nth-child(1),
-.print-table.category-lock th:nth-child(1) {
-    width: 40px;
-}
-
-.print-table.category-cylinder th:nth-child(2),
-.print-table.category-hardware th:nth-child(2) {
-    width: 185px;
-}
-
-.print-table.category-cylinder th:nth-child(3),
-.print-table.category-hardware th:nth-child(3) {
-    width: 120px;
-}
-
-.print-table.category-cylinder th:nth-child(4),
-.print-table.category-hardware th:nth-child(4),
-.print-table.category-lock th:nth-child(4) {
-    width: 70px;
-}
-
-.print-table.category-lock th:nth-child(2) {
-    width: 168px;
-}
-
-.print-table.category-lock th:nth-child(3) {
-    width: 120px;
-}
-
-.print-table.category-lock th:nth-child(5) {
-    width: 56px;
-}
-
-
-
-
 
 /* Print Zoom Controls */
 .zoom-controls {
