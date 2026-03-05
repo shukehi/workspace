@@ -3,7 +3,11 @@ import { computed, onBeforeUnmount, ref } from 'vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Order } from '@/types/order';
-import type { ColumnKey } from '@/features/procurement/printColumnSchema';
+import {
+  type ColumnKey,
+  defaultColumnWidths,
+  minColumnWidths
+} from '@/features/procurement/printColumnSchema';
 
 type Mode = 'edit' | 'preview';
 
@@ -34,16 +38,6 @@ const formattedDeliveryDate = computed({
     if (val) props.order.delivery_date = new Date(val).toISOString();
   }
 });
-
-const minColumnWidths: Record<ColumnKey, number> = {
-  index: 36,
-  name: 120,
-  spec: 120,
-  mb: 56,
-  left: 56,
-  right: 56,
-  remark: 100
-};
 
 const resizing = ref<{ key: ColumnKey; startX: number; startWidth: number } | null>(null);
 
@@ -81,7 +75,7 @@ function resetSingleColumnWidth(key: ColumnKey) {
   if (!isEditMode.value) return;
   emit('update:columnWidths', {
     ...props.columnWidths,
-    [key]: { index: 44, name: 220, spec: 170, mb: 74, left: 74, right: 74, remark: 180 }[key]
+    [key]: defaultColumnWidths[key]
   });
 }
 
