@@ -7,34 +7,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
-
-const MAX_ROWS_PER_PAGE = 22;
-const CATEGORY_CONFIGS = {
-    packaging: {
-        title: '包装采购订单',
-        headers: ['序号', '产品名称', '规格尺寸', '门边', '左数量', '右数量', '备注'],
-        fields: ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark'],
-        groupBy: 'internal_name'
-    },
-    cylinder: {
-        title: '锁芯采购订单',
-        headers: ['序号', '锁芯型号', '偏心', '数量', '备注'],
-        fields: ['no', 'type', 'eccentricity', 'quantity', 'remark'],
-        groupBy: 'supplier'
-    },
-    hardware: {
-        title: '五金采购订单',
-        headers: ['序号', '五金名称', '规格', '数量', '备注'],
-        fields: ['no', 'type', 'spec', 'quantity', 'remark'],
-        groupBy: 'type'
-    },
-    lock: {
-        title: '锁叉采购订单',
-        headers: ['序号', '产品名称', '规格', '数量', '单位', '备注'],
-        fields: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
-        groupBy: 'supplier'
-    }
-};
+const CATEGORY_CONFIGS = require('../../src/config/print-category-config.json');
 
 function getPrintFieldClass(field) {
     if (field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity') {
@@ -139,6 +112,20 @@ function resolvePrintDates(orderData) {
     const orderDate = normalizeDateString(orderData?.orderDate || orderData?.created_at) || today;
     const deliveryDate = normalizeDateString(orderData?.deliveryDate || orderData?.delivery_date) || orderDate;
     return { orderDate, deliveryDate };
+}
+
+function resolvePrintColumnWidths(orderData) {
+    const result = {};
+    const source = orderData?.printColumnWidths;
+    if (!source || typeof source !== 'object') return result;
+
+    Object.entries(source).forEach(([field, value]) => {
+        const parsed = Number(value);
+        if (!Number.isNaN(parsed) && parsed >= 36) {
+            result[field] = parsed;
+        }
+    });
+    return result;
 }
 
 function parseQuantityPair(qtyString) {
@@ -370,81 +357,80 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig, pr
     const templateHTML = loadPrintTemplate();
     const pages = [];
     const { orderDate, deliveryDate } = resolvePrintDates(orderData);
+    const customWidths = resolvePrintColumnWidths(orderData);
 
     Object.keys(groups).forEach((groupKey) => {
         const group = groups[groupKey];
         const items = group.items || [];
-        const totalPages = Math.max(1, Math.ceil(items.length / MAX_ROWS_PER_PAGE));
-
-        for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-            const startIdx = pageNum * MAX_ROWS_PER_PAGE;
-            const endIdx = Math.min(startIdx + MAX_ROWS_PER_PAGE, items.length);
-            const pageItems = items.slice(startIdx, endIdx);
-
-            const dom = new JSDOM(templateHTML);
-            const doc = dom.window.document;
-            const pageEl = doc.querySelector('.print-page');
-            if (!pageEl) throw new Error('print-page element not found in template');
-            if (printMode === 'compact') {
-                pageEl.classList.add('mode-compact');
-            }
-
-            const h1 = doc.querySelector('.print-header h1');
-            if (h1) {
-                h1.textContent = categoryConfig.title;
-                if (totalPages > 1) {
-                    h1.innerHTML = `${categoryConfig.title} <span style="font-size: 14px; font-weight: normal; color: #666;">(第${pageNum + 1}页/共${totalPages}页)</span>`;
-                }
-            }
-
-            setText(doc, '.p-supplier', group.supplier || orderData?.supplier || '默认供应商');
-            setText(doc, '.p-customer', orderData?.customerName || '');
-            setText(doc, '.p-code', orderData?.code || '');
-            setText(doc, '.p-int-pkg', category === 'packaging' ? (group.internalName || '-') : '-');
-            setText(doc, '.p-ext-pkg', category === 'packaging' ? (group.externalName || '-') : '-');
-            setText(doc, '.p-date', orderDate);
-            setText(doc, '.p-delivery', deliveryDate);
-
-            const tableEl = doc.querySelector('.print-table');
-            if (tableEl) {
-                tableEl.classList.add(`category-${category}`);
-            }
-
-            const theadRow = doc.querySelector('.print-table thead tr');
-            if (theadRow) {
-                theadRow.innerHTML = categoryConfig.headers
-                    .map((header, index) => {
-                        const field = categoryConfig.fields[index];
-                        const fieldClass = getPrintFieldClass(field);
-                        return `<th class="${fieldClass}">${header}</th>`;
-                    })
-                    .join('');
-            }
-
-            const tbody = doc.querySelector('.p-tbody');
-            if (!tbody) {
-                continue;
-            }
-            pageItems.forEach((item, index) => {
-                const tr = doc.createElement('tr');
-                categoryConfig.fields.forEach((field) => {
-                    const td = doc.createElement('td');
-                    td.textContent = String(getCellValue(item, field, startIdx + index + 1, category));
-                    const fieldClass = getPrintFieldClass(field);
-                    if (fieldClass) {
-                        td.classList.add(fieldClass);
-                    }
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-
-            if (pageNum === totalPages - 1) {
-                tbody.appendChild(renderTotalRow(doc, category, categoryConfig, items));
-            }
-
-            pages.push(pageEl.outerHTML);
+        const dom = new JSDOM(templateHTML);
+        const doc = dom.window.document;
+        const pageEl = doc.querySelector('.print-page');
+        if (!pageEl) throw new Error('print-page element not found in template');
+        if (printMode === 'compact') {
+            pageEl.classList.add('mode-compact');
         }
+
+        const h1 = doc.querySelector('.print-header h1');
+        if (h1) {
+            h1.textContent = categoryConfig.title;
+        }
+
+        setText(doc, '.p-supplier', group.supplier || orderData?.supplier || '默认供应商');
+        setText(doc, '.p-customer', orderData?.customerName || '');
+        setText(doc, '.p-code', orderData?.code || '');
+        setText(doc, '.p-int-pkg', category === 'packaging' ? (group.internalName || '-') : '-');
+        setText(doc, '.p-ext-pkg', category === 'packaging' ? (group.externalName || '-') : '-');
+        setText(doc, '.p-date', orderDate);
+        setText(doc, '.p-delivery', deliveryDate);
+
+        const tableEl = doc.querySelector('.print-table');
+        if (tableEl) {
+            tableEl.classList.add(`category-${category}`);
+            const colgroup = doc.createElement('colgroup');
+            categoryConfig.fields.forEach((field) => {
+                const col = doc.createElement('col');
+                const width = customWidths[field];
+                if (width) {
+                    col.style.width = `${width}px`;
+                }
+                colgroup.appendChild(col);
+            });
+            tableEl.prepend(colgroup);
+        }
+
+        const theadRow = doc.querySelector('.print-table thead tr');
+        if (theadRow) {
+            theadRow.innerHTML = categoryConfig.headers
+                .map((header, index) => {
+                    const field = categoryConfig.fields[index];
+                    const fieldClass = getPrintFieldClass(field);
+                    return `<th class="${fieldClass}">${header}</th>`;
+                })
+                .join('');
+        }
+
+        const tbody = doc.querySelector('.p-tbody');
+        if (!tbody) {
+            return;
+        }
+
+        items.forEach((item, index) => {
+            const tr = doc.createElement('tr');
+            categoryConfig.fields.forEach((field) => {
+                const td = doc.createElement('td');
+                td.textContent = String(getCellValue(item, field, index + 1, category));
+                const fieldClass = getPrintFieldClass(field);
+                if (fieldClass) {
+                    td.classList.add(fieldClass);
+                }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+
+        tbody.appendChild(renderTotalRow(doc, category, categoryConfig, items));
+
+        pages.push(pageEl.outerHTML);
     });
 
     return pages.join('');
