@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -11,10 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2, Printer } from 'lucide-vue-next';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
+import { configLoader } from '@/services/configLoader';
 import type { Order } from '@/types/order';
+import { buildProcurementDoc } from '@/features/procurement/buildProcurementDoc';
+import { normalizePrintCategory, type PrintMode } from '@/features/procurement/docModel';
 import { buildPdfRequestPayload, buildPrintPayloadFromOrder } from '@/features/procurement/orderDraft';
-
-type PrintMode = 'signature' | 'compact';
+import DocRenderer from '@/components/procurement/doc-render/DocRenderer.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -27,10 +29,6 @@ const emit = defineEmits<{
 }>();
 
 const { toast } = useToastStore();
-const iframeRef = ref<HTMLIFrameElement | null>(null);
-const previewUrl = ref('');
-const previewLoading = ref(false);
-const previewError = ref('');
 const exportingPdf = ref(false);
 const printMode = ref<PrintMode>('signature');
 const modeOptions: Array<{ value: PrintMode; label: string }> = [
@@ -68,47 +66,37 @@ const orderStatusLabel = computed(() => {
   return statusLabels[props.order.status] || props.order.status;
 });
 
-const preparePreviewData = (order: Order) => {
-  previewLoading.value = true;
-  previewError.value = '';
+const docModel = computed(() => {
+  if (!props.order) return null;
+  const category = normalizePrintCategory(props.order.category);
+  const packagingMapping = configLoader.getPackagingMapping();
+  return buildProcurementDoc(props.order, {
+    category,
+    mode: printMode.value,
+    packagingMapping
+  });
+});
 
-  const orderForPrint = buildPrintPayloadFromOrder(order);
+const openPrintWindow = (autoPrint: boolean) => {
+  if (!props.order) return;
 
+  const orderForPrint = buildPrintPayloadFromOrder(props.order);
   localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
-  localStorage.setItem('_order_preview_po_number', order.order_no);
-  localStorage.setItem('_order_preview_category', order.category || '采购单');
+  localStorage.setItem('_order_preview_po_number', props.order.order_no);
+  localStorage.setItem('_order_preview_category', props.order.category || '采购单');
   localStorage.setItem('_order_preview_print_mode', printMode.value);
-  localStorage.removeItem('_order_preview_auto_print');
 
-  previewUrl.value = `/print-preview?embedded=1&printMode=${printMode.value}&t=${Date.now()}`;
+  if (autoPrint) {
+    localStorage.setItem('_order_preview_auto_print', 'true');
+  } else {
+    localStorage.removeItem('_order_preview_auto_print');
+  }
+
+  window.open(`/print-preview?printMode=${printMode.value}&t=${Date.now()}`, '_blank', 'noopener,noreferrer');
 };
-
-watch(() => props.open, (isOpen) => {
-  if (isOpen && props.order) {
-    preparePreviewData(props.order);
-  }
-});
-
-watch(() => props.order, (order) => {
-  if (props.open && order) {
-    preparePreviewData(order);
-  }
-});
 
 const handlePrint = () => {
-  if (previewLoading.value || previewError.value) return;
-  if (iframeRef.value?.contentWindow) {
-    iframeRef.value.contentWindow.print();
-  }
-};
-
-const handleIframeLoad = () => {
-  previewLoading.value = false;
-};
-
-const handleIframeError = () => {
-  previewLoading.value = false;
-  previewError.value = '预览加载失败，请关闭后重试。';
+  openPrintWindow(true);
 };
 
 const handleExportPdf = async () => {
@@ -139,9 +127,6 @@ const handleExportPdf = async () => {
 const handlePrintModeChange = (mode: PrintMode) => {
   if (printMode.value === mode) return;
   printMode.value = mode;
-  if (props.open && props.order) {
-    preparePreviewData(props.order);
-  }
 };
 
 const handleClose = () => {
@@ -159,7 +144,7 @@ const handleEdit = () => {
     <DialogContent class="max-w-[1060px] max-h-[90vh] flex flex-col p-0 gap-0 bg-background">
       <DialogHeader class="sr-only">
         <DialogTitle>查看采购单</DialogTitle>
-        <DialogDescription>采购单打印预览窗口，可直接打印当前订单。</DialogDescription>
+        <DialogDescription>采购单预览窗口，可直接打印当前订单。</DialogDescription>
       </DialogHeader>
 
       <div class="px-6 py-4 bg-background/95 backdrop-blur border-b flex justify-between items-center sticky top-0 z-10 gap-3">
@@ -186,7 +171,7 @@ const handleEdit = () => {
               {{ mode.label }}
             </button>
           </div>
-          <Button size="sm" variant="outline" @click="handlePrint" :disabled="previewLoading || !!previewError">
+          <Button size="sm" variant="outline" @click="handlePrint" :disabled="!order">
             <Printer class="w-4 h-4 mr-2" />
             立即打印
           </Button>
@@ -201,25 +186,7 @@ const handleEdit = () => {
       </div>
 
       <div class="flex-1 overflow-auto p-6 bg-muted/20">
-        <div class="relative bg-background border rounded-lg p-0 max-w-[210mm] mx-auto min-h-[500px] overflow-hidden">
-          <div v-if="previewLoading" class="absolute inset-0 z-10 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 class="h-5 w-5 animate-spin" />
-            <p class="text-xs">正在生成预览...</p>
-          </div>
-
-          <div v-if="previewError" class="absolute inset-0 z-10 bg-background/95 flex items-center justify-center p-6">
-            <p class="text-sm text-destructive">{{ previewError }}</p>
-          </div>
-
-          <iframe
-            ref="iframeRef"
-            :src="previewUrl"
-            class="w-full h-[1200px] border-none"
-            title="Order Preview"
-            @load="handleIframeLoad"
-            @error="handleIframeError"
-          ></iframe>
-        </div>
+        <DocRenderer v-if="docModel" :model="docModel" render-mode="screen" />
       </div>
     </DialogContent>
   </Dialog>

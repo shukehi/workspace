@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onBeforeUnmount } from 'vue';
+import { ref, watch, computed } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -8,8 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import type { Order } from '@/types/order';
 import { packagingMatcher } from '@/lib/packagingMatcher';
@@ -19,11 +17,11 @@ import {
   columnsToPrintWidths,
   defaultColumnWidths,
   loadColumnWidthsFromLocal,
-  minColumnWidths,
   persistColumnWidthsToLocal,
   readPrintWidthsFromOrder
 } from '@/features/procurement/printColumnSchema';
 import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
+import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -50,52 +48,6 @@ watch(columnWidths, (next) => {
   form.value.metadata.printColumnWidths = columnsToPrintWidths(next);
 }, { deep: true });
 
-const resizing = ref<{ key: ColumnKey; startX: number; startWidth: number } | null>(null);
-
-function onResizeMove(event: MouseEvent) {
-  if (!resizing.value) return;
-  const deltaX = event.clientX - resizing.value.startX;
-  const width = Math.max(minColumnWidths[resizing.value.key], resizing.value.startWidth + deltaX);
-  columnWidths.value = {
-    ...columnWidths.value,
-    [resizing.value.key]: width
-  };
-}
-
-function stopResizing() {
-  resizing.value = null;
-  document.body.style.userSelect = '';
-  window.removeEventListener('mousemove', onResizeMove);
-  window.removeEventListener('mouseup', stopResizing);
-}
-
-function startResize(key: ColumnKey, event: MouseEvent) {
-  event.preventDefault();
-  resizing.value = {
-    key,
-    startX: event.clientX,
-    startWidth: columnWidths.value[key]
-  };
-  document.body.style.userSelect = 'none';
-  window.addEventListener('mousemove', onResizeMove);
-  window.addEventListener('mouseup', stopResizing);
-}
-
-function resetColumnWidths() {
-  columnWidths.value = { ...defaultColumnWidths };
-}
-
-function resetSingleColumnWidth(key: ColumnKey) {
-  columnWidths.value = {
-    ...columnWidths.value,
-    [key]: defaultColumnWidths[key]
-  };
-}
-
-onBeforeUnmount(() => {
-  stopResizing();
-});
-
 const hasUnsavedChanges = computed(() => {
   if (!initialSnapshot.value) return false;
   try {
@@ -103,16 +55,6 @@ const hasUnsavedChanges = computed(() => {
   } catch {
     return false;
   }
-});
-
-const formattedOrderDate = computed({
-  get: () => form.value.created_at ? new Date(form.value.created_at).toISOString().split('T')[0] : '',
-  set: (val) => { if (val) form.value.created_at = new Date(val).toISOString(); }
-});
-
-const formattedDeliveryDate = computed({
-  get: () => form.value.delivery_date ? new Date(form.value.delivery_date).toISOString().split('T')[0] : '',
-  set: (val) => { if (val) form.value.delivery_date = new Date(val).toISOString(); }
 });
 
 watch(
@@ -154,9 +96,9 @@ watch(
 watch(
   form,
   (next) => {
-  if (!props.open) return;
-  if (!next || !next.id || !next.order_no || !next.created_at || !next.status || !Array.isArray(next.items)) return;
-  emit('draft-change', cloneOrderDraft(next as Order));
+    if (!props.open) return;
+    if (!next || !next.id || !next.order_no || !next.created_at || !next.status || !Array.isArray(next.items)) return;
+    emit('draft-change', cloneOrderDraft(next as Order));
   },
   { deep: true }
 );
@@ -201,6 +143,14 @@ const handlePreview = () => {
   }
   emit('preview', cloneOrderDraft(form.value as Order));
 };
+
+const resetColumnWidths = () => {
+  columnWidths.value = { ...defaultColumnWidths };
+};
+
+const handleColumnWidthsChange = (next: Record<ColumnKey, number>) => {
+  columnWidths.value = next;
+};
 </script>
 
 <template>
@@ -222,147 +172,14 @@ const handlePreview = () => {
       </div>
 
       <div class="flex-1 overflow-auto p-6 bg-muted/20">
-        <div class="bg-card border rounded-lg p-6 max-w-[210mm] mx-auto min-h-[500px]">
-          <div class="mb-6 border rounded-lg p-4">
-            <h1 class="text-xl font-semibold text-center mb-5">采购订单</h1>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm">
-              <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <Label class="min-w-16">客户名称:</Label>
-                  <Input v-model="form.metadata!.customer_name" placeholder="内部" class="h-8 text-xs" />
-                </div>
-                <div class="flex items-center gap-2">
-                  <Label class="min-w-16">订单号:</Label>
-                  <span class="font-medium">{{ form.order_no }}</span>
-                </div>
-              </div>
-
-              <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <Label class="min-w-16">内部名称:</Label>
-                  <Input v-model="form.metadata!.internal_name" class="h-8 text-xs" />
-                </div>
-                <div class="flex items-center gap-2">
-                  <Label class="min-w-16">外协名称:</Label>
-                  <Input v-model="form.metadata!.external_name" class="h-8 text-xs" />
-                </div>
-              </div>
-
-              <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <Label class="min-w-16">制单日期:</Label>
-                  <Input type="date" v-model="formattedOrderDate" class="h-8 text-xs w-36" />
-                </div>
-                <div class="flex items-center gap-2">
-                  <Label class="min-w-16">交货日期:</Label>
-                  <Input type="date" v-model="formattedDeliveryDate" class="h-8 text-xs w-36" />
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-4 pt-4 border-t border-dashed">
-              <div class="flex items-center gap-2">
-                <Label class="min-w-16">供应商:</Label>
-                <Input v-model="form.supplier" class="h-8 text-xs w-64" />
-              </div>
-            </div>
-          </div>
-
-          <div class="border rounded-lg overflow-hidden">
-            <table class="w-full text-xs table-fixed">
-              <colgroup>
-                <col :style="{ width: `${columnWidths.index}px` }" />
-                <col :style="{ width: `${columnWidths.name}px` }" />
-                <col :style="{ width: `${columnWidths.spec}px` }" />
-                <col :style="{ width: `${columnWidths.mb}px` }" />
-                <col :style="{ width: `${columnWidths.left}px` }" />
-                <col :style="{ width: `${columnWidths.right}px` }" />
-                <col :style="{ width: `${columnWidths.remark}px` }" />
-              </colgroup>
-              <thead class="bg-muted/40 border-b">
-                <tr>
-                  <th class="border-r p-2 text-center relative resizable-th">序号<div class="col-resize-handle" @mousedown.stop.prevent="startResize('index', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('index')" /></th>
-                  <th class="border-r p-2 text-left relative resizable-th">产品名称<div class="col-resize-handle" @mousedown.stop.prevent="startResize('name', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('name')" /></th>
-                  <th class="border-r p-2 text-left relative resizable-th">规格尺寸<div class="col-resize-handle" @mousedown.stop.prevent="startResize('spec', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('spec')" /></th>
-                  <th class="border-r p-2 text-center relative resizable-th">门边<div class="col-resize-handle" @mousedown.stop.prevent="startResize('mb', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('mb')" /></th>
-                  <th class="border-r p-2 text-center relative resizable-th">左数量<div class="col-resize-handle" @mousedown.stop.prevent="startResize('left', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('left')" /></th>
-                  <th class="border-r p-2 text-center relative resizable-th">右数量<div class="col-resize-handle" @mousedown.stop.prevent="startResize('right', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('right')" /></th>
-                  <th class="p-2 text-left relative resizable-th">备注<div class="col-resize-handle" @mousedown.stop.prevent="startResize('remark', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('remark')" /></th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                <tr v-for="(item, idx) in form.items" :key="idx" class="hover:bg-muted/30">
-                  <td class="border-r p-1 text-center text-muted-foreground">{{ idx + 1 }}</td>
-
-                  <td class="border-r p-0">
-                    <input v-model="item.name" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-                  </td>
-
-                  <td class="border-r p-0">
-                    <input v-model="item.spec" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-                  </td>
-
-                  <td class="border-r p-0">
-                    <input v-model="item.mb" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
-                  </td>
-
-                  <td class="border-r p-0">
-                    <input v-model.number="item.quantity_left" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" placeholder="-" />
-                  </td>
-                  <td class="border-r p-0">
-                    <input v-model.number="item.quantity_right" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" placeholder="-" />
-                  </td>
-
-                  <td class="p-0">
-                    <input v-model="item.remark" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-                  </td>
-                </tr>
-                <tr v-if="(!form.items || form.items.length < 5)" v-for="i in (5 - (form.items?.length || 0))" :key="'empty-'+i">
-                  <td class="border-r p-2">&nbsp;</td>
-                  <td class="border-r">&nbsp;</td>
-                  <td class="border-r">&nbsp;</td>
-                  <td class="border-r">&nbsp;</td>
-                  <td class="border-r">&nbsp;</td>
-                  <td class="border-r">&nbsp;</td>
-                  <td>&nbsp;</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="flex justify-between mt-10 pt-5 border-t text-sm">
-            <div class="flex items-center gap-2">
-              <span>制单人:</span>
-              <div class="w-24 border-b"></div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span>审核人:</span>
-              <div class="w-24 border-b"></div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span>供应商签字:</span>
-              <div class="w-24 border-b"></div>
-            </div>
-          </div>
-        </div>
+        <OrderSheetView
+          v-if="form"
+          :order="form"
+          mode="edit"
+          :column-widths="columnWidths"
+          @update:column-widths="handleColumnWidthsChange"
+        />
       </div>
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-.resizable-th {
-  overflow: visible;
-}
-
-.col-resize-handle {
-  position: absolute;
-  top: 0;
-  right: -4px;
-  width: 8px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: 2;
-}
-</style>
