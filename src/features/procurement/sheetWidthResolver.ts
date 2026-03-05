@@ -1,5 +1,5 @@
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
-import { getSheetSchema } from '@/features/procurement/order-sheet.schema';
+import { getSheetSchema, type SheetColumnSemantic } from '@/features/procurement/order-sheet.schema';
 
 export const COLUMN_WIDTH_STORAGE_KEY = 'po_edit_column_widths_by_category_v1';
 
@@ -10,36 +10,24 @@ const CATEGORY_BASELINE_TOTAL_WIDTH: Record<PrintCategory, number> = {
   hardware: 764
 };
 
-const COLUMN_BASE_WIDTHS: Record<string, number> = {
-  no: 44,
-  productModelName: 220,
-  type: 240,
-  spec: 200,
-  eccentricity: 220,
-  mb: 74,
-  qtyLeft: 72,
-  qtyRight: 72,
+const SEMANTIC_BASE_WIDTHS: Record<SheetColumnSemantic, number> = {
+  index: 44,
+  name: 240,
+  specLike: 160,
+  edge: 74,
   quantity: 72,
   unit: 58,
   remark: 160
 };
 
-const CATEGORY_COMPACT_OVERRIDES: Partial<Record<PrintCategory, Record<string, number>>> = {
-  packaging: {
-    spec: 160
-  },
-  cylinder: {
-    eccentricity: 160
-  }
-};
+const COLUMN_FALLBACK_WIDTH = 120;
 
 function buildCategoryDefaultWidths(category: PrintCategory) {
   const schema = getSheetSchema(category);
   const defaults: Record<string, number> = {};
 
   schema.columns.forEach((column) => {
-    const override = CATEGORY_COMPACT_OVERRIDES[category]?.[column.key];
-    defaults[column.key] = override ?? COLUMN_BASE_WIDTHS[column.key] ?? 120;
+    defaults[column.key] = SEMANTIC_BASE_WIDTHS[column.semantic] ?? COLUMN_FALLBACK_WIDTH;
   });
 
   const baseline = CATEGORY_BASELINE_TOTAL_WIDTH[category];

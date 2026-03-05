@@ -6,7 +6,7 @@ import { CATEGORY_DEFAULT_WIDTHS } from '../src/features/procurement/sheetWidthR
 const expected = {
   packaging: {
     columns: ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark'],
-    widths: { no: 44, productModelName: 220, spec: 160, mb: 74, qtyLeft: 72, qtyRight: 72, remark: 194 }
+    widths: { no: 44, productModelName: 240, spec: 160, mb: 74, qtyLeft: 72, qtyRight: 72, remark: 174 }
   },
   cylinder: {
     columns: ['no', 'type', 'eccentricity', 'quantity', 'unit', 'remark'],
@@ -14,11 +14,11 @@ const expected = {
   },
   lock: {
     columns: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
-    widths: { no: 44, type: 240, spec: 200, quantity: 72, unit: 58, remark: 150 }
+    widths: { no: 44, type: 240, spec: 160, quantity: 72, unit: 58, remark: 190 }
   },
   hardware: {
     columns: ['no', 'type', 'spec', 'quantity', 'remark'],
-    widths: { no: 44, type: 240, spec: 200, quantity: 72, remark: 208 }
+    widths: { no: 44, type: 240, spec: 160, quantity: 72, remark: 248 }
   }
 } as const;
 

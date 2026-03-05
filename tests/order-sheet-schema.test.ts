@@ -14,6 +14,18 @@ test('schema: cylinder columns include unit before remark', () => {
   assert.equal(schema.columns.find((c) => c.key === 'eccentricity')?.label, '规格');
 });
 
+test('schema: all spec-like fields use 规格 label across categories', () => {
+  const categories = ['packaging', 'cylinder', 'lock', 'hardware'] as const;
+  categories.forEach((category) => {
+    const schema = getSheetSchema(category);
+    schema.columns
+      .filter((column) => column.semantic === 'specLike')
+      .forEach((column) => {
+        assert.equal(column.label, '规格');
+      });
+  });
+});
+
 test('display value: spec/mb fallback works for preview consistency', () => {
   const item = {
     model: 'M-100',

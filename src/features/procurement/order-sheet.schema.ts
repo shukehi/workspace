@@ -2,12 +2,14 @@ import type { OrderItem } from '@/types/order';
 import type { PrintCategory } from '@/features/procurement/docModel';
 
 export type SheetColumnAlign = 'left' | 'center' | 'right';
+export type SheetColumnSemantic = 'index' | 'name' | 'specLike' | 'edge' | 'quantity' | 'unit' | 'remark';
 
 export interface SheetColumn {
   key: string;
   label: string;
   align: SheetColumnAlign;
   inputType: 'text' | 'number';
+  semantic: SheetColumnSemantic;
 }
 
 export type SheetSchema = {
@@ -15,49 +17,70 @@ export type SheetSchema = {
   columns: SheetColumn[];
 };
 
+function resolveLabelBySemantic(semantic: SheetColumnSemantic, fallbackLabel: string) {
+  if (semantic === 'specLike') return '规格';
+  return fallbackLabel;
+}
+
+function createColumn(
+  key: string,
+  fallbackLabel: string,
+  align: SheetColumnAlign,
+  inputType: 'text' | 'number',
+  semantic: SheetColumnSemantic
+): SheetColumn {
+  return {
+    key,
+    label: resolveLabelBySemantic(semantic, fallbackLabel),
+    align,
+    inputType,
+    semantic
+  };
+}
+
 export const CATEGORY_SCHEMAS: Record<PrintCategory, SheetSchema> = {
   packaging: {
     title: '包装采购订单',
     columns: [
-      { key: 'no', label: '序号', align: 'center', inputType: 'number' },
-      { key: 'productModelName', label: '产品名称', align: 'left', inputType: 'text' },
-      { key: 'spec', label: '规格', align: 'left', inputType: 'text' },
-      { key: 'mb', label: '门边', align: 'center', inputType: 'text' },
-      { key: 'qtyLeft', label: '左数量', align: 'center', inputType: 'number' },
-      { key: 'qtyRight', label: '右数量', align: 'center', inputType: 'number' },
-      { key: 'remark', label: '备注', align: 'left', inputType: 'text' }
+      createColumn('no', '序号', 'center', 'number', 'index'),
+      createColumn('productModelName', '产品名称', 'left', 'text', 'name'),
+      createColumn('spec', '规格尺寸', 'left', 'text', 'specLike'),
+      createColumn('mb', '门边', 'center', 'text', 'edge'),
+      createColumn('qtyLeft', '左数量', 'center', 'number', 'quantity'),
+      createColumn('qtyRight', '右数量', 'center', 'number', 'quantity'),
+      createColumn('remark', '备注', 'left', 'text', 'remark')
     ]
   },
   cylinder: {
     title: '锁芯采购订单',
     columns: [
-      { key: 'no', label: '序号', align: 'center', inputType: 'number' },
-      { key: 'type', label: '锁芯型号', align: 'left', inputType: 'text' },
-      { key: 'eccentricity', label: '规格', align: 'left', inputType: 'text' },
-      { key: 'quantity', label: '数量', align: 'center', inputType: 'number' },
-      { key: 'unit', label: '单位', align: 'center', inputType: 'text' },
-      { key: 'remark', label: '备注', align: 'left', inputType: 'text' }
+      createColumn('no', '序号', 'center', 'number', 'index'),
+      createColumn('type', '锁芯型号', 'left', 'text', 'name'),
+      createColumn('eccentricity', '偏心', 'left', 'text', 'specLike'),
+      createColumn('quantity', '数量', 'center', 'number', 'quantity'),
+      createColumn('unit', '单位', 'center', 'text', 'unit'),
+      createColumn('remark', '备注', 'left', 'text', 'remark')
     ]
   },
   lock: {
     title: '锁叉采购订单',
     columns: [
-      { key: 'no', label: '序号', align: 'center', inputType: 'number' },
-      { key: 'type', label: '产品名称', align: 'left', inputType: 'text' },
-      { key: 'spec', label: '规格', align: 'left', inputType: 'text' },
-      { key: 'quantity', label: '数量', align: 'center', inputType: 'number' },
-      { key: 'unit', label: '单位', align: 'center', inputType: 'text' },
-      { key: 'remark', label: '备注', align: 'left', inputType: 'text' }
+      createColumn('no', '序号', 'center', 'number', 'index'),
+      createColumn('type', '产品名称', 'left', 'text', 'name'),
+      createColumn('spec', '规格', 'left', 'text', 'specLike'),
+      createColumn('quantity', '数量', 'center', 'number', 'quantity'),
+      createColumn('unit', '单位', 'center', 'text', 'unit'),
+      createColumn('remark', '备注', 'left', 'text', 'remark')
     ]
   },
   hardware: {
     title: '五金采购订单',
     columns: [
-      { key: 'no', label: '序号', align: 'center', inputType: 'number' },
-      { key: 'type', label: '五金名称', align: 'left', inputType: 'text' },
-      { key: 'spec', label: '规格', align: 'left', inputType: 'text' },
-      { key: 'quantity', label: '数量', align: 'center', inputType: 'number' },
-      { key: 'remark', label: '备注', align: 'left', inputType: 'text' }
+      createColumn('no', '序号', 'center', 'number', 'index'),
+      createColumn('type', '五金名称', 'left', 'text', 'name'),
+      createColumn('spec', '规格', 'left', 'text', 'specLike'),
+      createColumn('quantity', '数量', 'center', 'number', 'quantity'),
+      createColumn('remark', '备注', 'left', 'text', 'remark')
     ]
   }
 };
