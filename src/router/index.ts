@@ -5,9 +5,14 @@ const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
+            path: '/print-document',
+            name: 'print-document',
+            component: () => import('@/views/PrintDocument.vue')
+        },
+        {
             path: '/print-preview',
             name: 'print-preview',
-            component: () => import('@/views/PrintPreview.vue')
+            component: () => import('@/views/PrintDocument.vue')
         },
         {
             path: '/',

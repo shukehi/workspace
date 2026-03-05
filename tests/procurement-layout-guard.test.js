@@ -11,18 +11,21 @@ function read(path) {
 test('layout guard: shell components should not define table layout directly', () => {
   const editDialog = read('src/components/procurement/EditOrderDialog.vue');
   const previewModal = read('src/components/procurement/ProcurementPreviewModal.vue');
-  const printPreview = read('src/views/PrintPreview.vue');
+  const printDocument = read('src/views/PrintDocument.vue');
 
   assert.match(editDialog, /<OrderSheetView/);
-  assert.match(previewModal, /<OrderSheetView/);
-  assert.match(printPreview, /<OrderSheetView/);
+  assert.match(previewModal, /print-document/);
+  assert.match(printDocument, /<table/);
 
   assert.equal(editDialog.includes('<table'), false);
   assert.equal(previewModal.includes('<table'), false);
-  assert.equal(printPreview.includes('<table'), false);
 });
 
-test('layout guard: OrderSheetView remains the single table renderer', () => {
+test('layout guard: dedicated print renderer owns print table markup', () => {
+  const printDocument = read('src/views/PrintDocument.vue');
+  assert.match(printDocument, /buildProcurementDocModel/);
+  assert.match(printDocument, /class=\"print-table\"/);
+
   const orderSheet = read('src/components/procurement/OrderSheetView.vue');
   assert.match(orderSheet, /<table/);
   assert.match(orderSheet, /getSheetSchema/);

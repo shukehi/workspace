@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,7 @@ import { Download, Loader2, Printer } from 'lucide-vue-next';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
 import type { Order } from '@/types/order';
-import { normalizePrintCategory, type PrintCategory, type PrintMode } from '@/features/procurement/docModel';
-import { buildPdfRequestPayload, buildPrintPayloadFromOrder } from '@/features/procurement/orderDraft';
-import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
-import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
+import { type PrintMode } from '@/features/procurement/docModel';
 
 const props = defineProps<{
   open: boolean;
@@ -28,7 +25,13 @@ const emit = defineEmits<{
 }>();
 
 const { toast } = useToastStore();
+
 const exportingPdf = ref(false);
+const snapshotLoading = ref(false);
+const snapshotError = ref<string | null>(null);
+const snapshotId = ref('');
+const iframeSeed = ref(Date.now());
+
 const printMode = ref<PrintMode>('signature');
 const modeOptions: Array<{ value: PrintMode; label: string }> = [
   { value: 'signature', label: '签字版' },
@@ -65,44 +68,66 @@ const orderStatusLabel = computed(() => {
   return statusLabels[props.order.status] || props.order.status;
 });
 
-const previewCategory = computed<PrintCategory>(() => {
-  return normalizePrintCategory(props.order?.category);
+const previewSrc = computed(() => {
+  if (!snapshotId.value) return '';
+  return `/print-document?snapshotId=${encodeURIComponent(snapshotId.value)}&printMode=${printMode.value}&embedded=1&t=${iframeSeed.value}`;
 });
 
-const previewWidthState = computed(() => {
-  if (!props.order) {
-    return resolveSheetWidths(previewCategory.value, null, { preferLocalWhenMissing: false });
+async function createSnapshot() {
+  if (!props.order) return '';
+
+  snapshotLoading.value = true;
+  snapshotError.value = null;
+
+  try {
+    const payload = {
+      poNumber: props.order.order_no,
+      category: props.order.category || '',
+      printMode: printMode.value,
+      order: props.order,
+    };
+
+    const result = await api.post<any>('/print/snapshots', payload);
+    const id = String(result?.snapshotId || '').trim();
+    if (!id) {
+      throw new Error('快照创建失败');
+    }
+
+    snapshotId.value = id;
+    iframeSeed.value = Date.now();
+    return id;
+  } catch (error: any) {
+    snapshotId.value = '';
+    snapshotError.value = error?.message || '快照创建失败';
+    throw error;
+  } finally {
+    snapshotLoading.value = false;
   }
-  return resolveSheetWidths(
-    props.order.category,
-    props.order.metadata?.printColumnWidths,
-    { preferLocalWhenMissing: false }
-  );
-});
+}
 
-const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
-const previewColumnWidths = computed(() => previewWidthState.value.widths);
+async function ensureSnapshot() {
+  if (snapshotId.value) return snapshotId.value;
+  return await createSnapshot();
+}
 
-const openPrintWindow = (autoPrint: boolean) => {
+const handlePrint = async () => {
   if (!props.order) return;
 
-  const orderForPrint = buildPrintPayloadFromOrder(props.order);
-  localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
-  localStorage.setItem('_order_preview_po_number', props.order.order_no);
-  localStorage.setItem('_order_preview_category', props.order.category || '采购单');
-  localStorage.setItem('_order_preview_print_mode', printMode.value);
-
-  if (autoPrint) {
-    localStorage.setItem('_order_preview_auto_print', 'true');
-  } else {
-    localStorage.removeItem('_order_preview_auto_print');
+  try {
+    const id = await ensureSnapshot();
+    window.open(
+      `/print-document?snapshotId=${encodeURIComponent(id)}&printMode=${printMode.value}&autoPrint=1&t=${Date.now()}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  } catch (error) {
+    console.error('Open print window failed', error);
+    toast({
+      title: '打印失败',
+      description: '无法生成打印预览',
+      variant: 'destructive'
+    });
   }
-
-  window.open(`/print-preview?printMode=${printMode.value}&t=${Date.now()}`, '_blank', 'noopener,noreferrer');
-};
-
-const handlePrint = () => {
-  openPrintWindow(true);
 };
 
 const handleExportPdf = async () => {
@@ -110,9 +135,13 @@ const handleExportPdf = async () => {
 
   exportingPdf.value = true;
   try {
-    const payload = buildPdfRequestPayload(props.order, printMode.value);
+    const id = await ensureSnapshot();
+    await api.downloadPDF('/pdf/generate', {
+      poNumber: props.order.order_no,
+      snapshotId: id,
+      printMode: printMode.value,
+    }, `${props.order.order_no}.pdf`);
 
-    await api.downloadPDF('/pdf/generate', payload, `${props.order.order_no}.pdf`);
     toast({
       title: '导出成功',
       description: `已导出 ${props.order.order_no}.pdf`,
@@ -133,6 +162,7 @@ const handleExportPdf = async () => {
 const handlePrintModeChange = (mode: PrintMode) => {
   if (printMode.value === mode) return;
   printMode.value = mode;
+  iframeSeed.value = Date.now();
 };
 
 const handleClose = () => {
@@ -143,6 +173,24 @@ const handleEdit = () => {
   if (!props.order) return;
   emit('edit', props.order);
 };
+
+watch(
+  () => [props.open, props.order],
+  async ([open, order]) => {
+    if (!open || !order) {
+      snapshotId.value = '';
+      snapshotError.value = null;
+      return;
+    }
+
+    try {
+      await createSnapshot();
+    } catch (error) {
+      console.error('Preview snapshot refresh failed', error);
+    }
+  },
+  { immediate: true, deep: true }
+);
 </script>
 
 <template>
@@ -177,11 +225,11 @@ const handleEdit = () => {
               {{ mode.label }}
             </button>
           </div>
-          <Button size="sm" variant="outline" @click="handlePrint" :disabled="!order">
+          <Button size="sm" variant="outline" @click="handlePrint" :disabled="!order || snapshotLoading">
             <Printer class="w-4 h-4 mr-2" />
             立即打印
           </Button>
-          <Button size="sm" @click="handleExportPdf" :disabled="!order || exportingPdf">
+          <Button size="sm" @click="handleExportPdf" :disabled="!order || exportingPdf || snapshotLoading">
             <Loader2 v-if="exportingPdf" class="w-4 h-4 mr-2 animate-spin" />
             <Download v-else class="w-4 h-4 mr-2" />
             {{ exportingPdf ? '导出中...' : '导出 PDF' }}
@@ -191,14 +239,22 @@ const handleEdit = () => {
         </div>
       </div>
 
-      <div class="flex-1 overflow-auto p-6 bg-muted/20">
-        <OrderSheetView
-          v-if="order"
-          :order="order"
-          mode="preview"
-          :column-widths="previewColumnWidths"
-          :default-widths="previewDefaultWidths"
+      <div class="flex-1 overflow-hidden bg-muted/20">
+        <div v-if="snapshotLoading" class="h-full flex items-center justify-center text-sm text-muted-foreground">
+          正在生成统一预览...
+        </div>
+        <div v-else-if="snapshotError" class="h-full flex items-center justify-center text-sm text-destructive px-6 text-center">
+          {{ snapshotError }}
+        </div>
+        <iframe
+          v-else-if="previewSrc"
+          :src="previewSrc"
+          title="采购订单文档预览"
+          class="w-full h-full border-0 bg-white"
         />
+        <div v-else class="h-full flex items-center justify-center text-sm text-muted-foreground">
+          暂无可预览的订单数据
+        </div>
       </div>
     </DialogContent>
   </Dialog>

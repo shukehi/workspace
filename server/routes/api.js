@@ -7,6 +7,7 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const config = require('../config');
 const pdfRoutes = require('./pdf');
+const printRoutes = require('./print');
 const orderRoutes = require('./order');
 const materialRoutes = require('./material');
 const inventoryRoutes = require('./inventory');
@@ -34,6 +35,7 @@ router.get('/contracts', async (req, res) => {
 router.use('/contracts', contractRoutes);
 router.use('/materials', materialRoutes);
 router.use('/inventory', inventoryRoutes);
+router.use('/print', printRoutes);
 
 /**
  * PDF 生成 API

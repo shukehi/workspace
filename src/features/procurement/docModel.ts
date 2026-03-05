@@ -8,6 +8,7 @@ export type DocValue = string | number;
 export interface ProcurementDocColumn {
   key: string;
   label: string;
+  align?: 'left' | 'center' | 'right';
   width?: number;
   numeric?: boolean;
 }
