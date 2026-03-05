@@ -26,7 +26,7 @@ export function createPackagingOrderItem(params: {
         quantity_left: params.qtyLeft,
         quantity_right: params.qtyRight,
         unit: '套',
-        remark: `原名: ${params.internalName}`
+        remark: ''
     };
 }
 

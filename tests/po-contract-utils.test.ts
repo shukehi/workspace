@@ -29,6 +29,7 @@ test('PO contract utils: packaging item keeps normalized fields', () => {
     assert.equal(item.quantity_left, 3);
     assert.equal(item.quantity_right, 5);
     assert.equal(item.quantity, 8);
+    assert.equal(item.remark, '');
 });
 
 test('PO contract utils: cylinder/lock-fork items keep required typed fields', () => {
@@ -80,4 +81,3 @@ test('PO contract utils: validators detect missing category/common fields', () =
     assert.equal(commonMissing.length, 1);
     assert.ok(commonMissing[0].missing.includes('name'));
 });
-
