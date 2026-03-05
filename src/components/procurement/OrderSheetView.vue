@@ -41,6 +41,14 @@ const formattedDeliveryDate = computed({
 
 const resizing = ref<{ key: ColumnKey; startX: number; startWidth: number } | null>(null);
 
+function resolveDisplaySpec(item: Record<string, any>) {
+  return item?.spec || item?.model || '-';
+}
+
+function resolveDisplayMb(item: Record<string, any>) {
+  return item?.mb || item?.orientation || '-';
+}
+
 function onResizeMove(event: MouseEvent) {
   if (!resizing.value) return;
   const deltaX = event.clientX - resizing.value.startX;
@@ -169,11 +177,11 @@ onBeforeUnmount(() => {
             </td>
             <td class="border-r p-0">
               <input v-if="isEditMode" v-model="item.spec" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ item.spec || '-' }}</div>
+              <div v-else class="w-full h-full p-2">{{ resolveDisplaySpec(item) }}</div>
             </td>
             <td class="border-r p-0">
               <input v-if="isEditMode" v-model="item.mb" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2 text-center">{{ item.mb || '-' }}</div>
+              <div v-else class="w-full h-full p-2 text-center">{{ resolveDisplayMb(item) }}</div>
             </td>
             <td class="border-r p-0">
               <input v-if="isEditMode" v-model.number="item.quantity_left" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" placeholder="-" />
