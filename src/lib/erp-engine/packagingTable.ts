@@ -12,6 +12,7 @@ type PackagingMapping = Record<string, any>;
 type AggregatedPackagingRecord = {
     internalName: string;
     externalName: string;
+    productModelName: string;
     supplierName: string;
     spec: string;
     mb: string;
@@ -20,6 +21,24 @@ type AggregatedPackagingRecord = {
     totalQty: number;
 };
 type AggregatedPackaging = Record<string, AggregatedPackagingRecord>;
+
+function normalizeProductNames(raw: string): string[] {
+    if (!raw) return [];
+
+    const lines = raw
+        .split('\n')
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+    if (lines.length <= 1 && raw.includes(' / ')) {
+        return raw
+            .split(/\s+\/\s+/)
+            .map((name) => name.trim())
+            .filter(Boolean);
+    }
+
+    return lines;
+}
 
 /**
  * 聚合包装数据
@@ -41,6 +60,7 @@ export function aggregatePackaging(items: PackagingItem[], PACKAGING_MAPPING: Pa
         const mappings = PACKAGING_MAPPING.mappings || PACKAGING_MAPPING;
         const supplierName = PACKAGING_MAPPING.supplierName || "方亮包装";
         const externalName = mappings[internalName] || internalName + " (未匹配)";
+        const productModelName = String(item.productModelName || '').trim();
         const spec = item.spec || "未知规格";
         const mb = item.mb || "-";
         const qty = parseQuantity(item.qty);
@@ -53,6 +73,7 @@ export function aggregatePackaging(items: PackagingItem[], PACKAGING_MAPPING: Pa
             groups[groupKey] = {
                 internalName,
                 externalName,
+                productModelName,
                 supplierName,
                 spec,
                 mb,
@@ -60,6 +81,18 @@ export function aggregatePackaging(items: PackagingItem[], PACKAGING_MAPPING: Pa
                 totalRight: 0,
                 totalQty: 0
             };
+        }
+
+        if (productModelName) {
+            const current = groups[groupKey].productModelName;
+            if (!current) {
+                groups[groupKey].productModelName = productModelName;
+            } else {
+                const names = normalizeProductNames(current);
+                if (!names.includes(productModelName)) {
+                    groups[groupKey].productModelName = [...names, productModelName].join('\n');
+                }
+            }
         }
 
         groups[groupKey].totalQty += qty;

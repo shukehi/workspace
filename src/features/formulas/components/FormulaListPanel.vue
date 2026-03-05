@@ -29,9 +29,16 @@ function getRowTitle(item: FormulaSummary) {
   if (isLocalDraft(item)) {
     return item.displayName?.trim() || '未命名配方';
   }
-  return item.formulaKey === item.displayName
-    ? item.displayName
-    : `${item.formulaKey} - ${item.displayName}`;
+  const formulaKey = String(item.formulaKey || '').trim();
+  const displayName = String(item.displayName || '').trim();
+  if (!displayName) return formulaKey || '未命名配方';
+
+  const compactFormulaKey = formulaKey.replace(/\s+/g, '');
+  const compactDisplayName = displayName.replace(/\s+/g, '');
+  if (!formulaKey || compactFormulaKey === compactDisplayName) {
+    return displayName;
+  }
+  return `${formulaKey} - ${displayName}`;
 }
 
 function requestLoadMore() {

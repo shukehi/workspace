@@ -67,7 +67,12 @@ onMounted(() => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <div class="text-xs text-muted-foreground mb-1">配方编码</div>
-                <Input v-model="manager.detail.formulaKey" @update:model-value="manager.markDirty" />
+                <Input
+                  v-model="manager.detail.formulaKey"
+                  readonly
+                  placeholder="保存后自动生成（FYYYYMMDD-####）"
+                />
+                <p class="text-xs text-muted-foreground mt-1">系统自动生成，不可手动修改</p>
                 <p v-if="manager.validationErrors.formulaKey" class="text-xs text-rose-600 mt-1">{{ manager.validationErrors.formulaKey }}</p>
               </div>
               <div>

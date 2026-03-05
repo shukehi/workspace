@@ -40,6 +40,14 @@ test.before(async () => {
     unit: 'pcs',
     category: 'Raw'
   });
+  await Material.create({
+    code: '华荣8181',
+    name: '华荣8181',
+    supplier: '华荣',
+    model: '8181',
+    unit: 'kg',
+    category: 'Raw'
+  });
   const started = await startServer();
   server = started.server;
   baseUrl = started.baseUrl;
@@ -50,7 +58,6 @@ test('formula lifecycle: create -> update draft -> publish -> published map', as
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
     body: JSON.stringify({
-      formulaKey: 'TEST_F001',
       displayName: '测试配方',
       bom: [{ materialId: 'M-001', position: 'main', materialCategory: '油漆', supplier: '供应商A', usage: { single: 1, double: 2, paired: 2 } }],
       changeNote: 'create'
@@ -59,8 +66,10 @@ test('formula lifecycle: create -> update draft -> publish -> published map', as
   assert.equal(createRes.status, 201);
   const created = await createRes.json();
   assert.equal(created.success, true);
+  const formulaKey = created.formula.formulaKey;
+  assert.match(formulaKey, /^F\d{8}-\d{4}$/);
 
-  const updateRes = await fetch(`${baseUrl}/api/config/formulas/TEST_F001/draft`, {
+  const updateRes = await fetch(`${baseUrl}/api/config/formulas/${formulaKey}/draft`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
     body: JSON.stringify({
@@ -73,7 +82,7 @@ test('formula lifecycle: create -> update draft -> publish -> published map', as
   const updated = await updateRes.json();
   assert.equal(updated.success, true);
 
-  const publishRes = await fetch(`${baseUrl}/api/config/formulas/TEST_F001/publish`, {
+  const publishRes = await fetch(`${baseUrl}/api/config/formulas/${formulaKey}/publish`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
     body: JSON.stringify({
@@ -88,11 +97,12 @@ test('formula lifecycle: create -> update draft -> publish -> published map', as
   const publishedMapRes = await fetch(`${baseUrl}/api/config/formulas/published-map`);
   assert.equal(publishedMapRes.status, 200);
   const publishedMap = await publishedMapRes.json();
-  assert.ok(publishedMap.TEST_F001);
-  assert.equal(publishedMap.TEST_F001.displayName, '测试配方');
-  assert.ok(Array.isArray(publishedMap.TEST_F001.bom));
+  assert.ok(publishedMap[formulaKey]);
+  assert.equal(publishedMap[formulaKey].displayName, '测试配方');
+  assert.ok(Array.isArray(publishedMap[formulaKey].bom));
+  assert.ok(publishedMap['测试配方']);
 
-  const archiveRes = await fetch(`${baseUrl}/api/config/formulas/TEST_F001/archive`, {
+  const archiveRes = await fetch(`${baseUrl}/api/config/formulas/${formulaKey}/archive`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
     body: JSON.stringify({
@@ -104,7 +114,7 @@ test('formula lifecycle: create -> update draft -> publish -> published map', as
   const archivedMapRes = await fetch(`${baseUrl}/api/config/formulas/published-map`);
   assert.equal(archivedMapRes.status, 200);
   const archivedMap = await archivedMapRes.json();
-  assert.equal(archivedMap.TEST_F001, undefined);
+  assert.equal(archivedMap[formulaKey], undefined);
 });
 
 test('GET /api/config/formulas returns paged shape', async () => {
@@ -114,6 +124,27 @@ test('GET /api/config/formulas returns paged shape', async () => {
   assert.ok(Array.isArray(body.items));
   assert.equal(typeof body.total, 'number');
   assert.equal(typeof body.page, 'number');
+});
+
+test('create formula accepts supplier + model split and canonicalizes to material code', async () => {
+  const createRes = await fetch(`${baseUrl}/api/config/formulas`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      displayName: '供应商型号拆分校验',
+      bom: [{ materialId: '8181', position: 'main', materialCategory: '塑粉', supplier: '华荣', usage: { single: 1, double: 1, paired: 2 } }],
+      changeNote: 'create with supplier/model split'
+    })
+  });
+  assert.equal(createRes.status, 201);
+  const created = await createRes.json();
+  const formulaKey = created.formula.formulaKey;
+  assert.match(formulaKey, /^F\d{8}-\d{4}$/);
+
+  const detailRes = await fetch(`${baseUrl}/api/config/formulas/${formulaKey}`);
+  assert.equal(detailRes.status, 200);
+  const detail = await detailRes.json();
+  assert.equal(detail.formula.bom[0].materialId, '华荣8181');
 });
 
 test('/api/formulas is not mounted', async () => {

@@ -192,9 +192,6 @@ export const useProcurementStore = defineStore('procurement', () => {
         document.body.removeChild(link);
     }
 
-    // Initialize
-    fetchOrders();
-
     return {
         purchaseOrders,
         sortedOrders,

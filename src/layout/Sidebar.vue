@@ -52,10 +52,10 @@ function findGroupByPath(path: string): GroupId | null {
   return null;
 }
 
-function setDefaultOpenState(activeGroupId: GroupId | null) {
+function setDefaultOpenState(_activeGroupId: GroupId | null) {
   const next: Partial<Record<GroupId, boolean>> = {};
   for (const group of mainNavGroups) {
-    next[group.id] = group.id === activeGroupId;
+    next[group.id] = true;
   }
   openGroups.value = next;
 }

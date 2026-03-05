@@ -69,13 +69,16 @@ test('OrderService CRUD and category filter', async (t) => {
   const filtered = await orderService.getAllOrders('包装');
   assert.ok(filtered.some((o) => o.id === created.id));
 
+  const nextCreatedAt = '2026-02-01T00:00:00.000Z';
   const updated = await orderService.updateOrder(created.id, {
     category: '锁芯',
-    status: 'processing'
+    status: 'processing',
+    created_at: nextCreatedAt
   });
 
   assert.equal(updated.category, '锁芯');
   assert.equal(updated.status, 'processing');
+  assert.equal(new Date(updated.created_at).toISOString(), nextCreatedAt);
 
   const filteredAfterUpdate = await orderService.getAllOrders('锁芯');
   assert.ok(filteredAfterUpdate.some((o) => o.id === created.id));

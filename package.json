@@ -13,6 +13,7 @@
         "server:prod": "node server/index.js",
         "db:migrate:add-order-category": "node server/scripts/migrate_add_order_category.js",
         "db:migrate:formulas": "node server/scripts/migrate_formulas_to_sqlite.js",
+        "db:migrate:formula-keys": "node server/scripts/migrate_formula_keys_to_generated_format.js",
         "db:export:formulas": "node server/scripts/export_formulas_to_json.js",
         "start": "npm run server:prod"
     },
@@ -44,7 +45,6 @@
         "@types/node": "^25.1.0",
         "@vitejs/plugin-vue": "^6.0.3",
         "autoprefixer": "^10.4.24",
-        "axios-mock-adapter": "^2.1.0",
         "postcss": "^8.5.6",
         "tailwindcss": "^4.1.18",
         "tsx": "^4.21.0",

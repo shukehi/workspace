@@ -9,6 +9,7 @@ process.env.DB_STORAGE = tempDbPath;
 
 const { initDB, sequelize, Material } = require('../server/models');
 const FormulaWorkflow = require('../server/services/formulas');
+const FormulaRepository = require('../server/services/formulas/formula.repository');
 
 test.before(async () => {
   await initDB();
@@ -22,7 +23,6 @@ test.before(async () => {
 
 test('workflow handles revision conflict and rollback', async () => {
   const created = await FormulaWorkflow.createFormula({
-    formulaKey: 'WF_TEST_001',
     displayName: '工作流测试配方',
     bom: [
       {
@@ -38,8 +38,10 @@ test('workflow handles revision conflict and rollback', async () => {
   });
   assert.equal(created.ok, true);
   assert.equal(created.revision.revision, 1);
+  const formulaKey = created.definition.formula_key;
+  assert.match(formulaKey, /^F\d{8}-\d{4}$/);
 
-  const conflict = await FormulaWorkflow.updateDraft('WF_TEST_001', {
+  const conflict = await FormulaWorkflow.updateDraft(formulaKey, {
     revision: 999,
     bom: [
       {
@@ -55,7 +57,7 @@ test('workflow handles revision conflict and rollback', async () => {
   assert.equal(conflict.ok, false);
   assert.equal(conflict.status, 409);
 
-  const updated = await FormulaWorkflow.updateDraft('WF_TEST_001', {
+  const updated = await FormulaWorkflow.updateDraft(formulaKey, {
     revision: 1,
     bom: [
       {
@@ -72,7 +74,7 @@ test('workflow handles revision conflict and rollback', async () => {
   assert.equal(updated.ok, true);
   assert.equal(updated.revision.revision, 2);
 
-  const published = await FormulaWorkflow.publish('WF_TEST_001', {
+  const published = await FormulaWorkflow.publish(formulaKey, {
     fromRevision: 2,
     changeNote: 'publish',
     operator: 'tester'
@@ -80,7 +82,7 @@ test('workflow handles revision conflict and rollback', async () => {
   assert.equal(published.ok, true);
   assert.equal(published.revision.revision, 3);
 
-  const rolledBack = await FormulaWorkflow.rollback('WF_TEST_001', {
+  const rolledBack = await FormulaWorkflow.rollback(formulaKey, {
     targetRevision: 1,
     reason: 'rollback check',
     operator: 'tester'
@@ -89,17 +91,56 @@ test('workflow handles revision conflict and rollback', async () => {
   assert.equal(rolledBack.revision, 4);
 
   const publishedMap = await FormulaWorkflow.getPublishedFormulasMap();
-  assert.ok(publishedMap.WF_TEST_001);
-  assert.equal(publishedMap.WF_TEST_001.displayName, '工作流测试配方');
+  assert.ok(publishedMap[formulaKey]);
+  assert.equal(publishedMap[formulaKey].displayName, '工作流测试配方');
+  assert.ok(publishedMap['工作流测试配方']);
 
-  const archived = await FormulaWorkflow.archive('WF_TEST_001', {
+  const archived = await FormulaWorkflow.archive(formulaKey, {
     reason: 'archive for published-map filter check',
     operator: 'tester'
   });
   assert.equal(archived.ok, true);
 
   const archivedMap = await FormulaWorkflow.getPublishedFormulasMap();
-  assert.equal(archivedMap.WF_TEST_001, undefined);
+  assert.equal(archivedMap[formulaKey], undefined);
+});
+
+test('createFormula retries when sqlite is busy', async () => {
+  const originalWithTransaction = FormulaRepository.withTransaction;
+  let attempts = 0;
+
+  FormulaRepository.withTransaction = async (handler) => {
+    attempts += 1;
+    if (attempts === 1) {
+      const busyError = new Error('SQLITE_BUSY: database is locked');
+      busyError.name = 'SequelizeTimeoutError';
+      busyError.original = { code: 'SQLITE_BUSY', message: 'SQLITE_BUSY: database is locked' };
+      throw busyError;
+    }
+    return originalWithTransaction.call(FormulaRepository, handler);
+  };
+
+  try {
+    const created = await FormulaWorkflow.createFormula({
+      displayName: 'BUSY重试测试',
+      bom: [
+        {
+          materialId: 'M-001',
+          position: 'main',
+          materialCategory: '油漆',
+          supplier: '供应商A',
+          usage: { single: 1, double: 1, paired: 1 }
+        }
+      ],
+      changeNote: 'busy retry',
+      operator: 'tester'
+    });
+
+    assert.equal(created.ok, true);
+    assert.ok(attempts >= 2);
+  } finally {
+    FormulaRepository.withTransaction = originalWithTransaction;
+  }
 });
 
 test.after(async () => {

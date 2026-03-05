@@ -92,6 +92,13 @@ class OrderService {
                 delivery_date: data.delivery_date
             }, { transaction });
 
+            if (data.created_at !== undefined) {
+                await Order.update(
+                    { created_at: data.created_at },
+                    { where: { id }, transaction, silent: true }
+                );
+            }
+
             if (data.items) {
                 // simple strategy: delete all and recreate (easiest for full replace)
                 // for more efficiency, we could diff, but for now this is safe

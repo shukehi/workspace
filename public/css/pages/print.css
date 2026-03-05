@@ -57,7 +57,7 @@ body.print-mode #printOutput {
     width: 100%;
     max-width: 210mm;
     min-height: auto;
-    padding: 10mm;
+    padding: 8mm;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
     position: relative;
     box-sizing: border-box;
@@ -66,30 +66,28 @@ body.print-mode #printOutput {
 .print-header {
     display: block;
     text-align: center;
-    border: 2px solid #000;
-    /* Full container border */
-    margin-bottom: 20px;
-    padding: 20px;
+    border: 1.2px solid #1f2937;
+    margin-bottom: 14px;
+    padding: 12px 14px;
     background-color: #fff;
 }
 
 .print-header h1 {
-    font-size: 28px;
-    margin: 0 0 15px 0;
+    font-size: 22px;
+    margin: 0 0 10px 0;
     font-weight: 700;
     line-height: 1.2;
     color: #000;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.02em;
 }
 
 .print-info-top-columns {
     display: flex;
     justify-content: space-between;
-    gap: 15px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 12px;
     text-align: left;
-    font-size: 12px;
+    font-size: 11.5px;
     color: #000;
 }
 
@@ -97,25 +95,25 @@ body.print-mode #printOutput {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .print-info-bottom-row {
-    margin-top: 8px;
+    margin-top: 6px;
     text-align: left;
-    font-size: 13px;
-    padding-top: 8px;
+    font-size: 12px;
+    padding-top: 6px;
     color: #000;
 }
 
 .info-item {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     align-items: baseline;
 }
 
 .info-item label {
-    font-weight: 700;
+    font-weight: 600;
     white-space: nowrap;
     color: #000;
     font-family: var(--font-sans);
@@ -130,33 +128,23 @@ body.print-mode #printOutput {
     font-weight: 500;
 }
 
-.inline-date-input {
-    border: none;
-    background: transparent;
-    font-size: 13px;
-    font-family: var(--font-mono);
-    padding: 2px 4px;
-    outline: none;
-    cursor: pointer;
-    border-bottom: 1px solid #000;
-    transition: all 0.2s;
-}
-
-.inline-date-input:hover {
-    border-bottom-color: #666;
-}
-
-.inline-date-input:focus {
-    border-bottom-color: #000;
-    background: #f9f9f9;
+.p-date-text {
+    display: inline-block;
+    min-width: 92px;
+    font-size: 11.5px;
+    font-family: var(--font-sans);
+    line-height: 1.2;
+    border-bottom: 0.8px solid #4b5563;
+    padding: 0 2px 1px;
+    color: #111827;
 }
 
 .print-footer {
     display: flex;
     justify-content: space-between;
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 2px solid #000;
+    margin-top: 22px;
+    padding-top: 12px;
+    border-top: 1px solid #374151;
     color: #000;
     font-family: var(--font-sans);
 }
@@ -165,80 +153,167 @@ body.print-mode #printOutput {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .line {
-    border-bottom: 1.5px solid #000;
-    width: 90px;
+    border-bottom: 1px solid #4b5563;
+    width: 100px;
     height: 1px;
+}
+
+.print-page.mode-compact .print-header {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+}
+
+.print-page.mode-compact .print-header h1 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.print-page.mode-compact .print-info-top-columns {
+    margin-top: 8px;
+    gap: 10px;
+    font-size: 11px;
+}
+
+.print-page.mode-compact .print-col {
+    gap: 6px;
+}
+
+.print-page.mode-compact .print-footer {
+    display: none;
 }
 
 /* Print Table */
 .print-table {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-    border: 2px solid #000;
-    /* Stronger outer border */
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
     table-layout: fixed;
-    color: #000;
-    font-family: var(--font-mono);
-    /* Monospace for table data */
+    color: #111827;
+    font-family: var(--font-sans);
+    overflow: hidden;
 }
 
 .print-table th,
 .print-table td {
-    border: 1px solid #000;
-    /* Solid borders */
-    padding: 8px 4px;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 6px;
     text-align: center;
     word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.print-table tbody tr:not(.total-row) td {
+    height: 38px;
 }
 
 .print-table th {
-    background-color: #e8e8e8;
+    background-color: #f3f4f6;
     font-weight: 600;
+    color: #374151;
 }
 
-/* 序号 */
-.print-table th:nth-child(1) {
-    width: 40px;
+.print-table th:last-child,
+.print-table td:last-child {
+    border-right: 0;
 }
 
-/* 产品名称 */
-.print-table th:nth-child(2) {
-    width: 180px;
+.print-table tbody tr:last-child td {
+    border-bottom: 0;
 }
 
-/* 规格尺寸 */
-.print-table th:nth-child(3) {
-    width: 150px;
+.print-table td:nth-child(2) {
+    white-space: pre-line;
+    text-align: left;
+    line-height: 1.45;
 }
 
-/* 门边 */
-.print-table th:nth-child(4) {
-    width: 55px;
-}
-
-/* 左数量 */
-.print-table th:nth-child(5) {
-    width: 45px;
-}
-
-/* 右数量 */
-.print-table th:nth-child(6) {
-    width: 45px;
-}
-
-/* 备注列 - 始终使用自动宽度（适配所有类别：包装7列、锁芯5列等） */
 .print-table th:last-child,
 .print-table td:last-child {
     width: auto !important;
-    min-width: 100px;
-    word-break: break-all;
+    min-width: 88px;
+    word-break: break-word;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
+}
+
+.print-table td.col-numeric,
+.print-table th.col-numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
+.print-table tbody tr:nth-child(even):not(.total-row) {
+    background-color: #fff;
+}
+
+.print-table .total-row td {
+    background-color: #f9fafb;
+    font-weight: 600;
+}
+
+/* 列宽策略：按采购类别分别控制 */
+.print-table.category-packaging th:nth-child(1) {
+    width: 40px;
+}
+
+.print-table.category-packaging th:nth-child(2) {
+    width: 205px;
+}
+
+.print-table.category-packaging th:nth-child(3) {
+    width: 145px;
+}
+
+.print-table.category-packaging th:nth-child(4) {
+    width: 58px;
+}
+
+.print-table.category-packaging th:nth-child(5),
+.print-table.category-packaging th:nth-child(6) {
+    width: 58px;
+}
+
+.print-table.category-cylinder th:nth-child(1),
+.print-table.category-hardware th:nth-child(1),
+.print-table.category-lock th:nth-child(1) {
+    width: 40px;
+}
+
+.print-table.category-cylinder th:nth-child(2),
+.print-table.category-hardware th:nth-child(2) {
+    width: 185px;
+}
+
+.print-table.category-cylinder th:nth-child(3),
+.print-table.category-hardware th:nth-child(3) {
+    width: 120px;
+}
+
+.print-table.category-cylinder th:nth-child(4),
+.print-table.category-hardware th:nth-child(4),
+.print-table.category-lock th:nth-child(4) {
+    width: 70px;
+}
+
+.print-table.category-lock th:nth-child(2) {
+    width: 168px;
+}
+
+.print-table.category-lock th:nth-child(3) {
+    width: 120px;
+}
+
+.print-table.category-lock th:nth-child(5) {
+    width: 56px;
 }
 
 
@@ -311,6 +386,35 @@ body.print-mode #printOutput {
     color: var(--primary-hover);
 }
 
+@media screen {
+    .print-page {
+        width: 100%;
+        max-width: none;
+        min-height: auto;
+        padding: 12px;
+        margin: 0;
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
+
+    .print-header {
+        margin-bottom: 10px;
+        padding: 10px 12px;
+    }
+
+    .print-footer {
+        margin-top: 14px;
+        padding-top: 8px;
+    }
+
+    .print-table tbody tr:not(.total-row):hover td {
+        background-color: #f5f7fb;
+        transition: background-color 0.16s ease;
+    }
+}
+
 @media print {
 
     /* Hide all UI controls when printing */
@@ -349,9 +453,10 @@ body.print-mode #printOutput {
         box-shadow: none;
         margin: 0;
         padding: 0;
-        page-break-after: always;
         width: 100%;
         height: auto;
+        page-break-after: auto;
+        break-after: auto;
     }
 
     .print-page:last-child {

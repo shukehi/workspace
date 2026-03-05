@@ -81,6 +81,7 @@ export class POGenerator {
                     target.items.push(createPackagingOrderItem({
                         internalName,
                         externalName,
+                        productName: pkg.productModelName,
                         spec: pkg.spec || '-',
                         mb: pkg.mb || '-',
                         qty: Number(pkg.totalQty || 0),
@@ -107,6 +108,7 @@ export class POGenerator {
             target.items.push(createPackagingOrderItem({
                 internalName,
                 externalName,
+                productName: item.productModelName,
                 spec: item.spec || '-',
                 mb: item.mb || '-',
                 qty: parseQuantity(item.qty),

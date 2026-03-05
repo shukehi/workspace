@@ -38,10 +38,15 @@ function toPublishedMap(definitions, latestPublishedByFormulaId, parsePayload) {
         const revision = latestPublishedByFormulaId.get(definition.id);
         if (!revision) continue;
         const payload = parsePayload(revision.payload_json);
-        mapping[definition.formula_key] = {
-            displayName: payload.displayName || definition.display_name,
+        const displayName = String(payload.displayName || definition.display_name || '').trim();
+        const record = {
+            displayName,
             bom: payload.bom
         };
+        mapping[definition.formula_key] = record;
+        if (displayName && !mapping[displayName]) {
+            mapping[displayName] = record;
+        }
     }
     return mapping;
 }
