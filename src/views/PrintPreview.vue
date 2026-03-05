@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { configLoader } from '@/services/configLoader';
-import { buildProcurementDoc } from '@/features/procurement/buildProcurementDoc';
-import { normalizePrintCategory, normalizePrintMode, type PrintCategory, type PrintMode, type ProcurementDocModel } from '@/features/procurement/docModel';
+import { normalizePrintCategory, normalizePrintMode, type PrintCategory, type PrintMode } from '@/features/procurement/docModel';
 import { api } from '@/lib/api';
-import DocRenderer from '@/components/procurement/doc-render/DocRenderer.vue';
+import type { Order } from '@/types/order';
+import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 
 const route = useRoute();
 const loading = ref(true);
@@ -24,29 +23,90 @@ const categoryLabels: Record<string, string> = {
 };
 
 let currentOrderData: any = null;
-let currentCategory: PrintCategory = 'packaging';
-const currentDocModel = ref<ProcurementDocModel | null>(null);
+const currentCategory = ref<PrintCategory>('packaging');
+const previewOrder = ref<Partial<Order> | null>(null);
 const printMode = ref<PrintMode>('signature');
 const modeLabels: Record<PrintMode, string> = {
   signature: '签字版',
   compact: '简洁版'
 };
 
-function buildDocModel(orderData: any) {
-  const packagingMapping = configLoader.getPackagingMapping();
-  currentDocModel.value = buildProcurementDoc(orderData, {
-    category: currentCategory,
-    mode: printMode.value,
-    packagingMapping
+const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, number>> = {
+  packaging: {
+    no: 44,
+    productModelName: 220,
+    spec: 170,
+    mb: 74,
+    qtyLeft: 74,
+    qtyRight: 74,
+    remark: 180
+  },
+  cylinder: {
+    no: 44,
+    type: 260,
+    eccentricity: 220,
+    quantity: 90,
+    remark: 190
+  },
+  lock: {
+    no: 44,
+    type: 220,
+    spec: 180,
+    quantity: 90,
+    unit: 70,
+    remark: 160
+  },
+  hardware: {
+    no: 44,
+    type: 240,
+    spec: 220,
+    quantity: 90,
+    remark: 170
+  }
+};
+
+function sanitizeWidths(widths: any, defaults: Record<string, number>) {
+  const merged: Record<string, number> = { ...defaults };
+  Object.keys(defaults).forEach((key) => {
+    const value = Number(widths?.[key]);
+    if (!Number.isNaN(value) && value >= 36) {
+      merged[key] = value;
+    }
   });
+  return merged;
+}
+
+const previewDefaultWidths = computed(() => CATEGORY_DEFAULT_WIDTHS[currentCategory.value]);
+const previewColumnWidths = computed(() => {
+  const order = previewOrder.value;
+  if (!order) return { ...previewDefaultWidths.value };
+  return sanitizeWidths(order.metadata?.printColumnWidths, previewDefaultWidths.value);
+});
+
+function toPreviewOrder(raw: any, category: PrintCategory): Partial<Order> {
+  const list = Array.isArray(raw?.list) ? raw.list : (Array.isArray(raw?.items) ? raw.items : []);
+  const supplier = raw?.supplier || list?.[0]?.supplier || '';
+  return {
+    order_no: raw?.code || raw?.order_no || '',
+    supplier,
+    category,
+    status: 'draft',
+    created_at: raw?.orderDate || raw?.created_at || new Date().toISOString(),
+    delivery_date: raw?.deliveryDate || raw?.delivery_date || undefined,
+    items: list,
+    metadata: {
+      customer_name: raw?.customerName || raw?.metadata?.customer_name || '',
+      internal_name: raw?.metadata?.internal_name || '',
+      external_name: raw?.metadata?.external_name || '',
+      printColumnWidths: raw?.printColumnWidths || raw?.metadata?.printColumnWidths || {}
+    }
+  };
 }
 
 async function initPreview() {
   try {
     loading.value = true;
     error.value = null;
-
-    await configLoader.loadAll();
 
     const rawOrderData = localStorage.getItem('_order_preview_data');
     const poNumber = localStorage.getItem('_order_preview_po_number') || '';
@@ -61,13 +121,13 @@ async function initPreview() {
     const orderData = JSON.parse(rawOrderData);
     currentPONumber.value = poNumber || 'order';
     currentOrderData = orderData;
-    currentCategory = category;
+    currentCategory.value = category;
 
     const label = categoryLabels[category] || '采购订单';
     poTitle.value = `${label} ${poNumber}`.trim();
     document.title = poTitle.value;
 
-    buildDocModel(orderData);
+    previewOrder.value = toPreviewOrder(orderData, category);
 
     if (localStorage.getItem('_order_preview_auto_print') === 'true') {
       localStorage.removeItem('_order_preview_auto_print');
@@ -95,7 +155,7 @@ async function exportPdf() {
     exporting.value = true;
     await api.downloadPDF('/pdf/generate', {
       poNumber: currentPONumber.value || 'order',
-      category: currentCategory,
+      category: currentCategory.value,
       printMode: printMode.value,
       order: currentOrderData
     }, `${currentPONumber.value || 'order'}.pdf`);
@@ -114,8 +174,6 @@ function handlePrint() {
 function setPrintMode(mode: PrintMode) {
   if (printMode.value === mode) return;
   printMode.value = mode;
-  if (!currentOrderData) return;
-  buildDocModel(currentOrderData);
 }
 
 onMounted(() => {
@@ -157,7 +215,13 @@ onMounted(() => {
     <div v-if="loading" class="state">正在生成预览...</div>
     <div v-else-if="error" class="state error">{{ error }}</div>
     <div id="printOutput" v-else>
-      <DocRenderer v-if="currentDocModel" :model="currentDocModel" render-mode="print" />
+      <OrderSheetView
+        v-if="previewOrder"
+        :order="previewOrder"
+        mode="preview"
+        :column-widths="previewColumnWidths"
+        :default-widths="previewDefaultWidths"
+      />
     </div>
   </div>
 </template>

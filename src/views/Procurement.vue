@@ -25,7 +25,9 @@ import {
   X
 } from 'lucide-vue-next';
 import type { Order } from '@/types/order';
-import { cloneOrderDraft } from '@/features/procurement/orderDraft';
+import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
+import { packagingMatcher } from '@/lib/packagingMatcher';
+import { configLoader } from '@/services/configLoader';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
@@ -106,14 +108,36 @@ const isPreviewDialogOpen = ref(false);
 const selectedOrder = ref<Order | null>(null);
 const draftOrderForPreview = ref<Order | null>(null);
 
+const prepareDraftForMode = (order: Order): Order => {
+  const draft = cloneOrderDraft(order);
+  if (!draft.metadata) draft.metadata = {};
+
+  const isPackagingOrder = draft.category && String(draft.category).includes('包装');
+  if (isPackagingOrder && !draft.metadata.external_name && draft.items && draft.items.length > 0) {
+    const firstItem = draft.items[0];
+    const matched = packagingMatcher.match(firstItem.model || firstItem.name);
+    if (matched) {
+      draft.metadata.external_name = matched;
+    }
+
+    if (!draft.supplier) {
+      const packagingConfig = configLoader.getPackagingMapping();
+      draft.supplier = packagingConfig?.supplierName || '默认供应商';
+    }
+  }
+
+  return normalizeOrderDraft(draft);
+};
+
 const logOrderModePayload = (mode: '编辑模式' | '预览模式', order: Order) => {
   console.log(`[采购管理] 进入${mode}订单数据(JSON):\n${JSON.stringify(order, null, 2)}`);
 };
 
 const handleEdit = (order: Order) => {
-  logOrderModePayload('编辑模式', order);
-  selectedOrder.value = order;
-  draftOrderForPreview.value = cloneOrderDraft(order);
+  const draft = prepareDraftForMode(order);
+  logOrderModePayload('编辑模式', draft);
+  selectedOrder.value = draft;
+  draftOrderForPreview.value = draft;
   isEditDialogOpen.value = true;
 };
 
@@ -142,11 +166,10 @@ const handleDelete = async (order: Order) => {
 };
 
 const handlePreview = (order: Order) => {
-  logOrderModePayload('预览模式', order);
-  selectedOrder.value = order;
-  if (!isEditDialogOpen.value || draftOrderForPreview.value?.id !== order.id) {
-    draftOrderForPreview.value = null;
-  }
+  const draft = prepareDraftForMode(order);
+  logOrderModePayload('预览模式', draft);
+  selectedOrder.value = draft;
+  draftOrderForPreview.value = draft;
   isPreviewDialogOpen.value = true;
 };
 
@@ -156,17 +179,19 @@ const handleDraftChange = (draft: Order) => {
 };
 
 const handleEditPreview = (draft: Order) => {
-  logOrderModePayload('预览模式', draft);
-  selectedOrder.value = draft;
-  draftOrderForPreview.value = draft;
+  const normalizedDraft = prepareDraftForMode(draft);
+  logOrderModePayload('预览模式', normalizedDraft);
+  selectedOrder.value = normalizedDraft;
+  draftOrderForPreview.value = normalizedDraft;
   isPreviewDialogOpen.value = true;
 };
 
 const handlePreviewEdit = (order: Order) => {
-  logOrderModePayload('编辑模式', order);
+  const draft = prepareDraftForMode(order);
+  logOrderModePayload('编辑模式', draft);
   isPreviewDialogOpen.value = false;
-  selectedOrder.value = order;
-  draftOrderForPreview.value = cloneOrderDraft(order);
+  selectedOrder.value = draft;
+  draftOrderForPreview.value = draft;
   isEditDialogOpen.value = true;
 };
 

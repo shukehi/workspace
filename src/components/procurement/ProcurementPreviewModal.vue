@@ -11,12 +11,55 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2, Printer } from 'lucide-vue-next';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
-import { configLoader } from '@/services/configLoader';
 import type { Order } from '@/types/order';
-import { buildProcurementDoc } from '@/features/procurement/buildProcurementDoc';
-import { normalizePrintCategory, type PrintMode } from '@/features/procurement/docModel';
+import { normalizePrintCategory, type PrintCategory, type PrintMode } from '@/features/procurement/docModel';
 import { buildPdfRequestPayload, buildPrintPayloadFromOrder } from '@/features/procurement/orderDraft';
-import DocRenderer from '@/components/procurement/doc-render/DocRenderer.vue';
+import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
+
+const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, number>> = {
+  packaging: {
+    no: 44,
+    productModelName: 220,
+    spec: 170,
+    mb: 74,
+    qtyLeft: 74,
+    qtyRight: 74,
+    remark: 180
+  },
+  cylinder: {
+    no: 44,
+    type: 260,
+    eccentricity: 220,
+    quantity: 90,
+    remark: 190
+  },
+  lock: {
+    no: 44,
+    type: 220,
+    spec: 180,
+    quantity: 90,
+    unit: 70,
+    remark: 160
+  },
+  hardware: {
+    no: 44,
+    type: 240,
+    spec: 220,
+    quantity: 90,
+    remark: 170
+  }
+};
+
+function sanitizeWidths(widths: any, defaults: Record<string, number>) {
+  const merged: Record<string, number> = { ...defaults };
+  Object.keys(defaults).forEach((key) => {
+    const value = Number(widths?.[key]);
+    if (!Number.isNaN(value) && value >= 36) {
+      merged[key] = value;
+    }
+  });
+  return merged;
+}
 
 const props = defineProps<{
   open: boolean;
@@ -66,15 +109,15 @@ const orderStatusLabel = computed(() => {
   return statusLabels[props.order.status] || props.order.status;
 });
 
-const docModel = computed(() => {
-  if (!props.order) return null;
-  const category = normalizePrintCategory(props.order.category);
-  const packagingMapping = configLoader.getPackagingMapping();
-  return buildProcurementDoc(props.order, {
-    category,
-    mode: printMode.value,
-    packagingMapping
-  });
+const previewCategory = computed<PrintCategory>(() => {
+  return normalizePrintCategory(props.order?.category);
+});
+
+const previewDefaultWidths = computed(() => CATEGORY_DEFAULT_WIDTHS[previewCategory.value]);
+
+const previewColumnWidths = computed(() => {
+  if (!props.order) return { ...previewDefaultWidths.value };
+  return sanitizeWidths(props.order.metadata?.printColumnWidths, previewDefaultWidths.value);
 });
 
 const openPrintWindow = (autoPrint: boolean) => {
@@ -186,7 +229,13 @@ const handleEdit = () => {
       </div>
 
       <div class="flex-1 overflow-auto p-6 bg-muted/20">
-        <DocRenderer v-if="docModel" :model="docModel" render-mode="screen" />
+        <OrderSheetView
+          v-if="order"
+          :order="order"
+          mode="preview"
+          :column-widths="previewColumnWidths"
+          :default-widths="previewDefaultWidths"
+        />
       </div>
     </DialogContent>
   </Dialog>

@@ -12,16 +12,80 @@ import { useProcurementStore } from '@/stores/useProcurementStore';
 import type { Order } from '@/types/order';
 import { packagingMatcher } from '@/lib/packagingMatcher';
 import { configLoader } from '@/services/configLoader';
-import {
-  type ColumnKey,
-  columnsToPrintWidths,
-  defaultColumnWidths,
-  loadColumnWidthsFromLocal,
-  persistColumnWidthsToLocal,
-  readPrintWidthsFromOrder
-} from '@/features/procurement/printColumnSchema';
 import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
+import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
+
+const COLUMN_WIDTH_STORAGE_KEY = 'po_edit_column_widths_by_category_v1';
+
+const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, number>> = {
+  packaging: {
+    no: 44,
+    productModelName: 220,
+    spec: 170,
+    mb: 74,
+    qtyLeft: 74,
+    qtyRight: 74,
+    remark: 180
+  },
+  cylinder: {
+    no: 44,
+    type: 260,
+    eccentricity: 220,
+    quantity: 90,
+    remark: 190
+  },
+  lock: {
+    no: 44,
+    type: 220,
+    spec: 180,
+    quantity: 90,
+    unit: 70,
+    remark: 160
+  },
+  hardware: {
+    no: 44,
+    type: 240,
+    spec: 220,
+    quantity: 90,
+    remark: 170
+  }
+};
+
+function sanitizeWidths(widths: any, defaults: Record<string, number>) {
+  const merged: Record<string, number> = { ...defaults };
+  Object.keys(defaults).forEach((key) => {
+    const value = Number(widths?.[key]);
+    if (!Number.isNaN(value) && value >= 36) {
+      merged[key] = value;
+    }
+  });
+  return merged;
+}
+
+function loadLocalCategoryWidths(category: PrintCategory, defaults: Record<string, number>) {
+  if (typeof window === 'undefined') return { ...defaults };
+  try {
+    const raw = window.localStorage.getItem(COLUMN_WIDTH_STORAGE_KEY);
+    if (!raw) return { ...defaults };
+    const parsed = JSON.parse(raw) as Record<string, Record<string, number>>;
+    return sanitizeWidths(parsed?.[category], defaults);
+  } catch {
+    return { ...defaults };
+  }
+}
+
+function persistLocalCategoryWidths(category: PrintCategory, widths: Record<string, number>) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = window.localStorage.getItem(COLUMN_WIDTH_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) as Record<string, Record<string, number>> : {};
+    parsed[category] = widths;
+    window.localStorage.setItem(COLUMN_WIDTH_STORAGE_KEY, JSON.stringify(parsed));
+  } catch {
+    // ignore storage errors
+  }
+}
 
 const props = defineProps<{
   open: boolean;
@@ -39,13 +103,17 @@ const store = useProcurementStore();
 const form = ref<Partial<Order>>({});
 const saving = ref(false);
 const initialSnapshot = ref('');
-const columnWidths = ref<Record<ColumnKey, number>>(loadColumnWidthsFromLocal());
+const columnWidths = ref<Record<string, number>>({ ...CATEGORY_DEFAULT_WIDTHS.packaging });
+
+const currentCategory = computed<PrintCategory>(() => normalizePrintCategory(form.value.category));
+const currentDefaultWidths = computed(() => CATEGORY_DEFAULT_WIDTHS[currentCategory.value]);
 
 watch(columnWidths, (next) => {
-  persistColumnWidthsToLocal(next);
+  const category = currentCategory.value;
+  persistLocalCategoryWidths(category, next);
   if (!form.value) return;
   if (!form.value.metadata) form.value.metadata = {};
-  form.value.metadata.printColumnWidths = columnsToPrintWidths(next);
+  form.value.metadata.printColumnWidths = { ...next };
 }, { deep: true });
 
 const hasUnsavedChanges = computed(() => {
@@ -81,11 +149,18 @@ watch(
 
       const normalizedDraft = normalizeOrderDraft(copy);
       form.value = normalizedDraft;
-      const customWidths = readPrintWidthsFromOrder(normalizedDraft);
-      const hasCustomWidths = !!normalizedDraft.metadata?.printColumnWidths;
-      columnWidths.value = hasCustomWidths ? customWidths : loadColumnWidthsFromLocal();
+
+      const category = normalizePrintCategory(normalizedDraft.category);
+      const defaults = CATEGORY_DEFAULT_WIDTHS[category];
+      const custom = normalizedDraft.metadata?.printColumnWidths;
+      const hasCustomWidths = !!custom && typeof custom === 'object';
+      const loaded = hasCustomWidths
+        ? sanitizeWidths(custom, defaults)
+        : loadLocalCategoryWidths(category, defaults);
+
+      columnWidths.value = loaded;
       if (form.value.metadata) {
-        form.value.metadata.printColumnWidths = columnsToPrintWidths(columnWidths.value);
+        form.value.metadata.printColumnWidths = { ...loaded };
       }
       initialSnapshot.value = JSON.stringify(normalizedDraft);
     }
@@ -145,10 +220,11 @@ const handlePreview = () => {
 };
 
 const resetColumnWidths = () => {
-  columnWidths.value = { ...defaultColumnWidths };
+  const defaults = currentDefaultWidths.value;
+  columnWidths.value = { ...defaults };
 };
 
-const handleColumnWidthsChange = (next: Record<ColumnKey, number>) => {
+const handleColumnWidthsChange = (next: Record<string, number>) => {
   columnWidths.value = next;
 };
 </script>
@@ -177,6 +253,7 @@ const handleColumnWidthsChange = (next: Record<ColumnKey, number>) => {
           :order="form"
           mode="edit"
           :column-widths="columnWidths"
+          :default-widths="currentDefaultWidths"
           @update:column-widths="handleColumnWidthsChange"
         />
       </div>
