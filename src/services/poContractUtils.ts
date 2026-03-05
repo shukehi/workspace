@@ -3,6 +3,7 @@ import type { OrderItem } from '@/types/order';
 export function createPackagingOrderItem(params: {
     internalName: string;
     externalName: string;
+    productName?: string;
     spec: string;
     mb: string;
     qty: number;
@@ -16,7 +17,7 @@ export function createPackagingOrderItem(params: {
         supplier: params.supplier,
         internal_name: params.internalName,
         external_name: params.externalName,
-        name: params.externalName,
+        name: params.productName || params.externalName,
         model: params.spec || '-',
         spec: params.spec || '-',
         mb: params.mb || '-',
@@ -125,4 +126,3 @@ export function findMissingCommonFields(items: OrderItem[]) {
         }))
         .filter((x) => x.missing.length > 0);
 }
-

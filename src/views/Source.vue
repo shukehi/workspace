@@ -10,10 +10,12 @@ import DataTable from '@/components/data-table/DataTable.vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Search } from 'lucide-vue-next';
 import LongTextCell from '@/components/source/LongTextCell.vue';
+import ContractHistoryDialog from '@/components/source/ContractHistoryDialog.vue';
 
 const store = useSourceStore();
 const contractInput = ref('');
 const longTextMode = ref<'clip' | 'hover' | 'expand'>('hover');
+const historyDialogOpen = ref(false);
 
 const longTextColumnKeys = new Set([
   'productModelName',
@@ -29,6 +31,10 @@ const handleSearch = () => {
   if (contractInput.value) {
     store.fetchContract(contractInput.value);
   }
+};
+
+const handleHistoryLoaded = (contractCode: string) => {
+  contractInput.value = contractCode;
 };
 
 const columns = computed<ColumnDef<any>[]>(() => {
@@ -93,6 +99,10 @@ const columns = computed<ColumnDef<any>[]>(() => {
             {{ store.loading ? 'Fetching...' : '获取合同' }}
           </Button>
 
+          <Button variant="outline" :disabled="store.loading" @click="historyDialogOpen = true">
+            历史合同
+          </Button>
+
           <div class="flex items-center gap-1 rounded-md border bg-background p-1">
             <button
               class="px-2 py-1 text-xs rounded-sm transition-colors"
@@ -146,5 +156,10 @@ const columns = computed<ColumnDef<any>[]>(() => {
         </div>
       </CardContent>
     </Card>
+
+    <ContractHistoryDialog
+      v-model:open="historyDialogOpen"
+      @loaded="handleHistoryLoaded"
+    />
   </div>
 </template>

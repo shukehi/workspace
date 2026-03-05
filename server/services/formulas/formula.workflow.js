@@ -22,11 +22,110 @@ function operatorFromRequest(req) {
     return String(fromHeader || 'system-admin');
 }
 
-async function validateBomWithMaterials(bom) {
-    const materialIds = [...new Set(normalizeBom(bom).map((item) => item.materialId).filter(Boolean))];
-    const found = await FormulaRepository.findMaterialsByCodes(materialIds);
-    const materialCodes = new Set(found.map((item) => item.code));
-    return validateBomRows({ bom, allowEmptyBom: false, materialCodeSet: materialCodes });
+function formatDateYYYYMMDD(input = new Date()) {
+    const date = new Date(input);
+    if (Number.isNaN(date.getTime())) {
+        const fallback = new Date();
+        return `${fallback.getFullYear()}${String(fallback.getMonth() + 1).padStart(2, '0')}${String(fallback.getDate()).padStart(2, '0')}`;
+    }
+    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+}
+
+async function generateNextFormulaKey(transaction, dateInput = new Date()) {
+    const datePart = formatDateYYYYMMDD(dateInput);
+    const prefix = `F${datePart}-`;
+    const rows = await FormulaRepository.listDefinitionKeysByPrefix(prefix, transaction);
+    let maxSequence = 0;
+    const regex = new RegExp(`^F${datePart}-(\\d{4})$`);
+
+    rows.forEach((row) => {
+        const key = String(row?.formula_key || '').trim();
+        const match = key.match(regex);
+        if (!match) return;
+        const value = Number(match[1]);
+        if (!Number.isNaN(value)) {
+            maxSequence = Math.max(maxSequence, value);
+        }
+    });
+
+    return `F${datePart}-${String(maxSequence + 1).padStart(4, '0')}`;
+}
+
+function buildSupplierModelCode(supplier, modelOrCode) {
+    const normalizedSupplier = String(supplier || '').trim();
+    const normalizedModelOrCode = String(modelOrCode || '').trim();
+    if (!normalizedSupplier || !normalizedModelOrCode) return '';
+    if (normalizedModelOrCode.startsWith(normalizedSupplier)) return normalizedModelOrCode;
+    return `${normalizedSupplier}${normalizedModelOrCode}`;
+}
+
+function isFormulaKeyUniqueConflict(error) {
+    if (!error) return false;
+    if (error.name !== 'SequelizeUniqueConstraintError') return false;
+    const fields = error.fields || {};
+    if (fields.formula_key) return true;
+    const msg = String(error.message || '');
+    return msg.includes('formula_key') || msg.includes('formula_definitions.formula_key');
+}
+
+function isSqliteBusyError(error) {
+    if (!error) return false;
+    if (error.name === 'SequelizeTimeoutError') return true;
+    const msg = String(error.message || error?.original?.message || '');
+    const code = String(error.code || error?.original?.code || '');
+    return msg.includes('SQLITE_BUSY') || code === 'SQLITE_BUSY';
+}
+
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function validateAndResolveBomWithMaterials(bom) {
+    const normalizedRows = normalizeBom(bom);
+    const shapeErrors = validateBomRows({ bom: normalizedRows, allowEmptyBom: false, materialCodeSet: null });
+    if (shapeErrors.length > 0) {
+        return { bom: normalizedRows, errors: shapeErrors };
+    }
+
+    const candidateCodes = new Set();
+    normalizedRows.forEach((row) => {
+        if (row.materialId) candidateCodes.add(row.materialId);
+        const supplierModelCode = buildSupplierModelCode(row.supplier, row.materialId);
+        if (supplierModelCode) candidateCodes.add(supplierModelCode);
+    });
+
+    const found = await FormulaRepository.findMaterialsByCodes([...candidateCodes]);
+    const materialCodeSet = new Set(found.map((item) => String(item.code || '').trim()).filter(Boolean));
+
+    const resolvedBom = normalizedRows.map((row) => {
+        if (materialCodeSet.has(row.materialId)) return row;
+
+        const supplierModelCode = buildSupplierModelCode(row.supplier, row.materialId);
+        if (supplierModelCode && materialCodeSet.has(supplierModelCode)) {
+            return {
+                ...row,
+                materialId: supplierModelCode
+            };
+        }
+        return row;
+    });
+
+    const missingErrors = [];
+    const seenMissing = new Set();
+    resolvedBom.forEach((row) => {
+        if (!row.materialId || materialCodeSet.has(row.materialId)) return;
+        const dedupeKey = `${row.supplier || ''}::${row.materialId}`;
+        if (seenMissing.has(dedupeKey)) return;
+        seenMissing.add(dedupeKey);
+        missingErrors.push({
+            field: 'bom',
+            message: row.supplier
+                ? `物料不存在: ${row.supplier}+${row.materialId}`
+                : `物料不存在: ${row.materialId}`
+        });
+    });
+
+    return { bom: resolvedBom, errors: missingErrors };
 }
 
 async function listFormulas({ keyword = '', status = '', page = 1, pageSize = 20 } = {}) {
@@ -78,57 +177,80 @@ async function getFormulaDetail(formulaKey) {
 }
 
 async function createFormula({ formulaKey, displayName, bom, changeNote, operator }) {
-    const baseErrors = validateBaseFields({ formulaKey, displayName });
-    if (baseErrors.length > 0) {
-        return { ok: false, status: 422, errors: baseErrors };
-    }
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await FormulaRepository.withTransaction(async (transaction) => {
+                const generatedFormulaKey = await generateNextFormulaKey(transaction);
+                const targetFormulaKey = String(generatedFormulaKey || '').trim();
+                const targetDisplayName = String(displayName || '').trim();
 
-    const normalizedBom = filterMeaningfulBomRows(bom);
-    if (normalizedBom.length > 0) {
-        const bomErrors = await validateBomWithMaterials(normalizedBom);
-        if (bomErrors.length > 0) {
-            return { ok: false, status: 422, errors: bomErrors };
+                const baseErrors = validateBaseFields({ formulaKey: targetFormulaKey, displayName: targetDisplayName });
+                if (baseErrors.length > 0) {
+                    return { ok: false, status: 422, errors: baseErrors };
+                }
+
+                let normalizedBom = filterMeaningfulBomRows(bom);
+                if (normalizedBom.length > 0) {
+                    const bomValidation = await validateAndResolveBomWithMaterials(normalizedBom);
+                    if (bomValidation.errors.length > 0) {
+                        return { ok: false, status: 422, errors: bomValidation.errors };
+                    }
+                    normalizedBom = bomValidation.bom;
+                }
+
+                const exists = await FormulaRepository.findDefinitionByKey(targetFormulaKey, transaction);
+                if (exists) {
+                    return { ok: false, status: 409, errors: [{ field: 'formulaKey', message: '系统编码冲突，请重试' }] };
+                }
+
+                const definition = await FormulaRepository.createDefinition({
+                    formula_key: targetFormulaKey,
+                    display_name: targetDisplayName,
+                    category: '',
+                    status: 'draft',
+                    active_revision: null
+                }, transaction);
+
+                const revision = await FormulaRepository.createRevision({
+                    formula_id: definition.id,
+                    revision: 1,
+                    state: 'draft',
+                    payload_json: serializePayload({
+                        formulaKey: targetFormulaKey,
+                        displayName: targetDisplayName,
+                        bom: normalizedBom
+                    }),
+                    change_note: changeNote || '初始草稿',
+                    created_by: operator
+                }, transaction);
+
+                await FormulaRepository.createAuditLog({
+                    formula_id: definition.id,
+                    action: 'create',
+                    from_revision: null,
+                    to_revision: 1,
+                    operator,
+                    meta_json: JSON.stringify({ changeNote: changeNote || '' })
+                }, transaction);
+
+                return { ok: true, definition, revision };
+            });
+        } catch (error) {
+            if (isFormulaKeyUniqueConflict(error) && attempt < maxAttempts) {
+                continue;
+            }
+            if (isSqliteBusyError(error) && attempt < maxAttempts) {
+                await wait(30 * attempt);
+                continue;
+            }
+            if (isFormulaKeyUniqueConflict(error)) {
+                return { ok: false, status: 409, errors: [{ field: 'formulaKey', message: '系统编码冲突，请重试' }] };
+            }
+            throw error;
         }
     }
-
-    return FormulaRepository.withTransaction(async (transaction) => {
-        const exists = await FormulaRepository.findDefinitionByKey(formulaKey, transaction);
-        if (exists) {
-            return { ok: false, status: 409, errors: [{ field: 'formulaKey', message: '配方编码已存在' }] };
-        }
-
-        const definition = await FormulaRepository.createDefinition({
-            formula_key: formulaKey,
-            display_name: displayName,
-            category: '',
-            status: 'draft',
-            active_revision: null
-        }, transaction);
-
-        const revision = await FormulaRepository.createRevision({
-            formula_id: definition.id,
-            revision: 1,
-            state: 'draft',
-            payload_json: serializePayload({
-                formulaKey,
-                displayName,
-                bom: normalizedBom
-            }),
-            change_note: changeNote || '初始草稿',
-            created_by: operator
-        }, transaction);
-
-        await FormulaRepository.createAuditLog({
-            formula_id: definition.id,
-            action: 'create',
-            from_revision: null,
-            to_revision: 1,
-            operator,
-            meta_json: JSON.stringify({ changeNote: changeNote || '' })
-        }, transaction);
-
-        return { ok: true, definition, revision };
-    });
+    return { ok: false, status: 409, errors: [{ field: 'formulaKey', message: '系统编码冲突，请重试' }] };
 }
 
 async function updateDraft(formulaKey, { revision, formulaKey: nextFormulaKey, displayName, bom, changeNote, operator }) {
@@ -150,17 +272,10 @@ async function updateDraft(formulaKey, { revision, formulaKey: nextFormulaKey, d
         }
 
         const parsed = parsePayload(latest.payload_json);
-        const targetFormulaKey = String(nextFormulaKey || definition.formula_key).trim();
+        const targetFormulaKey = String(definition.formula_key || '').trim();
         const targetDisplayName = String(displayName || parsed.displayName || definition.display_name).trim();
 
-        if (targetFormulaKey !== definition.formula_key) {
-            const existing = await FormulaRepository.findDefinitionByKey(targetFormulaKey, transaction);
-            if (existing) {
-                return { ok: false, status: 409, errors: [{ field: 'formulaKey', message: '配方编码已存在' }] };
-            }
-        }
-
-        const normalizedBom = normalizeBom(bom);
+        let normalizedBom = normalizeBom(bom);
         const baseErrors = validateBaseFields({
             formulaKey: targetFormulaKey,
             displayName: targetDisplayName
@@ -169,10 +284,11 @@ async function updateDraft(formulaKey, { revision, formulaKey: nextFormulaKey, d
             return { ok: false, status: 422, errors: baseErrors };
         }
 
-        const bomErrors = await validateBomWithMaterials(normalizedBom);
-        if (bomErrors.length > 0) {
-            return { ok: false, status: 422, errors: bomErrors };
+        const bomValidation = await validateAndResolveBomWithMaterials(normalizedBom);
+        if (bomValidation.errors.length > 0) {
+            return { ok: false, status: 422, errors: bomValidation.errors };
         }
+        normalizedBom = bomValidation.bom;
 
         const nextRevisionNumber = latest.revision + 1;
         const nextRevision = await FormulaRepository.createRevision({
@@ -190,7 +306,6 @@ async function updateDraft(formulaKey, { revision, formulaKey: nextFormulaKey, d
 
         await FormulaRepository.updateDefinition(definition.id, {
             status: 'draft',
-            formula_key: targetFormulaKey,
             display_name: targetDisplayName
         }, transaction);
 
@@ -228,10 +343,11 @@ async function publish(formulaKey, { fromRevision, changeNote, operator }) {
             return { ok: false, status: 422, errors: baseErrors };
         }
 
-        const bomErrors = await validateBomWithMaterials(payload.bom);
-        if (bomErrors.length > 0) {
-            return { ok: false, status: 422, errors: bomErrors };
+        const bomValidation = await validateAndResolveBomWithMaterials(payload.bom);
+        if (bomValidation.errors.length > 0) {
+            return { ok: false, status: 422, errors: bomValidation.errors };
         }
+        const resolvedBom = bomValidation.bom;
 
         const latest = await FormulaRepository.findLatestRevision(definition.id, transaction);
         const nextRevisionNumber = (latest?.revision || 0) + 1;
@@ -243,7 +359,7 @@ async function publish(formulaKey, { fromRevision, changeNote, operator }) {
             payload_json: serializePayload({
                 formulaKey: definition.formula_key,
                 displayName: payload.displayName || definition.display_name,
-                bom: payload.bom
+                bom: resolvedBom
             }),
             change_note: changeNote || '发布版本',
             created_by: operator

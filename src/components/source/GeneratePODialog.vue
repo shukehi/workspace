@@ -16,6 +16,7 @@ import { POGenerator } from '@/services/poGenerator';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useRouter } from 'vue-router';
 import { useSourceStore } from '@/stores/useSourceStore';
+import { parseQuantityPair } from '@/lib/erp-engine/parsers';
 
 const props = defineProps<{
   disabled?: boolean;
@@ -49,6 +50,25 @@ const confirmButtonText = computed(() => {
     return `生成 ${selectedGroups.value.length} 张采购单`;
 });
 
+const packagingPreviewRows = computed(() => {
+    const hasPackagingSelected = pendingGroups.value.some(group => group.category === '包装');
+    if (!hasPackagingSelected) return [];
+
+    const orderItems = sourceStore.currentOrder?.list || [];
+    return orderItems
+        .filter((item: any) => String(item?.bz || '').trim())
+        .map((item: any, index: number) => {
+            const qtyPair = parseQuantityPair(item?.qty);
+            return {
+            id: `${index}-${item?.productModelName || item?.spec || item?.qty || 'item'}`,
+            productName: String(item?.productModelName || '').trim() || '-',
+            spec: String(item?.spec || '').trim() || '-',
+            mb: String(item?.mb || '').trim() || '-',
+            quantityPair: `${qtyPair.left}/${qtyPair.right}`,
+        };
+        });
+});
+
 const toggleCategory = (cat: string, checked: boolean | 'indeterminate') => {
     const isChecked = checked === true;
     if (isChecked && !selectedCategories.value.includes(cat)) {
@@ -80,6 +100,10 @@ const generateWithOption = async (mergeSameSpec: boolean) => {
     isGenerating.value = true;
     try {
         const orders = generator.createOrders(pendingGroups.value, { mergeSameSpec });
+        if (mergeSameSpec) {
+            const mergedPackagingOrders = orders.filter((order: any) => order.category === '包装');
+            console.log('[Merged Packaging Orders]', mergedPackagingOrders);
+        }
 
         // Add to store sequentially to avoid SQLite write lock under concurrent POSTs
         for (const order of orders) {
@@ -179,11 +203,33 @@ const handleConfirm = () => {
   <Dialog v-model:open="mergeConfirmOpen">
     <DialogContent class="sm:max-w-[520px]">
       <DialogHeader>
-        <DialogTitle>是否合并相同规格尺寸？</DialogTitle>
+        <DialogTitle>包装采购订单：是否合并相同规格尺寸？</DialogTitle>
         <DialogDescription>
-          选择“合并”会将同规格尺寸汇总为一条明细；选择“不合并”则保留逐项明细。
+          当前是包装采购订单操作。选择“合并”会将同规格尺寸汇总为一条明细；选择“不合并”则保留逐项明细。
         </DialogDescription>
       </DialogHeader>
+        <div class="space-y-2">
+        <div class="text-xs text-muted-foreground">包装明细预览（产品名称、规格/洞口尺寸、门边、左右数量）</div>
+        <div class="max-h-[260px] overflow-auto rounded-md border">
+          <div class="grid grid-cols-12 gap-2 p-2 bg-muted/40 text-xs font-medium border-b">
+            <div class="col-span-4">产品名称</div>
+            <div class="col-span-4">规格/洞口尺寸</div>
+            <div class="col-span-2">门边</div>
+            <div class="col-span-2 text-right">左右数量</div>
+          </div>
+          <div v-if="packagingPreviewRows.length === 0" class="p-3 text-xs text-muted-foreground">暂无包装明细</div>
+          <div
+            v-for="row in packagingPreviewRows"
+            :key="row.id"
+            class="grid grid-cols-12 gap-2 p-2 text-xs border-b last:border-0"
+          >
+            <div class="col-span-4 truncate" :title="row.productName">{{ row.productName }}</div>
+            <div class="col-span-4 truncate" :title="row.spec">{{ row.spec }}</div>
+            <div class="col-span-2 truncate" :title="row.mb">{{ row.mb }}</div>
+            <div class="col-span-2 text-right">{{ row.quantityPair }}</div>
+          </div>
+        </div>
+      </div>
       <DialogFooter>
         <Button variant="outline" :disabled="isGenerating" @click="mergeConfirmOpen = false">返回修改</Button>
         <Button variant="outline" :disabled="isGenerating" @click="generateWithOption(false)">不合并</Button>

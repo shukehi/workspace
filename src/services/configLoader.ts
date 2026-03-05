@@ -29,11 +29,16 @@ class ConfigLoaderService {
         try {
             await Promise.all([
                 this.loadMaterials(),
-                this.loadFormulas(),
                 this.loadCylinderMapping(),
                 this.loadLockForkMapping(),
                 this.loadPackagingMapping()
             ]);
+            try {
+                await this.loadFormulas();
+            } catch (e) {
+                // Formula API can be temporarily unavailable; keep app usable with cached/empty formulas.
+                console.warn('⚠️ loadFormulas failed during loadAll, continue with fallback formulas', e);
+            }
             this.isLoaded = true;
         } catch (e) {
             console.error('❌ Failed to load configuration', e);
@@ -55,6 +60,15 @@ class ConfigLoaderService {
 
     async loadFormulas() {
         await this.loadFormulasFromApi();
+    }
+
+    async refreshFormulas() {
+        try {
+            await this.loadFormulasFromApi();
+        } catch (e) {
+            // Keep existing in-memory formulas as fallback.
+            console.warn('⚠️ refreshFormulas failed, continue with cached formulas', e);
+        }
     }
 
     async loadCylinderMapping() {

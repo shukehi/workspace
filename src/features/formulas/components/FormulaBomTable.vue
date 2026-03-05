@@ -40,7 +40,7 @@ const emit = defineEmits<{
         </colgroup>
         <thead class="bg-muted/40">
           <tr>
-            <th class="p-2 text-left">Material ID</th>
+            <th class="p-2 text-left">型号</th>
             <th class="p-2 text-left">Position</th>
             <th class="p-2 text-left">类别</th>
             <th class="p-2 text-left">供应商</th>

@@ -16,12 +16,13 @@ const router = express.Router();
  * {
  *   poNumber: string,
  *   category?: string,
+ *   printMode?: 'signature' | 'compact',
  *   order: Object (with customerName, code, list, etc.)
  * }
  */
 router.post('/generate', async (req, res) => {
     try {
-        const { poNumber, order, category } = req.body;
+        const { poNumber, order, category, printMode } = req.body;
 
         // Validate request
         if (!poNumber || !order) {
@@ -41,7 +42,7 @@ router.post('/generate', async (req, res) => {
         console.log(`📄 Received PDF generation request for ${poNumber}`);
 
         // Generate PDF
-        const pdfBuffer = await generatePurchaseOrderPDF(order, poNumber, category);
+        const pdfBuffer = await generatePurchaseOrderPDF(order, poNumber, category, printMode);
 
         // Set response headers for binary PDF data
         res.setHeader('Content-Type', 'application/pdf');

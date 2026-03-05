@@ -36,6 +36,13 @@ const CATEGORY_CONFIGS = {
     }
 };
 
+function getPrintFieldClass(field) {
+    if (field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity') {
+        return 'col-numeric';
+    }
+    return '';
+}
+
 // Load packaging mapping configuration
 let packagingConfig = null;
 function loadPackagingConfig() {
@@ -109,6 +116,29 @@ function normalizeCategory(categoryRaw) {
     if (raw === 'lock' || raw.includes('锁叉')) return 'lock';
     if (raw === 'hardware' || raw.includes('五金') || raw.includes('配件')) return 'hardware';
     return 'packaging';
+}
+
+function normalizePrintMode(modeRaw) {
+    const raw = String(modeRaw || '').toLowerCase();
+    return raw === 'compact' ? 'compact' : 'signature';
+}
+
+function normalizeDateString(value) {
+    if (!value) return '';
+    const raw = String(value).trim();
+    const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 10);
+}
+
+function resolvePrintDates(orderData) {
+    const today = new Date().toISOString().split('T')[0];
+    const orderDate = normalizeDateString(orderData?.orderDate || orderData?.created_at) || today;
+    const deliveryDate = normalizeDateString(orderData?.deliveryDate || orderData?.delivery_date) || orderDate;
+    return { orderDate, deliveryDate };
 }
 
 function parseQuantityPair(qtyString) {
@@ -308,22 +338,15 @@ function setText(doc, selector, value) {
     }
 }
 
-function setInputValue(doc, selector, value) {
-    const input = doc.querySelector(selector);
-    if (input) {
-        input.setAttribute('value', String(value ?? ''));
-    }
-}
-
 /**
  * Generate complete HTML for printing
  */
-function generatePrintHTML(orderData, poNumber, category) {
+function generatePrintHTML(orderData, poNumber, category, printMode) {
     const config = loadPackagingConfig();
     const categoryConfig = CATEGORY_CONFIGS[category];
     const normalizedItems = normalizeItems(orderData?.list || [], category, config);
     const grouped = groupItemsByCategory(normalizedItems, category);
-    const pagesHTML = renderPagesFromTemplate(orderData, grouped, category, categoryConfig);
+    const pagesHTML = renderPagesFromTemplate(orderData, grouped, category, categoryConfig, printMode);
     const css = loadPrintCSS();
 
     return `
@@ -334,10 +357,6 @@ function generatePrintHTML(orderData, poNumber, category) {
     <title>${poNumber}</title>
     <style>
         ${css}
-        .print-page {
-            padding: 0 !important;
-            margin: 0 !important;
-        }
     </style>
 </head>
 <body>
@@ -347,10 +366,10 @@ function generatePrintHTML(orderData, poNumber, category) {
 `;
 }
 
-function renderPagesFromTemplate(orderData, groups, category, categoryConfig) {
+function renderPagesFromTemplate(orderData, groups, category, categoryConfig, printMode) {
     const templateHTML = loadPrintTemplate();
     const pages = [];
-    const today = new Date().toISOString().split('T')[0];
+    const { orderDate, deliveryDate } = resolvePrintDates(orderData);
 
     Object.keys(groups).forEach((groupKey) => {
         const group = groups[groupKey];
@@ -366,6 +385,9 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig) {
             const doc = dom.window.document;
             const pageEl = doc.querySelector('.print-page');
             if (!pageEl) throw new Error('print-page element not found in template');
+            if (printMode === 'compact') {
+                pageEl.classList.add('mode-compact');
+            }
 
             const h1 = doc.querySelector('.print-header h1');
             if (h1) {
@@ -380,12 +402,23 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig) {
             setText(doc, '.p-code', orderData?.code || '');
             setText(doc, '.p-int-pkg', category === 'packaging' ? (group.internalName || '-') : '-');
             setText(doc, '.p-ext-pkg', category === 'packaging' ? (group.externalName || '-') : '-');
-            setInputValue(doc, '.p-date', today);
-            setInputValue(doc, '.p-delivery', today);
+            setText(doc, '.p-date', orderDate);
+            setText(doc, '.p-delivery', deliveryDate);
+
+            const tableEl = doc.querySelector('.print-table');
+            if (tableEl) {
+                tableEl.classList.add(`category-${category}`);
+            }
 
             const theadRow = doc.querySelector('.print-table thead tr');
             if (theadRow) {
-                theadRow.innerHTML = categoryConfig.headers.map((header) => `<th>${header}</th>`).join('');
+                theadRow.innerHTML = categoryConfig.headers
+                    .map((header, index) => {
+                        const field = categoryConfig.fields[index];
+                        const fieldClass = getPrintFieldClass(field);
+                        return `<th class="${fieldClass}">${header}</th>`;
+                    })
+                    .join('');
             }
 
             const tbody = doc.querySelector('.p-tbody');
@@ -397,6 +430,10 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig) {
                 categoryConfig.fields.forEach((field) => {
                     const td = doc.createElement('td');
                     td.textContent = String(getCellValue(item, field, startIdx + index + 1, category));
+                    const fieldClass = getPrintFieldClass(field);
+                    if (fieldClass) {
+                        td.classList.add(fieldClass);
+                    }
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
@@ -418,14 +455,16 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig) {
  * @param {Object} orderData - Order data including items list
  * @param {string} poNumber - Purchase order number
  * @param {string} categoryRaw - Procurement category
+ * @param {string} printModeRaw - Print style mode ('signature' | 'compact')
  * @returns {Promise<Buffer>} PDF buffer
  */
-async function generatePurchaseOrderPDF(orderData, poNumber, categoryRaw) {
+async function generatePurchaseOrderPDF(orderData, poNumber, categoryRaw, printModeRaw) {
     let browser;
     const category = normalizeCategory(categoryRaw);
+    const printMode = normalizePrintMode(printModeRaw);
 
     try {
-        console.log(`📄 Starting PDF generation for ${poNumber} [${category}]...`);
+        console.log(`📄 Starting PDF generation for ${poNumber} [${category}/${printMode}]...`);
 
         browser = await puppeteer.launch({
             headless: 'new',
@@ -445,7 +484,7 @@ async function generatePurchaseOrderPDF(orderData, poNumber, categoryRaw) {
             deviceScaleFactor: 2
         });
 
-        const html = generatePrintHTML(orderData, poNumber, category);
+        const html = generatePrintHTML(orderData, poNumber, category, printMode);
 
         await page.setContent(html, {
             waitUntil: ['domcontentloaded', 'networkidle0']

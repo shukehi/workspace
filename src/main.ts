@@ -6,10 +6,6 @@ import App from './App.vue'
 import { configLoader } from '@/services/configLoader'
 
 async function bootstrap() {
-  if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true') {
-    await import('./lib/mock');
-  }
-
   const app = createApp(App);
   app.use(createPinia());
   app.use(router);

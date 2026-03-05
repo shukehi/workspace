@@ -11,12 +11,23 @@ import { BOM_MATERIAL_CATEGORIES, type FormulaValidationErrors } from '@/feature
 
 const LOCAL_DRAFT_KEY_PREFIX = '__local_draft__:';
 
+function normalizeModelFromMaterialCode(materialId: string, supplier: string): string {
+  const normalizedMaterialId = String(materialId || '').trim();
+  const normalizedSupplier = String(supplier || '').trim();
+  if (!normalizedMaterialId || !normalizedSupplier) return normalizedMaterialId;
+  if (normalizedMaterialId.startsWith(normalizedSupplier) && normalizedMaterialId.length > normalizedSupplier.length) {
+    return normalizedMaterialId.slice(normalizedSupplier.length);
+  }
+  return normalizedMaterialId;
+}
+
 function normalizeBomRow(row?: Partial<FormulaBOMItem>): FormulaBOMItem {
+  const supplier = String(row?.supplier || '').trim();
   return {
-    materialId: String(row?.materialId || '').trim(),
+    materialId: normalizeModelFromMaterialCode(String(row?.materialId || '').trim(), supplier),
     position: String(row?.position || '').trim(),
     materialCategory: (row?.materialCategory as any) || '',
-    supplier: String(row?.supplier || '').trim(),
+    supplier,
     usage: {
       single: Number(row?.usage?.single ?? 0),
       double: Number(row?.usage?.double ?? 0),
@@ -121,17 +132,17 @@ export function useFormulaManager() {
     };
   }
 
-  function localValidate(options: { allowEmptyBom?: boolean } = {}): boolean {
-    const { allowEmptyBom = false } = options;
+  function localValidate(options: { allowEmptyBom?: boolean; allowEmptyFormulaKey?: boolean } = {}): boolean {
+    const { allowEmptyBom = false, allowEmptyFormulaKey = false } = options;
     const errors: FormulaValidationErrors = {};
-    if (!detail.value?.formulaKey) errors.formulaKey = '配方编码不能为空';
+    if (!allowEmptyFormulaKey && !detail.value?.formulaKey) errors.formulaKey = '配方编码不能为空';
     if (!detail.value?.displayName) errors.displayName = '配方名称不能为空';
     if (!allowEmptyBom && bomDraft.value.length === 0) errors.bom = 'BOM 不能为空';
 
     const seen = new Set<string>();
     bomDraft.value.forEach((row, idx) => {
       if (allowEmptyBom && !isMeaningfulBomRow(row)) return;
-      if (!row.materialId) errors[`bom.${idx}.materialId`] = '物料ID不能为空';
+      if (!row.materialId) errors[`bom.${idx}.materialId`] = '型号不能为空';
       if (!row.position) errors[`bom.${idx}.position`] = '位置不能为空';
       if (!row.materialCategory) errors[`bom.${idx}.materialCategory`] = '请选择类别';
       if (!row.supplier) errors[`bom.${idx}.supplier`] = '供应商不能为空';
@@ -331,7 +342,8 @@ export function useFormulaManager() {
     if (!detail.value) return;
     const creatingLocalDraft = !draftRevision.value && isLocalDraftSelected.value;
     const allowEmptyBom = creatingLocalDraft;
-    if (!localValidate({ allowEmptyBom })) {
+    const allowEmptyFormulaKey = creatingLocalDraft;
+    if (!localValidate({ allowEmptyBom, allowEmptyFormulaKey })) {
       toast({ title: '本地校验未通过，请修复错误后再保存', variant: 'destructive' });
       return;
     }

@@ -71,7 +71,7 @@ function validateBomRows({ bom, allowEmptyBom = false, materialCodeSet = null })
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row.materialId) {
-            errors.push({ field: `bom[${i}].materialId`, message: '物料ID不能为空' });
+            errors.push({ field: `bom[${i}].materialId`, message: '型号不能为空' });
         }
         if (!row.position) {
             errors.push({ field: `bom[${i}].position`, message: '位置不能为空' });

@@ -13,6 +13,8 @@ import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
 import type { Order } from '@/types/order';
 
+type PrintMode = 'signature' | 'compact';
+
 const props = defineProps<{
   open: boolean;
   order: Order | null;
@@ -28,6 +30,22 @@ const previewUrl = ref('');
 const previewLoading = ref(false);
 const previewError = ref('');
 const exportingPdf = ref(false);
+const printMode = ref<PrintMode>('signature');
+const modeOptions: Array<{ value: PrintMode; label: string }> = [
+  { value: 'signature', label: '签字版' },
+  { value: 'compact', label: '简洁版' }
+];
+
+function toPrintDate(value?: string) {
+  if (!value) return '';
+  const raw = String(value).trim();
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+}
 
 const categoryLabels: Record<string, string> = {
   packaging: '包装',
@@ -66,15 +84,18 @@ const preparePreviewData = (order: Order) => {
   const orderForPrint = {
     customerName: order.metadata?.customer_name || order.supplier,
     code: order.order_no,
+    orderDate: toPrintDate(order.created_at),
+    deliveryDate: toPrintDate(order.delivery_date),
     list: order.items || []
   };
 
   localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
   localStorage.setItem('_order_preview_po_number', order.order_no);
   localStorage.setItem('_order_preview_category', order.category || '采购单');
+  localStorage.setItem('_order_preview_print_mode', printMode.value);
   localStorage.removeItem('_order_preview_auto_print');
 
-  previewUrl.value = `/print-preview?embedded=1&t=${Date.now()}`;
+  previewUrl.value = `/print-preview?embedded=1&printMode=${printMode.value}&t=${Date.now()}`;
 };
 
 watch(() => props.open, (isOpen) => {
@@ -113,9 +134,12 @@ const handleExportPdf = async () => {
     const payload = {
       poNumber: props.order.order_no,
       category: props.order.category || '',
+      printMode: printMode.value,
       order: {
         customerName: props.order.metadata?.customer_name || props.order.supplier,
         code: props.order.order_no,
+        orderDate: toPrintDate(props.order.created_at),
+        deliveryDate: toPrintDate(props.order.delivery_date),
         list: props.order.items || []
       }
     };
@@ -135,6 +159,14 @@ const handleExportPdf = async () => {
     });
   } finally {
     exportingPdf.value = false;
+  }
+};
+
+const handlePrintModeChange = (mode: PrintMode) => {
+  if (printMode.value === mode) return;
+  printMode.value = mode;
+  if (props.open && props.order) {
+    preparePreviewData(props.order);
   }
 };
 
@@ -163,7 +195,18 @@ const handleClose = () => {
           </div>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <div class="inline-flex rounded-md border bg-background p-0.5">
+            <button
+              v-for="mode in modeOptions"
+              :key="mode.value"
+              class="px-2.5 py-1 text-xs rounded-sm transition-colors"
+              :class="printMode === mode.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
+              @click="handlePrintModeChange(mode.value)"
+            >
+              {{ mode.label }}
+            </button>
+          </div>
           <Button size="sm" variant="outline" @click="handlePrint" :disabled="previewLoading || !!previewError">
             <Printer class="w-4 h-4 mr-2" />
             立即打印

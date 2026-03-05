@@ -26,6 +26,14 @@ class FormulaRepository {
         });
     }
 
+    static async listDefinitionKeysByPrefix(prefix, transaction) {
+        return FormulaDefinition.findAll({
+            where: { formula_key: { [Op.like]: `${prefix}%` } },
+            attributes: ['id', 'formula_key'],
+            ...txOpts(transaction)
+        });
+    }
+
     static async findDefinitionByKey(formulaKey, transaction) {
         return FormulaDefinition.findOne({
             where: { formula_key: formulaKey },

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { generatePrintPages, normalizePrintCategory } from '@/services/printPreviewGenerator';
+import { generatePrintPages, normalizePrintCategory, normalizePrintMode } from '@/services/printPreviewGenerator';
 import { api } from '@/lib/api';
 
 type PrintCategory = 'packaging' | 'cylinder' | 'hardware' | 'lock';
+type PrintMode = 'signature' | 'compact';
 
 const route = useRoute();
 const printOutputRef = ref<HTMLElement | null>(null);
@@ -25,7 +26,16 @@ const categoryLabels: Record<string, string> = {
 
 let currentOrderData: any = null;
 let currentCategory: PrintCategory = 'packaging';
+const printMode = ref<PrintMode>('signature');
+const modeLabels: Record<PrintMode, string> = {
+    signature: '签字版',
+    compact: '简洁版'
+};
 
+async function renderPreview(orderData: any) {
+    if (!printOutputRef.value) throw new Error('预览容器未初始化');
+    await generatePrintPages(printOutputRef.value, orderData, currentCategory, printMode.value);
+}
 
 async function initPreview() {
     try {
@@ -35,7 +45,10 @@ async function initPreview() {
         const rawOrderData = localStorage.getItem('_order_preview_data');
         const poNumber = localStorage.getItem('_order_preview_po_number') || '';
         const categoryRaw = localStorage.getItem('_order_preview_category') || 'packaging';
+        const modeRaw = localStorage.getItem('_order_preview_print_mode')
+            || String(route.query.printMode || '');
         const category = normalizePrintCategory(categoryRaw);
+        printMode.value = normalizePrintMode(modeRaw);
 
         if (!rawOrderData) throw new Error('未找到订单数据');
 
@@ -49,8 +62,7 @@ async function initPreview() {
         document.title = poTitle.value;
 
         await nextTick();
-        if (!printOutputRef.value) throw new Error('预览容器未初始化');
-        await generatePrintPages(printOutputRef.value, orderData, category);
+        await renderPreview(orderData);
 
         if (localStorage.getItem('_order_preview_auto_print') === 'true') {
             localStorage.removeItem('_order_preview_auto_print');
@@ -60,6 +72,7 @@ async function initPreview() {
         localStorage.removeItem('_order_preview_data');
         localStorage.removeItem('_order_preview_po_number');
         localStorage.removeItem('_order_preview_category');
+        localStorage.removeItem('_order_preview_print_mode');
     } catch (e: any) {
         error.value = e.message || '预览生成失败';
     } finally {
@@ -78,6 +91,7 @@ async function exportPdf() {
         await api.downloadPDF('/pdf/generate', {
             poNumber: currentPONumber.value || 'order',
             category: currentCategory,
+            printMode: printMode.value,
             order: currentOrderData
         }, `${currentPONumber.value || 'order'}.pdf`);
     } catch (e) {
@@ -90,6 +104,21 @@ async function exportPdf() {
 
 function handlePrint() {
     window.print();
+}
+
+async function setPrintMode(mode: PrintMode) {
+    if (printMode.value === mode) return;
+    printMode.value = mode;
+    if (!currentOrderData) return;
+    try {
+        loading.value = true;
+        await nextTick();
+        await renderPreview(currentOrderData);
+    } catch (e) {
+        console.error('Switch print mode failed', e);
+    } finally {
+        loading.value = false;
+    }
 }
 
 onMounted(() => {
@@ -105,6 +134,22 @@ onMounted(() => {
                 <p v-if="currentPONumber" class="controls-subtitle">订单号：{{ currentPONumber }}</p>
             </div>
             <div class="controls-actions">
+                <div class="mode-switch">
+                    <button
+                        class="mode-btn"
+                        :class="printMode === 'signature' ? 'mode-btn-active' : ''"
+                        @click="setPrintMode('signature')"
+                    >
+                        {{ modeLabels.signature }}
+                    </button>
+                    <button
+                        class="mode-btn"
+                        :class="printMode === 'compact' ? 'mode-btn-active' : ''"
+                        @click="setPrintMode('compact')"
+                    >
+                        {{ modeLabels.compact }}
+                    </button>
+                </div>
                 <button class="btn btn-secondary" @click="handlePrint">打印</button>
                 <button class="btn btn-primary" :disabled="exporting" @click="exportPdf">
                     {{ exporting ? '导出中...' : '导出 PDF' }}
@@ -172,6 +217,30 @@ onMounted(() => {
 .controls-actions {
     display: flex;
     gap: 10px;
+    align-items: center;
+}
+
+.mode-switch {
+    display: inline-flex;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.mode-btn {
+    border: 0;
+    background: transparent;
+    color: #374151;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mode-btn-active {
+    background: #111827;
+    color: #fff;
 }
 
 .btn {

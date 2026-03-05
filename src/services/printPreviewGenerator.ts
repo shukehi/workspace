@@ -1,10 +1,15 @@
 import { configLoader } from '@/services/configLoader';
 
 type PrintCategory = 'packaging' | 'cylinder' | 'hardware' | 'lock';
+type PrintMode = 'signature' | 'compact';
 
 interface PrintOrder {
     customerName?: string;
     code?: string;
+    orderDate?: string;
+    deliveryDate?: string;
+    created_at?: string;
+    delivery_date?: string;
     list?: any[];
 }
 
@@ -53,6 +58,31 @@ const CATEGORY_CONFIGS: Record<PrintCategory, { title: string; headers: string[]
 };
 
 let templateCache: HTMLTemplateElement | null = null;
+
+function getPrintFieldClass(field: string) {
+    if (field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity') {
+        return 'col-numeric';
+    }
+    return '';
+}
+
+function normalizeDateString(value: unknown): string {
+    if (!value) return '';
+    const raw = String(value).trim();
+    const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 10);
+}
+
+function resolvePrintDates(order: PrintOrder) {
+    const today = new Date().toISOString().split('T')[0];
+    const orderDate = normalizeDateString(order.orderDate || order.created_at) || today;
+    const deliveryDate = normalizeDateString(order.deliveryDate || order.delivery_date) || orderDate;
+    return { orderDate, deliveryDate };
+}
 
 function parseQuantityPair(qtyStr: any) {
     if (!qtyStr) return { left: 0, right: 0 };
@@ -174,6 +204,11 @@ export function normalizePrintCategory(category: string | undefined): PrintCateg
     return 'packaging';
 }
 
+export function normalizePrintMode(mode: string | undefined): PrintMode {
+    const raw = (mode || '').toLowerCase();
+    return raw === 'compact' ? 'compact' : 'signature';
+}
+
 async function loadPrintTemplate() {
     if (templateCache) return templateCache;
 
@@ -233,7 +268,12 @@ function groupItemsByCategory(items: NormalizedPrintItem[], category: PrintCateg
     return groups;
 }
 
-export async function generatePrintPages(printOutput: HTMLElement, order: PrintOrder, category: PrintCategory) {
+export async function generatePrintPages(
+    printOutput: HTMLElement,
+    order: PrintOrder,
+    category: PrintCategory,
+    mode: PrintMode = 'signature'
+) {
     await configLoader.loadAll();
 
     const template = await loadPrintTemplate();
@@ -241,6 +281,7 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
     const packagingMapping = configLoader.getPackagingMapping();
     const normalizedItems = normalizeItemsForCategory(order.list || [], category);
     const groups = groupItemsByCategory(normalizedItems, category, packagingMapping);
+    const { orderDate, deliveryDate } = resolvePrintDates(order);
 
     printOutput.innerHTML = '';
 
@@ -257,7 +298,20 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
             const pageItems = items.slice(startIdx, endIdx);
 
             const clone = document.importNode(template.content, true);
-            const today = new Date().toISOString().split('T')[0];
+            const pageEl = clone.querySelector('.print-page') as HTMLElement | null;
+            const tableEl = clone.querySelector('.print-table') as HTMLTableElement | null;
+
+            if (pageEl) {
+                if (mode === 'compact') {
+                    pageEl.classList.add('mode-compact');
+                } else {
+                    pageEl.classList.remove('mode-compact');
+                }
+            }
+
+            if (tableEl) {
+                tableEl.classList.add(`category-${category}`);
+            }
 
             const h1 = clone.querySelector('.print-header h1') as HTMLElement | null;
             if (h1) {
@@ -269,20 +323,21 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
 
             const customerEl = clone.querySelector('.p-customer') as HTMLElement | null;
             const codeEl = clone.querySelector('.p-code') as HTMLElement | null;
-            const dateEl = clone.querySelector('.p-date') as HTMLInputElement | null;
-            const deliveryEl = clone.querySelector('.p-delivery') as HTMLInputElement | null;
+            const dateEl = clone.querySelector('.p-date') as HTMLElement | null;
+            const deliveryEl = clone.querySelector('.p-delivery') as HTMLElement | null;
             const supplierEl = clone.querySelector('.p-supplier') as HTMLElement | null;
             const intPkgEl = clone.querySelector('.p-int-pkg') as HTMLElement | null;
             const extPkgEl = clone.querySelector('.p-ext-pkg') as HTMLElement | null;
 
             if (customerEl) customerEl.textContent = order.customerName || '-';
             if (codeEl) codeEl.textContent = order.code || '-';
-            if (dateEl) dateEl.value = today;
-            if (deliveryEl) deliveryEl.value = today;
+            if (dateEl) dateEl.textContent = orderDate;
+            if (deliveryEl) deliveryEl.textContent = deliveryDate;
 
             if (category === 'packaging') {
                 const pkgGroup = group as { internalName: string; externalName: string; items: NormalizedPrintItem[] };
-                if (supplierEl) supplierEl.textContent = packagingMapping?.supplierName || '默认供应商';
+                const supplier = pkgGroup.items?.[0]?.supplier || packagingMapping?.supplierName || '默认供应商';
+                if (supplierEl) supplierEl.textContent = supplier;
                 if (intPkgEl) intPkgEl.textContent = pkgGroup.internalName || groupKey;
                 if (extPkgEl) extPkgEl.textContent = pkgGroup.externalName || groupKey;
             } else {
@@ -294,7 +349,13 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
 
             const theadRow = clone.querySelector('.print-table thead tr') as HTMLTableRowElement | null;
             if (theadRow) {
-                theadRow.innerHTML = config.headers.map((h) => `<th>${h}</th>`).join('');
+                theadRow.innerHTML = config.headers
+                    .map((header, index) => {
+                        const field = config.fields[index];
+                        const fieldClass = getPrintFieldClass(field);
+                        return `<th class="${fieldClass}">${header}</th>`;
+                    })
+                    .join('');
             }
 
             const tbody = clone.querySelector('.p-tbody') as HTMLTableSectionElement | null;
@@ -319,6 +380,10 @@ export async function generatePrintPages(printOutput: HTMLElement, order: PrintO
                     else if (field === 'remark') value = category === 'packaging' ? '' : (item.remark || '');
 
                     td.textContent = String(value);
+                    const fieldClass = getPrintFieldClass(field);
+                    if (fieldClass) {
+                        td.classList.add(fieldClass);
+                    }
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);

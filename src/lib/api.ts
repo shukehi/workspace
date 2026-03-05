@@ -30,8 +30,20 @@ axiosInstance.interceptors.response.use(
         return payload;
     },
     (error) => {
-        const message = error.response?.data?.message || error.message || 'Unknown Error';
-        console.error('[API Error]', message);
+        const responseData = error?.response?.data;
+        const serverErrors = Array.isArray(responseData?.errors) ? responseData.errors : [];
+        const firstServerError = serverErrors.find(
+            (item: any) => item && typeof item.message === 'string' && item.message.trim().length > 0
+        )?.message;
+        const fallbackMessage = responseData?.message || responseData?.error || error.message || 'Unknown Error';
+        const message = firstServerError || fallbackMessage;
+        const method = typeof error?.config?.method === 'string'
+            ? error.config.method.toUpperCase()
+            : undefined;
+        const url = error?.config?.url;
+        const status = error?.response?.status;
+
+        console.error('[API Error]', message, { status, method, url, errors: serverErrors });
         return Promise.reject(error);
     }
 );
@@ -71,4 +83,3 @@ export const api = {
 };
 
 export default api;
-export { axiosInstance }; // Export raw instance for Mock Adapter

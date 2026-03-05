@@ -200,11 +200,11 @@ const handleSave = async () => {
                   </td>
 
                   <td class="border-r p-0">
-                    <input v-model="item.model" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
+                    <input v-model="item.spec" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
                   </td>
 
                   <td class="border-r p-0">
-                    <input v-model="item.orientation" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
+                    <input v-model="item.mb" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
                   </td>
 
                   <td class="border-r p-0">
