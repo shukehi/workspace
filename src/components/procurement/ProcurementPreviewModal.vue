@@ -13,6 +13,8 @@ import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
 import type { Order } from '@/types/order';
 import { type PrintMode } from '@/features/procurement/docModel';
+import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
+import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
 const props = defineProps<{
   open: boolean;
@@ -28,9 +30,7 @@ const { toast } = useToastStore();
 
 const exportingPdf = ref(false);
 const snapshotLoading = ref(false);
-const snapshotError = ref<string | null>(null);
 const snapshotId = ref('');
-const iframeSeed = ref(Date.now());
 
 const printMode = ref<PrintMode>('signature');
 const modeOptions: Array<{ value: PrintMode; label: string }> = [
@@ -68,16 +68,23 @@ const orderStatusLabel = computed(() => {
   return statusLabels[props.order.status] || props.order.status;
 });
 
-const previewSrc = computed(() => {
-  if (!snapshotId.value) return '';
-  return `/print-document?snapshotId=${encodeURIComponent(snapshotId.value)}&printMode=${printMode.value}&embedded=1&t=${iframeSeed.value}`;
+const previewWidthState = computed(() => {
+  if (!props.order) {
+    return resolveSheetWidths('packaging', null, { preferLocalWhenMissing: true });
+  }
+  return resolveSheetWidths(
+    props.order.category,
+    props.order.metadata?.printColumnWidths,
+    { preferLocalWhenMissing: true }
+  );
 });
+const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
+const previewColumnWidths = computed(() => previewWidthState.value.widths);
 
 async function createSnapshot() {
   if (!props.order) return '';
 
   snapshotLoading.value = true;
-  snapshotError.value = null;
 
   try {
     const payload = {
@@ -94,11 +101,9 @@ async function createSnapshot() {
     }
 
     snapshotId.value = id;
-    iframeSeed.value = Date.now();
     return id;
   } catch (error: any) {
     snapshotId.value = '';
-    snapshotError.value = error?.message || '快照创建失败';
     throw error;
   } finally {
     snapshotLoading.value = false;
@@ -162,7 +167,6 @@ const handleExportPdf = async () => {
 const handlePrintModeChange = (mode: PrintMode) => {
   if (printMode.value === mode) return;
   printMode.value = mode;
-  iframeSeed.value = Date.now();
 };
 
 const handleClose = () => {
@@ -176,26 +180,16 @@ const handleEdit = () => {
 
 watch(
   () => [props.open, props.order],
-  async ([open, order]) => {
-    if (!open || !order) {
-      snapshotId.value = '';
-      snapshotError.value = null;
-      return;
-    }
-
-    try {
-      await createSnapshot();
-    } catch (error) {
-      console.error('Preview snapshot refresh failed', error);
-    }
+  () => {
+    snapshotId.value = '';
   },
-  { immediate: true, deep: true }
+  { deep: true }
 );
 </script>
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="max-w-[1060px] max-h-[90vh] flex flex-col p-0 gap-0 bg-background">
+    <DialogContent class="max-w-[1100px] max-h-[90vh] flex flex-col p-0 gap-0 bg-background">
       <DialogHeader class="sr-only">
         <DialogTitle>查看采购单</DialogTitle>
         <DialogDescription>采购单预览窗口，可直接打印当前订单。</DialogDescription>
@@ -239,18 +233,13 @@ watch(
         </div>
       </div>
 
-      <div class="flex-1 overflow-hidden bg-muted/20">
-        <div v-if="snapshotLoading" class="h-full flex items-center justify-center text-sm text-muted-foreground">
-          正在生成统一预览...
-        </div>
-        <div v-else-if="snapshotError" class="h-full flex items-center justify-center text-sm text-destructive px-6 text-center">
-          {{ snapshotError }}
-        </div>
-        <iframe
-          v-else-if="previewSrc"
-          :src="previewSrc"
-          title="采购订单文档预览"
-          class="w-full h-full border-0 bg-white"
+      <div class="flex-1 overflow-auto p-6 bg-muted/20">
+        <OrderSheetView
+          v-if="order"
+          :order="order"
+          mode="preview"
+          :column-widths="previewColumnWidths"
+          :default-widths="previewDefaultWidths"
         />
         <div v-else class="h-full flex items-center justify-center text-sm text-muted-foreground">
           暂无可预览的订单数据

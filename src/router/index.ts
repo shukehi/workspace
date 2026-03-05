@@ -10,11 +10,6 @@ const router = createRouter({
             component: () => import('@/views/PrintDocument.vue')
         },
         {
-            path: '/print-preview',
-            name: 'print-preview',
-            component: () => import('@/views/PrintDocument.vue')
-        },
-        {
             path: '/',
             component: MainLayout,
             children: [

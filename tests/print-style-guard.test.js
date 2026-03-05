@@ -10,16 +10,16 @@ function read(path) {
 
 test('print style guard: legacy print.css is not globally imported', () => {
   const mainCss = read('public/css/main.css');
-  const printPreview = read('src/views/PrintPreview.vue');
+  const printDocCss = read('src/features/procurement/print-document.css');
 
   assert.equal(mainCss.includes("pages/print.css"), false);
-  assert.equal(printPreview.includes("@import url('/css/pages/print.css');"), false);
+  assert.equal(printDocCss.includes("@import url('/css/pages/print.css');"), false);
 });
 
-test('print style guard: PrintPreview keeps local print media rules', () => {
-  const printPreview = read('src/views/PrintPreview.vue');
+test('print style guard: print document stylesheet keeps print media rules', () => {
+  const printDocCss = read('src/features/procurement/print-document.css');
 
-  assert.match(printPreview, /@media print/);
-  assert.match(printPreview, /\.controls-bar\s*\{\s*display:\s*none !important;/);
-  assert.match(printPreview, /@page\s*\{\s*size:\s*A4 portrait;/);
+  assert.match(printDocCss, /@media print/);
+  assert.match(printDocCss, /\.controls-bar\s*\{\s*display:\s*none !important;/);
+  assert.match(printDocCss, /@page\s*\{\s*size:\s*A4 portrait;/);
 });

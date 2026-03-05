@@ -8,17 +8,20 @@ function read(path) {
   return fs.readFileSync(`${ROOT}/${path}`, 'utf8');
 }
 
-test('layout guard: shell components should not define table layout directly', () => {
+test('layout guard: edit and preview shells should share OrderSheet renderer', () => {
   const editDialog = read('src/components/procurement/EditOrderDialog.vue');
   const previewModal = read('src/components/procurement/ProcurementPreviewModal.vue');
   const printDocument = read('src/views/PrintDocument.vue');
 
   assert.match(editDialog, /<OrderSheetView/);
-  assert.match(previewModal, /print-document/);
+  assert.match(previewModal, /<OrderSheetView/);
+  assert.match(previewModal, /mode=\"preview\"/);
   assert.match(printDocument, /<table/);
 
   assert.equal(editDialog.includes('<table'), false);
   assert.equal(previewModal.includes('<table'), false);
+  assert.equal(previewModal.includes('<iframe'), false);
+  assert.equal(previewModal.includes('embedded=1'), false);
 });
 
 test('layout guard: dedicated print renderer owns print table markup', () => {

@@ -47,37 +47,6 @@ function buildDoc() {
   document.title = model.title || '采购订单';
 }
 
-function getLegacySource(): PrintSourcePayload | null {
-  const legacyKeys = [
-    '_order_preview_data',
-    '_order_preview_po_number',
-    '_order_preview_category',
-    '_order_preview_print_mode',
-    '_order_preview_auto_print',
-  ];
-
-  const rawOrderData = localStorage.getItem('_order_preview_data');
-  if (!rawOrderData) return null;
-
-  try {
-    const orderData = JSON.parse(rawOrderData);
-    const poNumber = localStorage.getItem('_order_preview_po_number') || '';
-    const category = localStorage.getItem('_order_preview_category') || '';
-    const modeRaw = localStorage.getItem('_order_preview_print_mode') || '';
-
-    return {
-      order: orderData,
-      poNumber,
-      category,
-      printMode: modeRaw,
-    };
-  } catch {
-    return null;
-  } finally {
-    legacyKeys.forEach((key) => localStorage.removeItem(key));
-  }
-}
-
 async function loadSource() {
   try {
     loading.value = true;
@@ -101,11 +70,7 @@ async function loadSource() {
         orderId,
       };
     } else {
-      const legacySource = getLegacySource();
-      if (!legacySource) {
-        throw new Error('未找到可渲染的订单数据');
-      }
-      source.value = legacySource;
+      throw new Error('缺少 snapshotId 或 orderId，无法渲染打印文档');
     }
 
     const activeSource = source.value;
