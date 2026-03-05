@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -11,16 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2, Printer } from 'lucide-vue-next';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
+import { configLoader } from '@/services/configLoader';
 import type { Order } from '@/types/order';
-import {
-  type ColumnKey,
-  defaultColumnWidths,
-  readPrintWidthsFromOrder
-} from '@/features/procurement/printColumnSchema';
+import { buildProcurementDoc } from '@/features/procurement/buildProcurementDoc';
+import { normalizePrintCategory, type PrintMode } from '@/features/procurement/docModel';
 import { buildPdfRequestPayload, buildPrintPayloadFromOrder } from '@/features/procurement/orderDraft';
-import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
-
-type PrintMode = 'signature' | 'compact';
+import DocRenderer from '@/components/procurement/doc-render/DocRenderer.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -35,7 +31,6 @@ const emit = defineEmits<{
 const { toast } = useToastStore();
 const exportingPdf = ref(false);
 const printMode = ref<PrintMode>('signature');
-const columnWidths = ref<Record<ColumnKey, number>>({ ...defaultColumnWidths });
 const modeOptions: Array<{ value: PrintMode; label: string }> = [
   { value: 'signature', label: '签字版' },
   { value: 'compact', label: '简洁版' }
@@ -71,17 +66,16 @@ const orderStatusLabel = computed(() => {
   return statusLabels[props.order.status] || props.order.status;
 });
 
-watch(
-  () => props.order,
-  (order) => {
-    if (!order) {
-      columnWidths.value = { ...defaultColumnWidths };
-      return;
-    }
-    columnWidths.value = readPrintWidthsFromOrder(order);
-  },
-  { immediate: true }
-);
+const docModel = computed(() => {
+  if (!props.order) return null;
+  const category = normalizePrintCategory(props.order.category);
+  const packagingMapping = configLoader.getPackagingMapping();
+  return buildProcurementDoc(props.order, {
+    category,
+    mode: printMode.value,
+    packagingMapping
+  });
+});
 
 const openPrintWindow = (autoPrint: boolean) => {
   if (!props.order) return;
@@ -143,10 +137,6 @@ const handleEdit = () => {
   if (!props.order) return;
   emit('edit', props.order);
 };
-
-const handleColumnWidthsChange = (next: Record<ColumnKey, number>) => {
-  columnWidths.value = next;
-};
 </script>
 
 <template>
@@ -196,13 +186,7 @@ const handleColumnWidthsChange = (next: Record<ColumnKey, number>) => {
       </div>
 
       <div class="flex-1 overflow-auto p-6 bg-muted/20">
-        <OrderSheetView
-          v-if="order"
-          :order="order"
-          mode="preview"
-          :column-widths="columnWidths"
-          @update:column-widths="handleColumnWidthsChange"
-        />
+        <DocRenderer v-if="docModel" :model="docModel" render-mode="screen" />
       </div>
     </DialogContent>
   </Dialog>
