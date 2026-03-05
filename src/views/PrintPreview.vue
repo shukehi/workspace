@@ -167,23 +167,29 @@ onMounted(() => {
 @import url('/css/pages/print.css');
 
 .print-preview-shell {
-    background: linear-gradient(180deg, #2e3b46 0%, #4f5f6e 100%);
+    background: #f8fafc;
     min-height: 100vh;
     margin: 0;
-    padding-top: 60px;
+    padding-top: 56px;
 }
 
 .print-preview-shell.in-iframe {
-    padding-top: 20px;
+    padding-top: 0;
+    min-height: 100%;
 }
 
 #printOutput {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    padding: 40px 0;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 12px 12px;
     width: 100%;
+    box-sizing: border-box;
+}
+
+.print-preview-shell.in-iframe #printOutput {
+    padding: 0;
 }
 
 .controls-bar {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
@@ -25,6 +25,7 @@ import {
   X
 } from 'lucide-vue-next';
 import type { Order } from '@/types/order';
+import { cloneOrderDraft } from '@/features/procurement/orderDraft';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
@@ -103,9 +104,11 @@ const visibleOrderCount = computed(() => filteredOrders.value.length);
 const isEditDialogOpen = ref(false);
 const isPreviewDialogOpen = ref(false);
 const selectedOrder = ref<Order | null>(null);
+const draftOrderForPreview = ref<Order | null>(null);
 
 const handleEdit = (order: Order) => {
   selectedOrder.value = order;
+  draftOrderForPreview.value = cloneOrderDraft(order);
   isEditDialogOpen.value = true;
 };
 
@@ -135,8 +138,43 @@ const handleDelete = async (order: Order) => {
 
 const handlePreview = (order: Order) => {
   selectedOrder.value = order;
+  if (!isEditDialogOpen.value || draftOrderForPreview.value?.id !== order.id) {
+    draftOrderForPreview.value = null;
+  }
   isPreviewDialogOpen.value = true;
 };
+
+const handleDraftChange = (draft: Order) => {
+  if (!selectedOrder.value || selectedOrder.value.id !== draft.id) return;
+  draftOrderForPreview.value = draft;
+};
+
+const handleEditPreview = (draft: Order) => {
+  selectedOrder.value = draft;
+  draftOrderForPreview.value = draft;
+  isPreviewDialogOpen.value = true;
+};
+
+const handlePreviewEdit = (order: Order) => {
+  isPreviewDialogOpen.value = false;
+  selectedOrder.value = order;
+  draftOrderForPreview.value = cloneOrderDraft(order);
+  isEditDialogOpen.value = true;
+};
+
+const previewOrder = computed(() => {
+  if (!selectedOrder.value) return null;
+  if (draftOrderForPreview.value && draftOrderForPreview.value.id === selectedOrder.value.id) {
+    return draftOrderForPreview.value;
+  }
+  return selectedOrder.value;
+});
+
+watch(isEditDialogOpen, (open) => {
+  if (!open) {
+    draftOrderForPreview.value = null;
+  }
+});
 
 const handleExport = () => {
   const dataToExport = selectedRows.value.length > 0 ? selectedRows.value : filteredOrders.value;
@@ -346,7 +384,17 @@ onMounted(() => {
       </div>
     </transition>
 
-    <EditOrderDialog v-model:open="isEditDialogOpen" :order="selectedOrder" @saved="store.fetchOrders()" />
-    <ProcurementPreviewModal v-model:open="isPreviewDialogOpen" :order="selectedOrder" />
+    <EditOrderDialog
+      v-model:open="isEditDialogOpen"
+      :order="selectedOrder"
+      @saved="store.fetchOrders()"
+      @draft-change="handleDraftChange"
+      @preview="handleEditPreview"
+    />
+    <ProcurementPreviewModal
+      v-model:open="isPreviewDialogOpen"
+      :order="previewOrder"
+      @edit="handlePreviewEdit"
+    />
   </div>
 </template>

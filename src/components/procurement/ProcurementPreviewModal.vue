@@ -12,6 +12,7 @@ import { Download, Loader2, Printer } from 'lucide-vue-next';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
 import type { Order } from '@/types/order';
+import { buildPdfRequestPayload, buildPrintPayloadFromOrder } from '@/features/procurement/orderDraft';
 
 type PrintMode = 'signature' | 'compact';
 
@@ -22,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
+  (e: 'edit', order: Order): void;
 }>();
 
 const { toast } = useToastStore();
@@ -35,17 +37,6 @@ const modeOptions: Array<{ value: PrintMode; label: string }> = [
   { value: 'signature', label: '签字版' },
   { value: 'compact', label: '简洁版' }
 ];
-
-function toPrintDate(value?: string) {
-  if (!value) return '';
-  const raw = String(value).trim();
-  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-  if (match) return match[1];
-
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toISOString().slice(0, 10);
-}
 
 const categoryLabels: Record<string, string> = {
   packaging: '包装',
@@ -81,13 +72,7 @@ const preparePreviewData = (order: Order) => {
   previewLoading.value = true;
   previewError.value = '';
 
-  const orderForPrint = {
-    customerName: order.metadata?.customer_name || order.supplier,
-    code: order.order_no,
-    orderDate: toPrintDate(order.created_at),
-    deliveryDate: toPrintDate(order.delivery_date),
-    list: order.items || []
-  };
+  const orderForPrint = buildPrintPayloadFromOrder(order);
 
   localStorage.setItem('_order_preview_data', JSON.stringify(orderForPrint));
   localStorage.setItem('_order_preview_po_number', order.order_no);
@@ -131,18 +116,7 @@ const handleExportPdf = async () => {
 
   exportingPdf.value = true;
   try {
-    const payload = {
-      poNumber: props.order.order_no,
-      category: props.order.category || '',
-      printMode: printMode.value,
-      order: {
-        customerName: props.order.metadata?.customer_name || props.order.supplier,
-        code: props.order.order_no,
-        orderDate: toPrintDate(props.order.created_at),
-        deliveryDate: toPrintDate(props.order.delivery_date),
-        list: props.order.items || []
-      }
-    };
+    const payload = buildPdfRequestPayload(props.order, printMode.value);
 
     await api.downloadPDF('/pdf/generate', payload, `${props.order.order_no}.pdf`);
     toast({
@@ -172,6 +146,11 @@ const handlePrintModeChange = (mode: PrintMode) => {
 
 const handleClose = () => {
   emit('update:open', false);
+};
+
+const handleEdit = () => {
+  if (!props.order) return;
+  emit('edit', props.order);
 };
 </script>
 
@@ -216,6 +195,7 @@ const handleClose = () => {
             <Download v-else class="w-4 h-4 mr-2" />
             {{ exportingPdf ? '导出中...' : '导出 PDF' }}
           </Button>
+          <Button variant="outline" size="sm" :disabled="!order" @click="handleEdit">编辑</Button>
           <Button variant="outline" size="sm" @click="handleClose">关闭</Button>
         </div>
       </div>
