@@ -1,237 +1,118 @@
-
 import { useSourceStore } from '@/stores/useSourceStore';
 import { packagingMatcher } from '@/lib/packagingMatcher';
 import { configLoader } from '@/services/configLoader';
-import { parseQuantity, parseQuantityPair } from '@/lib/erp-engine/parsers';
 import type { Order, OrderItem } from '@/types/order';
+import { findMissingCategoryFields, findMissingCommonFields } from '@/services/poContractUtils';
 import {
-    createPackagingOrderItem,
-    createRawMaterialOrderItem,
-    createCylinderOrderItem,
-    createLockForkOrderItem,
-    findMissingCategoryFields,
-    findMissingCommonFields
-} from '@/services/poContractUtils';
-
-interface SupplierGroup {
-    supplierName: string;
-    category: string;
-    items: OrderItem[];
-    totalCost: number;
-}
+  buildRawMaterialGroups,
+  buildCylinderGroups,
+  buildLockForkGroups,
+  buildPackagingGroups,
+  type RuleContext,
+  type SourceStorePort,
+  type SupplierGroup,
+} from '@/services/po-rules';
 
 export class POGenerator {
-    private sourceStore: ReturnType<typeof useSourceStore>;
+  private sourceStore: SourceStorePort;
+  private ruleContext: RuleContext;
 
-    constructor() {
-        this.sourceStore = useSourceStore();
+  constructor(deps?: Partial<RuleContext>) {
+    this.sourceStore = deps?.sourceStore || (useSourceStore() as unknown as SourceStorePort);
+    this.ruleContext = {
+      sourceStore: this.sourceStore,
+      packagingMatcher: deps?.packagingMatcher || packagingMatcher,
+      configLoader: deps?.configLoader || configLoader,
+    };
+  }
+
+  private validateCategoryItems(category: string, items: OrderItem[], orderNo: string) {
+    const invalid = findMissingCategoryFields(category, items);
+    if (invalid.length > 0) {
+      console.warn('[POGenerator] item field validation failed:', {
+        order_no: orderNo,
+        category,
+        invalid,
+      });
     }
+  }
 
-    private validateCategoryItems(category: string, items: OrderItem[], orderNo: string) {
-        const invalid = findMissingCategoryFields(category, items);
-
-        if (invalid.length > 0) {
-            console.warn('[POGenerator] item field validation failed:', {
-                order_no: orderNo,
-                category,
-                invalid
-            });
-        }
+  private validateCommonItemFields(category: string, items: OrderItem[], orderNo: string) {
+    const invalid = findMissingCommonFields(items);
+    if (invalid.length > 0) {
+      console.warn('[POGenerator] common item field validation failed:', {
+        order_no: orderNo,
+        category,
+        invalid,
+      });
     }
+  }
 
-    private validateCommonItemFields(category: string, items: OrderItem[], orderNo: string) {
-        const invalid = findMissingCommonFields(items);
-
-        if (invalid.length > 0) {
-            console.warn('[POGenerator] common item field validation failed:', {
-                order_no: orderNo,
-                category,
-                invalid
-            });
-        }
-    }
-
-    private buildPackagingItems(mergeSameSpec: boolean): SupplierGroup[] {
-        const groups: Record<string, SupplierGroup> = {};
-
-        const ensureGroup = (supplier: string) => {
-            const key = `包装_${supplier}`;
-            if (!groups[key]) {
-                groups[key] = {
-                    supplierName: supplier,
-                    category: '包装',
-                    items: [],
-                    totalCost: 0
-                };
-            }
-            return groups[key];
+  private mergeGroups(target: Record<string, SupplierGroup>, groups: SupplierGroup[]) {
+    groups.forEach((group) => {
+      const key = `${group.category}_${group.supplierName}`;
+      if (!target[key]) {
+        target[key] = {
+          supplierName: group.supplierName,
+          category: group.category,
+          items: [],
+          totalCost: 0,
         };
+      }
+      target[key].items.push(...group.items);
+    });
+  }
 
-        if (mergeSameSpec) {
-            const hardware = this.sourceStore.hardwareRequirements;
-            const packagingMapping = configLoader.getPackagingMapping();
-            const fallbackSupplier = packagingMapping?.supplierName || '方亮包装';
-            if (hardware?.packaging) {
-                Object.values(hardware.packaging).forEach((pkg: any) => {
-                    const internalName = pkg.internalName || pkg.spec || '未知包装';
-                    const externalName = pkg.externalName || packagingMatcher.match(internalName);
-                    const supplier = pkg.supplierName || fallbackSupplier;
-                    const target = ensureGroup(supplier);
+  generateProposal(options?: { mergeSameSpec?: boolean }): SupplierGroup[] {
+    const mergeSameSpec = options?.mergeSameSpec ?? true;
+    const proposal: Record<string, SupplierGroup> = {};
 
-                    target.items.push(createPackagingOrderItem({
-                        internalName,
-                        externalName,
-                        productName: pkg.productModelName,
-                        spec: pkg.spec || '-',
-                        mb: pkg.mb || '-',
-                        qty: Number(pkg.totalQty || 0),
-                        qtyLeft: Number(pkg.totalLeft || 0),
-                        qtyRight: Number(pkg.totalRight || 0),
-                        supplier
-                    }));
-                });
-            }
-            return Object.values(groups);
-        }
+    this.ruleContext.packagingMatcher.syncFromMapping(this.ruleContext.configLoader.getPackagingMapping());
 
-        const orderItems = this.sourceStore.currentOrder?.list || [];
-        const packagingMapping = configLoader.getPackagingMapping();
-        const mappings = packagingMapping?.mappings || packagingMapping || {};
-        const supplier = packagingMapping?.supplierName || '方亮包装';
+    this.mergeGroups(proposal, buildRawMaterialGroups(this.ruleContext));
+    this.mergeGroups(proposal, buildCylinderGroups(this.ruleContext));
+    this.mergeGroups(proposal, buildLockForkGroups(this.ruleContext));
+    this.mergeGroups(proposal, buildPackagingGroups(this.ruleContext, { mergeSameSpec }));
 
-        orderItems.forEach((item: any) => {
-            const internalName = item.bz || '未知包装';
-            const target = ensureGroup(supplier);
-            const externalName = mappings[internalName] || packagingMatcher.match(internalName);
-            const qtyPair = parseQuantityPair(item.qty);
-
-            target.items.push(createPackagingOrderItem({
-                internalName,
-                externalName,
-                productName: item.productModelName,
-                spec: item.spec || '-',
-                mb: item.mb || '-',
-                qty: parseQuantity(item.qty),
-                qtyLeft: qtyPair.left,
-                qtyRight: qtyPair.right,
-                supplier
-            }));
-        });
-
-        return Object.values(groups);
+    const unmatched = this.ruleContext.packagingMatcher.consumeUnmatchedSummary();
+    if (unmatched.length > 0) {
+      console.warn('[PackagingMatcher] unmatched packaging names (top):', unmatched);
     }
 
-    generateProposal(options?: { mergeSameSpec?: boolean }): SupplierGroup[] {
-        const mergeSameSpec = options?.mergeSameSpec ?? true;
-        packagingMatcher.syncFromMapping(configLoader.getPackagingMapping());
-        const proposal: Record<string, SupplierGroup> = {};
+    return Object.values(proposal);
+  }
 
-        const ensureGroup = (supplier: string, category: string) => {
-            const key = `${category}_${supplier}`;
-            if (!proposal[key]) {
-                proposal[key] = {
-                    supplierName: supplier,
-                    category: category,
-                    items: [],
-                    totalCost: 0
-                };
-            }
-            return proposal[key];
-        };
+  createOrders(selectedGroups: { supplier: string; category: string }[], options?: { mergeSameSpec?: boolean }): Order[] {
+    const proposal = this.generateProposal(options);
+    const orders: Order[] = [];
+    const contractCode = this.sourceStore.currentOrder?.code || 'UNKNOWN';
+    const customerName = this.sourceStore.currentOrder?.customerName || '';
 
-        // 1. Process Raw Materials
-        const materials = this.sourceStore.materialRequirements;
-        if (materials && materials.requirements) {
-            Object.values(materials.requirements).forEach((group: any) => {
-                const supplier = group.supplierName || '未知供应商';
-                const target = ensureGroup(supplier, '原辅材料');
+    proposal.forEach((group) => {
+      const isSelected = selectedGroups.some(
+        (g) => g.supplier === group.supplierName && g.category === group.category,
+      );
+      if (!isSelected) return;
 
-                group.materials.forEach((mat: any, idx: number) => {
-                    target.items.push(createRawMaterialOrderItem({
-                        supplier,
-                        materialId: mat.materialId,
-                        totalUsage: Number(mat.totalUsage || 0)
-                    }));
-                });
-            });
-        }
+      orders.push({
+        id: 0,
+        order_no: `PO-${contractCode}`,
+        supplier: group.supplierName,
+        category: group.category,
+        items: group.items,
+        total_amount: 0,
+        created_at: new Date().toISOString(),
+        status: 'draft',
+        remark: `Generated from Contract ${contractCode}`,
+        metadata: {
+          customer_name: customerName,
+        },
+      });
 
-        // 2. Process Hardware - Cylinders
-        const hardware = this.sourceStore.hardwareRequirements;
-        if (hardware?.cylinders) {
-            hardware.cylinders.forEach((cyl: any, idx: number) => {
-                const supplier = cyl.supplier || '未分配五金';
-                const target = ensureGroup(supplier, '锁芯');
+      this.validateCategoryItems(group.category, group.items, `PO-${contractCode}`);
+      this.validateCommonItemFields(group.category, group.items, `PO-${contractCode}`);
+    });
 
-                target.items.push(createCylinderOrderItem({
-                    supplier,
-                    type: cyl.type || '锁芯',
-                    eccentricity: cyl.eccentricity,
-                    quantity: Number(cyl.quantity || 0),
-                    remark: cyl.remark
-                }));
-            });
-        }
-
-        // 3. Process Hardware - Lock Forks
-        if (hardware?.lockForks) {
-            hardware.lockForks.forEach((fork: any, idx: number) => {
-                const supplier = fork.supplier || '未分配五金';
-                const target = ensureGroup(supplier, '锁叉');
-
-                target.items.push(createLockForkOrderItem({
-                    supplier,
-                    type: fork.type || '锁叉',
-                    spec: fork.spec || '-',
-                    quantity: Number(fork.quantity || 0),
-                    remark: fork.remark || ''
-                }));
-            });
-        }
-
-        this.buildPackagingItems(mergeSameSpec).forEach(group => {
-            const target = ensureGroup(group.supplierName, group.category);
-            target.items.push(...group.items);
-        });
-
-        const unmatched = packagingMatcher.consumeUnmatchedSummary();
-        if (unmatched.length > 0) {
-            console.warn('[PackagingMatcher] unmatched packaging names (top):', unmatched);
-        }
-
-        return Object.values(proposal);
-    }
-
-    createOrders(selectedGroups: { supplier: string; category: string }[], options?: { mergeSameSpec?: boolean }): Order[] {
-        const proposal = this.generateProposal(options);
-        const orders: Order[] = [];
-        const contractCode = this.sourceStore.currentOrder?.code || 'UNKNOWN';
-        const customerName = this.sourceStore.currentOrder?.customerName || '';
-
-        proposal.forEach(group => {
-            const isSelected = selectedGroups.some(g => g.supplier === group.supplierName && g.category === group.category);
-            if (!isSelected) return;
-
-            orders.push({
-                id: 0,
-                order_no: `PO-${contractCode}`,
-                supplier: group.supplierName,
-                // Add category here, assuming types/order.ts Order might need category field. (Need to check if it does, wait)
-                category: group.category as any, // Cast to any if we haven't updated the Order type
-                items: group.items,
-                total_amount: 0, // Calculate if price available
-                created_at: new Date().toISOString(),
-                status: 'draft',
-                remark: `Generated from Contract ${contractCode}`,
-                metadata: {
-                    customer_name: customerName
-                }
-            });
-
-            this.validateCategoryItems(group.category, group.items, `PO-${contractCode}`);
-            this.validateCommonItemFields(group.category, group.items, `PO-${contractCode}`);
-        });
-
-        return orders;
-    }
+    return orders;
+  }
 }
