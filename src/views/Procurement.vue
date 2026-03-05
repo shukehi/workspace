@@ -106,7 +106,12 @@ const isPreviewDialogOpen = ref(false);
 const selectedOrder = ref<Order | null>(null);
 const draftOrderForPreview = ref<Order | null>(null);
 
+const logOrderModePayload = (mode: '编辑模式' | '预览模式', order: Order) => {
+  console.log(`[采购管理] 进入${mode}订单数据(JSON):\n${JSON.stringify(order, null, 2)}`);
+};
+
 const handleEdit = (order: Order) => {
+  logOrderModePayload('编辑模式', order);
   selectedOrder.value = order;
   draftOrderForPreview.value = cloneOrderDraft(order);
   isEditDialogOpen.value = true;
@@ -137,6 +142,7 @@ const handleDelete = async (order: Order) => {
 };
 
 const handlePreview = (order: Order) => {
+  logOrderModePayload('预览模式', order);
   selectedOrder.value = order;
   if (!isEditDialogOpen.value || draftOrderForPreview.value?.id !== order.id) {
     draftOrderForPreview.value = null;
@@ -150,12 +156,14 @@ const handleDraftChange = (draft: Order) => {
 };
 
 const handleEditPreview = (draft: Order) => {
+  logOrderModePayload('预览模式', draft);
   selectedOrder.value = draft;
   draftOrderForPreview.value = draft;
   isPreviewDialogOpen.value = true;
 };
 
 const handlePreviewEdit = (order: Order) => {
+  logOrderModePayload('编辑模式', order);
   isPreviewDialogOpen.value = false;
   selectedOrder.value = order;
   draftOrderForPreview.value = cloneOrderDraft(order);
