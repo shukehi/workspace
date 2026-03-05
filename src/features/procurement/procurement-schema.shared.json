@@ -1,0 +1,67 @@
+{
+  "semanticWidths": {
+    "index": 44,
+    "name": 240,
+    "specLike": 160,
+    "edge": 74,
+    "quantity": 72,
+    "unit": 58,
+    "remark": 160
+  },
+  "categoryBaselineTotalWidth": {
+    "packaging": 836,
+    "cylinder": 804,
+    "lock": 764,
+    "hardware": 764
+  },
+  "categories": {
+    "packaging": {
+      "title": "包装采购订单",
+      "groupBy": "internal_name",
+      "columns": [
+        { "key": "no", "label": "序号", "align": "center", "inputType": "number", "semantic": "index" },
+        { "key": "productModelName", "label": "产品名称", "align": "left", "inputType": "text", "semantic": "name" },
+        { "key": "spec", "label": "规格尺寸", "align": "left", "inputType": "text", "semantic": "specLike" },
+        { "key": "mb", "label": "门边", "align": "center", "inputType": "text", "semantic": "edge" },
+        { "key": "qtyLeft", "label": "左数量", "align": "center", "inputType": "number", "semantic": "quantity" },
+        { "key": "qtyRight", "label": "右数量", "align": "center", "inputType": "number", "semantic": "quantity" },
+        { "key": "remark", "label": "备注", "align": "left", "inputType": "text", "semantic": "remark" }
+      ]
+    },
+    "cylinder": {
+      "title": "锁芯采购订单",
+      "groupBy": "supplier",
+      "columns": [
+        { "key": "no", "label": "序号", "align": "center", "inputType": "number", "semantic": "index" },
+        { "key": "type", "label": "锁芯型号", "align": "left", "inputType": "text", "semantic": "name" },
+        { "key": "eccentricity", "label": "偏心", "align": "left", "inputType": "text", "semantic": "specLike" },
+        { "key": "quantity", "label": "数量", "align": "center", "inputType": "number", "semantic": "quantity" },
+        { "key": "unit", "label": "单位", "align": "center", "inputType": "text", "semantic": "unit" },
+        { "key": "remark", "label": "备注", "align": "left", "inputType": "text", "semantic": "remark" }
+      ]
+    },
+    "lock": {
+      "title": "锁叉采购订单",
+      "groupBy": "supplier",
+      "columns": [
+        { "key": "no", "label": "序号", "align": "center", "inputType": "number", "semantic": "index" },
+        { "key": "type", "label": "产品名称", "align": "left", "inputType": "text", "semantic": "name" },
+        { "key": "spec", "label": "规格", "align": "left", "inputType": "text", "semantic": "specLike" },
+        { "key": "quantity", "label": "数量", "align": "center", "inputType": "number", "semantic": "quantity" },
+        { "key": "unit", "label": "单位", "align": "center", "inputType": "text", "semantic": "unit" },
+        { "key": "remark", "label": "备注", "align": "left", "inputType": "text", "semantic": "remark" }
+      ]
+    },
+    "hardware": {
+      "title": "五金采购订单",
+      "groupBy": "type",
+      "columns": [
+        { "key": "no", "label": "序号", "align": "center", "inputType": "number", "semantic": "index" },
+        { "key": "type", "label": "五金名称", "align": "left", "inputType": "text", "semantic": "name" },
+        { "key": "spec", "label": "规格", "align": "left", "inputType": "text", "semantic": "specLike" },
+        { "key": "quantity", "label": "数量", "align": "center", "inputType": "number", "semantic": "quantity" },
+        { "key": "remark", "label": "备注", "align": "left", "inputType": "text", "semantic": "remark" }
+      ]
+    }
+  }
+}

@@ -7,7 +7,52 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
-const CATEGORY_CONFIGS = require('../../src/config/print-category-config.json');
+const SHARED_PROCUREMENT_SCHEMA = require('../../src/features/procurement/procurement-schema.shared.json');
+
+const CATEGORY_CONFIGS = SHARED_PROCUREMENT_SCHEMA.categories;
+const SEMANTIC_BASE_WIDTHS = SHARED_PROCUREMENT_SCHEMA.semanticWidths;
+const CATEGORY_BASELINE_TOTAL_WIDTH = SHARED_PROCUREMENT_SCHEMA.categoryBaselineTotalWidth;
+
+function resolveLabelBySemantic(semantic, fallbackLabel) {
+    if (semantic === 'specLike') return '规格';
+    return fallbackLabel;
+}
+
+function getCategoryConfig(category) {
+    const categorySchema = CATEGORY_CONFIGS[category];
+    if (!categorySchema) return null;
+
+    const fields = (categorySchema.columns || []).map((column) => column.key);
+    const headers = (categorySchema.columns || []).map((column) =>
+        resolveLabelBySemantic(column.semantic, column.label)
+    );
+
+    return {
+        title: categorySchema.title,
+        groupBy: categorySchema.groupBy,
+        fields,
+        headers,
+        columns: categorySchema.columns || []
+    };
+}
+
+function getDefaultColumnWidths(category) {
+    const categorySchema = CATEGORY_CONFIGS[category];
+    if (!categorySchema) return {};
+
+    const defaults = {};
+    (categorySchema.columns || []).forEach((column) => {
+        defaults[column.key] = SEMANTIC_BASE_WIDTHS[column.semantic] || 120;
+    });
+
+    const baseline = Number(CATEGORY_BASELINE_TOTAL_WIDTH[category] || 0);
+    const total = Object.values(defaults).reduce((sum, value) => sum + Number(value || 0), 0);
+    const extra = baseline - total;
+    if (Object.prototype.hasOwnProperty.call(defaults, 'remark')) {
+        defaults.remark = Math.max(160, Number(defaults.remark || 160) + extra);
+    }
+    return defaults;
+}
 
 function getPrintFieldClass(field) {
     if (field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity') {
@@ -250,7 +295,7 @@ function normalizeItems(items, category, config) {
 
 function groupItemsByCategory(items, category) {
     const groups = {};
-    const categoryConfig = CATEGORY_CONFIGS[category];
+    const categoryConfig = getCategoryConfig(category);
 
     if (category === 'packaging') {
         items.forEach((item) => {
@@ -331,7 +376,10 @@ function setText(doc, selector, value) {
  */
 function generatePrintHTML(orderData, poNumber, category, printMode) {
     const config = loadPackagingConfig();
-    const categoryConfig = CATEGORY_CONFIGS[category];
+    const categoryConfig = getCategoryConfig(category);
+    if (!categoryConfig) {
+        throw new Error(`Unsupported category: ${category}`);
+    }
     const normalizedItems = normalizeItems(orderData?.list || [], category, config);
     const grouped = groupItemsByCategory(normalizedItems, category);
     const pagesHTML = renderPagesFromTemplate(orderData, grouped, category, categoryConfig, printMode);
@@ -358,7 +406,9 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig, pr
     const templateHTML = loadPrintTemplate();
     const pages = [];
     const { orderDate, deliveryDate } = resolvePrintDates(orderData);
+    const defaultWidths = getDefaultColumnWidths(category);
     const customWidths = resolvePrintColumnWidths(orderData);
+    const resolvedWidths = { ...defaultWidths, ...customWidths };
 
     Object.keys(groups).forEach((groupKey) => {
         const group = groups[groupKey];
@@ -390,7 +440,7 @@ function renderPagesFromTemplate(orderData, groups, category, categoryConfig, pr
             const colgroup = doc.createElement('colgroup');
             categoryConfig.fields.forEach((field) => {
                 const col = doc.createElement('col');
-                const width = customWidths[field];
+                const width = resolvedWidths[field];
                 if (width) {
                     col.style.width = `${width}px`;
                 }

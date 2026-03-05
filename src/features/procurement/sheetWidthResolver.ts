@@ -1,25 +1,11 @@
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { getSheetSchema, type SheetColumnSemantic } from '@/features/procurement/order-sheet.schema';
+import sharedSchema from '@/features/procurement/procurement-schema.shared.json';
 
 export const COLUMN_WIDTH_STORAGE_KEY = 'po_edit_column_widths_by_category_v1';
 
-const CATEGORY_BASELINE_TOTAL_WIDTH: Record<PrintCategory, number> = {
-  packaging: 836,
-  cylinder: 804,
-  lock: 764,
-  hardware: 764
-};
-
-const SEMANTIC_BASE_WIDTHS: Record<SheetColumnSemantic, number> = {
-  index: 44,
-  name: 240,
-  specLike: 160,
-  edge: 74,
-  quantity: 72,
-  unit: 58,
-  remark: 160
-};
-
+const SEMANTIC_BASE_WIDTHS = sharedSchema.semanticWidths as Record<SheetColumnSemantic, number>;
+const CATEGORY_BASELINE_TOTAL_WIDTH = sharedSchema.categoryBaselineTotalWidth as Record<PrintCategory, number>;
 const COLUMN_FALLBACK_WIDTH = 120;
 
 function buildCategoryDefaultWidths(category: PrintCategory) {
@@ -35,7 +21,7 @@ function buildCategoryDefaultWidths(category: PrintCategory) {
   const extra = baseline - total;
 
   if (Object.prototype.hasOwnProperty.call(defaults, 'remark')) {
-    defaults.remark = Math.max(120, defaults.remark + extra);
+    defaults.remark = Math.max(160, defaults.remark + extra);
   }
 
   return defaults;

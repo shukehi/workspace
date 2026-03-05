@@ -1,4 +1,4 @@
-import printCategoryConfig from '@/config/print-category-config.json';
+import sharedSchema from '@/features/procurement/procurement-schema.shared.json';
 
 export type PrintCategory = 'packaging' | 'cylinder' | 'hardware' | 'lock';
 export type PrintMode = 'signature' | 'compact';
@@ -48,7 +48,51 @@ export type CategoryConfig = {
   groupBy: string;
 };
 
-export const CATEGORY_CONFIGS = printCategoryConfig as Record<PrintCategory, CategoryConfig>;
+type SharedColumn = {
+  key: string;
+  label: string;
+  semantic: string;
+};
+
+type SharedCategory = {
+  title: string;
+  groupBy: string;
+  columns: SharedColumn[];
+};
+
+function resolveLabelBySemantic(semantic: string, fallbackLabel: string) {
+  if (semantic === 'specLike') return '规格';
+  return fallbackLabel;
+}
+
+const rawCategories = sharedSchema.categories as Record<PrintCategory, SharedCategory>;
+
+export const CATEGORY_CONFIGS: Record<PrintCategory, CategoryConfig> = {
+  packaging: {
+    title: rawCategories.packaging.title,
+    fields: rawCategories.packaging.columns.map((column) => column.key),
+    headers: rawCategories.packaging.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
+    groupBy: rawCategories.packaging.groupBy
+  },
+  cylinder: {
+    title: rawCategories.cylinder.title,
+    fields: rawCategories.cylinder.columns.map((column) => column.key),
+    headers: rawCategories.cylinder.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
+    groupBy: rawCategories.cylinder.groupBy
+  },
+  hardware: {
+    title: rawCategories.hardware.title,
+    fields: rawCategories.hardware.columns.map((column) => column.key),
+    headers: rawCategories.hardware.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
+    groupBy: rawCategories.hardware.groupBy
+  },
+  lock: {
+    title: rawCategories.lock.title,
+    fields: rawCategories.lock.columns.map((column) => column.key),
+    headers: rawCategories.lock.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
+    groupBy: rawCategories.lock.groupBy
+  }
+};
 
 export function isNumericField(field: string) {
   return field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity';

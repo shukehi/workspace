@@ -1,5 +1,6 @@
 import type { OrderItem } from '@/types/order';
 import type { PrintCategory } from '@/features/procurement/docModel';
+import sharedSchema from '@/features/procurement/procurement-schema.shared.json';
 
 export type SheetColumnAlign = 'left' | 'center' | 'right';
 export type SheetColumnSemantic = 'index' | 'name' | 'specLike' | 'edge' | 'quantity' | 'unit' | 'remark';
@@ -17,72 +18,42 @@ export type SheetSchema = {
   columns: SheetColumn[];
 };
 
+type SharedColumn = {
+  key: string;
+  label: string;
+  align: SheetColumnAlign;
+  inputType: 'text' | 'number';
+  semantic: SheetColumnSemantic;
+};
+
+type SharedCategory = {
+  title: string;
+  groupBy: string;
+  columns: SharedColumn[];
+};
+
 function resolveLabelBySemantic(semantic: SheetColumnSemantic, fallbackLabel: string) {
   if (semantic === 'specLike') return '规格';
   return fallbackLabel;
 }
 
-function createColumn(
-  key: string,
-  fallbackLabel: string,
-  align: SheetColumnAlign,
-  inputType: 'text' | 'number',
-  semantic: SheetColumnSemantic
-): SheetColumn {
+function toSheetSchema(category: SharedCategory): SheetSchema {
   return {
-    key,
-    label: resolveLabelBySemantic(semantic, fallbackLabel),
-    align,
-    inputType,
-    semantic
+    title: category.title,
+    columns: category.columns.map((column) => ({
+      ...column,
+      label: resolveLabelBySemantic(column.semantic, column.label)
+    }))
   };
 }
 
+const sharedCategories = sharedSchema.categories as Record<PrintCategory, SharedCategory>;
+
 export const CATEGORY_SCHEMAS: Record<PrintCategory, SheetSchema> = {
-  packaging: {
-    title: '包装采购订单',
-    columns: [
-      createColumn('no', '序号', 'center', 'number', 'index'),
-      createColumn('productModelName', '产品名称', 'left', 'text', 'name'),
-      createColumn('spec', '规格尺寸', 'left', 'text', 'specLike'),
-      createColumn('mb', '门边', 'center', 'text', 'edge'),
-      createColumn('qtyLeft', '左数量', 'center', 'number', 'quantity'),
-      createColumn('qtyRight', '右数量', 'center', 'number', 'quantity'),
-      createColumn('remark', '备注', 'left', 'text', 'remark')
-    ]
-  },
-  cylinder: {
-    title: '锁芯采购订单',
-    columns: [
-      createColumn('no', '序号', 'center', 'number', 'index'),
-      createColumn('type', '锁芯型号', 'left', 'text', 'name'),
-      createColumn('eccentricity', '偏心', 'left', 'text', 'specLike'),
-      createColumn('quantity', '数量', 'center', 'number', 'quantity'),
-      createColumn('unit', '单位', 'center', 'text', 'unit'),
-      createColumn('remark', '备注', 'left', 'text', 'remark')
-    ]
-  },
-  lock: {
-    title: '锁叉采购订单',
-    columns: [
-      createColumn('no', '序号', 'center', 'number', 'index'),
-      createColumn('type', '产品名称', 'left', 'text', 'name'),
-      createColumn('spec', '规格', 'left', 'text', 'specLike'),
-      createColumn('quantity', '数量', 'center', 'number', 'quantity'),
-      createColumn('unit', '单位', 'center', 'text', 'unit'),
-      createColumn('remark', '备注', 'left', 'text', 'remark')
-    ]
-  },
-  hardware: {
-    title: '五金采购订单',
-    columns: [
-      createColumn('no', '序号', 'center', 'number', 'index'),
-      createColumn('type', '五金名称', 'left', 'text', 'name'),
-      createColumn('spec', '规格', 'left', 'text', 'specLike'),
-      createColumn('quantity', '数量', 'center', 'number', 'quantity'),
-      createColumn('remark', '备注', 'left', 'text', 'remark')
-    ]
-  }
+  packaging: toSheetSchema(sharedCategories.packaging),
+  cylinder: toSheetSchema(sharedCategories.cylinder),
+  lock: toSheetSchema(sharedCategories.lock),
+  hardware: toSheetSchema(sharedCategories.hardware)
 };
 
 export function getSheetSchema(category: PrintCategory): SheetSchema {
