@@ -1,39 +1,53 @@
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import { getSheetSchema } from '@/features/procurement/order-sheet.schema';
 
 export const COLUMN_WIDTH_STORAGE_KEY = 'po_edit_column_widths_by_category_v1';
 
-export const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, number>> = {
-  packaging: {
-    no: 44,
-    productModelName: 220,
-    spec: 170,
-    mb: 74,
-    qtyLeft: 74,
-    qtyRight: 74,
-    remark: 180
-  },
-  cylinder: {
-    no: 44,
-    type: 260,
-    eccentricity: 220,
-    quantity: 90,
-    remark: 190
-  },
-  lock: {
-    no: 44,
-    type: 220,
-    spec: 180,
-    quantity: 90,
-    unit: 70,
-    remark: 160
-  },
-  hardware: {
-    no: 44,
-    type: 240,
-    spec: 220,
-    quantity: 90,
-    remark: 170
+const CATEGORY_BASELINE_TOTAL_WIDTH: Record<PrintCategory, number> = {
+  packaging: 836,
+  cylinder: 804,
+  lock: 764,
+  hardware: 764
+};
+
+const COLUMN_BASE_WIDTHS: Record<string, number> = {
+  no: 44,
+  productModelName: 220,
+  type: 240,
+  spec: 200,
+  eccentricity: 220,
+  mb: 74,
+  qtyLeft: 72,
+  qtyRight: 72,
+  quantity: 72,
+  unit: 58,
+  remark: 160
+};
+
+function buildCategoryDefaultWidths(category: PrintCategory) {
+  const schema = getSheetSchema(category);
+  const defaults: Record<string, number> = {};
+
+  schema.columns.forEach((column) => {
+    defaults[column.key] = COLUMN_BASE_WIDTHS[column.key] || 120;
+  });
+
+  const baseline = CATEGORY_BASELINE_TOTAL_WIDTH[category];
+  const total = Object.values(defaults).reduce((sum, value) => sum + value, 0);
+  const extra = baseline - total;
+
+  if (Object.prototype.hasOwnProperty.call(defaults, 'remark')) {
+    defaults.remark = Math.max(120, defaults.remark + extra);
   }
+
+  return defaults;
+}
+
+export const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, number>> = {
+  packaging: buildCategoryDefaultWidths('packaging'),
+  cylinder: buildCategoryDefaultWidths('cylinder'),
+  lock: buildCategoryDefaultWidths('lock'),
+  hardware: buildCategoryDefaultWidths('hardware')
 };
 
 export function sanitizeWidths(widths: any, defaults: Record<string, number>) {

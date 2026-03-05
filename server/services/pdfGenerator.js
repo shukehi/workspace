@@ -219,6 +219,7 @@ function normalizeItem(item, category, config) {
             type: item?.type || item?.name || '-',
             eccentricity: item?.eccentricity || '-',
             quantity: Number(item?.quantity || 0),
+            unit: item?.unit || '套',
             remark: item?.remark || ''
         };
     }
@@ -293,7 +294,7 @@ function getCellValue(item, field, rowNumber, category) {
     if (field === 'type') return item.type || item.name || '-';
     if (field === 'eccentricity') return item.eccentricity || '-';
     if (field === 'quantity') return Number(item.quantity || 0);
-    if (field === 'unit') return item.unit || '个';
+    if (field === 'unit') return item.unit || (category === 'cylinder' ? '套' : '个');
     if (field === 'remark') return category === 'packaging' ? '' : (item.remark || '');
     return '-';
 }

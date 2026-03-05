@@ -49,8 +49,8 @@ function getColumnWidth(key: string) {
 
 function getColumnMinWidth(key: string) {
   if (key === 'no') return 36;
-  if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 70;
-  if (key === 'unit') return 56;
+  if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 62;
+  if (key === 'unit') return 50;
   if (key === 'remark') return 100;
   return 90;
 }

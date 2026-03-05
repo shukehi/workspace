@@ -4,11 +4,13 @@ import { getDefaultWidths, sanitizeWidths, resolveInitialWidths, resolveSheetWid
 
 test('sheet width defaults: returns category specific config', () => {
   const packaging = getDefaultWidths('packaging');
+  const cylinder = getDefaultWidths('cylinder');
   const lock = getDefaultWidths('lock');
 
-  assert.equal(packaging.productModelName, 220);
-  assert.equal(lock.unit, 70);
-  assert.equal(lock.type, 220);
+  assert.equal(packaging.qtyLeft, 72);
+  assert.equal(cylinder.unit, 58);
+  assert.equal(cylinder.remark, 170);
+  assert.equal(lock.quantity, 72);
 });
 
 test('sanitizeWidths: keeps defaults and applies valid custom values', () => {
@@ -27,7 +29,7 @@ test('resolveInitialWidths: uses metadata widths when provided', () => {
   assert.equal(resolved.category, 'lock');
   assert.equal(resolved.widths.type, 280);
   assert.equal(resolved.widths.quantity, 120);
-  assert.equal(resolved.defaults.spec, 180);
+  assert.equal(resolved.defaults.spec, 200);
 });
 
 test('resolveSheetWidths: can disable local fallback for preview/print shells', () => {
@@ -35,5 +37,5 @@ test('resolveSheetWidths: can disable local fallback for preview/print shells', 
 
   assert.equal(resolved.category, 'hardware');
   assert.deepEqual(resolved.widths, resolved.defaults);
-  assert.equal(resolved.widths.spec, 220);
+  assert.equal(resolved.widths.spec, 200);
 });

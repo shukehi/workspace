@@ -7,8 +7,8 @@
   },
   "cylinder": {
     "title": "锁芯采购订单",
-    "headers": ["序号", "锁芯型号", "偏心", "数量", "备注"],
-    "fields": ["no", "type", "eccentricity", "quantity", "remark"],
+    "headers": ["序号", "锁芯型号", "偏心", "数量", "单位", "备注"],
+    "fields": ["no", "type", "eccentricity", "quantity", "unit", "remark"],
     "groupBy": "supplier"
   },
   "hardware": {

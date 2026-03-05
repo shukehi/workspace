@@ -6,19 +6,19 @@ import { CATEGORY_DEFAULT_WIDTHS } from '../src/features/procurement/sheetWidthR
 const expected = {
   packaging: {
     columns: ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark'],
-    widths: { no: 44, productModelName: 220, spec: 170, mb: 74, qtyLeft: 74, qtyRight: 74, remark: 180 }
+    widths: { no: 44, productModelName: 220, spec: 200, mb: 74, qtyLeft: 72, qtyRight: 72, remark: 154 }
   },
   cylinder: {
-    columns: ['no', 'type', 'eccentricity', 'quantity', 'remark'],
-    widths: { no: 44, type: 260, eccentricity: 220, quantity: 90, remark: 190 }
+    columns: ['no', 'type', 'eccentricity', 'quantity', 'unit', 'remark'],
+    widths: { no: 44, type: 240, eccentricity: 220, quantity: 72, unit: 58, remark: 170 }
   },
   lock: {
     columns: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
-    widths: { no: 44, type: 220, spec: 180, quantity: 90, unit: 70, remark: 160 }
+    widths: { no: 44, type: 240, spec: 200, quantity: 72, unit: 58, remark: 150 }
   },
   hardware: {
     columns: ['no', 'type', 'spec', 'quantity', 'remark'],
-    widths: { no: 44, type: 240, spec: 220, quantity: 90, remark: 170 }
+    widths: { no: 44, type: 240, spec: 200, quantity: 72, remark: 208 }
   }
 } as const;
 

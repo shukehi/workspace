@@ -7,6 +7,11 @@ test('schema: packaging columns keep expected order', () => {
   assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark']);
 });
 
+test('schema: cylinder columns include unit before remark', () => {
+  const schema = getSheetSchema('cylinder');
+  assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'type', 'eccentricity', 'quantity', 'unit', 'remark']);
+});
+
 test('display value: spec/mb fallback works for preview consistency', () => {
   const item = {
     model: 'M-100',
