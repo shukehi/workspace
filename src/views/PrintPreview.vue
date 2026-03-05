@@ -5,6 +5,7 @@ import { normalizePrintCategory, normalizePrintMode, type PrintCategory, type Pr
 import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
+import { getDefaultWidths, sanitizeWidths } from '@/features/procurement/sheetWidthResolver';
 
 const route = useRoute();
 const loading = ref(true);
@@ -31,52 +32,7 @@ const modeLabels: Record<PrintMode, string> = {
   compact: '简洁版'
 };
 
-const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, number>> = {
-  packaging: {
-    no: 44,
-    productModelName: 220,
-    spec: 170,
-    mb: 74,
-    qtyLeft: 74,
-    qtyRight: 74,
-    remark: 180
-  },
-  cylinder: {
-    no: 44,
-    type: 260,
-    eccentricity: 220,
-    quantity: 90,
-    remark: 190
-  },
-  lock: {
-    no: 44,
-    type: 220,
-    spec: 180,
-    quantity: 90,
-    unit: 70,
-    remark: 160
-  },
-  hardware: {
-    no: 44,
-    type: 240,
-    spec: 220,
-    quantity: 90,
-    remark: 170
-  }
-};
-
-function sanitizeWidths(widths: any, defaults: Record<string, number>) {
-  const merged: Record<string, number> = { ...defaults };
-  Object.keys(defaults).forEach((key) => {
-    const value = Number(widths?.[key]);
-    if (!Number.isNaN(value) && value >= 36) {
-      merged[key] = value;
-    }
-  });
-  return merged;
-}
-
-const previewDefaultWidths = computed(() => CATEGORY_DEFAULT_WIDTHS[currentCategory.value]);
+const previewDefaultWidths = computed(() => getDefaultWidths(currentCategory.value));
 const previewColumnWidths = computed(() => {
   const order = previewOrder.value;
   if (!order) return { ...previewDefaultWidths.value };

@@ -1,0 +1,18 @@
+.order-sheet .resizable-th {
+  overflow: visible;
+}
+
+.order-sheet .col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.order-sheet .col-resize-handle.disabled {
+  cursor: default;
+  opacity: 0.4;
+}

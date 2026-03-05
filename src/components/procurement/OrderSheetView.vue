@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Order, OrderItem } from '@/types/order';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
 
 type Mode = 'edit' | 'preview';
 
@@ -21,14 +22,10 @@ const emit = defineEmits<{
 }>();
 
 const isEditMode = computed(() => props.mode === 'edit');
-
 const category = computed<PrintCategory>(() => normalizePrintCategory(props.order.category));
 const isPackaging = computed(() => category.value === 'packaging');
-const isCylinder = computed(() => category.value === 'cylinder');
-const isLock = computed(() => category.value === 'lock');
-const isHardware = computed(() => category.value === 'hardware');
-
 const items = computed(() => (props.order.items || []) as OrderItem[]);
+const schema = computed(() => getSheetSchema(category.value));
 
 const formattedOrderDate = computed({
   get: () => props.order.created_at ? new Date(props.order.created_at).toISOString().split('T')[0] : '',
@@ -46,33 +43,22 @@ const formattedDeliveryDate = computed({
 
 const resizing = ref<{ key: string; startX: number; startWidth: number } | null>(null);
 
-const minColumnWidth: Record<string, number> = {
-  no: 36,
-  quantity: 70,
-  qtyLeft: 70,
-  qtyRight: 70,
-  unit: 56,
-  remark: 100
-};
-
 function getColumnWidth(key: string) {
   return props.columnWidths[key] || props.defaultWidths[key] || 120;
 }
 
 function getColumnMinWidth(key: string) {
-  return minColumnWidth[key] || 90;
+  if (key === 'no') return 36;
+  if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 70;
+  if (key === 'unit') return 56;
+  if (key === 'remark') return 100;
+  return 90;
 }
 
-function resolveDisplayType(item: Record<string, any>) {
-  return item?.type || item?.name || '-';
-}
-
-function resolveDisplaySpec(item: Record<string, any>) {
-  return item?.spec || item?.model || '-';
-}
-
-function resolveDisplayMb(item: Record<string, any>) {
-  return item?.mb || item?.orientation || '-';
+function getAlignClass(align: 'left' | 'center' | 'right') {
+  if (align === 'center') return 'text-center';
+  if (align === 'right') return 'text-right';
+  return 'text-left';
 }
 
 function onResizeMove(event: MouseEvent) {
@@ -113,13 +99,22 @@ function resetSingleColumnWidth(key: string) {
   });
 }
 
+function handleCellInput(item: Partial<OrderItem>, key: string, value: string) {
+  if (isNumericColumn(key)) {
+    const nextValue = value === '' ? null : Number(value);
+    setEditableValue(item, key, nextValue);
+    return;
+  }
+  setEditableValue(item, key, value);
+}
+
 onBeforeUnmount(() => {
   stopResizing();
 });
 </script>
 
 <template>
-  <div class="bg-card border rounded-lg p-6 max-w-[210mm] mx-auto min-h-[500px]">
+  <div class="order-sheet bg-card border rounded-lg p-6 max-w-[210mm] mx-auto min-h-[500px]">
     <div class="mb-6 border rounded-lg p-4">
       <h1 class="text-xl font-semibold text-center mb-5">采购订单</h1>
 
@@ -173,180 +168,61 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="border rounded-lg overflow-hidden">
-      <table v-if="isPackaging" class="w-full text-xs table-fixed">
+      <table class="w-full text-xs table-fixed">
         <colgroup>
-          <col :style="{ width: `${getColumnWidth('no')}px` }" />
-          <col :style="{ width: `${getColumnWidth('productModelName')}px` }" />
-          <col :style="{ width: `${getColumnWidth('spec')}px` }" />
-          <col :style="{ width: `${getColumnWidth('mb')}px` }" />
-          <col :style="{ width: `${getColumnWidth('qtyLeft')}px` }" />
-          <col :style="{ width: `${getColumnWidth('qtyRight')}px` }" />
-          <col :style="{ width: `${getColumnWidth('remark')}px` }" />
+          <col
+            v-for="column in schema.columns"
+            :key="`col-${column.key}`"
+            :style="{ width: `${getColumnWidth(column.key)}px` }"
+          />
         </colgroup>
         <thead class="bg-muted/40 border-b">
           <tr>
-            <th class="border-r p-2 text-center relative resizable-th">序号<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('no', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('no')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">产品名称<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('productModelName', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('productModelName')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">规格尺寸<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('spec', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('spec')" /></th>
-            <th class="border-r p-2 text-center relative resizable-th">门边<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('mb', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('mb')" /></th>
-            <th class="border-r p-2 text-center relative resizable-th">左数量<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('qtyLeft', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('qtyLeft')" /></th>
-            <th class="border-r p-2 text-center relative resizable-th">右数量<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('qtyRight', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('qtyRight')" /></th>
-            <th class="p-2 text-left relative resizable-th">备注<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('remark', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('remark')" /></th>
+            <th
+              v-for="column in schema.columns"
+              :key="`head-${column.key}`"
+              class="border-r p-2 relative resizable-th"
+              :class="getAlignClass(column.align)"
+            >
+              {{ column.label }}
+              <div
+                class="col-resize-handle"
+                :class="!isEditMode ? 'disabled' : ''"
+                @mousedown.stop.prevent="startResize(column.key, $event)"
+                @dblclick.stop.prevent="resetSingleColumnWidth(column.key)"
+              />
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y">
           <tr v-for="(item, idx) in items" :key="idx" class="hover:bg-muted/30">
-            <td class="border-r p-1 text-center text-muted-foreground">{{ idx + 1 }}</td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.name" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ item.name || '-' }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.spec" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ resolveDisplaySpec(item) }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.mb" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2 text-center">{{ resolveDisplayMb(item) }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model.number="item.quantity_left" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" placeholder="-" />
-              <div v-else class="w-full h-full p-2 text-center">{{ item.quantity_left ?? '-' }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model.number="item.quantity_right" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" placeholder="-" />
-              <div v-else class="w-full h-full p-2 text-center">{{ item.quantity_right ?? '-' }}</div>
-            </td>
-            <td class="p-0">
-              <input v-if="isEditMode" v-model="item.remark" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ item.remark || '-' }}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <table v-else-if="isCylinder" class="w-full text-xs table-fixed">
-        <colgroup>
-          <col :style="{ width: `${getColumnWidth('no')}px` }" />
-          <col :style="{ width: `${getColumnWidth('type')}px` }" />
-          <col :style="{ width: `${getColumnWidth('eccentricity')}px` }" />
-          <col :style="{ width: `${getColumnWidth('quantity')}px` }" />
-          <col :style="{ width: `${getColumnWidth('remark')}px` }" />
-        </colgroup>
-        <thead class="bg-muted/40 border-b">
-          <tr>
-            <th class="border-r p-2 text-center relative resizable-th">序号<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('no', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('no')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">锁芯型号<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('type', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('type')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">偏心<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('eccentricity', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('eccentricity')" /></th>
-            <th class="border-r p-2 text-center relative resizable-th">数量<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('quantity', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('quantity')" /></th>
-            <th class="p-2 text-left relative resizable-th">备注<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('remark', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('remark')" /></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y">
-          <tr v-for="(item, idx) in items" :key="idx" class="hover:bg-muted/30">
-            <td class="border-r p-1 text-center text-muted-foreground">{{ idx + 1 }}</td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.type" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ resolveDisplayType(item) }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.eccentricity" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ item.eccentricity || '-' }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model.number="item.quantity" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2 text-center">{{ item.quantity ?? 0 }}</div>
-            </td>
-            <td class="p-0">
-              <input v-if="isEditMode" v-model="item.remark" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ item.remark || '-' }}</div>
+            <td
+              v-for="column in schema.columns"
+              :key="`cell-${idx}-${column.key}`"
+              class="border-r p-0"
+              :class="getAlignClass(column.align)"
+            >
+              <template v-if="column.key === 'no'">
+                <div class="w-full h-full p-2 text-muted-foreground text-center">{{ idx + 1 }}</div>
+              </template>
+              <template v-else-if="isEditMode">
+                <input
+                  :value="getEditableValue(item, column.key)"
+                  :type="column.inputType"
+                  class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40"
+                  :class="column.align === 'center' ? 'text-center' : ''"
+                  @input="handleCellInput(item, column.key, ($event.target as HTMLInputElement).value)"
+                />
+              </template>
+              <template v-else>
+                <div class="w-full h-full p-2" :class="column.align === 'center' ? 'text-center' : ''">
+                  {{ getDisplayValue(item, column.key, idx) }}
+                </div>
+              </template>
             </td>
           </tr>
-        </tbody>
-      </table>
-
-      <table v-else-if="isLock" class="w-full text-xs table-fixed">
-        <colgroup>
-          <col :style="{ width: `${getColumnWidth('no')}px` }" />
-          <col :style="{ width: `${getColumnWidth('type')}px` }" />
-          <col :style="{ width: `${getColumnWidth('spec')}px` }" />
-          <col :style="{ width: `${getColumnWidth('quantity')}px` }" />
-          <col :style="{ width: `${getColumnWidth('unit')}px` }" />
-          <col :style="{ width: `${getColumnWidth('remark')}px` }" />
-        </colgroup>
-        <thead class="bg-muted/40 border-b">
-          <tr>
-            <th class="border-r p-2 text-center relative resizable-th">序号<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('no', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('no')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">产品名称<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('type', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('type')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">规格<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('spec', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('spec')" /></th>
-            <th class="border-r p-2 text-center relative resizable-th">数量<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('quantity', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('quantity')" /></th>
-            <th class="border-r p-2 text-center relative resizable-th">单位<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('unit', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('unit')" /></th>
-            <th class="p-2 text-left relative resizable-th">备注<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('remark', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('remark')" /></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y">
-          <tr v-for="(item, idx) in items" :key="idx" class="hover:bg-muted/30">
-            <td class="border-r p-1 text-center text-muted-foreground">{{ idx + 1 }}</td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.type" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ resolveDisplayType(item) }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.spec" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ resolveDisplaySpec(item) }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model.number="item.quantity" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2 text-center">{{ item.quantity ?? 0 }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.unit" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2 text-center">{{ item.unit || '-' }}</div>
-            </td>
-            <td class="p-0">
-              <input v-if="isEditMode" v-model="item.remark" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ item.remark || '-' }}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <table v-else-if="isHardware" class="w-full text-xs table-fixed">
-        <colgroup>
-          <col :style="{ width: `${getColumnWidth('no')}px` }" />
-          <col :style="{ width: `${getColumnWidth('type')}px` }" />
-          <col :style="{ width: `${getColumnWidth('spec')}px` }" />
-          <col :style="{ width: `${getColumnWidth('quantity')}px` }" />
-          <col :style="{ width: `${getColumnWidth('remark')}px` }" />
-        </colgroup>
-        <thead class="bg-muted/40 border-b">
-          <tr>
-            <th class="border-r p-2 text-center relative resizable-th">序号<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('no', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('no')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">五金名称<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('type', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('type')" /></th>
-            <th class="border-r p-2 text-left relative resizable-th">规格<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('spec', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('spec')" /></th>
-            <th class="border-r p-2 text-center relative resizable-th">数量<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('quantity', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('quantity')" /></th>
-            <th class="p-2 text-left relative resizable-th">备注<div class="col-resize-handle" :class="!isEditMode ? 'disabled' : ''" @mousedown.stop.prevent="startResize('remark', $event)" @dblclick.stop.prevent="resetSingleColumnWidth('remark')" /></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y">
-          <tr v-for="(item, idx) in items" :key="idx" class="hover:bg-muted/30">
-            <td class="border-r p-1 text-center text-muted-foreground">{{ idx + 1 }}</td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.type" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ resolveDisplayType(item) }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model="item.spec" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ resolveDisplaySpec(item) }}</div>
-            </td>
-            <td class="border-r p-0">
-              <input v-if="isEditMode" v-model.number="item.quantity" type="number" class="w-full h-full p-2 text-center bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2 text-center">{{ item.quantity ?? 0 }}</div>
-            </td>
-            <td class="p-0">
-              <input v-if="isEditMode" v-model="item.remark" class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40" />
-              <div v-else class="w-full h-full p-2">{{ item.remark || '-' }}</div>
-            </td>
+          <tr v-if="schema.columns.length === 7 && items.length < 5" v-for="i in (5 - items.length)" :key="`empty-${i}`">
+            <td v-for="column in schema.columns" :key="`empty-cell-${i}-${column.key}`" class="border-r p-2">&nbsp;</td>
           </tr>
         </tbody>
       </table>
@@ -369,23 +245,4 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped>
-.resizable-th {
-  overflow: visible;
-}
-
-.col-resize-handle {
-  position: absolute;
-  top: 0;
-  right: -4px;
-  width: 8px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: 2;
-}
-
-.col-resize-handle.disabled {
-  cursor: default;
-  opacity: 0.4;
-}
-</style>
+<style scoped src="@/features/procurement/order-sheet.css"></style>
