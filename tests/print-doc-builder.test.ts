@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildProcurementDocModel } from '../src/features/procurement/printDocBuilder';
+import { buildProcurementDocModel, PRINT_DOC_MAX_TABLE_WIDTH_PX } from '../src/features/procurement/printDocBuilder';
 
 test('buildProcurementDocModel groups packaging items by internal name and appends total row', () => {
   const doc = buildProcurementDocModel({
@@ -50,7 +50,12 @@ test('buildProcurementDocModel groups packaging items by internal name and appen
   assert.equal(doc.mode, 'compact');
   assert.equal(doc.pages.length, 2);
   assert.equal(doc.pages[0].columns.find((column) => column.key === 'spec')?.label, '规格');
-  assert.equal(doc.pages[0].columns.find((column) => column.key === 'productModelName')?.width, 220);
+
+  const firstPageTotalWidth = doc.pages[0].columns.reduce((sum, column) => sum + (column.width || 0), 0);
+  assert.ok(firstPageTotalWidth <= PRINT_DOC_MAX_TABLE_WIDTH_PX);
+  const productNameWidth = doc.pages[0].columns.find((column) => column.key === 'productModelName')?.width || 0;
+  const specWidth = doc.pages[0].columns.find((column) => column.key === 'spec')?.width || 0;
+  assert.ok(productNameWidth > specWidth);
 
   const totalRow = doc.pages[0].rows[doc.pages[0].rows.length - 1];
   assert.equal(totalRow.rowType, 'total');
@@ -82,4 +87,31 @@ test('buildProcurementDocModel can normalize full order payload', () => {
   assert.equal(doc.pages.length, 1);
   assert.equal(doc.pages[0].rows[0].values.type, '锁芯A');
   assert.equal(doc.pages[0].rows[doc.pages[0].rows.length - 1].values.quantity, 8);
+});
+
+test('buildProcurementDocModel clamps oversized custom widths for print page', () => {
+  const doc = buildProcurementDocModel({
+    category: '锁芯',
+    poNumber: 'PO-BUILDER-003',
+    order: {
+      metadata: {
+        printColumnWidths: {
+          no: 180,
+          type: 320,
+          eccentricity: 300,
+          quantity: 260,
+          unit: 220,
+          remark: 360,
+        },
+      },
+      list: [
+        { type: '锁芯B', eccentricity: '40*60', quantity: 3, unit: '套', remark: '测试' },
+      ],
+    },
+  });
+
+  const widths = doc.pages[0].columns.map((column) => column.width || 0);
+  const total = widths.reduce((sum, value) => sum + value, 0);
+  assert.ok(total <= PRINT_DOC_MAX_TABLE_WIDTH_PX);
+  assert.ok(widths.every((value) => value >= 36));
 });

@@ -53,6 +53,37 @@ test('packaging rule: merge=true builds rows from aggregated packaging requireme
   assert.equal(groups[0].items[0].quantity_left, 3);
   assert.equal(groups[0].items[0].quantity_right, 5);
   assert.equal(groups[0].items[0].remark, '');
+  assert.equal(groups[0].items[0].internal_name, '3层黄卡美+C单瓦纸箱');
+  assert.equal(groups[0].items[0].external_name, '美+C单瓦');
+});
+
+test('packaging rule: merge=true should not fallback internal_name to spec', () => {
+  const ctx = createCtx({
+    sourceStore: {
+      currentOrder: { list: [] },
+      materialRequirements: null,
+      hardwareRequirements: {
+        packaging: {
+          a: {
+            internalName: '',
+            externalName: '',
+            productModelName: 'M1',
+            spec: '960*2050',
+            mb: '新元宝边',
+            totalQty: 8,
+            totalLeft: 3,
+            totalRight: 5,
+            supplierName: '方亮包装',
+          },
+        },
+      },
+    },
+  });
+
+  const groups = buildPackagingGroups(ctx, { mergeSameSpec: true });
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].items[0].internal_name, '未匹配');
+  assert.equal(groups[0].items[0].external_name, '未匹配');
 });
 
 test('packaging rule: merge=false maps qty pair and falls back to matcher', () => {
@@ -94,4 +125,40 @@ test('packaging rule: merge=false maps qty pair and falls back to matcher', () =
   assert.equal(groups[0].items[0].quantity, 6);
   assert.equal(groups[0].items[0].quantity_left, 2);
   assert.equal(groups[0].items[0].quantity_right, 4);
+});
+
+test('packaging rule: merge=false uses 未匹配 when bz is empty', () => {
+  let matchCalled = false;
+  const ctx = createCtx({
+    sourceStore: {
+      currentOrder: {
+        list: [
+          {
+            bz: '   ',
+            productModelName: 'M3',
+            spec: '900*2100',
+            mb: '门边B',
+            qty: '1/1',
+          },
+        ],
+      },
+      materialRequirements: null,
+      hardwareRequirements: null,
+    },
+    packagingMatcher: {
+      syncFromMapping: () => {},
+      match: () => {
+        matchCalled = true;
+        return '不会被调用';
+      },
+      consumeUnmatchedSummary: () => [],
+    },
+  });
+
+  const groups = buildPackagingGroups(ctx, { mergeSameSpec: false });
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].items.length, 1);
+  assert.equal(groups[0].items[0].internal_name, '未匹配');
+  assert.equal(groups[0].items[0].external_name, '未匹配');
+  assert.equal(matchCalled, false);
 });

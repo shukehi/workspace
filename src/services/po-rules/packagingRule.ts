@@ -15,19 +15,44 @@ function ensurePackagingGroup(groups: Record<string, SupplierGroup>, supplier: s
   return groups[key];
 }
 
+function resolvePackagingNames(
+  rawInternalName: unknown,
+  mappings: Record<string, string>,
+  match: (internalName: string) => string,
+  fallbackExternalName?: unknown
+) {
+  const normalized = String(rawInternalName || '').trim();
+  if (!normalized) {
+    return {
+      internalName: '未匹配',
+      externalName: '未匹配',
+    };
+  }
+
+  return {
+    internalName: normalized,
+    externalName: mappings[normalized] || String(fallbackExternalName || '').trim() || match(normalized),
+  };
+}
+
 export function buildPackagingGroups(ctx: RuleContext, options?: BuildOptions): SupplierGroup[] {
   const mergeSameSpec = options?.mergeSameSpec ?? true;
   const groups: Record<string, SupplierGroup> = {};
+  const packagingMapping = ctx.configLoader.getPackagingMapping();
+  const mappings = (packagingMapping?.mappings || packagingMapping || {}) as Record<string, string>;
+  const fallbackSupplier = packagingMapping?.supplierName || '方亮包装';
 
   if (mergeSameSpec) {
     const hardware = ctx.sourceStore.hardwareRequirements;
-    const packagingMapping = ctx.configLoader.getPackagingMapping();
-    const fallbackSupplier = packagingMapping?.supplierName || '方亮包装';
     const packagingRecords = hardware?.packaging ? Object.values(hardware.packaging) : [];
 
     packagingRecords.forEach((pkg: any) => {
-      const internalName = pkg.internalName || pkg.spec || '未知包装';
-      const externalName = pkg.externalName || ctx.packagingMatcher.match(internalName);
+      const { internalName, externalName } = resolvePackagingNames(
+        pkg.internalName,
+        mappings,
+        ctx.packagingMatcher.match.bind(ctx.packagingMatcher),
+        pkg.externalName
+      );
       const supplier = pkg.supplierName || fallbackSupplier;
       const target = ensurePackagingGroup(groups, supplier);
 
@@ -51,14 +76,15 @@ export function buildPackagingGroups(ctx: RuleContext, options?: BuildOptions): 
     ? ctx.sourceStore.currentOrder.list
     : [];
 
-  const packagingMapping = ctx.configLoader.getPackagingMapping();
-  const mappings = packagingMapping?.mappings || packagingMapping || {};
-  const supplier = packagingMapping?.supplierName || '方亮包装';
+  const supplier = fallbackSupplier;
 
   orderItems.forEach((item: any) => {
-    const internalName = item.bz || '未知包装';
+    const { internalName, externalName } = resolvePackagingNames(
+      item.bz,
+      mappings,
+      ctx.packagingMatcher.match.bind(ctx.packagingMatcher)
+    );
     const target = ensurePackagingGroup(groups, supplier);
-    const externalName = mappings[internalName] || ctx.packagingMatcher.match(internalName);
     const qtyPair = parseQuantityPair(item.qty);
 
     target.items.push(createPackagingOrderItem({

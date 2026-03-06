@@ -14,6 +14,7 @@ import { packagingMatcher } from '@/lib/packagingMatcher';
 import { configLoader } from '@/services/configLoader';
 import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   getDefaultWidths,
@@ -67,13 +68,14 @@ watch(
       if (!copy.metadata) copy.metadata = {};
 
       const isPackagingOrder = copy.category && String(copy.category).includes('包装');
-      if (isPackagingOrder && !copy.metadata.external_name && copy.items && copy.items.length > 0) {
-        const firstItem = copy.items[0];
-        const matched = packagingMatcher.match(firstItem.model || firstItem.name);
-
-        if (matched) {
-          copy.metadata.external_name = matched;
-        }
+      if (isPackagingOrder) {
+        const names = resolvePackagingHeaderNames(
+          copy,
+          configLoader.getPackagingMapping(),
+          packagingMatcher
+        );
+        copy.metadata.internal_name = names.internalName;
+        copy.metadata.external_name = names.externalName;
 
         if (!copy.supplier) {
           const packagingConfig = configLoader.getPackagingMapping();

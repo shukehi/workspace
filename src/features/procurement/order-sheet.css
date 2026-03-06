@@ -16,3 +16,15 @@
   cursor: default;
   opacity: 0.4;
 }
+
+/* Remove native +/- steppers for quantity number inputs */
+.order-sheet input[type='number']::-webkit-outer-spin-button,
+.order-sheet input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.order-sheet input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

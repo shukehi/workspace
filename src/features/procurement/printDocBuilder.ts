@@ -58,6 +58,17 @@ type GroupedPage = {
   items: NormalizedItem[];
 };
 
+const A4_PAGE_WIDTH_MM = 210;
+const PRINT_PAGE_HORIZONTAL_PADDING_MM = 16; // 8mm left + 8mm right
+const PX_PER_MM = 96 / 25.4;
+const PRINT_TABLE_SAFETY_PX = 8;
+const MIN_PRINT_COLUMN_WIDTH_PX = 36;
+
+export const PRINT_DOC_MAX_TABLE_WIDTH_PX = Math.max(
+  360,
+  Math.floor((A4_PAGE_WIDTH_MM - PRINT_PAGE_HORIZONTAL_PADDING_MM) * PX_PER_MM - PRINT_TABLE_SAFETY_PX)
+);
+
 function parseQuantityPair(qtyString: unknown) {
   if (qtyString === undefined || qtyString === null) {
     return { left: 0, right: 0 };
@@ -117,6 +128,60 @@ function normalizeProductNames(rawName: unknown) {
 function formatProductNameDisplay(rawName: unknown) {
   const names = normalizeProductNames(rawName);
   return names.length > 0 ? names.join('\n') : '-';
+}
+
+function fitColumnWidthsForPrint(fields: string[], widths: Record<string, number>) {
+  const normalized = fields.map((field) => {
+    const parsed = Number(widths[field]);
+    if (!Number.isFinite(parsed)) return MIN_PRINT_COLUMN_WIDTH_PX;
+    return Math.max(MIN_PRINT_COLUMN_WIDTH_PX, parsed);
+  });
+
+  const totalWidth = normalized.reduce((sum, value) => sum + value, 0);
+  if (totalWidth <= PRINT_DOC_MAX_TABLE_WIDTH_PX) {
+    return fields.reduce<Record<string, number>>((acc, field, index) => {
+      acc[field] = normalized[index];
+      return acc;
+    }, {});
+  }
+
+  const minTotal = MIN_PRINT_COLUMN_WIDTH_PX * fields.length;
+  if (minTotal >= PRINT_DOC_MAX_TABLE_WIDTH_PX) {
+    const base = Math.floor(PRINT_DOC_MAX_TABLE_WIDTH_PX / fields.length);
+    let remainder = PRINT_DOC_MAX_TABLE_WIDTH_PX - base * fields.length;
+
+    return fields.reduce<Record<string, number>>((acc, field) => {
+      const plus = remainder > 0 ? 1 : 0;
+      if (remainder > 0) remainder -= 1;
+      acc[field] = base + plus;
+      return acc;
+    }, {});
+  }
+
+  const flexibleTotal = totalWidth - minTotal;
+  const budget = PRINT_DOC_MAX_TABLE_WIDTH_PX - minTotal;
+  const target = normalized.map((value) => {
+    const extra = value - MIN_PRINT_COLUMN_WIDTH_PX;
+    const scaledExtra = flexibleTotal > 0 ? (extra / flexibleTotal) * budget : 0;
+    return MIN_PRINT_COLUMN_WIDTH_PX + scaledExtra;
+  });
+
+  const floored = target.map((value) => Math.floor(value));
+  let remainder = PRINT_DOC_MAX_TABLE_WIDTH_PX - floored.reduce((sum, value) => sum + value, 0);
+  const fractionalOrder = target
+    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
+    .sort((a, b) => b.fraction - a.fraction);
+
+  for (const item of fractionalOrder) {
+    if (remainder <= 0) break;
+    floored[item.index] += 1;
+    remainder -= 1;
+  }
+
+  return fields.reduce<Record<string, number>>((acc, field, index) => {
+    acc[field] = Math.max(MIN_PRINT_COLUMN_WIDTH_PX, floored[index]);
+    return acc;
+  }, {});
 }
 
 function normalizePrintColumnWidths(source: unknown) {
@@ -368,6 +433,7 @@ function buildPage(
     source.printColumnWidths,
     { preferLocalWhenMissing: false }
   );
+  const fittedWidths = fitColumnWidthsForPrint(fields, widthState.widths);
 
   return {
     pageKey: `${source.poNumber || 'order'}-${pageIndex}`,
@@ -385,7 +451,7 @@ function buildPage(
       key: field,
       label: headers[index] || field,
       align: aligns[index] || 'center',
-      width: widthState.widths[field],
+      width: fittedWidths[field],
       numeric: field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity',
     })),
     rows: buildRows(source.category, fields, group.items),

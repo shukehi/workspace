@@ -55,11 +55,14 @@ export function aggregatePackaging(items: PackagingItem[], PACKAGING_MAPPING: Pa
     }
 
     items.forEach((item) => {
-        const internalName = item.bz || "未知";
+        const rawInternalName = String(item?.bz || '').trim();
+        const internalName = rawInternalName || "未匹配";
         // mappings maps internal packaging name -> external packaging name, not supplier.
         const mappings = PACKAGING_MAPPING.mappings || PACKAGING_MAPPING;
         const supplierName = PACKAGING_MAPPING.supplierName || "方亮包装";
-        const externalName = mappings[internalName] || internalName + " (未匹配)";
+        const externalName = rawInternalName
+            ? (mappings[internalName] || `${internalName} (未匹配)`)
+            : "未匹配";
         const productModelName = String(item.productModelName || '').trim();
         const spec = item.spec || "未知规格";
         const mb = item.mb || "-";
