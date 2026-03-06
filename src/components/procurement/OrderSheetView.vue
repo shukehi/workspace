@@ -215,7 +215,13 @@ onBeforeUnmount(() => {
                 />
               </template>
               <template v-else>
-                <div class="w-full h-full p-2" :class="column.align === 'center' ? 'text-center' : ''">
+                <div
+                  class="w-full h-full p-2"
+                  :class="[
+                    column.align === 'center' ? 'text-center' : '',
+                    column.key === 'productModelName' ? 'whitespace-pre-line text-left' : ''
+                  ]"
+                >
                   {{ getDisplayValue(item, column.key, idx) }}
                 </div>
               </template>
@@ -229,17 +235,17 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="flex justify-between mt-10 pt-5 border-t text-sm">
-      <div class="flex items-center gap-2">
+      <div class="flex items-end gap-2">
         <span>制单人:</span>
-        <div class="w-24 border-b"></div>
+        <div class="w-24 border-b mb-[1px]"></div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-end gap-2">
         <span>审核人:</span>
-        <div class="w-24 border-b"></div>
+        <div class="w-24 border-b mb-[1px]"></div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-end gap-2">
         <span>供应商签字:</span>
-        <div class="w-24 border-b"></div>
+        <div class="w-24 border-b mb-[1px]"></div>
       </div>
     </div>
   </div>

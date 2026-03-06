@@ -18,8 +18,7 @@ function ensurePackagingGroup(groups: Record<string, SupplierGroup>, supplier: s
 function resolvePackagingNames(
   rawInternalName: unknown,
   mappings: Record<string, string>,
-  match: (internalName: string) => string,
-  fallbackExternalName?: unknown
+  match: (internalName: string) => string
 ) {
   const normalized = String(rawInternalName || '').trim();
   if (!normalized) {
@@ -31,7 +30,7 @@ function resolvePackagingNames(
 
   return {
     internalName: normalized,
-    externalName: mappings[normalized] || String(fallbackExternalName || '').trim() || match(normalized),
+    externalName: mappings[normalized] || match(normalized),
   };
 }
 
@@ -50,8 +49,7 @@ export function buildPackagingGroups(ctx: RuleContext, options?: BuildOptions): 
       const { internalName, externalName } = resolvePackagingNames(
         pkg.internalName,
         mappings,
-        ctx.packagingMatcher.match.bind(ctx.packagingMatcher),
-        pkg.externalName
+        ctx.packagingMatcher.match.bind(ctx.packagingMatcher)
       );
       const supplier = pkg.supplierName || fallbackSupplier;
       const target = ensurePackagingGroup(groups, supplier);

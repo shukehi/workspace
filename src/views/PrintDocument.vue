@@ -143,9 +143,11 @@ async function exportPdf() {
 
 function getColumnClass(column: any) {
   const align = column?.align || 'center';
+  const keyClass = column?.key ? `col-key-${String(column.key)}` : '';
   return {
     [`col-${align}`]: true,
     'col-numeric': !!column?.numeric,
+    [keyClass]: !!keyClass,
   };
 }
 

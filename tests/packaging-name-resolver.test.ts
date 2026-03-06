@@ -66,3 +66,43 @@ test('resolvePackagingHeaderNames: multi internal names -> 多规格包装', () 
   assert.equal(result.internalName, '多规格包装');
   assert.equal(result.externalName, '多规格包装');
 });
+
+test('resolvePackagingHeaderNames: item-derived names override stale metadata values', () => {
+  const result = resolvePackagingHeaderNames({
+    category: '包装',
+    metadata: {
+      internal_name: '-',
+      external_name: '1050*2100/7/内开外包 (未匹配)',
+    },
+    items: [{
+      id: 1,
+      material_id: 'm1',
+      internal_name: '3层黄卡美+C单瓦纸箱',
+      name: 'x',
+      model: 'x',
+      quantity: 1,
+      unit: '套',
+    }],
+  } as any, mapping, {
+    match: (name: string) => `${name}(未匹配)`,
+  });
+
+  assert.equal(result.internalName, '3层黄卡美+C单瓦纸箱');
+  assert.equal(result.externalName, '美+C单瓦');
+});
+
+test('resolvePackagingHeaderNames: keep metadata fallback when no item candidates', () => {
+  const result = resolvePackagingHeaderNames({
+    category: '包装',
+    metadata: {
+      internal_name: '历史内部名',
+      external_name: '历史外协名',
+    },
+    items: [],
+  } as any, mapping, {
+    match: () => 'should-not-happen',
+  });
+
+  assert.equal(result.internalName, '历史内部名');
+  assert.equal(result.externalName, '历史外协名');
+});

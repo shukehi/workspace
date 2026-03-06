@@ -41,18 +41,21 @@ export function resolvePackagingHeaderNames(
 
   const currentInternal = String(order.metadata?.internal_name || '').trim();
   const currentExternal = String(order.metadata?.external_name || '').trim();
+  const hasItemCandidates = internalCandidates.length > 0;
 
-  const internalName = currentInternal
-    || (internalCandidates.length === 1 ? internalCandidates[0] : (internalCandidates.length > 1 ? '多规格包装' : '未匹配'));
+  const internalName = hasItemCandidates
+    ? (internalCandidates.length === 1 ? internalCandidates[0] : '多规格包装')
+    : (currentInternal || '未匹配');
 
-  let externalName = currentExternal;
-  if (!externalName) {
+  const externalName = (() => {
     if (!internalName || internalName === '未匹配' || internalName === '多规格包装') {
-      externalName = internalName || '未匹配';
-    } else {
-      externalName = String(mappings[internalName] || '').trim() || matcher.match(internalName);
+      return internalName || '未匹配';
     }
-  }
+    const mapped = String(mappings[internalName] || '').trim();
+    if (mapped) return mapped;
+    if (!hasItemCandidates && currentExternal) return currentExternal;
+    return matcher.match(internalName);
+  })();
 
   return {
     internalName: internalName || '未匹配',

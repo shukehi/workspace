@@ -43,6 +43,9 @@ test('packaging rule: merge=true builds rows from aggregated packaging requireme
         },
       },
     },
+    configLoader: {
+      getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: { '3层黄卡美+C单瓦纸箱': '美+C单瓦' } }),
+    },
   });
 
   const groups = buildPackagingGroups(ctx, { mergeSameSpec: true });
