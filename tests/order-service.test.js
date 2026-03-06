@@ -95,6 +95,44 @@ test('OrderService CRUD and category filter', async (t) => {
   assert.equal(afterDelete, null);
 });
 
+test('OrderService createOrder falls back to plain payload when immediate refetch returns null', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const originalGetOrderById = orderService.getOrderById;
+  orderService.getOrderById = async () => null;
+
+  try {
+    const created = await orderService.createOrder({
+      order_no: uniqueOrderNo('FALLBACK-PO'),
+      supplier: 'Fallback Supplier',
+      category: '包装',
+      status: 'draft',
+      remark: 'fallback create',
+      metadata: { source: 'fallback-test' },
+      created_at: '2026-03-06T08:20:00.000Z',
+      items: [
+        {
+          name: 'Fallback Item',
+          model: 'MODEL-F',
+          spec: '960*2050/7/内开外包',
+          supplier: 'Fallback Supplier',
+          quantity: 1,
+          unit: '套',
+        }
+      ]
+    });
+
+    assert.equal(created.order_no.startsWith('FALLBACK-PO'), true);
+    assert.equal(created.created_at, '2026-03-06T08:20:00.000Z');
+    assert.equal(Array.isArray(created.items), true);
+    assert.equal(created.items.length, 1);
+    assert.equal(created.total_amount, 0);
+  } finally {
+    orderService.getOrderById = originalGetOrderById;
+  }
+});
+
 test.after(async () => {
   if (createdOrderIds.length > 0) {
     await OrderItem.destroy({ where: { order_id: createdOrderIds } });
