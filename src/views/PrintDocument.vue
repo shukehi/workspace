@@ -374,6 +374,11 @@ onMounted(() => {
           </template>
         </div>
 
+        <div class="print-order-remark">
+          <span class="remark-label">整单备注:</span>
+          <span class="remark-value">{{ page.orderRemark || '-' }}</span>
+        </div>
+
         <div class="print-footer">
           <div class="sign-box">
             <span>制单人:</span>

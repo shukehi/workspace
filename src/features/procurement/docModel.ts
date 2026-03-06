@@ -28,6 +28,7 @@ export interface ProcurementDocPage {
   orderDate: string;
   deliveryDate: string;
   supplier: string;
+  orderRemark: string;
   internalName: string;
   externalName: string;
   columns: ProcurementDocColumn[];

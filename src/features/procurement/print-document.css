@@ -300,6 +300,30 @@
   font-weight: 600;
 }
 
+.print-order-remark {
+  margin-top: 8px;
+  min-height: 28px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #111827;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.print-order-remark .remark-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.print-order-remark .remark-value {
+  flex: 1;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
 .print-footer {
   display: flex;
   justify-content: space-between;

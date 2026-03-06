@@ -26,6 +26,7 @@ test('OrderService CRUD and category filter', async (t) => {
     supplier: 'Test Supplier',
     category: '包装',
     status: 'draft',
+    remark: '整单备注-创建',
     metadata: { source: 'test' },
     created_at: new Date().toISOString(),
     items: [
@@ -61,6 +62,8 @@ test('OrderService CRUD and category filter', async (t) => {
   assert.equal(created.items[0].eccentricity, '34.5*55.5/中心孔偏心');
   assert.equal(created.items[0].quantity_left, 1);
   assert.equal(created.items[0].quantity_right, 2);
+  assert.equal(created.remark, '整单备注-创建');
+  assert.equal(created.items[0].remark, 'created by test');
 
   const fetched = await orderService.getOrderById(created.id);
   assert.ok(fetched);
@@ -73,12 +76,15 @@ test('OrderService CRUD and category filter', async (t) => {
   const updated = await orderService.updateOrder(created.id, {
     category: '锁芯',
     status: 'processing',
-    created_at: nextCreatedAt
+    created_at: nextCreatedAt,
+    remark: '整单备注-更新'
   });
 
   assert.equal(updated.category, '锁芯');
   assert.equal(updated.status, 'processing');
   assert.equal(new Date(updated.created_at).toISOString(), nextCreatedAt);
+  assert.equal(updated.remark, '整单备注-更新');
+  assert.equal(updated.items[0].remark, 'created by test');
 
   const filteredAfterUpdate = await orderService.getAllOrders('锁芯');
   assert.ok(filteredAfterUpdate.some((o) => o.id === created.id));

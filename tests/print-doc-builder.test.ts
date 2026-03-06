@@ -10,6 +10,7 @@ test('buildProcurementDocModel groups packaging items by internal name and appen
     order: {
       metadata: {
         customer_name: '客户A',
+        remark: '整单备注-A',
         printColumnWidths: {
           no: 48,
           productModelName: 220,
@@ -50,6 +51,7 @@ test('buildProcurementDocModel groups packaging items by internal name and appen
   assert.equal(doc.mode, 'compact');
   assert.equal(doc.pages.length, 2);
   assert.equal(doc.pages[0].columns.find((column) => column.key === 'spec')?.label, '规格');
+  assert.equal(doc.pages[0].orderRemark, '整单备注-A');
 
   const firstPageTotalWidth = doc.pages[0].columns.reduce((sum, column) => sum + (column.width || 0), 0);
   assert.ok(firstPageTotalWidth <= PRINT_DOC_MAX_TABLE_WIDTH_PX);
@@ -76,6 +78,7 @@ test('buildProcurementDocModel can normalize full order payload', () => {
       created_at: '2026-03-05T10:00:00.000Z',
       delivery_date: '2026-03-10T10:00:00.000Z',
       metadata: { customer_name: '客户B' },
+      remark: '整单备注-B',
       items: [
         { type: '锁芯A', eccentricity: '34.5*55.5', quantity: 8, unit: '套', remark: '测试' },
       ],
@@ -85,6 +88,7 @@ test('buildProcurementDocModel can normalize full order payload', () => {
   assert.equal(doc.category, 'cylinder');
   assert.equal(doc.poNumber, 'PO-BUILDER-002');
   assert.equal(doc.pages.length, 1);
+  assert.equal(doc.pages[0].orderRemark, '整单备注-B');
   assert.equal(doc.pages[0].rows[0].values.type, '锁芯A');
   assert.equal(doc.pages[0].rows[doc.pages[0].rows.length - 1].values.quantity, 8);
 });

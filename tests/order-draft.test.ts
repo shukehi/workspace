@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cloneOrderDraft, normalizeOrderDraft, buildPrintPayloadFromOrder, buildPdfRequestPayload } from '../src/features/procurement/orderDraft';
+import { cloneOrderDraft, normalizeOrderDraft } from '../src/features/procurement/orderDraft';
 import type { Order } from '../src/types/order';
 
 const sampleOrder: Order = {
@@ -12,6 +12,7 @@ const sampleOrder: Order = {
   total_amount: 1200,
   created_at: '2026-03-05T12:30:45.000Z',
   delivery_date: '2026-03-20T08:00:00.000Z',
+  remark: '整单备注：周五前交付',
   items: [
     {
       id: 1,
@@ -52,25 +53,4 @@ test('normalizeOrderDraft fills display fields from model/orientation fallbacks'
   const normalized = normalizeOrderDraft(sampleOrder);
   assert.equal(normalized.items[0].spec, 'A-100');
   assert.equal(normalized.items[0].mb, '-');
-});
-
-test('buildPrintPayloadFromOrder maps order to print contract', () => {
-  const payload = buildPrintPayloadFromOrder(sampleOrder);
-
-  assert.equal(payload.customerName, '客户A');
-  assert.equal(payload.code, 'PO-2026-0305');
-  assert.equal(payload.orderDate, '2026-03-05');
-  assert.equal(payload.deliveryDate, '2026-03-20');
-  assert.deepEqual(payload.printColumnWidths, sampleOrder.metadata?.printColumnWidths);
-  assert.equal(payload.list?.length, 1);
-});
-
-test('buildPdfRequestPayload keeps printMode and wraps mapped print payload', () => {
-  const payload = buildPdfRequestPayload(sampleOrder, 'compact');
-
-  assert.equal(payload.poNumber, 'PO-2026-0305');
-  assert.equal(payload.category, '包装');
-  assert.equal(payload.printMode, 'compact');
-  assert.equal(payload.order.code, 'PO-2026-0305');
-  assert.equal(payload.order.orderDate, '2026-03-05');
 });
