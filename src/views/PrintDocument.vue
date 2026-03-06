@@ -194,6 +194,31 @@ function getTotalCells(page: ProcurementDocPage, row: ProcurementDocRow): TotalC
   return cells;
 }
 
+function getPageQuantitySummary(page: ProcurementDocPage) {
+  if (page.category === 'packaging') {
+    const leftTotal = page.rows
+      .filter((row) => row.rowType === 'item')
+      .reduce((sum, row) => sum + Number(row.values.qtyLeft || 0), 0);
+    const rightTotal = page.rows
+      .filter((row) => row.rowType === 'item')
+      .reduce((sum, row) => sum + Number(row.values.qtyRight || 0), 0);
+    return {
+      leftTotal,
+      rightTotal,
+      total: leftTotal + rightTotal,
+    };
+  }
+
+  const total = page.rows
+    .filter((row) => row.rowType === 'item')
+    .reduce((sum, row) => sum + Number(row.values.quantity || 0), 0);
+  return {
+    leftTotal: 0,
+    rightTotal: 0,
+    total,
+  };
+}
+
 watch(
   () => [route.query.snapshotId, route.query.orderId],
   () => {
@@ -349,6 +374,17 @@ onMounted(() => {
             </template>
           </tbody>
         </table>
+
+        <div class="print-quantity-summary">
+          <template v-if="page.category === 'packaging'">
+            <span>左数量合计: {{ getPageQuantitySummary(page).leftTotal }}</span>
+            <span>右数量合计: {{ getPageQuantitySummary(page).rightTotal }}</span>
+            <span class="summary-total">总数量: {{ getPageQuantitySummary(page).total }}</span>
+          </template>
+          <template v-else>
+            <span class="summary-total">数量合计: {{ getPageQuantitySummary(page).total }}</span>
+          </template>
+        </div>
 
         <div class="print-footer">
           <div class="sign-box">

@@ -26,6 +26,24 @@ const category = computed<PrintCategory>(() => normalizePrintCategory(props.orde
 const isPackaging = computed(() => category.value === 'packaging');
 const items = computed(() => (props.order.items || []) as OrderItem[]);
 const schema = computed(() => getSheetSchema(category.value));
+const quantitySummary = computed(() => {
+  if (isPackaging.value) {
+    const leftTotal = items.value.reduce((sum, item) => sum + Number(item.quantity_left || 0), 0);
+    const rightTotal = items.value.reduce((sum, item) => sum + Number(item.quantity_right || 0), 0);
+    return {
+      leftTotal,
+      rightTotal,
+      total: leftTotal + rightTotal,
+    };
+  }
+
+  const total = items.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  return {
+    leftTotal: 0,
+    rightTotal: 0,
+    total,
+  };
+});
 
 const formattedOrderDate = computed({
   get: () => props.order.created_at ? new Date(props.order.created_at).toISOString().split('T')[0] : '',
@@ -232,6 +250,17 @@ onBeforeUnmount(() => {
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="mt-3 flex justify-end text-xs text-foreground">
+      <div v-if="isPackaging" class="inline-flex items-center gap-4 rounded-md border bg-muted/20 px-3 py-1.5">
+        <span>左数量合计: {{ quantitySummary.leftTotal }}</span>
+        <span>右数量合计: {{ quantitySummary.rightTotal }}</span>
+        <span class="font-medium">总数量: {{ quantitySummary.total }}</span>
+      </div>
+      <div v-else class="inline-flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-1.5">
+        <span class="font-medium">数量合计: {{ quantitySummary.total }}</span>
+      </div>
     </div>
 
     <div class="flex justify-between mt-10 pt-5 border-t text-sm">

@@ -287,6 +287,19 @@
   text-align: right;
 }
 
+.print-quantity-summary {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  font-size: 11px;
+  color: #111827;
+}
+
+.print-quantity-summary .summary-total {
+  font-weight: 600;
+}
+
 .print-footer {
   display: flex;
   justify-content: space-between;
