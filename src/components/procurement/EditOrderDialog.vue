@@ -15,6 +15,7 @@ import { configLoader } from '@/services/configLoader';
 import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
+import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   getDefaultWidths,
@@ -198,12 +199,7 @@ const hasUnsavedChanges = computed(() => {
 });
 
 function bootstrapEditOrder(order: Order) {
-  const copy = cloneOrderDraft(order);
-  if (!copy.metadata) copy.metadata = {};
-
-  applyPackagingHeaderNames(copy);
-
-  const normalizedDraft = normalizeOrderDraft(copy);
+  const normalizedDraft = prepareOrderDraft(order);
   form.value = normalizedDraft;
 
   const resolved = resolveSheetWidths(

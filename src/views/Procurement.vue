@@ -25,10 +25,7 @@ import {
   X
 } from 'lucide-vue-next';
 import type { Order } from '@/types/order';
-import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
-import { packagingMatcher } from '@/lib/packagingMatcher';
-import { configLoader } from '@/services/configLoader';
-import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
+import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
@@ -108,37 +105,11 @@ const isEditDialogOpen = ref(false);
 const isPreviewDialogOpen = ref(false);
 const selectedOrder = ref<Order | null>(null);
 const draftOrderForPreview = ref<Order | null>(null);
-
-const prepareDraftForMode = (order: Order): Order => {
-  const draft = cloneOrderDraft(order);
-  if (!draft.metadata) draft.metadata = {};
-
-  const isPackagingOrder = draft.category && String(draft.category).includes('包装');
-  if (isPackagingOrder) {
-    const names = resolvePackagingHeaderNames(
-      draft,
-      configLoader.getPackagingMapping(),
-      packagingMatcher
-    );
-    draft.metadata.internal_name = names.internalName;
-    draft.metadata.external_name = names.externalName;
-
-    if (!draft.supplier) {
-      const packagingConfig = configLoader.getPackagingMapping();
-      draft.supplier = packagingConfig?.supplierName || '默认供应商';
-    }
-  }
-
-  return normalizeOrderDraft(draft);
-};
-
-const logOrderModePayload = (mode: '编辑模式' | '预览模式', order: Order) => {
-  console.log(`[采购管理] 进入${mode}订单数据(JSON):\n${JSON.stringify(order, null, 2)}`);
-};
+const editDialogMode = ref<'edit' | 'create'>('edit');
 
 const handleEdit = (order: Order) => {
-  const draft = prepareDraftForMode(order);
-  logOrderModePayload('编辑模式', draft);
+  editDialogMode.value = 'edit';
+  const draft = prepareOrderDraft(order);
   selectedOrder.value = draft;
   draftOrderForPreview.value = draft;
   isEditDialogOpen.value = true;
@@ -169,8 +140,7 @@ const handleDelete = async (order: Order) => {
 };
 
 const handlePreview = (order: Order) => {
-  const draft = prepareDraftForMode(order);
-  logOrderModePayload('预览模式', draft);
+  const draft = prepareOrderDraft(order);
   selectedOrder.value = draft;
   draftOrderForPreview.value = draft;
   isPreviewDialogOpen.value = true;
@@ -182,16 +152,15 @@ const handleDraftChange = (draft: Order) => {
 };
 
 const handleEditPreview = (draft: Order) => {
-  const normalizedDraft = prepareDraftForMode(draft);
-  logOrderModePayload('预览模式', normalizedDraft);
+  const normalizedDraft = prepareOrderDraft(draft);
   selectedOrder.value = normalizedDraft;
   draftOrderForPreview.value = normalizedDraft;
   isPreviewDialogOpen.value = true;
 };
 
 const handlePreviewEdit = (order: Order) => {
-  const draft = prepareDraftForMode(order);
-  logOrderModePayload('编辑模式', draft);
+  editDialogMode.value = 'edit';
+  const draft = prepareOrderDraft(order);
   isPreviewDialogOpen.value = false;
   selectedOrder.value = draft;
   draftOrderForPreview.value = draft;
@@ -251,11 +220,10 @@ const handleBulkStatusUpdate = async (status: Order['status']) => {
 };
 
 const handleManualEntry = () => {
-  toast({
-    title: '功能准备中',
-    description: '手动录入将在后续版本开放',
-    variant: 'default'
-  });
+  editDialogMode.value = 'create';
+  selectedOrder.value = null;
+  draftOrderForPreview.value = null;
+  isEditDialogOpen.value = true;
 };
 
 const resetFilters = () => {
@@ -293,7 +261,7 @@ onMounted(() => {
         </Button>
         <Button size="sm" variant="secondary" @click="handleManualEntry">
           <Plus class="w-4 h-4 mr-2" />
-          手动录入（开发中）
+          手动录入
         </Button>
       </div>
     </div>
@@ -423,6 +391,7 @@ onMounted(() => {
     <EditOrderDialog
       v-model:open="isEditDialogOpen"
       :order="selectedOrder"
+      :mode="editDialogMode"
       @saved="store.fetchOrders()"
       @draft-change="handleDraftChange"
       @preview="handleEditPreview"
