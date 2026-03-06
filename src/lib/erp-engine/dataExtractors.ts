@@ -242,7 +242,7 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         for (const keyword of keywords) {
             if (xsbz.includes(keyword)) {
                 // 尝试提取数字，如 "吊脚5mm" -> 5
-                const match = xsbz.match(new RegExp(`${keyword}\s*(\d+)`, 'i'));
+                const match = xsbz.match(new RegExp(`${keyword}\\s*(\\d+)`, 'i'));
                 if (match) {
                     return parseInt(match[1], 10);
                 }
@@ -315,11 +315,8 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
 
         // 1. 提取基础属性
         const parts = (item.spec || '').split('/');
-        let thickness = "7"; // 默认7cm
-
-        if (parts.length >= 2) {
-            thickness = parts[1].trim();
-        }
+        const rawThickness = String((item as any)?.mshd || '').trim();
+        let thickness = rawThickness || (parts.length >= 2 ? parts[1].trim() : '') || '7';
 
         // 2. 解析门高
         const doorHeight = parseHeight(item.spec);
@@ -337,7 +334,10 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             : 0;
 
         // 4. 获取基础尺寸
-        const baseDimensions = LOCK_FORK_MAPPING.baseDimensions?.[thickness];
+        let baseDimensions = LOCK_FORK_MAPPING.baseDimensions?.[thickness];
+        if (!baseDimensions && thickness === '5') {
+            baseDimensions = LOCK_FORK_MAPPING.baseDimensions?.['7'];
+        }
         if (!baseDimensions) {
             console.warn(`⚠️ 未找到门厚 ${thickness}cm 的锁叉基础尺寸配置`);
             return;

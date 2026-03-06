@@ -1,5 +1,27 @@
 {
     "baseDimensions": {
+        "5": {
+            "standard": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 301
+                }
+            },
+            "withHangingFeet": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 313
+                }
+            }
+        },
         "7": {
             "standard": {
                 "upper": {
