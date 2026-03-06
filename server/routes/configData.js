@@ -7,6 +7,8 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const { adaptPackagingMapping } = require('../services/mappings/mapping.adapter');
+const { validatePackagingMapping } = require('../services/mappings/mapping.validator');
 
 // Path to data files (resolved relative to project root)
 const DATA_DIR = path.join(__dirname, '../../public/data');
@@ -51,11 +53,15 @@ router.post('/materials', (req, res) => {
 router.get('/packaging-mapping', (req, res) => {
     try {
         if (fs.existsSync(PACKAGING_MAPPING_FILE)) {
-            const data = fs.readFileSync(PACKAGING_MAPPING_FILE, 'utf8');
-            res.header('Content-Type', 'application/json');
-            res.send(data);
+            const raw = JSON.parse(fs.readFileSync(PACKAGING_MAPPING_FILE, 'utf8'));
+            const payload = adaptPackagingMapping(raw);
+            const issues = validatePackagingMapping(raw);
+            if (issues.length > 0) {
+                console.warn('[configData] packaging mapping validation issues:', issues);
+            }
+            res.json(payload);
         } else {
-            res.json({});
+            res.json(adaptPackagingMapping({}));
         }
     } catch (error) {
         console.error('Error reading packaging mapping:', error);

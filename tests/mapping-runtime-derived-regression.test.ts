@@ -1,0 +1,172 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import {
+  adaptCylinderMapping,
+  adaptLockForkMapping,
+  adaptPackagingMapping,
+} from '../src/services/mappings';
+import {
+  extractCylinderData,
+  extractLockForkData,
+  extractPackagingData,
+} from '../src/lib/erp-engine/dataExtractors';
+import { buildCylinderGroups } from '../src/services/po-rules/cylinderRule';
+import { buildLockForkGroups } from '../src/services/po-rules/lockForkRule';
+import { buildPackagingGroups } from '../src/services/po-rules/packagingRule';
+import { buildProcurementDocModel } from '../src/features/procurement/printDocBuilder';
+
+function readJson(path: string) {
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+function toComparableGroups(groups: any[]) {
+  return groups.map((group) => ({
+    supplierName: group.supplierName,
+    category: group.category,
+    itemCount: Array.isArray(group.items) ? group.items.length : 0,
+    items: (Array.isArray(group.items) ? group.items : []).map((item) => {
+      if (group.category === '包装') {
+        return {
+          supplier: item.supplier,
+          internal_name: item.internal_name,
+          external_name: item.external_name,
+          name: item.name,
+          spec: item.spec,
+          mb: item.mb,
+          quantity: item.quantity,
+          quantity_left: item.quantity_left,
+          quantity_right: item.quantity_right,
+        };
+      }
+
+      if (group.category === '锁芯') {
+        return {
+          supplier: item.supplier,
+          type: item.type,
+          eccentricity: item.eccentricity,
+          quantity: item.quantity,
+          remark: item.remark,
+        };
+      }
+
+      return {
+        supplier: item.supplier,
+        type: item.type,
+        spec: item.spec,
+        quantity: item.quantity,
+        remark: item.remark,
+      };
+    }),
+  }));
+}
+
+function buildPrintChecksum(category: string, group: any, sample: any) {
+  const doc = buildProcurementDocModel({
+    category,
+    order: {
+      order_no: `PO-${sample.code}`,
+      supplier: group.supplierName,
+      category,
+      created_at: '2026-03-06T00:00:00.000Z',
+      metadata: {
+        customer_name: sample.customerName,
+        remark: sample.remark,
+      },
+      items: group.items,
+    },
+  });
+
+  return {
+    pages: doc.pages.length,
+    rowsPerPage: doc.pages.map((page) => page.rows.length),
+    checksum: createHash('sha256').update(JSON.stringify(doc.pages)).digest('hex'),
+  };
+}
+
+test('mapping runtime regression: derived edge cases from real order keep current cylinder/lock-fork baseline', () => {
+  const fixture = readJson('tests/fixtures/mapping-runtime-baseline.derived-cases.json');
+  const packagingMapping = adaptPackagingMapping(readJson('public/data/packaging-mapping.json'));
+  const cylinderMapping = adaptCylinderMapping(readJson('public/data/cylinder-mapping.json'));
+  const lockForkMapping = adaptLockForkMapping(readJson('public/data/lock-fork-mapping.json'));
+
+  fixture.cases.forEach((testCase: any) => {
+    const warnings: string[] = [];
+    const originalWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args.map((item) => String(item)).join(' '));
+    };
+
+    try {
+      const hardwareRequirements = {
+        cylinders: extractCylinderData(testCase.sample.list, testCase.sample, cylinderMapping),
+        lockForks: extractLockForkData(testCase.sample.list, testCase.sample, lockForkMapping),
+        packaging: extractPackagingData(testCase.sample.list, packagingMapping),
+      };
+
+      const ctx = {
+        sourceStore: {
+          currentOrder: { list: testCase.sample.list },
+          materialRequirements: null,
+          hardwareRequirements,
+        },
+        configLoader: {
+          getPackagingMapping: () => packagingMapping,
+        },
+        packagingMatcher: {
+          syncFromMapping: () => {},
+          match: (name: string) => name,
+          consumeUnmatchedSummary: () => [],
+        },
+      };
+
+      const packagingGroups = buildPackagingGroups(ctx, { mergeSameSpec: true });
+      const cylinderGroups = buildCylinderGroups(ctx);
+      const lockForkGroups = buildLockForkGroups(ctx);
+
+      assert.deepEqual(
+        {
+          cylinders: hardwareRequirements.cylinders,
+          lockForks: hardwareRequirements.lockForks,
+          packaging: Object.values(hardwareRequirements.packaging),
+        },
+        testCase.expected.extracted,
+        `${testCase.id}: extracted output changed`,
+      );
+
+      assert.deepEqual(
+        {
+          packaging: toComparableGroups(packagingGroups),
+          cylinders: toComparableGroups(cylinderGroups),
+          lockForks: toComparableGroups(lockForkGroups),
+        },
+        testCase.expected.groups,
+        `${testCase.id}: grouped output changed`,
+      );
+
+      assert.deepEqual(
+        {
+          packaging: packagingGroups[0] ? buildPrintChecksum('包装', packagingGroups[0], testCase.sample) : null,
+          cylinder: cylinderGroups[0] ? buildPrintChecksum('锁芯', cylinderGroups[0], testCase.sample) : null,
+          lockFork: lockForkGroups[0] ? buildPrintChecksum('锁叉', lockForkGroups[0], testCase.sample) : null,
+        },
+        testCase.expected.print,
+        `${testCase.id}: print checksum changed`,
+      );
+
+      testCase.warningIncludes.forEach((needle: string) => {
+        assert.ok(
+          warnings.some((message) => message.includes(needle)),
+          `${testCase.id}: expected warning containing ${needle}`,
+        );
+      });
+
+      if (testCase.warningIncludes.length === 0) {
+        assert.equal(warnings.length, 0, `${testCase.id}: should not emit warnings`);
+      }
+    } finally {
+      console.warn = originalWarn;
+    }
+  });
+});

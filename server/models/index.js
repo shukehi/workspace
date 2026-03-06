@@ -6,6 +6,10 @@ const ErpContract = require('./ErpContract');
 const FormulaDefinition = require('./FormulaDefinition');
 const FormulaRevision = require('./FormulaRevision');
 const FormulaAuditLog = require('./FormulaAuditLog');
+const MappingProfile = require('./MappingProfile');
+const MappingRevision = require('./MappingRevision');
+const MappingAuditLog = require('./MappingAuditLog');
+const MappingUnmatchedEvent = require('./MappingUnmatchedEvent');
 
 // Define Relationships
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
@@ -14,6 +18,10 @@ FormulaDefinition.hasMany(FormulaRevision, { foreignKey: 'formula_id', as: 'revi
 FormulaRevision.belongsTo(FormulaDefinition, { foreignKey: 'formula_id' });
 FormulaDefinition.hasMany(FormulaAuditLog, { foreignKey: 'formula_id', as: 'auditLogs', onDelete: 'CASCADE' });
 FormulaAuditLog.belongsTo(FormulaDefinition, { foreignKey: 'formula_id' });
+MappingProfile.hasMany(MappingRevision, { foreignKey: 'profile_id', as: 'revisions', onDelete: 'CASCADE' });
+MappingRevision.belongsTo(MappingProfile, { foreignKey: 'profile_id' });
+MappingProfile.hasMany(MappingAuditLog, { foreignKey: 'profile_id', as: 'auditLogs', onDelete: 'CASCADE' });
+MappingAuditLog.belongsTo(MappingProfile, { foreignKey: 'profile_id' });
 
 async function ensureOrderItemColumns() {
     const queryInterface = sequelize.getQueryInterface();
@@ -93,5 +101,9 @@ module.exports = {
     ErpContract,
     FormulaDefinition,
     FormulaRevision,
-    FormulaAuditLog
+    FormulaAuditLog,
+    MappingProfile,
+    MappingRevision,
+    MappingAuditLog,
+    MappingUnmatchedEvent
 };

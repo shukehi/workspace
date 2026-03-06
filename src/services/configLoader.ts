@@ -1,6 +1,15 @@
 
 import { DataNormalizer } from '@/lib/erp-engine/dataNormalizer';
 import { api } from '@/lib/api';
+import {
+    adaptCylinderMapping,
+    adaptLockForkMapping,
+    adaptPackagingMapping,
+    EMPTY_CYLINDER_MAPPING,
+    EMPTY_LOCK_FORK_MAPPING,
+    EMPTY_PACKAGING_MAPPING,
+} from '@/services/mappings';
+import type { CylinderMappingConfig, LockForkMappingConfig, PackagingMappingConfig } from '@/types/mapping';
 
 // Types for our configuration data
 export interface MaterialCatalog {
@@ -11,7 +20,7 @@ export interface ColorFormulas {
     [key: string]: any;
 }
 
-class ConfigLoaderService {
+export class ConfigLoaderService {
     private componentsMap: Record<string, any> = {};
     private materialCatalog: MaterialCatalog = {};
     private colorFormulas: ColorFormulas = {};
@@ -19,9 +28,9 @@ class ConfigLoaderService {
 
 
     // New Configs
-    private cylinderMapping: any = {};
-    private lockForkMapping: any = {};
-    private packagingMapping: any = {};
+    private cylinderMapping: CylinderMappingConfig = EMPTY_CYLINDER_MAPPING;
+    private lockForkMapping: LockForkMappingConfig = EMPTY_LOCK_FORK_MAPPING;
+    private packagingMapping: PackagingMappingConfig = EMPTY_PACKAGING_MAPPING;
 
     async loadAll() {
         if (this.isLoaded) return;
@@ -71,29 +80,60 @@ class ConfigLoaderService {
         }
     }
 
+    private async fetchJson(url: string) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (error) {
+            console.warn(`⚠️ fetchJson failed for ${url}`, error);
+            return null;
+        }
+    }
+
+    private applyRuntimeMapping(kind: 'packaging' | 'cylinder' | 'lockFork', payload: unknown) {
+        if (kind === 'packaging') {
+            this.packagingMapping = adaptPackagingMapping(payload);
+            return;
+        }
+        if (kind === 'cylinder') {
+            this.cylinderMapping = adaptCylinderMapping(payload);
+            return;
+        }
+        this.lockForkMapping = adaptLockForkMapping(payload);
+    }
+
+    private async loadStaticRuntimeMapping(kind: 'cylinder' | 'lockFork', url: string, warningMessage: string) {
+        const payload = await this.fetchJson(url);
+        if (payload === null) {
+            console.warn(warningMessage);
+            return;
+        }
+        this.applyRuntimeMapping(kind, payload);
+    }
+
     async loadCylinderMapping() {
-        const res = await fetch('/data/cylinder-mapping.json');
-        if (!res.ok) console.warn('⚠️ loadCylinderMapping failed'); // Optional
-        else this.cylinderMapping = await res.json();
+        await this.loadStaticRuntimeMapping('cylinder', '/data/cylinder-mapping.json', '⚠️ loadCylinderMapping failed');
     }
 
     async loadLockForkMapping() {
-        const res = await fetch('/data/lock-fork-mapping.json');
-        if (!res.ok) console.warn('⚠️ loadLockForkMapping failed');
-        else this.lockForkMapping = await res.json();
+        await this.loadStaticRuntimeMapping('lockFork', '/data/lock-fork-mapping.json', '⚠️ loadLockForkMapping failed');
     }
 
     async loadPackagingMapping() {
-        const apiRes = await fetch('/api/config/packaging-mapping');
-        if (apiRes.ok) {
-            this.packagingMapping = await apiRes.json();
+        const apiPayload = await this.fetchJson('/api/config/packaging-mapping');
+        if (apiPayload !== null) {
+            this.applyRuntimeMapping('packaging', apiPayload);
             return;
         }
 
         // One-time fallback to static file for environments where config API is unavailable.
-        const staticRes = await fetch('/data/packaging-mapping.json');
-        if (!staticRes.ok) console.warn('⚠️ loadPackagingMapping failed');
-        else this.packagingMapping = await staticRes.json();
+        const staticPayload = await this.fetchJson('/data/packaging-mapping.json');
+        if (staticPayload === null) {
+            console.warn('⚠️ loadPackagingMapping failed');
+            return;
+        }
+        this.applyRuntimeMapping('packaging', staticPayload);
     }
 
     getMaterials() { return this.materialCatalog; }

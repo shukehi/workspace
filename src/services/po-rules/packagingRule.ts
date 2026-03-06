@@ -1,4 +1,5 @@
 import { parseQuantity, parseQuantityPair } from '@/lib/erp-engine/parsers';
+import { adaptPackagingMapping } from '@/services/mappings';
 import { createPackagingOrderItem } from '@/services/poContractUtils';
 import type { BuildOptions, RuleContext, SupplierGroup } from '@/services/po-rules/types';
 
@@ -37,9 +38,9 @@ function resolvePackagingNames(
 export function buildPackagingGroups(ctx: RuleContext, options?: BuildOptions): SupplierGroup[] {
   const mergeSameSpec = options?.mergeSameSpec ?? true;
   const groups: Record<string, SupplierGroup> = {};
-  const packagingMapping = ctx.configLoader.getPackagingMapping();
-  const mappings = (packagingMapping?.mappings || packagingMapping || {}) as Record<string, string>;
-  const fallbackSupplier = packagingMapping?.supplierName || '方亮包装';
+  const packagingMapping = adaptPackagingMapping(ctx.configLoader.getPackagingMapping());
+  const mappings = packagingMapping.mappings;
+  const fallbackSupplier = packagingMapping.supplierName || '方亮包装';
 
   if (mergeSameSpec) {
     const hardware = ctx.sourceStore.hardwareRequirements;

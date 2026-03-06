@@ -126,6 +126,17 @@ test('GET /api/config/formulas returns paged shape', async () => {
   assert.equal(typeof body.page, 'number');
 });
 
+test('GET /api/config/packaging-mapping returns canonical DTO shape', async () => {
+  const res = await fetch(`${baseUrl}/api/config/packaging-mapping`);
+  assert.equal(res.status, 200);
+
+  const body = await res.json();
+  assert.equal(typeof body.supplierName, 'string');
+  assert.ok(body.supplierName.length > 0);
+  assert.equal(typeof body.mappings, 'object');
+  assert.equal(Array.isArray(body.mappings), false);
+});
+
 test('create formula accepts supplier + model split and canonicalizes to material code', async () => {
   const createRes = await fetch(`${baseUrl}/api/config/formulas`, {
     method: 'POST',

@@ -9,7 +9,7 @@ const baseCtx: RuleContext = {
     materialRequirements: null,
     hardwareRequirements: null,
   },
-  configLoader: { getPackagingMapping: () => ({}) },
+  configLoader: { getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: {} }) },
   packagingMatcher: {
     syncFromMapping: () => {},
     match: (name: string) => name,

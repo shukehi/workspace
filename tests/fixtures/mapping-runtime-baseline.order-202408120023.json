@@ -1,0 +1,88 @@
+{
+  "sampleCode": "202408120023",
+  "customerName": "罗曼蒂克（六部）",
+  "warningIncludes": [
+    "[CylinderMapping] 未命中锁芯映射（TOP 10）",
+    "未找到门厚 10cm 的锁叉基础尺寸配置"
+  ],
+  "extracted": {
+    "cylinders": [
+      {
+        "supplier": "未知供应商",
+        "type": "120ABXT锌合金普子母珠",
+        "eccentricity": "41*79/中心孔偏心",
+        "remark": "钥匙 2+5 中文说明书",
+        "quantity": 6
+      }
+    ],
+    "lockForks": [],
+    "packaging": [
+      {
+        "internalName": "罗曼蒂克",
+        "externalName": "罗曼蒂克",
+        "productModelName": "雅琴",
+        "supplierName": "方亮包装",
+        "spec": "960*2050/10/内开外包",
+        "mb": "T型现代边",
+        "totalLeft": 3,
+        "totalRight": 3,
+        "totalQty": 6
+      }
+    ]
+  },
+  "groups": {
+    "packaging": [
+      {
+        "supplierName": "方亮包装",
+        "category": "包装",
+        "itemCount": 1,
+        "items": [
+          {
+            "supplier": "方亮包装",
+            "internal_name": "罗曼蒂克",
+            "external_name": "罗曼蒂克",
+            "name": "雅琴",
+            "spec": "960*2050/10/内开外包",
+            "mb": "T型现代边",
+            "quantity": 6,
+            "quantity_left": 3,
+            "quantity_right": 3
+          }
+        ]
+      }
+    ],
+    "cylinders": [
+      {
+        "supplierName": "未知供应商",
+        "category": "锁芯",
+        "itemCount": 1,
+        "items": [
+          {
+            "supplier": "未知供应商",
+            "type": "120ABXT锌合金普子母珠",
+            "eccentricity": "41*79/中心孔偏心",
+            "quantity": 6,
+            "remark": "钥匙 2+5 中文说明书"
+          }
+        ]
+      }
+    ],
+    "lockForks": []
+  },
+  "print": {
+    "packaging": {
+      "pages": 1,
+      "rowsPerPage": [
+        2
+      ],
+      "checksum": "9035f7b95b291eee3c0363bfe3654d858b594bb23c297b15ce0b4df9e82f7117"
+    },
+    "cylinder": {
+      "pages": 1,
+      "rowsPerPage": [
+        2
+      ],
+      "checksum": "7932eaab8d73a90a9d020eb39a1a3458a9e768de73a0615ca50b67107fe0d325"
+    }
+  }
+}
