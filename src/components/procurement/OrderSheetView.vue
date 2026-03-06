@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import type { Order, OrderItem } from '@/types/order';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
+import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
 
 type Mode = 'edit' | 'preview';
 
@@ -27,22 +28,7 @@ const isPackaging = computed(() => category.value === 'packaging');
 const items = computed(() => (props.order.items || []) as OrderItem[]);
 const schema = computed(() => getSheetSchema(category.value));
 const quantitySummary = computed(() => {
-  if (isPackaging.value) {
-    const leftTotal = items.value.reduce((sum, item) => sum + Number(item.quantity_left || 0), 0);
-    const rightTotal = items.value.reduce((sum, item) => sum + Number(item.quantity_right || 0), 0);
-    return {
-      leftTotal,
-      rightTotal,
-      total: leftTotal + rightTotal,
-    };
-  }
-
-  const total = items.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  return {
-    leftTotal: 0,
-    rightTotal: 0,
-    total,
-  };
+  return computeItemQuantitySummary(category.value, items.value);
 });
 
 const formattedOrderDate = computed({

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { api } from '@/lib/api';
 import { buildProcurementDocModel } from '@/features/procurement/printDocBuilder';
 import { normalizePrintMode, type PrintMode, type ProcurementDocModel, type ProcurementDocPage, type ProcurementDocRow } from '@/features/procurement/docModel';
+import { computeDocPageQuantitySummary } from '@/features/procurement/quantitySummary';
 
 type PrintSourcePayload = {
   poNumber?: string;
@@ -194,29 +195,16 @@ function getTotalCells(page: ProcurementDocPage, row: ProcurementDocRow): TotalC
   return cells;
 }
 
-function getPageQuantitySummary(page: ProcurementDocPage) {
-  if (page.category === 'packaging') {
-    const leftTotal = page.rows
-      .filter((row) => row.rowType === 'item')
-      .reduce((sum, row) => sum + Number(row.values.qtyLeft || 0), 0);
-    const rightTotal = page.rows
-      .filter((row) => row.rowType === 'item')
-      .reduce((sum, row) => sum + Number(row.values.qtyRight || 0), 0);
-    return {
-      leftTotal,
-      rightTotal,
-      total: leftTotal + rightTotal,
-    };
-  }
+const pageQuantitySummaryMap = computed<Record<string, { leftTotal: number; rightTotal: number; total: number }>>(() => {
+  const pages = doc.value?.pages || [];
+  return pages.reduce<Record<string, { leftTotal: number; rightTotal: number; total: number }>>((acc, page) => {
+    acc[page.pageKey] = computeDocPageQuantitySummary(page);
+    return acc;
+  }, {});
+});
 
-  const total = page.rows
-    .filter((row) => row.rowType === 'item')
-    .reduce((sum, row) => sum + Number(row.values.quantity || 0), 0);
-  return {
-    leftTotal: 0,
-    rightTotal: 0,
-    total,
-  };
+function getPageQuantitySummary(page: ProcurementDocPage) {
+  return pageQuantitySummaryMap.value[page.pageKey] || { leftTotal: 0, rightTotal: 0, total: 0 };
 }
 
 watch(

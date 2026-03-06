@@ -11,6 +11,7 @@ const path = require('path');
 // Path to data files (resolved relative to project root)
 const DATA_DIR = path.join(__dirname, '../../public/data');
 const MATERIALS_FILE = path.join(DATA_DIR, 'materials-catalog.json');
+const PACKAGING_MAPPING_FILE = path.join(DATA_DIR, 'packaging-mapping.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -43,6 +44,22 @@ router.post('/materials', (req, res) => {
     } catch (error) {
         console.error('Error saving materials:', error);
         res.status(500).json({ success: false, error: 'Failed to save materials catalog' });
+    }
+});
+
+// 3. Get Packaging Mapping
+router.get('/packaging-mapping', (req, res) => {
+    try {
+        if (fs.existsSync(PACKAGING_MAPPING_FILE)) {
+            const data = fs.readFileSync(PACKAGING_MAPPING_FILE, 'utf8');
+            res.header('Content-Type', 'application/json');
+            res.send(data);
+        } else {
+            res.json({});
+        }
+    } catch (error) {
+        console.error('Error reading packaging mapping:', error);
+        res.status(500).json({ success: false, error: 'Failed to read packaging mapping' });
     }
 });
 

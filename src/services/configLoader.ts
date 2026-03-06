@@ -84,9 +84,16 @@ class ConfigLoaderService {
     }
 
     async loadPackagingMapping() {
-        const res = await fetch('/data/packaging-mapping.json');
-        if (!res.ok) console.warn('⚠️ loadPackagingMapping failed');
-        else this.packagingMapping = await res.json();
+        const apiRes = await fetch('/api/config/packaging-mapping');
+        if (apiRes.ok) {
+            this.packagingMapping = await apiRes.json();
+            return;
+        }
+
+        // One-time fallback to static file for environments where config API is unavailable.
+        const staticRes = await fetch('/data/packaging-mapping.json');
+        if (!staticRes.ok) console.warn('⚠️ loadPackagingMapping failed');
+        else this.packagingMapping = await staticRes.json();
     }
 
     getMaterials() { return this.materialCatalog; }
