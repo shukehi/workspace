@@ -1,5 +1,10 @@
 const { Order, OrderItem, sequelize } = require('../models');
 
+function normalizeOrderRemark(remark) {
+    if (remark === undefined || remark === null) return '';
+    return String(remark);
+}
+
 function normalizeOrderForLog(order, index) {
     return {
         index,
@@ -56,6 +61,7 @@ class OrderService {
                 supplier: data.supplier,
                 category: data.category || null,
                 status: data.status || 'draft',
+                remark: normalizeOrderRemark(data.remark),
                 metadata: data.metadata || {},
                 created_at: data.created_at || new Date().toISOString(),
                 delivery_date: data.delivery_date
@@ -88,6 +94,7 @@ class OrderService {
                 supplier: data.supplier,
                 category: data.category === undefined ? order.category : data.category,
                 status: data.status,
+                remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
                 metadata: data.metadata,
                 delivery_date: data.delivery_date
             }, { transaction });

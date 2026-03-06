@@ -12,6 +12,7 @@ const sampleOrder: Order = {
   total_amount: 1200,
   created_at: '2026-03-05T12:30:45.000Z',
   delivery_date: '2026-03-20T08:00:00.000Z',
+  remark: '整单备注：周五前交付',
   items: [
     {
       id: 1,
@@ -58,6 +59,7 @@ test('buildPrintPayloadFromOrder maps order to print contract', () => {
   const payload = buildPrintPayloadFromOrder(sampleOrder);
 
   assert.equal(payload.customerName, '客户A');
+  assert.equal(payload.remark, '整单备注：周五前交付');
   assert.equal(payload.code, 'PO-2026-0305');
   assert.equal(payload.orderDate, '2026-03-05');
   assert.equal(payload.deliveryDate, '2026-03-20');

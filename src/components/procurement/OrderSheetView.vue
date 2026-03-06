@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { Order, OrderItem } from '@/types/order';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
@@ -14,8 +15,10 @@ const props = withDefaults(defineProps<{
   mode: Mode;
   columnWidths: Record<string, number>;
   defaultWidths: Record<string, number>;
+  hiddenColumns?: string[];
 }>(), {
-  mode: 'preview'
+  mode: 'preview',
+  hiddenColumns: () => []
 });
 
 const emit = defineEmits<{
@@ -26,7 +29,15 @@ const isEditMode = computed(() => props.mode === 'edit');
 const category = computed<PrintCategory>(() => normalizePrintCategory(props.order.category));
 const isPackaging = computed(() => category.value === 'packaging');
 const items = computed(() => (props.order.items || []) as OrderItem[]);
-const schema = computed(() => getSheetSchema(category.value));
+const schema = computed(() => {
+  const base = getSheetSchema(category.value);
+  if (!props.hiddenColumns || props.hiddenColumns.length === 0) return base;
+  const hiddenSet = new Set(props.hiddenColumns);
+  return {
+    ...base,
+    columns: base.columns.filter((column) => !hiddenSet.has(column.key))
+  };
+});
 const quantitySummary = computed(() => {
   return computeItemQuantitySummary(category.value, items.value);
 });
@@ -168,6 +179,16 @@ onBeforeUnmount(() => {
           <Input v-if="isEditMode" v-model="order.supplier" class="h-8 text-xs w-64" />
           <span v-else class="text-xs">{{ order.supplier || '-' }}</span>
         </div>
+        <div class="mt-3 flex items-start gap-2">
+          <Label class="min-w-16 pt-2">整单备注:</Label>
+          <Textarea
+            v-if="isEditMode"
+            v-model="order.remark"
+            class="min-h-[56px] text-xs"
+            placeholder="填写整张订单备注（不会影响明细行备注）"
+          />
+          <span v-else class="text-xs whitespace-pre-line">{{ order.remark || '-' }}</span>
+        </div>
       </div>
     </div>
 
@@ -231,7 +252,7 @@ onBeforeUnmount(() => {
               </template>
             </td>
           </tr>
-          <tr v-if="schema.columns.length === 7 && items.length < 5" v-for="i in (5 - items.length)" :key="`empty-${i}`">
+          <tr v-if="isPackaging && items.length < 5" v-for="i in (5 - items.length)" :key="`empty-${i}`">
             <td v-for="column in schema.columns" :key="`empty-cell-${i}-${column.key}`" class="border-r p-2">&nbsp;</td>
           </tr>
         </tbody>

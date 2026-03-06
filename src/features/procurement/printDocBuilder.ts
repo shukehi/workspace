@@ -42,6 +42,7 @@ type NormalizedSource = {
   category: PrintCategory;
   printMode: PrintMode;
   customerName: string;
+  orderRemark: string;
   orderDate: string;
   deliveryDate: string;
   supplier: string;
@@ -223,6 +224,14 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
     || ''
   ).trim();
 
+  const orderRemark = String(
+    order.remark
+    || order.orderRemark
+    || metadata.remark
+    || metadata.orderRemark
+    || ''
+  ).trim();
+
   const supplier = String(
     order.supplier
     || metadata.supplier
@@ -249,6 +258,7 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
     category,
     printMode,
     customerName,
+    orderRemark,
     orderDate,
     deliveryDate,
     supplier,
@@ -441,6 +451,7 @@ function buildPage(
     category: source.category,
     mode: source.printMode,
     customerName: source.customerName,
+    orderRemark: source.orderRemark,
     code: source.poNumber,
     orderDate: source.orderDate,
     deliveryDate: source.deliveryDate,

@@ -45,6 +45,26 @@ async function ensureOrderItemColumns() {
     }
 }
 
+async function ensureOrderColumns() {
+    const queryInterface = sequelize.getQueryInterface();
+    const table = 'orders';
+    const existing = await queryInterface.describeTable(table);
+
+    const targetColumns = ['remark'];
+
+    for (const col of targetColumns) {
+        if (existing[col]) continue;
+        const attr = Order.rawAttributes[col];
+        if (!attr) continue;
+        await queryInterface.addColumn(table, col, {
+            type: attr.type,
+            allowNull: attr.allowNull,
+            defaultValue: attr.defaultValue
+        });
+        console.log(`✅ Added column ${table}.${col}`);
+    }
+}
+
 // Function to sync database
 const initDB = async () => {
     try {
@@ -55,6 +75,7 @@ const initDB = async () => {
         // 1) create missing tables
         // 2) apply additive column migrations manually (no table rebuild)
         await sequelize.sync();
+        await ensureOrderColumns();
         await ensureOrderItemColumns();
         console.log('✅ Database synchronized');
     } catch (error) {

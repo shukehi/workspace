@@ -33,6 +33,7 @@ export function normalizeOrderDraft(order: Order): Order {
 export function buildPrintPayloadFromOrder(order: Order) {
   return {
     customerName: order.metadata?.customer_name || order.supplier,
+    remark: order.remark || '',
     code: order.order_no,
     orderDate: toPrintDate(order.created_at),
     deliveryDate: toPrintDate(order.delivery_date),
@@ -49,4 +50,3 @@ export function buildPdfRequestPayload(order: Order, printMode: PrintMode) {
     order: buildPrintPayloadFromOrder(order)
   };
 }
-

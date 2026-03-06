@@ -23,6 +23,11 @@ const Order = sequelize.define('Order', {
         type: DataTypes.STRING,
         defaultValue: 'draft'
     },
+    remark: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        defaultValue: ''
+    },
     metadata: {
         type: DataTypes.JSON, // Use JSON type for metadata
         defaultValue: {}
