@@ -128,9 +128,9 @@ const rowIssueMap = computed(() => {
         rawKey = rawKey.replace(/^['"]|['"]$/g, '');
       }
     }
-    const target = rows.value.find((row) => row.key.trim() === String(rawKey));
-    if (!target) return;
-    addIssue(target.id, 'key', issue.message);
+    const targets = rows.value.filter((row) => row.key.trim() === String(rawKey));
+    if (targets.length === 0) return;
+    targets.forEach((target) => addIssue(target.id, 'key', issue.message));
   });
 
   return map;
