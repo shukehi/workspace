@@ -603,7 +603,7 @@ onMounted(load);
         <Card>
           <CardHeader>
             <CardTitle>基础尺寸</CardTitle>
-            <CardDescription>按门厚维护 standard / withHangingFeet 的上下头尺寸。</CardDescription>
+            <CardDescription>按门厚维护常规尺寸与吊脚尺寸的上下头参数。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
             <div class="flex items-center justify-between">
@@ -630,7 +630,7 @@ onMounted(load);
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   <div class="rounded-md border p-2">
-                    <div class="text-xs font-medium mb-2">standard</div>
+                    <div class="text-xs font-medium mb-2">常规尺寸</div>
                     <div class="grid grid-cols-2 gap-2">
                       <Input v-model="row.standardUpperBase1" class="h-8" placeholder="上头 base1" />
                       <Input v-model="row.standardUpperBase2" class="h-8" placeholder="上头 base2" />
@@ -639,7 +639,7 @@ onMounted(load);
                     </div>
                   </div>
                   <div class="rounded-md border p-2">
-                    <div class="text-xs font-medium mb-2">withHangingFeet</div>
+                    <div class="text-xs font-medium mb-2">吊脚尺寸</div>
                     <div class="grid grid-cols-2 gap-2">
                       <Input v-model="row.hangingUpperBase1" class="h-8" placeholder="上头 base1" />
                       <Input v-model="row.hangingUpperBase2" class="h-8" placeholder="上头 base2" />
@@ -671,10 +671,10 @@ onMounted(load);
                 <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
                   <tr>
                     <th class="px-3 py-2">名称</th>
-                    <th class="px-3 py-2">category</th>
-                    <th class="px-3 py-2">nameModifier</th>
-                    <th class="px-3 py-2">upper</th>
-                    <th class="px-3 py-2">lower</th>
+                    <th class="px-3 py-2">类型分类</th>
+                    <th class="px-3 py-2">名称修饰</th>
+                    <th class="px-3 py-2">上头样式</th>
+                    <th class="px-3 py-2">下头样式</th>
                     <th class="px-3 py-2">操作</th>
                   </tr>
                 </thead>
@@ -709,7 +709,7 @@ onMounted(load);
           <CardContent class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label class="text-xs text-muted-foreground">hangingFeet.standard</label>
+                <label class="text-xs text-muted-foreground">吊脚标准值</label>
                 <Input
                   v-model="hangingFeetStandard"
                   class="h-9"
@@ -722,7 +722,7 @@ onMounted(load);
                 </div>
               </div>
               <div>
-                <label class="text-xs text-muted-foreground">heightReference</label>
+                <label class="text-xs text-muted-foreground">高度参考值</label>
                 <Input
                   v-model="heightReference"
                   class="h-9"
@@ -776,7 +776,7 @@ onMounted(load);
                   <thead class="text-xs text-muted-foreground bg-muted/50">
                     <tr>
                       <th class="px-3 py-2">边型名称</th>
-                      <th class="px-3 py-2">nameModifier</th>
+                      <th class="px-3 py-2">名称修饰</th>
                       <th class="px-3 py-2">操作</th>
                     </tr>
                   </thead>
@@ -815,8 +815,8 @@ onMounted(load);
               <table class="w-full text-sm text-left">
                 <thead class="text-xs text-muted-foreground bg-muted/50">
                   <tr>
-                    <th class="px-3 py-2">key</th>
-                    <th class="px-3 py-2">value</th>
+                    <th class="px-3 py-2">键名</th>
+                    <th class="px-3 py-2">值</th>
                     <th class="px-3 py-2">操作</th>
                   </tr>
                 </thead>
