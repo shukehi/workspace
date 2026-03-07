@@ -123,6 +123,12 @@ export class ConfigLoaderService {
     }
 
     async loadLockForkMapping() {
+        const apiPayload = await this.fetchJson('/api/config/lock-fork');
+        if (apiPayload !== null) {
+            this.applyRuntimeMapping('lockFork', apiPayload);
+            return;
+        }
+
         await this.loadStaticRuntimeMapping('lockFork', '/data/lock-fork-mapping.json', '⚠️ loadLockForkMapping failed');
     }
 
@@ -148,6 +154,10 @@ export class ConfigLoaderService {
 
     async refreshCylinderMapping() {
         await this.loadCylinderMapping();
+    }
+
+    async refreshLockForkMapping() {
+        await this.loadLockForkMapping();
     }
 
     getMaterials() { return this.materialCatalog; }

@@ -7,8 +7,16 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { adaptPackagingMapping, adaptCylinderMapping } = require('../services/mappings/mapping.adapter');
-const { validatePackagingMapping, validateCylinderMapping } = require('../services/mappings/mapping.validator');
+const {
+    adaptPackagingMapping,
+    adaptCylinderMapping,
+    adaptLockForkMapping
+} = require('../services/mappings/mapping.adapter');
+const {
+    validatePackagingMapping,
+    validateCylinderMapping,
+    validateLockForkMapping
+} = require('../services/mappings/mapping.validator');
 
 // Path to data files (resolved relative to project root)
 const DATA_DIR = path.join(__dirname, '../../public/data');
@@ -18,6 +26,8 @@ const PACKAGING_STATIC_FILE = path.join(DATA_DIR, 'packaging-mapping.json');
 const PACKAGING_RUNTIME_FILE = path.join(CONFIG_DIR, 'packaging-mapping.json');
 const CYLINDER_STATIC_FILE = path.join(DATA_DIR, 'cylinder-mapping.json');
 const CYLINDER_RUNTIME_FILE = path.join(CONFIG_DIR, 'cylinder-mapping.json');
+const LOCK_FORK_STATIC_FILE = path.join(DATA_DIR, 'lock-fork-mapping.json');
+const LOCK_FORK_RUNTIME_FILE = path.join(CONFIG_DIR, 'lock-fork-mapping.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -63,12 +73,36 @@ function ensureCylinderMappingFile() {
     writeJsonAtomic(CYLINDER_RUNTIME_FILE, payload);
 }
 
+function ensureLockForkMappingFile() {
+    if (fs.existsSync(LOCK_FORK_RUNTIME_FILE)) return;
+    let seed = {};
+    if (fs.existsSync(LOCK_FORK_STATIC_FILE)) {
+        try {
+            seed = JSON.parse(fs.readFileSync(LOCK_FORK_STATIC_FILE, 'utf8'));
+        } catch (error) {
+            console.warn('[configData] failed to parse static lock-fork mapping, falling back to empty', error);
+            seed = {};
+        }
+    }
+    const payload = adaptLockForkMapping(seed);
+    writeJsonAtomic(LOCK_FORK_RUNTIME_FILE, payload);
+}
+
 function readCylinderMapping() {
     ensureCylinderMappingFile();
     const rawText = fs.readFileSync(CYLINDER_RUNTIME_FILE, 'utf8');
     const raw = JSON.parse(rawText || '{}');
     const payload = adaptCylinderMapping(raw);
     const issues = validateCylinderMapping(raw);
+    return { payload, issues };
+}
+
+function readLockForkMapping() {
+    ensureLockForkMappingFile();
+    const rawText = fs.readFileSync(LOCK_FORK_RUNTIME_FILE, 'utf8');
+    const raw = JSON.parse(rawText || '{}');
+    const payload = adaptLockForkMapping(raw);
+    const issues = validateLockForkMapping(raw);
     return { payload, issues };
 }
 
@@ -164,6 +198,34 @@ router.put('/cylinder', (req, res) => {
     } catch (error) {
         console.error('Error saving cylinder mapping:', error);
         res.status(500).json({ ok: false, error: 'Failed to save cylinder mapping' });
+    }
+});
+
+router.get('/lock-fork', (req, res) => {
+    try {
+        const { payload, issues } = readLockForkMapping();
+        if (issues.length > 0) {
+            console.warn('[configData] lock-fork mapping validation issues:', issues);
+        }
+        res.json(payload);
+    } catch (error) {
+        console.error('Error reading lock-fork mapping:', error);
+        res.status(500).json({ ok: false, error: 'Failed to read lock-fork mapping' });
+    }
+});
+
+router.put('/lock-fork', (req, res) => {
+    try {
+        const issues = validateLockForkMapping(req.body);
+        if (issues.length > 0) {
+            return res.status(400).json({ ok: false, errors: issues });
+        }
+        const payload = adaptLockForkMapping(req.body);
+        writeJsonAtomic(LOCK_FORK_RUNTIME_FILE, payload);
+        res.json({ ok: true, data: payload });
+    } catch (error) {
+        console.error('Error saving lock-fork mapping:', error);
+        res.status(500).json({ ok: false, error: 'Failed to save lock-fork mapping' });
     }
 });
 

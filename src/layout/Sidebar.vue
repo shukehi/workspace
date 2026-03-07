@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Wrench,
   Warehouse
 } from 'lucide-vue-next';
 import { mainNavGroups, type NavGroup, type NavIconKey } from '@/config/nav';
@@ -34,6 +35,7 @@ const iconMap: Record<NavIconKey, Component> = {
   formula: FlaskConical,
   'packaging-config': Package,
   'cylinder-config': Key,
+  'lock-fork-config': Wrench,
   statistics: BarChart3,
   'contracts-history': Archive
 };
