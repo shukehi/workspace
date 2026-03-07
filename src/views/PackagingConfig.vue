@@ -46,9 +46,19 @@ const payload = computed<PackagingMappingConfig>(() => {
 const clientIssues = computed(() => {
   const issues = [...validatePackagingMapping(payload.value)];
   const normalizedSeen = new Map<string, string>();
+  const exactSeen = new Set<string>();
   rows.value.forEach((row, index) => {
     const key = row.key.trim();
     if (!key) return;
+    if (exactSeen.has(key)) {
+      issues.push({
+        path: `rows[${index}].key`,
+        code: 'duplicate-key',
+        message: '包装映射 key 重复'
+      });
+    } else {
+      exactSeen.add(key);
+    }
     const normalized = normalizePackagingMappingKey(key);
     const existing = normalizedSeen.get(normalized);
     if (existing && existing !== key) {
