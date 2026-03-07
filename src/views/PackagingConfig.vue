@@ -317,7 +317,7 @@ onMounted(load);
                   刷新
                 </Button>
                 <Button variant="outline" size="sm" @click="addRow">新增</Button>
-                <Button size="sm" :disabled="isLoading || isSaving" @click="save">保存</Button>
+                <Button size="sm" :disabled="isLoading || isSaving || clientIssues.length > 0" @click="save">保存</Button>
               </div>
             </div>
 
