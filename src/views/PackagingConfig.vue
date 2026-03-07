@@ -350,6 +350,25 @@ function applyJsonDraft() {
   });
 }
 
+async function copyJsonPreview() {
+  try {
+    if (typeof window === 'undefined' || !window.navigator?.clipboard) {
+      throw new Error('Clipboard API unavailable');
+    }
+    await window.navigator.clipboard.writeText(jsonPreview.value);
+    toast({
+      title: '已复制',
+      description: 'JSON 已复制到剪贴板'
+    });
+  } catch {
+    toast({
+      title: '复制失败',
+      description: '当前环境不支持剪贴板复制',
+      variant: 'destructive'
+    });
+  }
+}
+
 onMounted(load);
 </script>
 
@@ -519,14 +538,14 @@ onMounted(load);
     </div>
 
     <Dialog v-model:open="isJsonDialogOpen">
-      <DialogContent class="max-w-4xl w-[min(100%,64rem)]">
+      <DialogContent class="max-w-3xl w-[min(100%,52rem)] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>JSON 编辑</DialogTitle>
           <DialogDescription>直接编辑映射 JSON，应用前会进行校验。</DialogDescription>
         </DialogHeader>
 
-        <div class="space-y-3">
-          <CodeMirrorEditor v-model="jsonDraft" class="min-h-[420px]" lint />
+        <div class="space-y-3 min-h-0 overflow-auto">
+          <CodeMirrorEditor v-model="jsonDraft" class="h-[42vh] min-h-[220px]" lint />
           <div v-if="jsonDraftError" class="text-sm text-destructive">
             {{ jsonDraftError }}
           </div>
@@ -544,7 +563,7 @@ onMounted(load);
           <Button
             variant="ghost"
             size="sm"
-            @click="navigator.clipboard.writeText(jsonPreview).then(() => toast({ title: '已复制', description: 'JSON 已复制到剪贴板' }))"
+            @click="copyJsonPreview"
           >
             复制当前 JSON
           </Button>
