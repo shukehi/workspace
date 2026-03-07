@@ -7,8 +7,8 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { adaptPackagingMapping } = require('../services/mappings/mapping.adapter');
-const { validatePackagingMapping } = require('../services/mappings/mapping.validator');
+const { adaptPackagingMapping, adaptCylinderMapping } = require('../services/mappings/mapping.adapter');
+const { validatePackagingMapping, validateCylinderMapping } = require('../services/mappings/mapping.validator');
 
 // Path to data files (resolved relative to project root)
 const DATA_DIR = path.join(__dirname, '../../public/data');
@@ -16,6 +16,8 @@ const CONFIG_DIR = path.join(__dirname, '../../data/config');
 const MATERIALS_FILE = path.join(DATA_DIR, 'materials-catalog.json');
 const PACKAGING_STATIC_FILE = path.join(DATA_DIR, 'packaging-mapping.json');
 const PACKAGING_RUNTIME_FILE = path.join(CONFIG_DIR, 'packaging-mapping.json');
+const CYLINDER_STATIC_FILE = path.join(DATA_DIR, 'cylinder-mapping.json');
+const CYLINDER_RUNTIME_FILE = path.join(CONFIG_DIR, 'cylinder-mapping.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -44,6 +46,30 @@ function ensurePackagingMappingFile() {
     }
     const payload = adaptPackagingMapping(seed);
     writeJsonAtomic(PACKAGING_RUNTIME_FILE, payload);
+}
+
+function ensureCylinderMappingFile() {
+    if (fs.existsSync(CYLINDER_RUNTIME_FILE)) return;
+    let seed = {};
+    if (fs.existsSync(CYLINDER_STATIC_FILE)) {
+        try {
+            seed = JSON.parse(fs.readFileSync(CYLINDER_STATIC_FILE, 'utf8'));
+        } catch (error) {
+            console.warn('[configData] failed to parse static cylinder mapping, falling back to empty', error);
+            seed = {};
+        }
+    }
+    const payload = adaptCylinderMapping(seed);
+    writeJsonAtomic(CYLINDER_RUNTIME_FILE, payload);
+}
+
+function readCylinderMapping() {
+    ensureCylinderMappingFile();
+    const rawText = fs.readFileSync(CYLINDER_RUNTIME_FILE, 'utf8');
+    const raw = JSON.parse(rawText || '{}');
+    const payload = adaptCylinderMapping(raw);
+    const issues = validateCylinderMapping(raw);
+    return { payload, issues };
 }
 
 function readPackagingMapping() {
@@ -110,6 +136,34 @@ router.put('/packaging', (req, res) => {
     } catch (error) {
         console.error('Error saving packaging mapping:', error);
         res.status(500).json({ ok: false, error: 'Failed to save packaging mapping' });
+    }
+});
+
+router.get('/cylinder', (req, res) => {
+    try {
+        const { payload, issues } = readCylinderMapping();
+        if (issues.length > 0) {
+            console.warn('[configData] cylinder mapping validation issues:', issues);
+        }
+        res.json(payload);
+    } catch (error) {
+        console.error('Error reading cylinder mapping:', error);
+        res.status(500).json({ ok: false, error: 'Failed to read cylinder mapping' });
+    }
+});
+
+router.put('/cylinder', (req, res) => {
+    try {
+        const issues = validateCylinderMapping(req.body);
+        if (issues.length > 0) {
+            return res.status(400).json({ ok: false, errors: issues });
+        }
+        const payload = adaptCylinderMapping(req.body);
+        writeJsonAtomic(CYLINDER_RUNTIME_FILE, payload);
+        res.json({ ok: true, data: payload });
+    } catch (error) {
+        console.error('Error saving cylinder mapping:', error);
+        res.status(500).json({ ok: false, error: 'Failed to save cylinder mapping' });
     }
 });
 

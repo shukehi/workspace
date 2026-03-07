@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Database,
   FlaskConical,
+  Key,
   LayoutDashboard,
   Package,
   ShoppingCart,
@@ -32,6 +33,7 @@ const iconMap: Record<NavIconKey, Component> = {
   'material-master': ClipboardList,
   formula: FlaskConical,
   'packaging-config': Package,
+  'cylinder-config': Key,
   statistics: BarChart3,
   'contracts-history': Archive
 };

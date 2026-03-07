@@ -54,6 +54,11 @@ const router = createRouter({
                     component: () => import('@/views/PackagingConfig.vue')
                 },
                 {
+                    path: '/config/cylinder',
+                    name: 'config-cylinder',
+                    component: () => import('@/views/CylinderConfig.vue')
+                },
+                {
                     path: '/statistics',
                     name: 'statistics',
                     component: () => import('@/views/Statistics.vue')

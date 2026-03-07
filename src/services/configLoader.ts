@@ -113,6 +113,12 @@ export class ConfigLoaderService {
     }
 
     async loadCylinderMapping() {
+        const apiPayload = await this.fetchJson('/api/config/cylinder');
+        if (apiPayload !== null) {
+            this.applyRuntimeMapping('cylinder', apiPayload);
+            return;
+        }
+
         await this.loadStaticRuntimeMapping('cylinder', '/data/cylinder-mapping.json', '⚠️ loadCylinderMapping failed');
     }
 
@@ -138,6 +144,10 @@ export class ConfigLoaderService {
 
     async refreshPackagingMapping() {
         await this.loadPackagingMapping();
+    }
+
+    async refreshCylinderMapping() {
+        await this.loadCylinderMapping();
     }
 
     getMaterials() { return this.materialCatalog; }
