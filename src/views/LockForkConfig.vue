@@ -221,6 +221,146 @@ const clientIssues = computed(() => {
   return issues;
 });
 
+const allIssues = computed(() => [...clientIssues.value, ...serverIssues.value]);
+
+function decodePathKey(raw: string) {
+  const text = String(raw || '').trim();
+  if (!text) return '';
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    try {
+      return String(JSON.parse(text));
+    } catch {
+      return text.slice(1, -1);
+    }
+  }
+  return text;
+}
+
+const baseDimensionIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as BaseDimensionRow | null;
+    const clientMatch = issue.path.match(/^baseDimensions\[(\d+)\]\.thickness$/);
+    if (clientMatch) {
+      row = baseDimensions.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^baseDimensions\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const thickness = decodePathKey(serverMatch[1]);
+        row = baseDimensions.value.find((item) => item.thickness.trim() === thickness) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const lockTypeIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as LockTypeRow | null;
+    const clientMatch = issue.path.match(/^lockTypes\[(\d+)\]\.name$/);
+    if (clientMatch) {
+      row = lockTypes.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^lockTypes\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const name = decodePathKey(serverMatch[1]);
+        row = lockTypes.value.find((item) => item.name.trim() === name) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const edgeTypeIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as EdgeTypeRow | null;
+    const clientMatch = issue.path.match(/^edgeTypes\[(\d+)\]\.name$/);
+    if (clientMatch) {
+      row = edgeTypes.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^edgeTypes\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const name = decodePathKey(serverMatch[1]);
+        row = edgeTypes.value.find((item) => item.name.trim() === name) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const supplierIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as SupplierRow | null;
+    const clientMatch = issue.path.match(/^suppliers\[(\d+)\]\.key$/);
+    if (clientMatch) {
+      row = suppliers.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^suppliers\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const key = decodePathKey(serverMatch[1]);
+        row = suppliers.value.find((item) => item.key.trim() === key) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const hangingFeetStandardIssues = computed(() => {
+  return allIssues.value.filter((issue) => issue.path === 'hangingFeet.standard').map((issue) => issue.message);
+});
+
+const heightReferenceIssues = computed(() => {
+  return allIssues.value.filter((issue) => issue.path === 'heightReference').map((issue) => issue.message);
+});
+
+const hangingFeetKeywordIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+  allIssues.value.forEach((issue) => {
+    const match = issue.path.match(/^hangingFeet\.keywords\[(\d+)\]$/);
+    if (!match) return;
+    const row = hangingFeetKeywords.value[Number(match[1])];
+    if (!row) return;
+    add(row.id, issue.message);
+  });
+  return map;
+});
+
 const showIssuesPanel = computed(() => clientIssues.value.length > 0 || serverIssues.value.length > 0);
 const jsonPreview = computed(() => JSON.stringify(payload.value, null, 2));
 
@@ -333,12 +473,15 @@ async function load() {
 
 async function scrollToFirstIssue() {
   await nextTick();
-  const target = document.querySelector('[data-issue-anchor="true"]') as HTMLElement | null;
+  const target = document.querySelector('[data-issue-item="true"]') as HTMLElement | null;
   if (target) {
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     target.classList.add('ring-2', 'ring-amber-300');
     setTimeout(() => target.classList.remove('ring-2', 'ring-amber-300'), 1200);
+    return;
   }
+  const fallback = document.querySelector('[data-issue-anchor="true"]') as HTMLElement | null;
+  if (fallback) fallback.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function save() {
@@ -468,7 +611,13 @@ onMounted(load);
               <Button variant="outline" size="sm" @click="baseDimensions.push(makeBaseDimensionRow())">新增</Button>
             </div>
             <div class="space-y-4">
-              <div v-for="row in baseDimensions" :key="row.id" class="rounded-md border p-3 bg-background space-y-3">
+              <div
+                v-for="row in baseDimensions"
+                :key="row.id"
+                class="rounded-md border p-3 bg-background space-y-3"
+                :class="baseDimensionIssueMap.get(row.id)?.length ? 'bg-amber-50/60 border-amber-300' : ''"
+                :data-issue-item="baseDimensionIssueMap.get(row.id)?.length ? 'true' : null"
+              >
                 <div class="flex items-center justify-between">
                   <div class="w-32">
                     <label class="text-xs text-muted-foreground">门厚</label>
@@ -499,6 +648,9 @@ onMounted(load);
                     </div>
                   </div>
                 </div>
+                <div v-if="baseDimensionIssueMap.get(row.id)?.length" class="text-[11px] text-destructive">
+                  {{ baseDimensionIssueMap.get(row.id)?.[0] }}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -527,7 +679,13 @@ onMounted(load);
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in lockTypes" :key="row.id" class="bg-background border-b last:border-0">
+                  <tr
+                    v-for="row in lockTypes"
+                    :key="row.id"
+                    class="bg-background border-b last:border-0"
+                    :class="lockTypeIssueMap.get(row.id)?.length ? 'bg-amber-50/60' : ''"
+                    :data-issue-item="lockTypeIssueMap.get(row.id)?.length ? 'true' : null"
+                  >
                     <td class="px-3 py-2"><Input v-model="row.name" class="h-9" placeholder="F02-A副锁" /></td>
                     <td class="px-3 py-2"><Input v-model="row.category" class="h-9" placeholder="dual-head" /></td>
                     <td class="px-3 py-2"><Input v-model="row.nameModifier" class="h-9" placeholder="P66" /></td>
@@ -552,11 +710,29 @@ onMounted(load);
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label class="text-xs text-muted-foreground">hangingFeet.standard</label>
-                <Input v-model="hangingFeetStandard" class="h-9" placeholder="35" />
+                <Input
+                  v-model="hangingFeetStandard"
+                  class="h-9"
+                  :class="hangingFeetStandardIssues.length ? 'border-destructive' : ''"
+                  :data-issue-item="hangingFeetStandardIssues.length ? 'true' : null"
+                  placeholder="35"
+                />
+                <div v-if="hangingFeetStandardIssues.length" class="text-[11px] text-destructive mt-1">
+                  {{ hangingFeetStandardIssues[0] }}
+                </div>
               </div>
               <div>
                 <label class="text-xs text-muted-foreground">heightReference</label>
-                <Input v-model="heightReference" class="h-9" placeholder="2050" />
+                <Input
+                  v-model="heightReference"
+                  class="h-9"
+                  :class="heightReferenceIssues.length ? 'border-destructive' : ''"
+                  :data-issue-item="heightReferenceIssues.length ? 'true' : null"
+                  placeholder="2050"
+                />
+                <div v-if="heightReferenceIssues.length" class="text-[11px] text-destructive mt-1">
+                  {{ heightReferenceIssues[0] }}
+                </div>
               </div>
             </div>
 
@@ -565,8 +741,18 @@ onMounted(load);
                 <div class="text-sm font-medium">吊脚关键字</div>
                 <Button variant="outline" size="sm" @click="hangingFeetKeywords.push(makeKeywordRow())">新增</Button>
               </div>
-              <div v-for="item in hangingFeetKeywords" :key="item.id" class="flex items-center gap-2">
-                <Input v-model="item.value" class="h-9" placeholder="吊脚 / diaojiao" />
+              <div
+                v-for="item in hangingFeetKeywords"
+                :key="item.id"
+                class="flex items-center gap-2"
+                :data-issue-item="hangingFeetKeywordIssueMap.get(item.id)?.length ? 'true' : null"
+              >
+                <Input
+                  v-model="item.value"
+                  class="h-9"
+                  :class="hangingFeetKeywordIssueMap.get(item.id)?.length ? 'border-destructive' : ''"
+                  placeholder="吊脚 / diaojiao"
+                />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -574,6 +760,9 @@ onMounted(load);
                 >
                   删除
                 </Button>
+                <div v-if="hangingFeetKeywordIssueMap.get(item.id)?.length" class="text-[11px] text-destructive">
+                  {{ hangingFeetKeywordIssueMap.get(item.id)?.[0] }}
+                </div>
               </div>
             </div>
 
@@ -592,7 +781,13 @@ onMounted(load);
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="row in edgeTypes" :key="row.id" class="bg-background border-b last:border-0">
+                    <tr
+                      v-for="row in edgeTypes"
+                      :key="row.id"
+                      class="bg-background border-b last:border-0"
+                      :class="edgeTypeIssueMap.get(row.id)?.length ? 'bg-amber-50/60' : ''"
+                      :data-issue-item="edgeTypeIssueMap.get(row.id)?.length ? 'true' : null"
+                    >
                       <td class="px-3 py-2"><Input v-model="row.name" class="h-9" placeholder="T型" /></td>
                       <td class="px-3 py-2"><Input v-model="row.nameModifier" class="h-9" placeholder="T型" /></td>
                       <td class="px-3 py-2">
@@ -626,7 +821,13 @@ onMounted(load);
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in suppliers" :key="row.id" class="bg-background border-b last:border-0">
+                  <tr
+                    v-for="row in suppliers"
+                    :key="row.id"
+                    class="bg-background border-b last:border-0"
+                    :class="supplierIssueMap.get(row.id)?.length ? 'bg-amber-50/60' : ''"
+                    :data-issue-item="supplierIssueMap.get(row.id)?.length ? 'true' : null"
+                  >
                     <td class="px-3 py-2"><Input v-model="row.key" class="h-9" placeholder="default" /></td>
                     <td class="px-3 py-2"><Input v-model="row.value" class="h-9" placeholder="应志友" /></td>
                     <td class="px-3 py-2">
