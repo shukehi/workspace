@@ -49,7 +49,22 @@ const clientIssues = computed(() => {
   const exactSeen = new Set<string>();
   rows.value.forEach((row, index) => {
     const key = row.key.trim();
-    if (!key) return;
+    const value = row.value.trim();
+    if (!key) {
+      issues.push({
+        path: `rows[${index}].key`,
+        code: 'required',
+        message: '包装映射 key 不能为空'
+      });
+      return;
+    }
+    if (!value) {
+      issues.push({
+        path: `rows[${index}].value`,
+        code: 'required',
+        message: '包装映射 value 不能为空'
+      });
+    }
     if (exactSeen.has(key)) {
       issues.push({
         path: `rows[${index}].key`,
@@ -72,6 +87,53 @@ const clientIssues = computed(() => {
     }
   });
   return issues;
+});
+
+const supplierIssues = computed(() => {
+  return [...clientIssues.value, ...serverIssues.value]
+    .filter((issue) => issue.path === 'supplierName')
+    .map((issue) => issue.message);
+});
+
+const rowIssueMap = computed(() => {
+  const map = new Map<string, { key: string[]; value: string[] }>();
+  const ensure = (rowId: string) => {
+    if (!map.has(rowId)) map.set(rowId, { key: [], value: [] });
+    return map.get(rowId)!;
+  };
+
+  const addIssue = (rowId: string, field: 'key' | 'value', message: string) => {
+    const entry = ensure(rowId);
+    entry[field].push(message);
+  };
+
+  clientIssues.value.forEach((issue) => {
+    const match = issue.path.match(/^rows\[(\d+)\]\.(key|value)$/);
+    if (!match) return;
+    const index = Number(match[1]);
+    const field = match[2] as 'key' | 'value';
+    const row = rows.value[index];
+    if (!row) return;
+    addIssue(row.id, field, issue.message);
+  });
+
+  serverIssues.value.forEach((issue) => {
+    const match = issue.path.match(/^mappings\[(.+)\]$/);
+    if (!match) return;
+    let rawKey = match[1];
+    if (rawKey.startsWith('"') || rawKey.startsWith("'")) {
+      try {
+        rawKey = JSON.parse(rawKey);
+      } catch {
+        rawKey = rawKey.replace(/^['"]|['"]$/g, '');
+      }
+    }
+    const target = rows.value.find((row) => row.key.trim() === String(rawKey));
+    if (!target) return;
+    addIssue(target.id, 'key', issue.message);
+  });
+
+  return map;
 });
 
 const normalizedPreview = computed(() => {
@@ -295,6 +357,9 @@ onMounted(load);
             <div class="space-y-2">
               <label class="text-sm font-medium">默认供应商</label>
               <Input v-model="supplierName" class="h-9" placeholder="例如：方亮包装" />
+              <div v-if="supplierIssues.length > 0" class="text-[11px] text-destructive">
+                {{ supplierIssues[0] }}
+              </div>
             </div>
             <div class="space-y-2">
               <label class="text-sm font-medium">搜索映射</label>
@@ -345,9 +410,21 @@ onMounted(load);
                     <div class="text-[11px] text-muted-foreground mt-1">
                       规范化：{{ normalizedPreview.get(row.id) || '-' }}
                     </div>
+                    <div
+                      v-if="rowIssueMap.get(row.id)?.key.length"
+                      class="text-[11px] text-destructive mt-1 space-y-0.5"
+                    >
+                      <div v-for="msg in rowIssueMap.get(row.id)?.key" :key="msg">{{ msg }}</div>
+                    </div>
                   </td>
                   <td class="px-3 py-2">
                     <Input v-model="row.value" class="h-9" placeholder="采购条目名称" />
+                    <div
+                      v-if="rowIssueMap.get(row.id)?.value.length"
+                      class="text-[11px] text-destructive mt-1 space-y-0.5"
+                    >
+                      <div v-for="msg in rowIssueMap.get(row.id)?.value" :key="msg">{{ msg }}</div>
+                    </div>
                   </td>
                   <td class="px-3 py-2">
                     <Button
