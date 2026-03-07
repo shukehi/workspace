@@ -148,6 +148,17 @@ async function scrollToFirstIssue() {
     .filter((item) => item.hasIssue);
   if (entries.length === 0) return;
 
+  if (searchQuery.value) {
+    const visibleWithIssue = filteredRows.value.some((row) => rowHasIssue(row.id));
+    if (!visibleWithIssue) {
+      toast({
+        title: '无法定位错误',
+        description: '请清空搜索条件后查看问题行'
+      });
+      return;
+    }
+  }
+
   const index = rows.value.findIndex((row) => row.id === entries[0].row.id);
   const selector = `[data-row-index="${index}"]`;
   const target = document.querySelector(selector) as HTMLElement | null;
