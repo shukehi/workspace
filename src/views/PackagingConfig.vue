@@ -317,7 +317,12 @@ onMounted(load);
                   刷新
                 </Button>
                 <Button variant="outline" size="sm" @click="addRow">新增</Button>
-                <Button size="sm" :disabled="isLoading || isSaving || clientIssues.length > 0" @click="save">保存</Button>
+                <div class="flex flex-col items-end gap-1">
+                  <Button size="sm" :disabled="isLoading || isSaving || clientIssues.length > 0" @click="save">保存</Button>
+                  <div v-if="clientIssues.length > 0" class="text-[11px] text-muted-foreground">
+                    校验未通过
+                  </div>
+                </div>
               </div>
             </div>
 
