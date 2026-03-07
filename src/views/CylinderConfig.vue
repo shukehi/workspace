@@ -406,7 +406,7 @@ onMounted(editor.load);
             </div>
             <div class="overflow-auto rounded-md border">
               <table class="w-full text-sm text-left">
-                <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
+                <thead class="sticky top-0 z-10 bg-muted text-xs text-muted-foreground">
                   <tr>
                     <th class="px-3 py-2 w-[12%]">门厚</th>
                     <th class="px-3 py-2 w-[18%]">代码</th>
@@ -517,13 +517,13 @@ onMounted(editor.load);
               <Button variant="outline" size="sm" @click="mappings.push(makeMappingRow())">新增</Button>
             </div>
             <div class="overflow-auto rounded-md border max-h-[420px]">
-              <table class="w-full text-sm text-left">
-                <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
+              <table class="w-full text-sm text-left border-separate border-spacing-0">
+                <thead class="text-xs text-muted-foreground">
                   <tr>
-                    <th class="px-3 py-2 w-[30%]">型号</th>
-                    <th class="px-3 py-2 w-[20%]">供应商</th>
-                    <th class="px-3 py-2 w-[40%]">模板</th>
-                    <th class="px-3 py-2 w-[10%]">操作</th>
+                    <th class="sticky top-0 z-20 bg-muted px-3 py-2 w-[30%] border-b">型号</th>
+                    <th class="sticky top-0 z-20 bg-muted px-3 py-2 w-[20%] border-b">供应商</th>
+                    <th class="sticky top-0 z-20 bg-muted px-3 py-2 w-[40%] border-b">模板</th>
+                    <th class="sticky top-0 z-20 bg-muted px-3 py-2 w-[10%] border-b">操作</th>
                   </tr>
                 </thead>
                 <tbody>
