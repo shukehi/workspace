@@ -98,7 +98,11 @@ const payload = computed<CylinderMappingConfig>(() => {
         ...(variant.remark ? { remark: variant.remark } : {})
       };
     });
-    secondary[group.thickness] = { variants };
+    secondary[group.thickness] = {
+      code: '',
+      eccentricity: '',
+      variants
+    };
   });
 
   const toRule = (rule: RuleRow): CylinderSpecialRule => ({
@@ -425,6 +429,7 @@ async function save() {
     const errors = e?.response?.data?.errors;
     if (Array.isArray(errors)) {
       serverIssues.value = errors;
+      await scrollToFirstIssue();
     } else {
       toast({
         title: '保存失败',
@@ -877,14 +882,14 @@ onMounted(load);
     </div>
 
     <Dialog v-model:open="isJsonDialogOpen">
-      <DialogContent class="max-w-5xl w-[min(100%,70rem)]">
+      <DialogContent class="max-w-3xl w-[min(100%,52rem)] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>JSON 编辑</DialogTitle>
           <DialogDescription>直接编辑锁芯配置 JSON，应用前会进行校验。</DialogDescription>
         </DialogHeader>
 
-        <div class="space-y-3">
-          <CodeMirrorEditor v-model="jsonDraft" class="min-h-[420px]" lint />
+        <div class="space-y-3 min-h-0 overflow-auto">
+          <CodeMirrorEditor v-model="jsonDraft" class="h-[42vh] min-h-[220px]" lint />
           <div v-if="jsonDraftError" class="text-sm text-destructive">
             {{ jsonDraftError }}
           </div>
