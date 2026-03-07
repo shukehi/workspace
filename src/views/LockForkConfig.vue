@@ -80,9 +80,8 @@ function makeId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function parseNumeric(value: string, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+function parseNumeric(value: string) {
+  return Number(value);
 }
 
 function toDimensionGroup(row: BaseDimensionRow, kind: 'standard' | 'withHangingFeet'): LockForkDimensionGroup {
@@ -145,10 +144,10 @@ const payload = computed<LockForkMappingConfig>(() => {
     lockTypes: lockTypeMap,
     edgeTypes: edgeTypeMap,
     hangingFeet: {
-      standard: parseNumeric(hangingFeetStandard.value, 35),
+      standard: parseNumeric(hangingFeetStandard.value),
       keywords: hangingFeetKeywords.value.map((k) => k.value)
     },
-    heightReference: parseNumeric(heightReference.value, 2050),
+    heightReference: parseNumeric(heightReference.value),
     suppliers: supplierMap
   };
 });
@@ -168,6 +167,46 @@ const clientIssues = computed(() => {
     } else {
       thicknessSeen.add(key);
     }
+  });
+
+  baseDimensions.value.forEach((row, index) => {
+    const fields: Array<[string, string]> = [
+      ['standardUpperBase1', row.standardUpperBase1],
+      ['standardUpperBase2', row.standardUpperBase2],
+      ['standardLowerBase1', row.standardLowerBase1],
+      ['standardLowerBase2', row.standardLowerBase2],
+      ['hangingUpperBase1', row.hangingUpperBase1],
+      ['hangingUpperBase2', row.hangingUpperBase2],
+      ['hangingLowerBase1', row.hangingLowerBase1],
+      ['hangingLowerBase2', row.hangingLowerBase2]
+    ];
+
+    fields.forEach(([field, value]) => {
+      if (!String(value).trim()) {
+        issues.push({
+          path: `baseDimensions[${index}].${field}`,
+          code: 'required',
+          message: `${field} 不能为空`
+        });
+        return;
+      }
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        issues.push({
+          path: `baseDimensions[${index}].${field}`,
+          code: 'invalid-number',
+          message: `${field} 必须是数字`
+        });
+        return;
+      }
+      if (numeric <= 0) {
+        issues.push({
+          path: `baseDimensions[${index}].${field}`,
+          code: 'invalid-range',
+          message: `${field} 必须大于 0`
+        });
+      }
+    });
   });
 
   const lockTypeSeen = new Set<string>();
@@ -218,6 +257,28 @@ const clientIssues = computed(() => {
     }
   });
 
+  if (!hangingFeetStandard.value.trim()) {
+    issues.push({ path: 'hangingFeet.standard', code: 'required', message: '吊脚标准值不能为空' });
+  } else {
+    const numeric = Number(hangingFeetStandard.value);
+    if (!Number.isFinite(numeric)) {
+      issues.push({ path: 'hangingFeet.standard', code: 'invalid-number', message: '吊脚标准值必须是数字' });
+    } else if (numeric <= 0) {
+      issues.push({ path: 'hangingFeet.standard', code: 'invalid-range', message: '吊脚标准值必须大于 0' });
+    }
+  }
+
+  if (!heightReference.value.trim()) {
+    issues.push({ path: 'heightReference', code: 'required', message: '高度参考值不能为空' });
+  } else {
+    const numeric = Number(heightReference.value);
+    if (!Number.isFinite(numeric)) {
+      issues.push({ path: 'heightReference', code: 'invalid-number', message: '高度参考值必须是数字' });
+    } else if (numeric <= 0) {
+      issues.push({ path: 'heightReference', code: 'invalid-range', message: '高度参考值必须大于 0' });
+    }
+  }
+
   return issues;
 });
 
@@ -246,7 +307,7 @@ const baseDimensionIssueMap = computed(() => {
 
   allIssues.value.forEach((issue) => {
     let row = null as BaseDimensionRow | null;
-    const clientMatch = issue.path.match(/^baseDimensions\[(\d+)\]\.thickness$/);
+    const clientMatch = issue.path.match(/^baseDimensions\[(\d+)\]\./);
     if (clientMatch) {
       row = baseDimensions.value[Number(clientMatch[1])] || null;
     } else {
