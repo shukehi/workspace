@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -136,6 +136,30 @@ const rowIssueMap = computed(() => {
   return map;
 });
 
+const rowHasIssue = (rowId: string) => {
+  const entry = rowIssueMap.value.get(rowId);
+  return Boolean(entry && (entry.key.length > 0 || entry.value.length > 0));
+};
+
+async function scrollToFirstIssue() {
+  await nextTick();
+  const entries = rows.value
+    .map((row) => ({ row, hasIssue: rowHasIssue(row.id) }))
+    .filter((item) => item.hasIssue);
+  if (entries.length === 0) return;
+
+  const index = rows.value.findIndex((row) => row.id === entries[0].row.id);
+  const selector = `[data-row-index="${index}"]`;
+  const target = document.querySelector(selector) as HTMLElement | null;
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('ring-2', 'ring-amber-300');
+    setTimeout(() => {
+      target.classList.remove('ring-2', 'ring-amber-300');
+    }, 1200);
+  }
+}
+
 const normalizedPreview = computed(() => {
   const preview = new Map<string, string>();
   rows.value.forEach((row) => {
@@ -213,6 +237,10 @@ async function load() {
 
 async function save() {
   if (isSaving.value) return;
+  if (clientIssues.value.length > 0) {
+    await scrollToFirstIssue();
+    return;
+  }
   isSaving.value = true;
   serverIssues.value = [];
   try {
@@ -222,6 +250,7 @@ async function save() {
     );
     if (!res.ok) {
       serverIssues.value = res.errors || [];
+      await scrollToFirstIssue();
       return;
     }
     if (res.data) {
@@ -403,7 +432,9 @@ onMounted(load);
                 <tr
                   v-for="row in filteredRows"
                   :key="row.id"
-                  class="group bg-background border-b last:border-0 align-top"
+                  :data-row-index="rows.findIndex((item) => item.id === row.id)"
+                  class="group bg-background border-b last:border-0 align-top transition-colors"
+                  :class="rowHasIssue(row.id) ? 'bg-amber-50/60' : ''"
                 >
                   <td class="px-3 py-2">
                     <Input v-model="row.key" class="h-9" placeholder="原始包装名称" />
