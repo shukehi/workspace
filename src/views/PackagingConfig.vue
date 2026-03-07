@@ -2,13 +2,13 @@
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import MappingJsonDialog from '@/features/config-editor/components/MappingJsonDialog.vue';
+import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { createRowId, decodeIssuePathKey } from '@/features/config-editor/utils/mappingIssueUtils';
 import { configLoader } from '@/services/configLoader';
 import { adaptPackagingMapping, normalizePackagingMappingKey, validatePackagingMapping } from '@/services/mappings';
-import type { MappingValidationIssue, PackagingMappingConfig } from '@/types/mapping';
+import type { PackagingMappingConfig } from '@/types/mapping';
 import { useToastStore } from '@/stores/useToastStore';
 
 type MappingRow = {
@@ -21,16 +21,8 @@ const { toast } = useToastStore();
 
 const supplierName = ref('');
 const rows = ref<MappingRow[]>([]);
-const isLoading = ref(false);
-const isSaving = ref(false);
-const serverIssues = ref<MappingValidationIssue[]>([]);
-const loadError = ref<string | null>(null);
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
-const isJsonDialogOpen = ref(false);
-const jsonDraft = ref('');
-const jsonDraftError = ref<string | null>(null);
-const jsonDraftIssues = ref<MappingValidationIssue[]>([]);
 
 const payload = computed<PackagingMappingConfig>(() => {
   const mappings: Record<string, string> = {};
@@ -90,7 +82,7 @@ const clientIssues = computed(() => {
 });
 
 const supplierIssues = computed(() => {
-  return [...clientIssues.value, ...serverIssues.value]
+  return [...clientIssues.value, ...editor.serverIssues.value]
     .filter((issue) => issue.path === 'supplierName')
     .map((issue) => issue.message);
 });
@@ -117,18 +109,11 @@ const rowIssueMap = computed(() => {
     addIssue(row.id, field, issue.message);
   });
 
-  serverIssues.value.forEach((issue) => {
+  editor.serverIssues.value.forEach((issue) => {
     const match = issue.path.match(/^mappings\[(.+)\]$/);
     if (!match) return;
-    let rawKey = match[1];
-    if (rawKey.startsWith('"') || rawKey.startsWith("'")) {
-      try {
-        rawKey = JSON.parse(rawKey);
-      } catch {
-        rawKey = rawKey.replace(/^['"]|['"]$/g, '');
-      }
-    }
-    const targets = rows.value.filter((row) => row.key.trim() === String(rawKey));
+    const rawKey = decodeIssuePathKey(match[1]);
+    const targets = rows.value.filter((row) => row.key.trim() === rawKey);
     if (targets.length === 0) return;
     targets.forEach((target) => addIssue(target.id, 'key', issue.message));
   });
@@ -179,8 +164,6 @@ const normalizedPreview = computed(() => {
   return preview;
 });
 
-const jsonPreview = computed(() => JSON.stringify(payload.value, null, 2));
-
 const filteredRows = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase();
   if (!keyword) return rows.value;
@@ -190,11 +173,11 @@ const filteredRows = computed(() => {
 });
 
 const hasUnsavedChanges = computed(() => {
-  return serializePayload(payload.value) !== baselineSnapshot.value;
+  return serializePayload(editor.payload.value) !== baselineSnapshot.value;
 });
 
 const showSidePanel = computed(() => {
-  return clientIssues.value.length > 0 || serverIssues.value.length > 0;
+  return clientIssues.value.length > 0 || editor.serverIssues.value.length > 0;
 });
 
 function serializePayload(data: PackagingMappingConfig) {
@@ -212,7 +195,7 @@ function serializePayload(data: PackagingMappingConfig) {
 
 function makeRow(key = '', value = ''): MappingRow {
   return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: createRowId(),
     key,
     value
   };
@@ -224,73 +207,21 @@ function resetWithPayload(data: PackagingMappingConfig) {
   if (rows.value.length === 0) {
     rows.value = [makeRow()];
   }
-  baselineSnapshot.value = serializePayload(payload.value);
+  baselineSnapshot.value = serializePayload(editor.payload.value);
 }
 
-async function load() {
-  isLoading.value = true;
-  loadError.value = null;
-  serverIssues.value = [];
-  try {
-    const res = await api.get<PackagingMappingConfig>('/config/packaging');
-    resetWithPayload(res);
-  } catch (e: any) {
-    console.error(e);
-    loadError.value = e?.message || '加载失败';
-    toast({
-      title: '加载失败',
-      description: '无法读取包装映射配置'
-    });
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-async function save() {
-  if (isSaving.value) return;
-  if (clientIssues.value.length > 0) {
-    await scrollToFirstIssue();
-    return;
-  }
-  isSaving.value = true;
-  serverIssues.value = [];
-  try {
-    const res = await api.put<{ ok: boolean; data?: PackagingMappingConfig; errors?: MappingValidationIssue[] }>(
-      '/config/packaging',
-      payload.value
-    );
-    if (!res.ok) {
-      serverIssues.value = res.errors || [];
-      await scrollToFirstIssue();
-      return;
-    }
-    if (res.data) {
-      resetWithPayload(res.data);
-    } else {
-      baselineSnapshot.value = serializePayload(payload.value);
-    }
-    await configLoader.refreshPackagingMapping();
-    toast({
-      title: '保存成功',
-      description: '包装映射已更新',
-      variant: 'success'
-    });
-  } catch (e: any) {
-    console.error(e);
-    const errors = e?.response?.data?.errors;
-    if (Array.isArray(errors)) {
-      serverIssues.value = errors;
-    } else {
-      toast({
-        title: '保存失败',
-        description: '请检查配置后重试',
-        variant: 'destructive'
-      });
-    }
-  } finally {
-    isSaving.value = false;
-  }
-}
+const editor = useMappingConfigEditor<PackagingMappingConfig>({
+  endpoint: '/config/packaging',
+  loadErrorDescription: '无法读取包装映射配置',
+  saveSuccessDescription: '包装映射已更新',
+  getPayload: () => payload.value,
+  getClientIssues: () => clientIssues.value,
+  validatePayload: validatePackagingMapping,
+  adaptPayload: (value) => adaptPackagingMapping(value),
+  resetWithPayload,
+  refreshRuntime: () => configLoader.refreshPackagingMapping(),
+  scrollToFirstIssue
+});
 
 function addRow() {
   if (searchQuery.value) searchQuery.value = '';
@@ -302,74 +233,7 @@ function removeRow(id: string) {
   if (rows.value.length === 0) rows.value = [makeRow()];
 }
 
-function openJsonEditor() {
-  jsonDraft.value = jsonPreview.value;
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-  isJsonDialogOpen.value = true;
-}
-
-function resetJsonDraft() {
-  jsonDraft.value = jsonPreview.value;
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-}
-
-function formatJsonDraft() {
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-  try {
-    const parsed = JSON.parse(jsonDraft.value || '{}');
-    jsonDraft.value = JSON.stringify(parsed, null, 2);
-  } catch (e: any) {
-    jsonDraftError.value = e?.message || 'JSON 解析失败';
-  }
-}
-
-function applyJsonDraft() {
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-  let parsed: PackagingMappingConfig;
-  try {
-    parsed = JSON.parse(jsonDraft.value || '{}');
-  } catch (e: any) {
-    jsonDraftError.value = e?.message || 'JSON 解析失败';
-    return;
-  }
-  const adapted = adaptPackagingMapping(parsed);
-  const issues = validatePackagingMapping(parsed);
-  if (issues.length > 0) {
-    jsonDraftIssues.value = issues;
-    return;
-  }
-  resetWithPayload(adapted);
-  isJsonDialogOpen.value = false;
-  toast({
-    title: '已应用 JSON',
-    description: '配置已更新到页面'
-  });
-}
-
-async function copyJsonPreview() {
-  try {
-    if (typeof window === 'undefined' || !window.navigator?.clipboard) {
-      throw new Error('Clipboard API unavailable');
-    }
-    await window.navigator.clipboard.writeText(jsonPreview.value);
-    toast({
-      title: '已复制',
-      description: 'JSON 已复制到剪贴板'
-    });
-  } catch {
-    toast({
-      title: '复制失败',
-      description: '当前环境不支持剪贴板复制',
-      variant: 'destructive'
-    });
-  }
-}
-
-onMounted(load);
+onMounted(editor.load);
 </script>
 
 <template>
@@ -393,9 +257,9 @@ onMounted(load);
       </div>
     </div>
 
-    <Card v-if="loadError">
+    <Card v-if="editor.loadError.value">
       <CardContent class="p-4 text-sm text-destructive">
-        {{ loadError }}
+        {{ editor.loadError.value }}
       </CardContent>
     </Card>
 
@@ -436,13 +300,13 @@ onMounted(load);
                 <span v-if="searchQuery">匹配 {{ filteredRows.length }} 条</span>
               </div>
               <div class="flex items-center gap-2">
-                <Button variant="outline" size="sm" @click="openJsonEditor">JSON 编辑</Button>
-                <Button variant="outline" size="sm" :disabled="isLoading || isSaving" @click="load">
+                <Button variant="outline" size="sm" @click="editor.openJsonEditor">JSON 编辑</Button>
+                <Button variant="outline" size="sm" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">
                   刷新
                 </Button>
                 <Button variant="outline" size="sm" @click="addRow">新增</Button>
                 <div class="flex flex-col items-end gap-1">
-                  <Button size="sm" :disabled="isLoading || isSaving || clientIssues.length > 0" @click="save">保存</Button>
+                  <Button size="sm" :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存</Button>
                   <div v-if="clientIssues.length > 0" class="text-[11px] text-muted-foreground">
                     校验未通过
                   </div>
@@ -524,10 +388,10 @@ onMounted(load);
                 </li>
               </ul>
             </div>
-            <div v-if="serverIssues.length > 0" class="space-y-1">
+            <div v-if="editor.serverIssues.value.length > 0" class="space-y-1">
               <div class="text-sm font-medium">服务端校验</div>
               <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                <li v-for="issue in serverIssues" :key="`server-${issue.path}-${issue.code}`">
+                <li v-for="issue in editor.serverIssues.value" :key="`server-${issue.path}-${issue.code}`">
                   {{ issue.path }}: {{ issue.message }}
                 </li>
               </ul>
@@ -537,42 +401,16 @@ onMounted(load);
       </div>
     </div>
 
-    <Dialog v-model:open="isJsonDialogOpen">
-      <DialogContent class="max-w-3xl w-[min(100%,52rem)] max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>JSON 编辑</DialogTitle>
-          <DialogDescription>直接编辑映射 JSON，应用前会进行校验。</DialogDescription>
-        </DialogHeader>
-
-        <div class="space-y-3 min-h-0 overflow-auto">
-          <CodeMirrorEditor v-model="jsonDraft" class="h-[42vh] min-h-[220px]" lint />
-          <div v-if="jsonDraftError" class="text-sm text-destructive">
-            {{ jsonDraftError }}
-          </div>
-          <div v-if="jsonDraftIssues.length > 0" class="space-y-1">
-            <div class="text-sm font-medium">校验失败</div>
-            <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-              <li v-for="issue in jsonDraftIssues" :key="`draft-${issue.path}-${issue.code}`">
-                {{ issue.path }}: {{ issue.message }}
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <DialogFooter class="flex-row justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            @click="copyJsonPreview"
-          >
-            复制当前 JSON
-          </Button>
-          <Button variant="outline" size="sm" @click="formatJsonDraft">格式化</Button>
-          <Button variant="outline" size="sm" @click="resetJsonDraft">重置为当前配置</Button>
-          <Button variant="outline" size="sm" @click="isJsonDialogOpen = false">取消</Button>
-          <Button size="sm" @click="applyJsonDraft">校验并应用</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <MappingJsonDialog
+      v-model:open="editor.isJsonDialogOpen.value"
+      v-model:draft="editor.jsonDraft.value"
+      :error="editor.jsonDraftError.value"
+      :issues="editor.jsonDraftIssues.value"
+      :show-copy-button="true"
+      @format="editor.formatJsonDraft"
+      @reset="editor.resetJsonDraft"
+      @apply="editor.applyJsonDraft"
+      @copy="editor.copyJsonPreview"
+    />
   </div>
 </template>

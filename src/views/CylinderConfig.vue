@@ -2,19 +2,18 @@
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import MappingJsonDialog from '@/features/config-editor/components/MappingJsonDialog.vue';
+import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { createRowId, scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
 import { configLoader } from '@/services/configLoader';
 import { adaptCylinderMapping, validateCylinderMapping } from '@/services/mappings';
 import type {
   CylinderMappingConfig,
   CylinderDimensionVariant,
-  CylinderSpecialRule,
-  MappingValidationIssue
+  CylinderSpecialRule
 } from '@/types/mapping';
-import { useToastStore } from '@/stores/useToastStore';
 
 type DimensionRow = {
   id: string;
@@ -58,13 +57,6 @@ type LogoRow = {
   value: string;
 };
 
-const { toast } = useToastStore();
-
-const isLoading = ref(false);
-const isSaving = ref(false);
-const loadError = ref<string | null>(null);
-const serverIssues = ref<MappingValidationIssue[]>([]);
-
 const primaryDimensions = ref<DimensionRow[]>([]);
 const secondaryDimensions = ref<DimensionGroup[]>([]);
 const specialRules = ref<RuleRow[]>([]);
@@ -73,10 +65,6 @@ const mappings = ref<MappingRow[]>([]);
 const customLogos = ref<LogoRow[]>([]);
 
 const searchQuery = ref('');
-const isJsonDialogOpen = ref(false);
-const jsonDraft = ref('');
-const jsonDraftError = ref<string | null>(null);
-const jsonDraftIssues = ref<MappingValidationIssue[]>([]);
 
 const payload = computed<CylinderMappingConfig>(() => {
   const dimensions: CylinderMappingConfig['dimensions'] = {};
@@ -257,16 +245,11 @@ const mappingFiltered = computed(() => {
   });
 });
 
-const showIssuesPanel = computed(() => clientIssues.value.length > 0 || serverIssues.value.length > 0);
-const jsonPreview = computed(() => JSON.stringify(payload.value, null, 2));
-
-function makeId() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+const showIssuesPanel = computed(() => clientIssues.value.length > 0 || editor.serverIssues.value.length > 0);
 
 function makeDimensionRow(input?: Partial<DimensionRow>): DimensionRow {
   return {
-    id: makeId(),
+    id: createRowId(),
     thickness: input?.thickness || '',
     code: input?.code || '',
     eccentricity: input?.eccentricity || '',
@@ -276,7 +259,7 @@ function makeDimensionRow(input?: Partial<DimensionRow>): DimensionRow {
 
 function makeVariantRow(input?: Partial<VariantRow>): VariantRow {
   return {
-    id: makeId(),
+    id: createRowId(),
     name: input?.name || '',
     code: input?.code || '',
     eccentricity: input?.eccentricity || '',
@@ -286,7 +269,7 @@ function makeVariantRow(input?: Partial<VariantRow>): VariantRow {
 
 function makeDimensionGroup(input?: Partial<DimensionGroup>): DimensionGroup {
   return {
-    id: makeId(),
+    id: createRowId(),
     thickness: input?.thickness || '',
     variants: input?.variants?.length ? input.variants : [makeVariantRow()]
   };
@@ -294,7 +277,7 @@ function makeDimensionGroup(input?: Partial<DimensionGroup>): DimensionGroup {
 
 function makeRuleRow(input?: Partial<RuleRow>): RuleRow {
   return {
-    id: makeId(),
+    id: createRowId(),
     conditionField: input?.conditionField || '',
     keyword: input?.keyword || '',
     thickness: input?.thickness || '',
@@ -304,7 +287,7 @@ function makeRuleRow(input?: Partial<RuleRow>): RuleRow {
 
 function makeMappingRow(input?: Partial<MappingRow>): MappingRow {
   return {
-    id: makeId(),
+    id: createRowId(),
     name: input?.name || '',
     supplier: input?.supplier || '',
     template: input?.template || ''
@@ -313,7 +296,7 @@ function makeMappingRow(input?: Partial<MappingRow>): MappingRow {
 
 function makeLogoRow(input?: Partial<LogoRow>): LogoRow {
   return {
-    id: makeId(),
+    id: createRowId(),
     value: input?.value || ''
   };
 }
@@ -368,128 +351,25 @@ function resetWithPayload(data: CylinderMappingConfig) {
   if (customLogos.value.length === 0) customLogos.value = [makeLogoRow()];
 }
 
-async function load() {
-  isLoading.value = true;
-  loadError.value = null;
-  serverIssues.value = [];
-  try {
-    const res = await api.get<CylinderMappingConfig>('/config/cylinder');
-    resetWithPayload(res);
-  } catch (e: any) {
-    console.error(e);
-    loadError.value = e?.message || '加载失败';
-    toast({
-      title: '加载失败',
-      description: '无法读取锁芯映射配置'
-    });
-  } finally {
-    isLoading.value = false;
-  }
-}
-
 async function scrollToFirstIssue() {
   await nextTick();
-  const target = document.querySelector('[data-issue-anchor="true"]') as HTMLElement | null;
-  if (target) {
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    target.classList.add('ring-2', 'ring-amber-300');
-    setTimeout(() => target.classList.remove('ring-2', 'ring-amber-300'), 1200);
-  }
+  await scrollToFirstIssueElement('[data-issue-anchor="true"]');
 }
 
-async function save() {
-  if (isSaving.value) return;
-  if (clientIssues.value.length > 0) {
-    await scrollToFirstIssue();
-    return;
-  }
-  isSaving.value = true;
-  serverIssues.value = [];
-  try {
-    const res = await api.put<{ ok: boolean; data?: CylinderMappingConfig; errors?: MappingValidationIssue[] }>(
-      '/config/cylinder',
-      payload.value
-    );
-    if (!res.ok) {
-      serverIssues.value = res.errors || [];
-      await scrollToFirstIssue();
-      return;
-    }
-    if (res.data) {
-      resetWithPayload(res.data);
-    }
-    await configLoader.refreshCylinderMapping();
-    toast({
-      title: '保存成功',
-      description: '锁芯映射已更新',
-      variant: 'success'
-    });
-  } catch (e: any) {
-    console.error(e);
-    const errors = e?.response?.data?.errors;
-    if (Array.isArray(errors)) {
-      serverIssues.value = errors;
-      await scrollToFirstIssue();
-    } else {
-      toast({
-        title: '保存失败',
-        description: '请检查配置后重试',
-        variant: 'destructive'
-      });
-    }
-  } finally {
-    isSaving.value = false;
-  }
-}
+const editor = useMappingConfigEditor<CylinderMappingConfig>({
+  endpoint: '/config/cylinder',
+  loadErrorDescription: '无法读取锁芯映射配置',
+  saveSuccessDescription: '锁芯映射已更新',
+  getPayload: () => payload.value,
+  getClientIssues: () => clientIssues.value,
+  validatePayload: validateCylinderMapping,
+  adaptPayload: (value) => adaptCylinderMapping(value),
+  resetWithPayload,
+  refreshRuntime: () => configLoader.refreshCylinderMapping(),
+  scrollToFirstIssue
+});
 
-function openJsonEditor() {
-  jsonDraft.value = jsonPreview.value;
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-  isJsonDialogOpen.value = true;
-}
-
-function formatJsonDraft() {
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-  try {
-    const parsed = JSON.parse(jsonDraft.value || '{}');
-    jsonDraft.value = JSON.stringify(parsed, null, 2);
-  } catch (e: any) {
-    jsonDraftError.value = e?.message || 'JSON 解析失败';
-  }
-}
-
-function resetJsonDraft() {
-  jsonDraft.value = jsonPreview.value;
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-}
-
-function applyJsonDraft() {
-  jsonDraftError.value = null;
-  jsonDraftIssues.value = [];
-  let parsed: CylinderMappingConfig;
-  try {
-    parsed = JSON.parse(jsonDraft.value || '{}');
-  } catch (e: any) {
-    jsonDraftError.value = e?.message || 'JSON 解析失败';
-    return;
-  }
-  const issues = validateCylinderMapping(parsed);
-  if (issues.length > 0) {
-    jsonDraftIssues.value = issues;
-    return;
-  }
-  resetWithPayload(parsed);
-  isJsonDialogOpen.value = false;
-  toast({
-    title: '已应用 JSON',
-    description: '配置已更新到页面'
-  });
-}
-
-onMounted(load);
+onMounted(editor.load);
 </script>
 
 <template>
@@ -500,15 +380,15 @@ onMounted(load);
         <p class="text-muted-foreground mt-1">维护锁芯规格、规则与供应商映射。</p>
       </div>
       <div class="flex items-center gap-2">
-        <Button variant="outline" :disabled="isLoading || isSaving" @click="load">刷新</Button>
-        <Button :disabled="isLoading || isSaving || clientIssues.length > 0" @click="save">保存</Button>
-        <Button variant="outline" @click="openJsonEditor">JSON 编辑</Button>
+        <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新</Button>
+        <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存</Button>
+        <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
       </div>
     </div>
 
-    <Card v-if="loadError">
+    <Card v-if="editor.loadError.value">
       <CardContent class="p-4 text-sm text-destructive">
-        {{ loadError }}
+        {{ editor.loadError.value }}
       </CardContent>
     </Card>
 
@@ -850,7 +730,7 @@ onMounted(load);
             <CardDescription>保存前的结构化预览。</CardDescription>
           </CardHeader>
           <CardContent>
-            <CodeMirrorEditor :model-value="jsonPreview" readOnly class="min-h-[320px]" />
+            <CodeMirrorEditor :model-value="editor.jsonPreview.value" readOnly class="min-h-[320px]" />
           </CardContent>
         </Card>
 
@@ -868,10 +748,10 @@ onMounted(load);
                 </li>
               </ul>
             </div>
-            <div v-if="serverIssues.length > 0" class="space-y-1">
+            <div v-if="editor.serverIssues.value.length > 0" class="space-y-1">
               <div class="text-sm font-medium">服务端校验</div>
               <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                <li v-for="issue in serverIssues" :key="`server-${issue.path}-${issue.code}`">
+                <li v-for="issue in editor.serverIssues.value" :key="`server-${issue.path}-${issue.code}`">
                   {{ issue.path }}: {{ issue.message }}
                 </li>
               </ul>
@@ -881,35 +761,15 @@ onMounted(load);
       </div>
     </div>
 
-    <Dialog v-model:open="isJsonDialogOpen">
-      <DialogContent class="max-w-3xl w-[min(100%,52rem)] max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>JSON 编辑</DialogTitle>
-          <DialogDescription>直接编辑锁芯配置 JSON，应用前会进行校验。</DialogDescription>
-        </DialogHeader>
-
-        <div class="space-y-3 min-h-0 overflow-auto">
-          <CodeMirrorEditor v-model="jsonDraft" class="h-[42vh] min-h-[220px]" lint />
-          <div v-if="jsonDraftError" class="text-sm text-destructive">
-            {{ jsonDraftError }}
-          </div>
-          <div v-if="jsonDraftIssues.length > 0" class="space-y-1">
-            <div class="text-sm font-medium">校验失败</div>
-            <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-              <li v-for="issue in jsonDraftIssues" :key="`draft-${issue.path}-${issue.code}`">
-                {{ issue.path }}: {{ issue.message }}
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <DialogFooter class="flex-row justify-end gap-2">
-          <Button variant="outline" size="sm" @click="formatJsonDraft">格式化</Button>
-          <Button variant="outline" size="sm" @click="resetJsonDraft">重置为当前配置</Button>
-          <Button variant="outline" size="sm" @click="isJsonDialogOpen = false">取消</Button>
-          <Button size="sm" @click="applyJsonDraft">校验并应用</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <MappingJsonDialog
+      v-model:open="editor.isJsonDialogOpen.value"
+      v-model:draft="editor.jsonDraft.value"
+      :description="'直接编辑锁芯配置 JSON，应用前会进行校验。'"
+      :error="editor.jsonDraftError.value"
+      :issues="editor.jsonDraftIssues.value"
+      @format="editor.formatJsonDraft"
+      @reset="editor.resetJsonDraft"
+      @apply="editor.applyJsonDraft"
+    />
   </div>
 </template>
