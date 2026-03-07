@@ -7,7 +7,7 @@ import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { configLoader } from '@/services/configLoader';
-import { normalizePackagingMappingKey, validatePackagingMapping } from '@/services/mappings';
+import { adaptPackagingMapping, normalizePackagingMappingKey, validatePackagingMapping } from '@/services/mappings';
 import type { MappingValidationIssue, PackagingMappingConfig } from '@/types/mapping';
 import { useToastStore } from '@/stores/useToastStore';
 
@@ -43,7 +43,26 @@ const payload = computed<PackagingMappingConfig>(() => {
   };
 });
 
-const clientIssues = computed(() => validatePackagingMapping(payload.value));
+const clientIssues = computed(() => {
+  const issues = [...validatePackagingMapping(payload.value)];
+  const normalizedSeen = new Map<string, string>();
+  rows.value.forEach((row, index) => {
+    const key = row.key.trim();
+    if (!key) return;
+    const normalized = normalizePackagingMappingKey(key);
+    const existing = normalizedSeen.get(normalized);
+    if (existing && existing !== key) {
+      issues.push({
+        path: `rows[${index}].key`,
+        code: 'normalized-conflict',
+        message: '包装映射存在 normalize 后冲突'
+      });
+    } else {
+      normalizedSeen.set(normalized, key);
+    }
+  });
+  return issues;
+});
 
 const normalizedPreview = computed(() => {
   const preview = new Map<string, string>();
@@ -205,12 +224,13 @@ function applyJsonDraft() {
     jsonDraftError.value = e?.message || 'JSON 解析失败';
     return;
   }
+  const adapted = adaptPackagingMapping(parsed);
   const issues = validatePackagingMapping(parsed);
   if (issues.length > 0) {
     jsonDraftIssues.value = issues;
     return;
   }
-  resetWithPayload(parsed);
+  resetWithPayload(adapted);
   isJsonDialogOpen.value = false;
   toast({
     title: '已应用 JSON',
