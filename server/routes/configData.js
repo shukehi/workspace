@@ -12,12 +12,47 @@ const { validatePackagingMapping } = require('../services/mappings/mapping.valid
 
 // Path to data files (resolved relative to project root)
 const DATA_DIR = path.join(__dirname, '../../public/data');
+const CONFIG_DIR = path.join(__dirname, '../../data/config');
 const MATERIALS_FILE = path.join(DATA_DIR, 'materials-catalog.json');
-const PACKAGING_MAPPING_FILE = path.join(DATA_DIR, 'packaging-mapping.json');
+const PACKAGING_STATIC_FILE = path.join(DATA_DIR, 'packaging-mapping.json');
+const PACKAGING_RUNTIME_FILE = path.join(CONFIG_DIR, 'packaging-mapping.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+}
+
+function writeJsonAtomic(filePath, payload) {
+    const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+    fs.writeFileSync(tempPath, JSON.stringify(payload, null, 4));
+    fs.renameSync(tempPath, filePath);
+}
+
+function ensurePackagingMappingFile() {
+    if (fs.existsSync(PACKAGING_RUNTIME_FILE)) return;
+    let seed = {};
+    if (fs.existsSync(PACKAGING_STATIC_FILE)) {
+        try {
+            seed = JSON.parse(fs.readFileSync(PACKAGING_STATIC_FILE, 'utf8'));
+        } catch (error) {
+            console.warn('[configData] failed to parse static packaging mapping, falling back to empty', error);
+            seed = {};
+        }
+    }
+    const payload = adaptPackagingMapping(seed);
+    writeJsonAtomic(PACKAGING_RUNTIME_FILE, payload);
+}
+
+function readPackagingMapping() {
+    ensurePackagingMappingFile();
+    const rawText = fs.readFileSync(PACKAGING_RUNTIME_FILE, 'utf8');
+    const raw = JSON.parse(rawText || '{}');
+    const payload = adaptPackagingMapping(raw);
+    const issues = validatePackagingMapping(raw);
+    return { payload, issues };
 }
 
 // 1. Get Materials Catalog
@@ -50,22 +85,45 @@ router.post('/materials', (req, res) => {
 });
 
 // 3. Get Packaging Mapping
-router.get('/packaging-mapping', (req, res) => {
+router.get('/packaging', (req, res) => {
     try {
-        if (fs.existsSync(PACKAGING_MAPPING_FILE)) {
-            const raw = JSON.parse(fs.readFileSync(PACKAGING_MAPPING_FILE, 'utf8'));
-            const payload = adaptPackagingMapping(raw);
-            const issues = validatePackagingMapping(raw);
-            if (issues.length > 0) {
-                console.warn('[configData] packaging mapping validation issues:', issues);
-            }
-            res.json(payload);
-        } else {
-            res.json(adaptPackagingMapping({}));
+        const { payload, issues } = readPackagingMapping();
+        if (issues.length > 0) {
+            console.warn('[configData] packaging mapping validation issues:', issues);
         }
+        res.json(payload);
     } catch (error) {
         console.error('Error reading packaging mapping:', error);
-        res.status(500).json({ success: false, error: 'Failed to read packaging mapping' });
+        res.status(500).json({ ok: false, error: 'Failed to read packaging mapping' });
+    }
+});
+
+router.put('/packaging', (req, res) => {
+    try {
+        const issues = validatePackagingMapping(req.body);
+        if (issues.length > 0) {
+            return res.status(400).json({ ok: false, errors: issues });
+        }
+        const payload = adaptPackagingMapping(req.body);
+        writeJsonAtomic(PACKAGING_RUNTIME_FILE, payload);
+        res.json({ ok: true, data: payload });
+    } catch (error) {
+        console.error('Error saving packaging mapping:', error);
+        res.status(500).json({ ok: false, error: 'Failed to save packaging mapping' });
+    }
+});
+
+// Backward-compatible endpoint
+router.get('/packaging-mapping', (req, res) => {
+    try {
+        const { payload, issues } = readPackagingMapping();
+        if (issues.length > 0) {
+            console.warn('[configData] packaging mapping validation issues:', issues);
+        }
+        res.json(payload);
+    } catch (error) {
+        console.error('Error reading packaging mapping:', error);
+        res.status(500).json({ ok: false, error: 'Failed to read packaging mapping' });
     }
 });
 

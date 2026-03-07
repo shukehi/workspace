@@ -36,6 +36,7 @@ build/
 
 # Data files (uncomment if they contain sensitive information)
 # data/*.json
+data/config/*.json
 
 # Database files (runtime data, should not be committed)
 data/*.sqlite

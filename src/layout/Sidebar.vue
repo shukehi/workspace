@@ -10,6 +10,7 @@ import {
   Database,
   FlaskConical,
   LayoutDashboard,
+  Package,
   ShoppingCart,
   Warehouse
 } from 'lucide-vue-next';
@@ -30,6 +31,7 @@ const iconMap: Record<NavIconKey, Component> = {
   inventory: Warehouse,
   'material-master': ClipboardList,
   formula: FlaskConical,
+  'packaging-config': Package,
   statistics: BarChart3,
   'contracts-history': Archive
 };

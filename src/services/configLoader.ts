@@ -121,7 +121,7 @@ export class ConfigLoaderService {
     }
 
     async loadPackagingMapping() {
-        const apiPayload = await this.fetchJson('/api/config/packaging-mapping');
+        const apiPayload = await this.fetchJson('/api/config/packaging');
         if (apiPayload !== null) {
             this.applyRuntimeMapping('packaging', apiPayload);
             return;
@@ -134,6 +134,10 @@ export class ConfigLoaderService {
             return;
         }
         this.applyRuntimeMapping('packaging', staticPayload);
+    }
+
+    async refreshPackagingMapping() {
+        await this.loadPackagingMapping();
     }
 
     getMaterials() { return this.materialCatalog; }
