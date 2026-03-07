@@ -36,6 +36,15 @@ function createIssue(path: string, code: string, message: string): MappingValida
   return { path, code, message };
 }
 
+function normalizeCylinderExcludeKey(input: string) {
+  return String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[（【［]/g, '(')
+    .replace(/[）】］]/g, ')')
+    .replace(/\s+/g, '');
+}
+
 function getPackagingMappingSource(value: unknown) {
   const record = asRecord(value);
   if (Object.prototype.hasOwnProperty.call(record, 'mappings')) {
@@ -241,6 +250,28 @@ export function validateCylinderMapping(value: unknown): MappingValidationIssue[
       issues.push(createIssue(`customLogos[${index}]`, 'required', 'customLogos 不能为空字符串'));
     }
   });
+
+  const rawExcludedCylinders = asRecord(value).excludedCylinders;
+  if (rawExcludedCylinders !== undefined && !Array.isArray(rawExcludedCylinders)) {
+    issues.push(createIssue('excludedCylinders', 'invalid-type', 'excludedCylinders 必须是数组'));
+  }
+
+  if (Array.isArray(rawExcludedCylinders)) {
+    const excludedSeen = new Set<string>();
+    rawExcludedCylinders.forEach((rawName, index) => {
+      const name = toTrimmedString(rawName);
+      if (!name) {
+        issues.push(createIssue(`excludedCylinders[${index}]`, 'required', 'excludedCylinders 不能为空字符串'));
+        return;
+      }
+      const normalized = normalizeCylinderExcludeKey(name);
+      if (excludedSeen.has(normalized)) {
+        issues.push(createIssue(`excludedCylinders[${index}]`, 'duplicate', 'excludedCylinders 存在重复值'));
+        return;
+      }
+      excludedSeen.add(normalized);
+    });
+  }
 
   return issues;
 }

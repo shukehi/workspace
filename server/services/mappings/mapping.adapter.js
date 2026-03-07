@@ -1,6 +1,7 @@
 const DEFAULT_PACKAGING_SUPPLIER = '方亮包装';
 const DEFAULT_LOCK_FORK_HEIGHT_REFERENCE = 2050;
 const DEFAULT_LOCK_FORK_HANGING_FEET = 35;
+const DEFAULT_CYLINDER_EXCLUDED = ['指纹锁配套锁芯'];
 
 function asRecord(value) {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -253,13 +254,16 @@ function adaptPackagingMapping(value) {
 
 function adaptCylinderMapping(value) {
     const record = asRecord(value);
+    const hasExcludedCylinders = Object.prototype.hasOwnProperty.call(record, 'excludedCylinders');
+    const excludedCylinders = adaptStringList(record.excludedCylinders);
     return {
         dimensions: adaptCylinderDimensionMap(record.dimensions),
         specialRules: adaptCylinderSpecialRules(record.specialRules),
         secondaryDimensions: adaptCylinderDimensionMap(record.secondaryDimensions),
         secondarySpecialRules: adaptCylinderSpecialRules(record.secondarySpecialRules),
         mappings: adaptCylinderMappings(record.mappings),
-        customLogos: adaptStringList(record.customLogos)
+        customLogos: adaptStringList(record.customLogos),
+        excludedCylinders: hasExcludedCylinders ? excludedCylinders : [...DEFAULT_CYLINDER_EXCLUDED]
     };
 }
 

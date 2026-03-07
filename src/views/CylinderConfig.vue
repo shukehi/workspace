@@ -57,12 +57,18 @@ type LogoRow = {
   value: string;
 };
 
+type ExcludedCylinderRow = {
+  id: string;
+  value: string;
+};
+
 const primaryDimensions = ref<DimensionRow[]>([]);
 const secondaryDimensions = ref<DimensionGroup[]>([]);
 const specialRules = ref<RuleRow[]>([]);
 const secondarySpecialRules = ref<RuleRow[]>([]);
 const mappings = ref<MappingRow[]>([]);
 const customLogos = ref<LogoRow[]>([]);
+const excludedCylinders = ref<ExcludedCylinderRow[]>([]);
 
 const searchQuery = ref('');
 
@@ -119,6 +125,7 @@ const payload = computed<CylinderMappingConfig>(() => {
   });
 
   const logos = customLogos.value.map((logo) => logo.value);
+  const excluded = excludedCylinders.value.map((item) => item.value);
 
   return {
     dimensions,
@@ -126,7 +133,8 @@ const payload = computed<CylinderMappingConfig>(() => {
     secondaryDimensions: secondary,
     secondarySpecialRules: mappedSecondaryRules,
     mappings: mappingObj,
-    customLogos: logos
+    customLogos: logos,
+    excludedCylinders: excluded
   };
 });
 
@@ -232,6 +240,20 @@ const clientIssues = computed(() => {
     }
   });
 
+  const excludedSeen = new Set<string>();
+  excludedCylinders.value.forEach((item, index) => {
+    const value = item.value.trim();
+    if (!value) {
+      issues.push({ path: `excludedCylinders[${index}]`, code: 'required', message: '排除锁芯不能为空' });
+      return;
+    }
+    if (excludedSeen.has(value)) {
+      issues.push({ path: `excludedCylinders[${index}]`, code: 'duplicate', message: '排除锁芯重复' });
+      return;
+    }
+    excludedSeen.add(value);
+  });
+
   return issues;
 });
 
@@ -301,6 +323,13 @@ function makeLogoRow(input?: Partial<LogoRow>): LogoRow {
   };
 }
 
+function makeExcludedCylinderRow(input?: Partial<ExcludedCylinderRow>): ExcludedCylinderRow {
+  return {
+    id: createRowId(),
+    value: input?.value || ''
+  };
+}
+
 function resetWithPayload(data: CylinderMappingConfig) {
   const adapted = adaptCylinderMapping(data);
   primaryDimensions.value = Object.entries(adapted.dimensions).map(([thickness, rule]) =>
@@ -349,6 +378,8 @@ function resetWithPayload(data: CylinderMappingConfig) {
 
   customLogos.value = adapted.customLogos.map((value) => makeLogoRow({ value }));
   if (customLogos.value.length === 0) customLogos.value = [makeLogoRow()];
+
+  excludedCylinders.value = adapted.excludedCylinders.map((value) => makeExcludedCylinderRow({ value }));
 }
 
 async function scrollToFirstIssue() {
@@ -715,6 +746,31 @@ onMounted(editor.load);
               <div v-for="logo in customLogos" :key="logo.id" class="flex items-center gap-2">
                 <Input v-model="logo.value" class="h-9" placeholder="LOGO 文本" />
                 <Button variant="ghost" size="sm" @click="customLogos = customLogos.filter((item) => item.id !== logo.id)">
+                  删除
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>排除锁芯</CardTitle>
+            <CardDescription>命中清单的锁芯不会生成采购订单。</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-medium">排除清单</div>
+              <Button variant="outline" size="sm" @click="excludedCylinders.push(makeExcludedCylinderRow())">新增</Button>
+            </div>
+            <div class="space-y-2">
+              <div v-for="item in excludedCylinders" :key="item.id" class="flex items-center gap-2">
+                <Input v-model="item.value" class="h-9" placeholder="例如：指纹锁配套锁芯" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click="excludedCylinders = excludedCylinders.filter((row) => row.id !== item.id)"
+                >
                   删除
                 </Button>
               </div>

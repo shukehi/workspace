@@ -41,6 +41,7 @@ export interface CylinderMappingConfig {
   secondarySpecialRules: CylinderSpecialRule[];
   mappings: Record<string, CylinderMappingEntry>;
   customLogos: string[];
+  excludedCylinders: string[];
 }
 
 export interface LockForkDimensionPair {

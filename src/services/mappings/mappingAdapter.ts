@@ -17,6 +17,7 @@ import type {
 const DEFAULT_PACKAGING_SUPPLIER = '方亮包装';
 const DEFAULT_LOCK_FORK_HEIGHT_REFERENCE = 2050;
 const DEFAULT_LOCK_FORK_HANGING_FEET = 35;
+const DEFAULT_CYLINDER_EXCLUDED = ['指纹锁配套锁芯'];
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -61,6 +62,7 @@ export const EMPTY_CYLINDER_MAPPING: CylinderMappingConfig = {
   secondarySpecialRules: [],
   mappings: {},
   customLogos: [],
+  excludedCylinders: [...DEFAULT_CYLINDER_EXCLUDED],
 };
 
 export const EMPTY_LOCK_FORK_MAPPING: LockForkMappingConfig = {
@@ -335,6 +337,8 @@ export function adaptPackagingMapping(value: unknown): PackagingMappingConfig {
 
 export function adaptCylinderMapping(value: unknown): CylinderMappingConfig {
   const record = asRecord(value);
+  const hasExcludedCylinders = Object.prototype.hasOwnProperty.call(record, 'excludedCylinders');
+  const excludedCylinders = adaptStringList(record.excludedCylinders);
 
   return {
     dimensions: adaptCylinderDimensionMap(record.dimensions),
@@ -343,6 +347,7 @@ export function adaptCylinderMapping(value: unknown): CylinderMappingConfig {
     secondarySpecialRules: adaptCylinderSpecialRules(record.secondarySpecialRules),
     mappings: adaptCylinderMappings(record.mappings),
     customLogos: adaptStringList(record.customLogos),
+    excludedCylinders: hasExcludedCylinders ? excludedCylinders : [...DEFAULT_CYLINDER_EXCLUDED],
   };
 }
 

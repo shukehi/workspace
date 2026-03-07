@@ -64,7 +64,8 @@ const cylinderSamples: unknown[] = [
     mappings: {
       'F01-A': { supplier: '供应商A', template: '{code}模板' }
     },
-    customLogos: ['LOGO1']
+    customLogos: ['LOGO1'],
+    excludedCylinders: ['指纹锁配套锁芯', '内置锁芯']
   },
   {
     dimensions: {

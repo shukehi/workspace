@@ -66,6 +66,28 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
         return "【待确认】钥匙配置";
     };
 
+    // 内置锁芯不参与采购生成，支持配置并保留默认兜底
+    const normalizeCylinderName = (value: unknown) => String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[（【［]/g, '(')
+        .replace(/[）】］]/g, ')')
+        .replace(/\s+/g, '');
+
+    const hasExcludedCylinders = CYLINDER_MAPPING
+        && typeof CYLINDER_MAPPING === 'object'
+        && Object.prototype.hasOwnProperty.call(CYLINDER_MAPPING, 'excludedCylinders');
+    const rawExcludedList = hasExcludedCylinders
+        ? (Array.isArray(CYLINDER_MAPPING.excludedCylinders) ? CYLINDER_MAPPING.excludedCylinders : [])
+        : ['指纹锁配套锁芯'];
+    const excludedCylinders = new Set<string>(
+        rawExcludedList
+            .map((item: unknown) => normalizeCylinderName(item))
+            .filter(Boolean)
+    );
+
+    const isBuiltInCylinder = (value: unknown) => excludedCylinders.has(normalizeCylinderName(value));
+
     orderList.forEach((item) => {
         // 1. 提取基础属性：门厚 和 开向 (从规格字符串中)
         const parts = (item.spec || '').split('/');
@@ -87,6 +109,7 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
          */
         const process = (cylinderName: string, shieldValue: string, mode: 'primary' | 'secondary') => {
             if (!cylinderName || cylinderName === '-' || cylinderName === '无') return;
+            if (isBuiltInCylinder(cylinderName)) return;
 
             let dimensionRule: GenericMap | null = null;
             let specialRemark = "";
