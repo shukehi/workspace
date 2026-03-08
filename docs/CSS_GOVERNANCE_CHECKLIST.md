@@ -17,3 +17,9 @@ Keep CSS optimization safe and prevent accidental visual regressions.
 1. Prefer selector grouping and module split over value changes.
 2. Do not change spacing/size/color tokens in the same PR as structural CSS refactor.
 3. Keep commits small and scoped by file/theme.
+
+## CI Enforcement
+1. GitHub Actions workflow: `.github/workflows/css-governance.yml`
+2. Enforced checks:
+   - `npm run lint:css`
+   - `node --test tests/print-style-guard.test.js`
