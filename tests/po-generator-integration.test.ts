@@ -59,10 +59,10 @@ test('po generator integration: compose groups and create selected category orde
   const proposalKeys = proposal.map((g) => `${g.category}_${g.supplierName}`).sort();
   assert.deepEqual(proposalKeys, [
     '包装_方亮包装',
-    '原辅材料_原料供应商',
     '拉手_供应商X',
     '锁叉_应志友',
     '锁芯_忠恒',
+    '颜色_原料供应商',
   ]);
 
   const orders = generator.createOrders([

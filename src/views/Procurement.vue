@@ -38,6 +38,7 @@ const selectedRows = ref<Order[]>([]);
 
 const categories = [
   { id: 'ALL', label: '全部订单' },
+  { id: '颜色', label: '颜色配方' },
   { id: '锁芯', label: '锁芯' },
   { id: '锁叉', label: '锁叉' },
   { id: '包装', label: '包装材料' },

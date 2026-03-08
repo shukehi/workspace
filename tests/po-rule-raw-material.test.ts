@@ -17,7 +17,7 @@ const baseCtx: RuleContext = {
   },
 };
 
-test('raw-material rule: maps requirements into 原辅材料 groups with ceil quantity', () => {
+test('raw-material rule: maps requirements into 颜色 groups with ceil quantity', () => {
   const ctx: RuleContext = {
     ...baseCtx,
     sourceStore: {
@@ -35,7 +35,7 @@ test('raw-material rule: maps requirements into 原辅材料 groups with ceil qu
 
   const groups = buildRawMaterialGroups(ctx);
   assert.equal(groups.length, 1);
-  assert.equal(groups[0].category, '原辅材料');
+  assert.equal(groups[0].category, '颜色');
   assert.equal(groups[0].supplierName, '供应商A');
   assert.equal(groups[0].items[0].material_id, 'M-001');
   assert.equal(groups[0].items[0].quantity, 4);

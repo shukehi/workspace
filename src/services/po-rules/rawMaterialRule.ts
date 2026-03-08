@@ -13,7 +13,7 @@ export function buildRawMaterialGroups(ctx: RuleContext): SupplierGroup[] {
 
     groups.push({
       supplierName: supplier,
-      category: '原辅材料',
+      category: '颜色',
       totalCost: 0,
       items: items.map((mat: any) => createRawMaterialOrderItem({
         supplier,
