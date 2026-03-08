@@ -64,11 +64,23 @@ const PRINT_PAGE_HORIZONTAL_PADDING_MM = 16; // 8mm left + 8mm right
 const PX_PER_MM = 96 / 25.4;
 const PRINT_TABLE_SAFETY_PX = 8;
 const MIN_PRINT_COLUMN_WIDTH_PX = 36;
+const SALES_DEPARTMENT_KEYWORDS = ['一部', '二部', '三部', '六部'] as const;
 
 export const PRINT_DOC_MAX_TABLE_WIDTH_PX = Math.max(
   360,
   Math.floor((A4_PAGE_WIDTH_MM - PRINT_PAGE_HORIZONTAL_PADDING_MM) * PX_PER_MM - PRINT_TABLE_SAFETY_PX)
 );
+
+function pickSalesDepartmentLabel(rawCustomerName: unknown): string {
+  const name = String(rawCustomerName || '').trim();
+  if (!name) return '';
+
+  const bracketMatch = name.match(/[（(]\s*(一部|二部|三部|六部)\s*[）)]/);
+  if (bracketMatch?.[1]) return bracketMatch[1];
+
+  const directMatch = SALES_DEPARTMENT_KEYWORDS.find((keyword) => name.includes(keyword));
+  return directMatch || '';
+}
 
 function parseQuantityPair(qtyString: unknown) {
   if (qtyString === undefined || qtyString === null) {
@@ -216,13 +228,14 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
 
   const poNumber = String(input.poNumber || order.order_no || order.code || '').trim();
 
-  const customerName = String(
+  const rawCustomerName = String(
     order.customerName
     || order.customer_name
     || metadata.customer_name
     || order.supplier
     || ''
   ).trim();
+  const customerName = pickSalesDepartmentLabel(rawCustomerName) || rawCustomerName;
 
   const orderRemark = String(
     order.remark

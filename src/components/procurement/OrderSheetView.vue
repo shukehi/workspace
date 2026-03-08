@@ -133,7 +133,7 @@ onBeforeUnmount(() => {
     <div class="mb-6 border rounded-lg p-4">
       <h1 class="text-xl font-semibold text-center mb-5">采购订单</h1>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm">
+      <div class="grid grid-cols-1 gap-5 text-sm" :class="isPackaging ? 'md:grid-cols-3' : 'md:grid-cols-2'">
         <div class="space-y-3">
           <div class="flex items-center gap-2">
             <Label class="min-w-16">客户名称:</Label>
@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div class="space-y-3">
+        <div v-if="isPackaging" class="space-y-3">
           <div class="flex items-center gap-2">
             <Label class="min-w-16">内部名称:</Label>
             <Input v-if="isEditMode && isPackaging" v-model="order.metadata!.internal_name" class="h-8 text-xs" />

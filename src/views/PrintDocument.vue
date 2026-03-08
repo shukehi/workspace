@@ -286,7 +286,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="print-col">
+            <div v-if="page.category === 'packaging'" class="print-col">
               <div class="info-item">
                 <label>内部名称:</label>
                 <span>{{ page.internalName || '-' }}</span>

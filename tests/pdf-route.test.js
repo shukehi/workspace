@@ -120,6 +120,69 @@ test('POST /api/pdf/generate supports orderId source and ignores client renderBa
   assert.equal(renderUrl.host, new URL(baseUrl).host);
 });
 
+test('POST /api/pdf/generate prefers origin host in non-production', async () => {
+  const oldNodeEnv = process.env.NODE_ENV;
+  const oldRenderBase = process.env.PRINT_RENDER_BASE_URL;
+  try {
+    process.env.NODE_ENV = 'development';
+    delete process.env.PRINT_RENDER_BASE_URL;
+
+    const res = await fetch(`${baseUrl}/api/pdf/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'http://localhost:5173',
+      },
+      body: JSON.stringify({
+        poNumber: 'PO-ORIGIN-001',
+        orderId: '9527',
+      })
+    });
+
+    assert.equal(res.status, 200);
+    assert.ok(lastPdfCall);
+    const renderUrl = new URL(lastPdfCall.renderUrl);
+    assert.equal(renderUrl.host, 'localhost:5173');
+  } finally {
+    if (oldNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = oldNodeEnv;
+    if (oldRenderBase === undefined) delete process.env.PRINT_RENDER_BASE_URL;
+    else process.env.PRINT_RENDER_BASE_URL = oldRenderBase;
+  }
+});
+
+test('POST /api/pdf/generate requires configured render base url in production', async () => {
+  const oldNodeEnv = process.env.NODE_ENV;
+  const oldRenderBase = process.env.PRINT_RENDER_BASE_URL;
+  const oldPdfRenderBase = process.env.PDF_RENDER_BASE_URL;
+  try {
+    process.env.NODE_ENV = 'production';
+    delete process.env.PRINT_RENDER_BASE_URL;
+    delete process.env.PDF_RENDER_BASE_URL;
+
+    const res = await fetch(`${baseUrl}/api/pdf/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        poNumber: 'PO-PROD-001',
+        orderId: '9528',
+      })
+    });
+
+    assert.equal(res.status, 500);
+    const body = await res.json();
+    assert.equal(body.success, false);
+    assert.match(String(body.message || ''), /PRINT_RENDER_BASE_URL is required in production/);
+  } finally {
+    if (oldNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = oldNodeEnv;
+    if (oldRenderBase === undefined) delete process.env.PRINT_RENDER_BASE_URL;
+    else process.env.PRINT_RENDER_BASE_URL = oldRenderBase;
+    if (oldPdfRenderBase === undefined) delete process.env.PDF_RENDER_BASE_URL;
+    else process.env.PDF_RENDER_BASE_URL = oldPdfRenderBase;
+  }
+});
+
 test('POST /api/pdf/generate validates required fields', async () => {
   const missingSourceRes = await fetch(`${baseUrl}/api/pdf/generate`, {
     method: 'POST',

@@ -93,6 +93,20 @@ test('buildProcurementDocModel can normalize full order payload', () => {
   assert.equal(doc.pages[0].rows[doc.pages[0].rows.length - 1].values.quantity, 8);
 });
 
+test('buildProcurementDocModel prints sales department keyword from customer name', () => {
+  const doc = buildProcurementDocModel({
+    order: {
+      category: '包装',
+      metadata: { customer_name: '外贸苏丹巴布(三部)' },
+      items: [
+        { supplier: '供应商A', type: '包装A', quantity_left: 1, quantity_right: 1 }
+      ],
+    },
+  });
+
+  assert.equal(doc.pages[0].customerName, '三部');
+});
+
 test('buildProcurementDocModel clamps oversized custom widths for print page', () => {
   const doc = buildProcurementDocModel({
     category: '锁芯',
