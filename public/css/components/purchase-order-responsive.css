@@ -1,0 +1,46 @@
+/* ==================== Responsive Design ==================== */
+
+@media (max-width: 768px) {
+    .po-info-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .po-info-panel .po-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .po-info-panel .po-actions .sm-btn {
+        width: 100%;
+    }
+
+    .po-grid-container {
+        grid-template-columns: 1fr;
+    }
+
+    .view-toggle-group {
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+
+    .panel-actions {
+        flex-wrap: wrap;
+    }
+
+    /* List view table responsive */
+    .po-list-table {
+        font-size: 0.75rem;
+    }
+
+    .po-list-table th,
+    .po-list-table td {
+        padding: 8px 10px;
+    }
+
+    /* Hide some columns on mobile */
+    .po-list-table th:nth-child(7),
+    .po-list-table td:nth-child(7) {
+        display: none;
+    }
+}
