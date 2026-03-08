@@ -105,12 +105,12 @@ test('server mapping adapter/validator: handle defaults and required fields', ()
     doubleKeywords: ['单活'],
     thicknessAccessoryPacks: { '5': '5公分配件包' },
     mappings: {
-      拉手A: { supplier: '', vendorNameSingle: '', vendorNameDouble: '' },
+      拉手A: { supplier: '', vendorName: '' },
     },
   });
 
   assert.ok(issues.some((item) => item.path === 'defaultSupplier'));
   assert.ok(issues.some((item) => item.path === 'unmatchedSupplier'));
   assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
-  assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorNameDouble'));
+  assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorName'));
 });

@@ -599,6 +599,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         return exportCustomerKeywords.some((keyword: string) => keyword && name.includes(keyword));
     };
     const activityLabel = (activity: 'single' | 'double') => activity === 'double' ? '双活' : '单活';
+    const EXPORT_REMARK = '外贸白包';
 
     const append = (row: HandleResultRow) => {
         const key = `${row.supplier}|${row.type}|${row.spec}|${row.remark}`;
@@ -620,8 +621,9 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         if (totalQty <= 0) return;
 
         const thickness = toText(item.mshd);
+        const exportCustomer = isExportCustomer(orderInfo.customerName);
         let activity = detectActivity(item);
-        if (!activity && isExportCustomer(orderInfo.customerName)) {
+        if (!activity && exportCustomer) {
             activity = defaultActivityForExport;
         }
         const accessoryPack = toText(thicknessAccessoryPacks[thickness]);
@@ -638,7 +640,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
                 supplier: unmatchedSupplier,
                 type: manualReviewLabel,
                 spec: accessoryPack || '-',
-                remark: `待人工处理：${pendingReason || '规则缺失'}`,
+                remark: `待人工处理：${pendingReason || '规则缺失'}${exportCustomer ? `，${EXPORT_REMARK}` : ''}`,
                 quantityLeft: qtyPair.left,
                 quantityRight: qtyPair.right,
                 quantity: totalQty
@@ -647,16 +649,14 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         }
 
         const supplier = toText(mapping.supplier) || defaultSupplier;
-        const vendorName = activity === 'double'
-            ? toText(mapping.vendorNameDouble)
-            : toText(mapping.vendorNameSingle);
+        const vendorName = toText(mapping.vendorName);
 
         if (!vendorName) {
             append({
                 supplier: unmatchedSupplier,
                 type: manualReviewLabel,
                 spec: accessoryPack,
-                remark: `待人工处理：供应商名称缺失(${handleName}/${activity === 'double' ? '双活' : '单活'})`,
+                remark: `待人工处理：供应商名称缺失(${handleName}/${activity === 'double' ? '双活' : '单活'})${exportCustomer ? `，${EXPORT_REMARK}` : ''}`,
                 quantityLeft: qtyPair.left,
                 quantityRight: qtyPair.right,
                 quantity: totalQty
@@ -671,7 +671,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
             supplier,
             type: finalType,
             spec: accessoryPack,
-            remark: '',
+            remark: exportCustomer ? EXPORT_REMARK : '',
             quantityLeft: qtyPair.left,
             quantityRight: qtyPair.right,
             quantity: totalQty

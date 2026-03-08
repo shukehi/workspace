@@ -26,8 +26,7 @@ test('extractHandleData maps matched handle by activity/thickness', () => {
     mappings: {
       'DJ-6847双活不分左右': {
         supplier: '供应商X',
-        vendorNameSingle: 'FC-09太空灰',
-        vendorNameDouble: 'FC-09太空灰',
+        vendorName: 'FC-09太空灰',
       },
     },
   };
@@ -99,8 +98,7 @@ test('extractHandleData falls back to export default activity when customer matc
     mappings: {
       'DJ-86-6B': {
         supplier: '迪江',
-        vendorNameSingle: 'DJ-86-6B',
-        vendorNameDouble: 'DJ-86-6B',
+        vendorName: 'DJ-86-6B',
       },
     },
   };
@@ -109,6 +107,7 @@ test('extractHandleData falls back to export default activity when customer matc
   assert.equal(extracted.length, 1);
   assert.equal(extracted[0].supplier, '迪江');
   assert.equal(extracted[0].type, 'DJ-86-6B - 双活');
+  assert.equal(extracted[0].remark, '外贸白包');
   assert.equal(extracted[0].quantity, 25);
 });
 
@@ -135,8 +134,7 @@ test('extractHandleData keeps explicit single keyword over export default', () =
     mappings: {
       'DJ-86-6B': {
         supplier: '迪江',
-        vendorNameSingle: 'DJ-86-6B',
-        vendorNameDouble: 'DJ-86-6B',
+        vendorName: 'DJ-86-6B',
       },
     },
   };
@@ -144,4 +142,5 @@ test('extractHandleData keeps explicit single keyword over export default', () =
   const extracted = extractHandleData(rows as any[], { customerName: '外贸雄库鲁(三部)', remark: '' }, mapping);
   assert.equal(extracted.length, 1);
   assert.equal(extracted[0].type, 'DJ-86-6B - 单活');
+  assert.equal(extracted[0].remark, '外贸白包');
 });

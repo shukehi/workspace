@@ -88,11 +88,12 @@ test('frontend mapping validator: handle validator validates keywords/thickness/
       '9': '9公分配件包',
     },
     mappings: {
-      拉手A: { supplier: '', vendorNameSingle: '', vendorNameDouble: '' },
+      拉手A: { supplier: '', vendorName: '' },
     },
   });
 
   assert.ok(issues.some((item) => item.path === 'defaultSupplier'));
   assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
   assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].supplier'));
+  assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorName'));
 });

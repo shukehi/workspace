@@ -521,11 +521,11 @@ function validateHandleMapping(value) {
         if (!toTrimmedString(entry.supplier)) {
             issues.push(createIssue(`${path}.supplier`, 'required', 'supplier 不能为空'));
         }
-        if (!toTrimmedString(entry.vendorNameSingle)) {
-            issues.push(createIssue(`${path}.vendorNameSingle`, 'required', 'vendorNameSingle 不能为空'));
-        }
-        if (!toTrimmedString(entry.vendorNameDouble)) {
-            issues.push(createIssue(`${path}.vendorNameDouble`, 'required', 'vendorNameDouble 不能为空'));
+        const vendorName = toTrimmedString(entry.vendorName)
+            || toTrimmedString(entry.vendorNameSingle)
+            || toTrimmedString(entry.vendorNameDouble);
+        if (!vendorName) {
+            issues.push(createIssue(`${path}.vendorName`, 'required', 'vendorName 不能为空'));
         }
     });
 
@@ -543,11 +543,8 @@ function validateHandleMapping(value) {
         if (!mapping.supplier) {
             issues.push(createIssue(`${path}.supplier`, 'required', 'supplier 不能为空'));
         }
-        if (!mapping.vendorNameSingle) {
-            issues.push(createIssue(`${path}.vendorNameSingle`, 'required', 'vendorNameSingle 不能为空'));
-        }
-        if (!mapping.vendorNameDouble) {
-            issues.push(createIssue(`${path}.vendorNameDouble`, 'required', 'vendorNameDouble 不能为空'));
+        if (!mapping.vendorName) {
+            issues.push(createIssue(`${path}.vendorName`, 'required', 'vendorName 不能为空'));
         }
     });
 

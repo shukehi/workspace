@@ -19,8 +19,7 @@ type MappingRow = {
   id: string;
   model: string;
   supplier: string;
-  vendorNameSingle: string;
-  vendorNameDouble: string;
+  vendorName: string;
 };
 
 const defaultSupplier = ref('');
@@ -44,13 +43,12 @@ function makeKeywordRow(value = ''): KeywordRow {
   return { id: createRowId(), value };
 }
 
-function makeMappingRow(model = '', supplier = '', vendorNameSingle = '', vendorNameDouble = ''): MappingRow {
+function makeMappingRow(model = '', supplier = '', vendorName = ''): MappingRow {
   return {
     id: createRowId(),
     model,
     supplier,
-    vendorNameSingle,
-    vendorNameDouble
+    vendorName
   };
 }
 
@@ -59,8 +57,7 @@ const payload = computed<HandleMappingConfig>(() => {
   mappings.value.forEach((row) => {
     mappingObj[row.model] = {
       supplier: row.supplier,
-      vendorNameSingle: row.vendorNameSingle,
-      vendorNameDouble: row.vendorNameDouble
+      vendorName: row.vendorName
     };
   });
 
@@ -104,8 +101,7 @@ const filteredRows = computed(() => {
   return mappings.value.filter((row) => (
     row.model.toLowerCase().includes(keyword)
     || row.supplier.toLowerCase().includes(keyword)
-    || row.vendorNameSingle.toLowerCase().includes(keyword)
-    || row.vendorNameDouble.toLowerCase().includes(keyword)
+    || row.vendorName.toLowerCase().includes(keyword)
   ));
 });
 
@@ -135,8 +131,7 @@ function resetWithPayload(data: HandleMappingConfig) {
   mappings.value = Object.entries(data.mappings || {}).map(([model, conf]) => makeMappingRow(
     model,
     conf.supplier,
-    conf.vendorNameSingle,
-    conf.vendorNameDouble
+    conf.vendorName
   ));
   if (mappings.value.length === 0) mappings.value = [makeMappingRow()];
 
@@ -330,8 +325,7 @@ onMounted(editor.load);
               <tr>
                 <th class="px-3 py-2 w-[25%]">内部型号</th>
                 <th class="px-3 py-2 w-[20%]">供应商</th>
-                <th class="px-3 py-2 w-[22%]">供应商名称(单活)</th>
-                <th class="px-3 py-2 w-[23%]">供应商名称(双活)</th>
+                <th class="px-3 py-2 w-[35%]">供应商名称</th>
                 <th class="px-3 py-2 w-[10%]">操作</th>
               </tr>
             </thead>
@@ -344,10 +338,7 @@ onMounted(editor.load);
                   <Input v-model="row.supplier" placeholder="供应商" />
                 </td>
                 <td class="px-3 py-2">
-                  <Input v-model="row.vendorNameSingle" placeholder="单活采购名称" />
-                </td>
-                <td class="px-3 py-2">
-                  <Input v-model="row.vendorNameDouble" placeholder="双活采购名称" />
+                  <Input v-model="row.vendorName" placeholder="供应商采购名称" />
                 </td>
                 <td class="px-3 py-2">
                   <Button variant="ghost" size="sm" @click="removeMappingRow(row.id)">删除</Button>

@@ -224,14 +224,14 @@ function adaptStringList(value: unknown): string[] {
 function adaptHandleMappingEntry(value: unknown): HandleMappingEntry | null {
   const record = asRecord(value);
   const supplier = toTrimmedString(record.supplier);
-  const vendorNameSingle = toTrimmedString(record.vendorNameSingle);
-  const vendorNameDouble = toTrimmedString(record.vendorNameDouble);
-  if (!supplier && !vendorNameSingle && !vendorNameDouble) return null;
+  const vendorName = toTrimmedString(record.vendorName)
+    || toTrimmedString(record.vendorNameDouble)
+    || toTrimmedString(record.vendorNameSingle);
+  if (!supplier && !vendorName) return null;
 
   return {
     supplier,
-    vendorNameSingle,
-    vendorNameDouble,
+    vendorName,
   };
 }
 
