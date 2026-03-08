@@ -73,6 +73,31 @@ async function ensureOrderColumns() {
     }
 }
 
+async function ensureMaterialColumns() {
+    const queryInterface = sequelize.getQueryInterface();
+    const table = 'materials';
+    const existing = await queryInterface.describeTable(table);
+
+    const targetColumns = [
+        'package_spec',
+        'stock_quantity',
+        'min_stock',
+        'aliases'
+    ];
+
+    for (const col of targetColumns) {
+        if (existing[col]) continue;
+        const attr = Material.rawAttributes[col];
+        if (!attr) continue;
+        await queryInterface.addColumn(table, col, {
+            type: attr.type,
+            allowNull: attr.allowNull,
+            defaultValue: attr.defaultValue
+        });
+        console.log(`✅ Added column ${table}.${col}`);
+    }
+}
+
 // Function to sync database
 const initDB = async () => {
     try {
@@ -85,6 +110,7 @@ const initDB = async () => {
         await sequelize.sync();
         await ensureOrderColumns();
         await ensureOrderItemColumns();
+        await ensureMaterialColumns();
         console.log('✅ Database synchronized');
     } catch (error) {
         console.error('❌ Unable to connect to the database:', error);
