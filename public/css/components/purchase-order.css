@@ -62,25 +62,6 @@
     gap: 10px;
 }
 
-/* Button Variants */
-.sm-btn-secondary {
-    background: white;
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-}
-
-.sm-btn-secondary:hover {
-    background: #F9FAFB;
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-
-/* Loading State for Export Button */
-.sm-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
 /* ==================== Purchase Order Cards Grid ==================== */
 
 /* Grid Container for PO Cards */
