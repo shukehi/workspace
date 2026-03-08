@@ -269,6 +269,30 @@ const mappingFiltered = computed(() => {
 
 const showIssuesPanel = computed(() => clientIssues.value.length > 0 || editor.serverIssues.value.length > 0);
 
+const activeTab = ref<'base' | 'rules' | 'mappings'>('base');
+
+const hasBaseIssues = computed(() => {
+  return [...clientIssues.value, ...editor.serverIssues.value].some(issue => 
+    issue.path.startsWith('dimensions[') ||
+    issue.path.startsWith('secondaryDimensions[')
+  );
+});
+
+const hasRulesIssues = computed(() => {
+  return [...clientIssues.value, ...editor.serverIssues.value].some(issue => 
+    issue.path.startsWith('specialRules[') ||
+    issue.path.startsWith('secondarySpecialRules[')
+  );
+});
+
+const hasMappingsIssues = computed(() => {
+  return [...clientIssues.value, ...editor.serverIssues.value].some(issue => 
+    issue.path.startsWith('mappings[') ||
+    issue.path.startsWith('customLogos[') ||
+    issue.path.startsWith('excludedCylinders[')
+  );
+});
+
 function makeDimensionRow(input?: Partial<DimensionRow>): DimensionRow {
   return {
     id: createRowId(),
@@ -383,8 +407,13 @@ function resetWithPayload(data: CylinderMappingConfig) {
 }
 
 async function scrollToFirstIssue() {
-  await nextTick();
-  await scrollToFirstIssueElement('[data-issue-anchor="true"]');
+  if (hasBaseIssues.value) activeTab.value = 'base';
+  else if (hasRulesIssues.value) activeTab.value = 'rules';
+  else if (hasMappingsIssues.value) activeTab.value = 'mappings';
+
+  import('vue').then(({ nextTick }) => nextTick()).then(() => {
+    scrollToFirstIssueElement('[data-issue-item="true"]', '[data-issue-anchor="true"]');
+  });
 }
 
 const editor = useMappingConfigEditor<CylinderMappingConfig>({
@@ -410,11 +439,6 @@ onMounted(editor.load);
         <h2 class="text-3xl font-semibold tracking-tight">锁芯配置</h2>
         <p class="text-muted-foreground mt-1">维护锁芯规格、规则与供应商映射。</p>
       </div>
-      <div class="flex items-center gap-2">
-        <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新</Button>
-        <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存</Button>
-        <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
-      </div>
     </div>
 
     <Card v-if="editor.loadError.value">
@@ -423,27 +447,55 @@ onMounted(editor.load);
       </CardContent>
     </Card>
 
-    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
+    <div class="grid grid-cols-1 gap-6 flex-1" :class="showIssuesPanel ? 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' : ''">
       <div class="flex flex-col gap-6 min-h-0">
+        <!-- Tabs Navigation -->
+        <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
+          <button
+            @click="activeTab = 'base'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'base' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            基础与副锁尺寸
+            <span v-if="hasBaseIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'rules'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'rules' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            特殊规则
+            <span v-if="hasRulesIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'mappings'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'mappings' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            映射与排除列表
+            <span v-if="hasMappingsIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+        </div>
+
+        <div v-show="activeTab === 'base'" class="flex flex-col gap-6">
         <Card>
           <CardHeader>
             <CardTitle>基础尺寸</CardTitle>
             <CardDescription>门厚对应的主锁芯规格。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium">尺寸列表</div>
-              <Button variant="outline" size="sm" @click="primaryDimensions.push(makeDimensionRow())">新增</Button>
             </div>
-            <div class="overflow-auto rounded-md border">
-              <table class="w-full text-sm text-left">
-                <thead class="sticky top-0 z-10 bg-muted text-xs text-muted-foreground">
+            <div class="overflow-auto max-h-[400px] rounded-md border">
+              <table class="w-full text-sm text-left border-separate border-spacing-0">
+                <thead class="sticky top-0 z-20 bg-muted text-xs text-muted-foreground shadow-sm">
                   <tr>
-                    <th class="px-3 py-2 w-[12%]">门厚</th>
-                    <th class="px-3 py-2 w-[18%]">代码</th>
-                    <th class="px-3 py-2 w-[30%]">偏心</th>
-                    <th class="px-3 py-2 w-[30%]">备注</th>
-                    <th class="px-3 py-2 w-[10%]">操作</th>
+                    <th class="px-3 py-2 w-[12%] border-b">门厚</th>
+                    <th class="px-3 py-2 w-[18%] border-b">代码</th>
+                    <th class="px-3 py-2 w-[30%] border-b">偏心</th>
+                    <th class="px-3 py-2 w-[30%] border-b">备注</th>
+                    <th class="px-3 py-2 w-[10%] border-b">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -469,6 +521,9 @@ onMounted(editor.load);
                 </tbody>
               </table>
             </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="primaryDimensions.push(makeDimensionRow())">
+              + 新增基础尺寸
+            </Button>
           </CardContent>
         </Card>
 
@@ -478,65 +533,73 @@ onMounted(editor.load);
             <CardDescription>门厚对应的副锁芯规格（支持内外开变体）。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium">副锁尺寸组</div>
-              <Button variant="outline" size="sm" @click="secondaryDimensions.push(makeDimensionGroup())">新增</Button>
             </div>
-            <div v-for="group in secondaryDimensions" :key="group.id" class="rounded-md border p-3 space-y-3 bg-background">
-              <div class="flex flex-col md:flex-row md:items-center gap-2">
-                <div class="flex-1">
-                  <label class="text-xs text-muted-foreground">门厚</label>
-                  <Input v-model="group.thickness" class="h-9" placeholder="7" />
+            <div class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+              <div v-for="group in secondaryDimensions" :key="group.id" class="rounded-md border p-3 space-y-3 bg-background">
+                <div class="flex flex-col md:flex-row md:items-center gap-2">
+                  <div class="flex-1">
+                    <label class="text-xs text-muted-foreground">门厚</label>
+                    <Input v-model="group.thickness" class="h-9" placeholder="7" />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" @click="secondaryDimensions = secondaryDimensions.filter((item) => item.id !== group.id)">
+                      删除整组
+                    </Button>
+                  </div>
                 </div>
-                <div class="flex items-center gap-2">
-                  <Button variant="outline" size="sm" @click="group.variants.push(makeVariantRow())">新增变体</Button>
-                  <Button variant="ghost" size="sm" @click="secondaryDimensions = secondaryDimensions.filter((item) => item.id !== group.id)">
-                    删除组
-                  </Button>
+                <div class="overflow-auto rounded-md border">
+                  <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-muted-foreground bg-muted/50">
+                      <tr>
+                        <th class="px-3 py-2 w-[18%]">变体名</th>
+                        <th class="px-3 py-2 w-[18%]">代码</th>
+                        <th class="px-3 py-2 w-[30%]">偏心</th>
+                        <th class="px-3 py-2 w-[24%]">备注</th>
+                        <th class="px-3 py-2 w-[10%]">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="variant in group.variants" :key="variant.id" class="bg-background border-b last:border-0">
+                        <td class="px-3 py-2">
+                          <Input v-model="variant.name" class="h-9" placeholder="内开" />
+                        </td>
+                        <td class="px-3 py-2">
+                          <Input v-model="variant.code" class="h-9" placeholder="90" />
+                        </td>
+                        <td class="px-3 py-2">
+                          <Input v-model="variant.eccentricity" class="h-9" placeholder="30*60/中心孔偏心" />
+                        </td>
+                        <td class="px-3 py-2">
+                          <Input v-model="variant.remark" class="h-9" placeholder="可选" />
+                        </td>
+                        <td class="px-3 py-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            @click="group.variants = group.variants.filter((item) => item.id !== variant.id)"
+                          >
+                            删除
+                          </Button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-              <div class="overflow-auto rounded-md border">
-                <table class="w-full text-sm text-left">
-                  <thead class="text-xs text-muted-foreground bg-muted/50">
-                    <tr>
-                      <th class="px-3 py-2 w-[18%]">变体名</th>
-                      <th class="px-3 py-2 w-[18%]">代码</th>
-                      <th class="px-3 py-2 w-[30%]">偏心</th>
-                      <th class="px-3 py-2 w-[24%]">备注</th>
-                      <th class="px-3 py-2 w-[10%]">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="variant in group.variants" :key="variant.id" class="bg-background border-b last:border-0">
-                      <td class="px-3 py-2">
-                        <Input v-model="variant.name" class="h-9" placeholder="内开" />
-                      </td>
-                      <td class="px-3 py-2">
-                        <Input v-model="variant.code" class="h-9" placeholder="90" />
-                      </td>
-                      <td class="px-3 py-2">
-                        <Input v-model="variant.eccentricity" class="h-9" placeholder="30*60/中心孔偏心" />
-                      </td>
-                      <td class="px-3 py-2">
-                        <Input v-model="variant.remark" class="h-9" placeholder="可选" />
-                      </td>
-                      <td class="px-3 py-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          @click="group.variants = group.variants.filter((item) => item.id !== variant.id)"
-                        >
-                          删除
-                        </Button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <Button variant="outline" size="sm" class="w-full border-dashed" @click="group.variants.push(makeVariantRow())">
+                  + 新增变体
+                </Button>
               </div>
             </div>
+            <Button variant="outline" size="sm" class="w-full border-dashed" @click="secondaryDimensions.push(makeDimensionGroup())">
+              + 新增副锁尺寸组
+            </Button>
           </CardContent>
         </Card>
+        </div>
 
+        <div v-show="activeTab === 'mappings'" class="flex flex-col gap-6">
         <Card>
           <CardHeader>
             <CardTitle>型号映射</CardTitle>
@@ -558,7 +621,7 @@ onMounted(editor.load);
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in mappingFiltered" :key="row.id" class="bg-background border-b last:border-0">
+                  <tr v-for="row in mappingFiltered" :key="row.id" class="bg-background border-b last:border-0 align-top">
                     <td class="px-3 py-2">
                       <Input v-model="row.name" class="h-9" placeholder="锁芯型号" />
                     </td>
@@ -577,8 +640,68 @@ onMounted(editor.load);
                 </tbody>
               </table>
             </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="mappings.push(makeMappingRow())">
+              + 新增型号映射
+            </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>自定义 LOGO</CardTitle>
+            <CardDescription>用于模板的特殊标记。</CardDescription>
+          </CardHeader>
+          <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between mb-1">
+                <div class="text-sm font-medium">LOGO 列表</div>
+              </div>
+              <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                <div v-for="logo in customLogos" :key="logo.id" class="flex items-center gap-2">
+                  <Input v-model="logo.value" class="h-9" placeholder="LOGO 文本" />
+                  <Button variant="ghost" size="sm" @click="customLogos = customLogos.filter((item) => item.id !== logo.id)">
+                    删除
+                  </Button>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" class="w-full border-dashed" @click="customLogos.push(makeLogoRow())">
+                + 新增自定义 LOGO
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>排除锁芯</CardTitle>
+            <CardDescription>命中清单的锁芯不会生成采购订单。</CardDescription>
+          </CardHeader>
+          <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between mb-1">
+                <div class="text-sm font-medium">排除清单</div>
+              </div>
+              <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                <div v-for="item in excludedCylinders" :key="item.id" class="flex items-center gap-2">
+                  <Input v-model="item.value" class="h-9" placeholder="例如：指纹锁配套锁芯" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    @click="excludedCylinders = excludedCylinders.filter((row) => row.id !== item.id)"
+                  >
+                    删除
+                  </Button>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" class="w-full border-dashed" @click="excludedCylinders.push(makeExcludedCylinderRow())">
+                + 新增排除锁芯
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        </div>
+
+        <div v-show="activeTab === 'rules'" class="flex flex-col gap-6">
 
         <Card>
           <CardHeader>
@@ -586,10 +709,10 @@ onMounted(editor.load);
             <CardDescription>主锁芯特殊条件（如护罩、型号条件）。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium">规则列表</div>
-              <Button variant="outline" size="sm" @click="specialRules.push(makeRuleRow())">新增</Button>
             </div>
+            <div class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
             <div v-for="rule in specialRules" :key="rule.id" class="rounded-md border p-3 space-y-3 bg-background">
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
@@ -652,7 +775,14 @@ onMounted(editor.load);
                   </tbody>
                 </table>
               </div>
+              <Button variant="outline" size="sm" class="w-full border-dashed" @click="rule.variants.push(makeVariantRow())">
+                + 新增变体
+              </Button>
             </div>
+            </div>
+            <Button variant="outline" size="sm" class="w-full border-dashed" @click="specialRules.push(makeRuleRow())">
+              + 新增特殊规则
+            </Button>
           </CardContent>
         </Card>
 
@@ -662,10 +792,10 @@ onMounted(editor.load);
             <CardDescription>副锁芯特殊条件。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium">规则列表</div>
-              <Button variant="outline" size="sm" @click="secondarySpecialRules.push(makeRuleRow())">新增</Button>
             </div>
+            <div class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
             <div v-for="rule in secondarySpecialRules" :key="rule.id" class="rounded-md border p-3 space-y-3 bg-background">
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
@@ -728,69 +858,21 @@ onMounted(editor.load);
                   </tbody>
                 </table>
               </div>
+              <Button variant="outline" size="sm" class="w-full border-dashed" @click="rule.variants.push(makeVariantRow())">
+                + 新增变体
+              </Button>
             </div>
+            </div>
+            <Button variant="outline" size="sm" class="w-full border-dashed" @click="secondarySpecialRules.push(makeRuleRow())">
+              + 新增副锁特殊规则
+            </Button>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>自定义 LOGO</CardTitle>
-            <CardDescription>用于模板的特殊标记。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="text-sm font-medium">LOGO 列表</div>
-              <Button variant="outline" size="sm" @click="customLogos.push(makeLogoRow())">新增</Button>
-            </div>
-            <div class="space-y-2">
-              <div v-for="logo in customLogos" :key="logo.id" class="flex items-center gap-2">
-                <Input v-model="logo.value" class="h-9" placeholder="LOGO 文本" />
-                <Button variant="ghost" size="sm" @click="customLogos = customLogos.filter((item) => item.id !== logo.id)">
-                  删除
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>排除锁芯</CardTitle>
-            <CardDescription>命中清单的锁芯不会生成采购订单。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="text-sm font-medium">排除清单</div>
-              <Button variant="outline" size="sm" @click="excludedCylinders.push(makeExcludedCylinderRow())">新增</Button>
-            </div>
-            <div class="space-y-2">
-              <div v-for="item in excludedCylinders" :key="item.id" class="flex items-center gap-2">
-                <Input v-model="item.value" class="h-9" placeholder="例如：指纹锁配套锁芯" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  @click="excludedCylinders = excludedCylinders.filter((row) => row.id !== item.id)"
-                >
-                  删除
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
-      <div class="flex flex-col gap-6 min-h-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>JSON 预览</CardTitle>
-            <CardDescription>保存前的结构化预览。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CodeMirrorEditor :model-value="editor.jsonPreview.value" readOnly class="min-h-[320px]" />
-          </CardContent>
-        </Card>
-
-        <Card v-if="showIssuesPanel" data-issue-anchor="true">
+      <div v-if="showIssuesPanel" class="flex flex-col gap-6 min-h-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+        <Card data-issue-anchor="true">
           <CardHeader>
             <CardTitle>校验结果</CardTitle>
             <CardDescription>请修正以下问题后再保存。</CardDescription>
@@ -827,5 +909,12 @@ onMounted(editor.load);
       @reset="editor.resetJsonDraft"
       @apply="editor.applyJsonDraft"
     />
+
+    <!-- Action Bar -->
+    <div class="sticky bottom-0 -mx-6 md:-mx-8 -mb-6 md:-mb-8 p-4 mt-auto border-t bg-background/95 backdrop-blur z-10 flex items-center justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新配置</Button>
+      <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
+      <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存配置</Button>
+    </div>
   </div>
 </template>
