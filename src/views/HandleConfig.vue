@@ -262,9 +262,7 @@ onMounted(editor.load);
       </button>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 pt-6">
-      <div class="flex flex-col gap-6 xl:col-span-2">
-        <div v-show="activeTab === 'basic'" class="flex flex-col gap-6">
+    <div v-show="activeTab === 'basic'" class="flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle>基础策略</CardTitle>
@@ -424,8 +422,5 @@ onMounted(editor.load);
             </CardContent>
           </Card>
         </div>
-      </div>
-      
-      </div>
   </ConfigPageLayout>
 </template>
