@@ -31,6 +31,19 @@ const modeLabels: Record<PrintMode, string> = {
   compact: '简洁版',
 };
 
+function hasValidDeliveryDate(order: any) {
+  if (!order?.delivery_date && !order?.deliveryDate) return false;
+  const parsed = new Date(order.delivery_date || order.deliveryDate);
+  return !Number.isNaN(parsed.getTime());
+}
+
+function confirmProceedWhenDeliveryDateMissing() {
+  const order = source.value?.order;
+  if (!order) return true;
+  if (hasValidDeliveryDate(order)) return true;
+  return window.confirm('当前订单未设置交货日期，是否继续打印/导出 PDF？');
+}
+
 function buildDoc() {
   if (!source.value) {
     doc.value = null;
@@ -107,11 +120,13 @@ function setPrintMode(mode: PrintMode) {
 }
 
 function handlePrint() {
+  if (!confirmProceedWhenDeliveryDateMissing()) return;
   window.print();
 }
 
 async function exportPdf() {
   if (!source.value || !doc.value) return;
+  if (!confirmProceedWhenDeliveryDateMissing()) return;
 
   try {
     exporting.value = true;

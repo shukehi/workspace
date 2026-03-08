@@ -83,6 +83,17 @@ const previewWidthState = computed(() => {
 const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
 const previewColumnWidths = computed(() => previewWidthState.value.widths);
 
+function hasValidDeliveryDate(order: Order) {
+  if (!order.delivery_date) return false;
+  const parsed = new Date(order.delivery_date);
+  return !Number.isNaN(parsed.getTime());
+}
+
+function confirmProceedWhenDeliveryDateMissing(order: Order) {
+  if (hasValidDeliveryDate(order)) return true;
+  return window.confirm('当前订单未设置交货日期，是否继续打印/导出 PDF？');
+}
+
 async function createSnapshot() {
   if (!props.order) return '';
 
@@ -119,6 +130,7 @@ async function ensureSnapshot() {
 
 const handlePrint = async () => {
   if (!props.order) return;
+  if (!confirmProceedWhenDeliveryDateMissing(props.order)) return;
 
   try {
     const id = await ensureSnapshot();
@@ -139,6 +151,7 @@ const handlePrint = async () => {
 
 const handleExportPdf = async () => {
   if (!props.order) return;
+  if (!confirmProceedWhenDeliveryDateMissing(props.order)) return;
 
   exportingPdf.value = true;
   try {
