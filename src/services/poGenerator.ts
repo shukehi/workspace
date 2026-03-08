@@ -105,7 +105,7 @@ export class POGenerator {
         total_amount: 0,
         created_at: new Date().toISOString(),
         status: 'draft',
-        remark: `Generated from Contract ${contractCode}`,
+        remark: '',
         metadata: {
           customer_name: customerName,
         },

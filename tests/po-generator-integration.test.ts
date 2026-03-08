@@ -79,6 +79,7 @@ test('po generator integration: compose groups and create selected category orde
 
   const packagingOrder = orders.find((o) => o.category === '包装');
   assert.ok(packagingOrder);
+  assert.equal(packagingOrder!.remark, '');
   assert.equal(packagingOrder!.items[0].remark, '');
   assert.equal(packagingOrder!.items[0].quantity_left, 2);
   assert.equal(packagingOrder!.items[0].quantity_right, 2);
