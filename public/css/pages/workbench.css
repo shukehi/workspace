@@ -543,14 +543,14 @@
     letter-spacing: 0.1em;
 }
 
-.po-number {
+.po-panel .po-number {
     font-family: var(--font-mono);
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--primary-color);
 }
 
-.po-actions {
+.po-panel .po-actions {
     display: flex;
     gap: 8px;
 }
