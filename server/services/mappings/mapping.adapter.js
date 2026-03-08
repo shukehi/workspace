@@ -2,6 +2,17 @@ const DEFAULT_PACKAGING_SUPPLIER = '方亮包装';
 const DEFAULT_LOCK_FORK_HEIGHT_REFERENCE = 2050;
 const DEFAULT_LOCK_FORK_HANGING_FEET = 35;
 const DEFAULT_CYLINDER_EXCLUDED = ['指纹锁配套锁芯'];
+const DEFAULT_HANDLE_SUPPLIER = '拉手供应商';
+const DEFAULT_HANDLE_UNMATCHED_SUPPLIER = '待人工处理';
+const DEFAULT_HANDLE_MANUAL_REVIEW_LABEL = '未匹配拉手(待人工处理)';
+const DEFAULT_HANDLE_SINGLE_KEYWORDS = ['单活'];
+const DEFAULT_HANDLE_DOUBLE_KEYWORDS = ['双活'];
+const DEFAULT_HANDLE_THICKNESS_PACKS = {
+    '5': '5公分配件包',
+    '7': '7公分配件包',
+    '9': '9公分配件包',
+    '10': '10公分配件包'
+};
 
 function asRecord(value) {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -26,6 +37,47 @@ function hasCanonicalPackagingShape(value) {
 function adaptStringList(value) {
     if (!Array.isArray(value)) return [];
     return value.map((item) => toTrimmedString(item)).filter(Boolean);
+}
+
+function adaptHandleMappingEntry(value) {
+    const record = asRecord(value);
+    const supplier = toTrimmedString(record.supplier);
+    const vendorNameSingle = toTrimmedString(record.vendorNameSingle);
+    const vendorNameDouble = toTrimmedString(record.vendorNameDouble);
+    if (!supplier && !vendorNameSingle && !vendorNameDouble) return null;
+    return {
+        supplier,
+        vendorNameSingle,
+        vendorNameDouble
+    };
+}
+
+function adaptHandleMappings(value) {
+    const record = asRecord(value);
+    const mappings = {};
+
+    Object.entries(record).forEach(([rawKey, rawValue]) => {
+        const key = toTrimmedString(rawKey);
+        const mapping = adaptHandleMappingEntry(rawValue);
+        if (!key || !mapping) return;
+        mappings[key] = mapping;
+    });
+
+    return mappings;
+}
+
+function adaptThicknessAccessoryPacks(value) {
+    const record = asRecord(value);
+    const packs = {};
+
+    Object.entries(record).forEach(([rawKey, rawValue]) => {
+        const key = toTrimmedString(rawKey);
+        const label = toTrimmedString(rawValue);
+        if (!key || !label) return;
+        packs[key] = label;
+    });
+
+    return packs;
 }
 
 function adaptCylinderVariant(value) {
@@ -285,8 +337,30 @@ function adaptLockForkMapping(value) {
     };
 }
 
+function adaptHandleMapping(value) {
+    const record = asRecord(value);
+    const packs = adaptThicknessAccessoryPacks(record.thicknessAccessoryPacks);
+
+    return {
+        defaultSupplier: toTrimmedString(record.defaultSupplier) || DEFAULT_HANDLE_SUPPLIER,
+        unmatchedSupplier: toTrimmedString(record.unmatchedSupplier) || DEFAULT_HANDLE_UNMATCHED_SUPPLIER,
+        manualReviewLabel: toTrimmedString(record.manualReviewLabel) || DEFAULT_HANDLE_MANUAL_REVIEW_LABEL,
+        singleKeywords: (() => {
+            const keywords = adaptStringList(record.singleKeywords);
+            return keywords.length > 0 ? keywords : [...DEFAULT_HANDLE_SINGLE_KEYWORDS];
+        })(),
+        doubleKeywords: (() => {
+            const keywords = adaptStringList(record.doubleKeywords);
+            return keywords.length > 0 ? keywords : [...DEFAULT_HANDLE_DOUBLE_KEYWORDS];
+        })(),
+        thicknessAccessoryPacks: { ...DEFAULT_HANDLE_THICKNESS_PACKS, ...packs },
+        mappings: adaptHandleMappings(record.mappings)
+    };
+}
+
 module.exports = {
     adaptPackagingMapping,
     adaptCylinderMapping,
-    adaptLockForkMapping
+    adaptLockForkMapping,
+    adaptHandleMapping
 };

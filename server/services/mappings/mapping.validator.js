@@ -1,5 +1,6 @@
 const {
     adaptCylinderMapping,
+    adaptHandleMapping,
     adaptLockForkMapping,
     adaptPackagingMapping
 } = require('./mapping.adapter');
@@ -37,6 +38,15 @@ function normalizeCylinderExcludeKey(input) {
 }
 
 function normalizePackagingMappingKey(input) {
+    return String(input || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[（【［]/g, '(')
+        .replace(/[）】］]/g, ')')
+        .replace(/\s+/g, '');
+}
+
+function normalizeHandleMappingKey(input) {
     return String(input || '')
         .trim()
         .toLowerCase()
@@ -399,6 +409,130 @@ function validateLockForkMapping(value) {
     return issues;
 }
 
+function validateHandleMapping(value) {
+    const issues = [];
+
+    if (!isPlainObject(value)) {
+        issues.push(createIssue('$', 'invalid-type', '拉手映射必须是对象'));
+        return issues;
+    }
+
+    const rawRecord = asRecord(value);
+    if (Object.prototype.hasOwnProperty.call(rawRecord, 'defaultSupplier') && !toTrimmedString(rawRecord.defaultSupplier)) {
+        issues.push(createIssue('defaultSupplier', 'required', 'defaultSupplier 不能为空'));
+    }
+    if (Object.prototype.hasOwnProperty.call(rawRecord, 'unmatchedSupplier') && !toTrimmedString(rawRecord.unmatchedSupplier)) {
+        issues.push(createIssue('unmatchedSupplier', 'required', 'unmatchedSupplier 不能为空'));
+    }
+    if (Object.prototype.hasOwnProperty.call(rawRecord, 'manualReviewLabel') && !toTrimmedString(rawRecord.manualReviewLabel)) {
+        issues.push(createIssue('manualReviewLabel', 'required', 'manualReviewLabel 不能为空'));
+    }
+
+    const adapted = adaptHandleMapping(value);
+
+    if (!adapted.defaultSupplier) {
+        issues.push(createIssue('defaultSupplier', 'required', 'defaultSupplier 不能为空'));
+    }
+    if (!adapted.unmatchedSupplier) {
+        issues.push(createIssue('unmatchedSupplier', 'required', 'unmatchedSupplier 不能为空'));
+    }
+    if (!adapted.manualReviewLabel) {
+        issues.push(createIssue('manualReviewLabel', 'required', 'manualReviewLabel 不能为空'));
+    }
+
+    if (asRecord(value).singleKeywords !== undefined && !Array.isArray(asRecord(value).singleKeywords)) {
+        issues.push(createIssue('singleKeywords', 'invalid-type', 'singleKeywords 必须是数组'));
+    }
+    if (asRecord(value).doubleKeywords !== undefined && !Array.isArray(asRecord(value).doubleKeywords)) {
+        issues.push(createIssue('doubleKeywords', 'invalid-type', 'doubleKeywords 必须是数组'));
+    }
+
+    const keywordSeen = new Set();
+    adapted.singleKeywords.forEach((keyword, index) => {
+        if (!keyword) {
+            issues.push(createIssue(`singleKeywords[${index}]`, 'required', 'singleKeywords 不能为空字符串'));
+            return;
+        }
+        const normalized = normalizeHandleMappingKey(keyword);
+        if (keywordSeen.has(normalized)) {
+            issues.push(createIssue(`singleKeywords[${index}]`, 'duplicate', '单双活关键词不能重复'));
+            return;
+        }
+        keywordSeen.add(normalized);
+    });
+
+    adapted.doubleKeywords.forEach((keyword, index) => {
+        if (!keyword) {
+            issues.push(createIssue(`doubleKeywords[${index}]`, 'required', 'doubleKeywords 不能为空字符串'));
+            return;
+        }
+        const normalized = normalizeHandleMappingKey(keyword);
+        if (keywordSeen.has(normalized)) {
+            issues.push(createIssue(`doubleKeywords[${index}]`, 'duplicate', '单双活关键词不能重复'));
+            return;
+        }
+        keywordSeen.add(normalized);
+    });
+
+    if (asRecord(value).thicknessAccessoryPacks !== undefined && !isPlainObject(asRecord(value).thicknessAccessoryPacks)) {
+        issues.push(createIssue('thicknessAccessoryPacks', 'invalid-type', 'thicknessAccessoryPacks 必须是对象'));
+    }
+
+    ['5', '7', '9', '10'].forEach((thickness) => {
+        if (!adapted.thicknessAccessoryPacks[thickness]) {
+            issues.push(createIssue(`thicknessAccessoryPacks[${quotePathSegment(thickness)}]`, 'required', `${thickness}cm 配件包不能为空`));
+        }
+    });
+
+    if (asRecord(value).mappings !== undefined && !isPlainObject(asRecord(value).mappings)) {
+        issues.push(createIssue('mappings', 'invalid-type', 'mappings 必须是对象'));
+        return issues;
+    }
+
+    const rawMappings = asRecord(asRecord(value).mappings);
+    Object.entries(rawMappings).forEach(([name, rawEntry]) => {
+        const entry = asRecord(rawEntry);
+        const path = `mappings[${quotePathSegment(name)}]`;
+        if (!isPlainObject(rawEntry)) {
+            issues.push(createIssue(path, 'invalid-type', 'mapping entry 必须是对象'));
+            return;
+        }
+        if (!toTrimmedString(entry.supplier)) {
+            issues.push(createIssue(`${path}.supplier`, 'required', 'supplier 不能为空'));
+        }
+        if (!toTrimmedString(entry.vendorNameSingle)) {
+            issues.push(createIssue(`${path}.vendorNameSingle`, 'required', 'vendorNameSingle 不能为空'));
+        }
+        if (!toTrimmedString(entry.vendorNameDouble)) {
+            issues.push(createIssue(`${path}.vendorNameDouble`, 'required', 'vendorNameDouble 不能为空'));
+        }
+    });
+
+    const mappingSeen = new Map();
+    Object.entries(adapted.mappings).forEach(([name, mapping]) => {
+        const path = `mappings[${quotePathSegment(name)}]`;
+        const normalized = normalizeHandleMappingKey(name);
+        const existing = mappingSeen.get(normalized);
+        if (existing && existing !== name) {
+            issues.push(createIssue(path, 'normalized-conflict', '拉手型号存在 normalize 后冲突'));
+        } else {
+            mappingSeen.set(normalized, name);
+        }
+
+        if (!mapping.supplier) {
+            issues.push(createIssue(`${path}.supplier`, 'required', 'supplier 不能为空'));
+        }
+        if (!mapping.vendorNameSingle) {
+            issues.push(createIssue(`${path}.vendorNameSingle`, 'required', 'vendorNameSingle 不能为空'));
+        }
+        if (!mapping.vendorNameDouble) {
+            issues.push(createIssue(`${path}.vendorNameDouble`, 'required', 'vendorNameDouble 不能为空'));
+        }
+    });
+
+    return issues;
+}
+
 function validateMappingPayload(profileCode, payload) {
     const profileCodeErrors = validateProfileCode(profileCode);
     if (profileCodeErrors.length > 0) return profileCodeErrors;
@@ -411,6 +545,9 @@ function validateMappingPayload(profileCode, payload) {
     }
     if (String(profileCode).trim() === 'lock_fork') {
         return validateLockForkMapping(payload);
+    }
+    if (String(profileCode).trim() === 'handle') {
+        return validateHandleMapping(payload);
     }
     return [{
         path: 'profileCode',
@@ -426,5 +563,6 @@ module.exports = {
     validateMappingPayload,
     validatePackagingMapping,
     validateCylinderMapping,
-    validateLockForkMapping
+    validateLockForkMapping,
+    validateHandleMapping
 };

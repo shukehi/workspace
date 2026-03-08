@@ -41,6 +41,7 @@ const modeOptions: Array<{ value: PrintMode; label: string }> = [
 const categoryLabels: Record<string, string> = {
   packaging: '包装',
   cylinder: '锁芯',
+  handle: '拉手',
   hardware: '五金',
   lock: '锁叉'
 };
@@ -58,6 +59,7 @@ const orderCategoryLabel = computed(() => {
   const raw = String(props.order.category).toLowerCase();
   if (raw.includes('包装') || raw === 'packaging') return categoryLabels.packaging;
   if (raw.includes('锁芯') || raw === 'cylinder') return categoryLabels.cylinder;
+  if (raw.includes('拉手') || raw === 'handle') return categoryLabels.handle;
   if (raw.includes('锁叉') || raw === 'lock') return categoryLabels.lock;
   if (raw.includes('五金') || raw.includes('配件') || raw === 'hardware') return categoryLabels.hardware;
   return props.order.category;

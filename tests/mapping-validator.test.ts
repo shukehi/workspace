@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   validateCylinderMapping,
+  validateHandleMapping,
   validateLockForkMapping,
   validatePackagingMapping,
 } from '../src/services/mappings';
@@ -72,4 +73,26 @@ test('frontend mapping validator: lock-fork validator reports structural gaps', 
   assert.ok(issues.some((item) => item.path === 'edgeTypes["T型"].nameModifier'));
   assert.ok(issues.some((item) => item.path === 'hangingFeet.keywords' && item.code === 'required'));
   assert.ok(issues.some((item) => item.path === 'suppliers["default"]'));
+});
+
+test('frontend mapping validator: handle validator validates keywords/thickness/mappings', () => {
+  const issues = validateHandleMapping({
+    defaultSupplier: '',
+    unmatchedSupplier: '待人工处理',
+    manualReviewLabel: '未匹配拉手',
+    singleKeywords: ['单活'],
+    doubleKeywords: [' 单 活 '],
+    thicknessAccessoryPacks: {
+      '5': '5公分配件包',
+      '7': '',
+      '9': '9公分配件包',
+    },
+    mappings: {
+      拉手A: { supplier: '', vendorNameSingle: '', vendorNameDouble: '' },
+    },
+  });
+
+  assert.ok(issues.some((item) => item.path === 'defaultSupplier'));
+  assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
+  assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].supplier'));
 });

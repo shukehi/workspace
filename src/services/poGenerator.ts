@@ -6,6 +6,7 @@ import { findMissingCategoryFields, findMissingCommonFields } from '@/services/p
 import {
   buildRawMaterialGroups,
   buildCylinderGroups,
+  buildHandleGroups,
   buildLockForkGroups,
   buildPackagingGroups,
   type RuleContext,
@@ -71,6 +72,7 @@ export class POGenerator {
 
     this.mergeGroups(proposal, buildRawMaterialGroups(this.ruleContext));
     this.mergeGroups(proposal, buildCylinderGroups(this.ruleContext));
+    this.mergeGroups(proposal, buildHandleGroups(this.ruleContext));
     this.mergeGroups(proposal, buildLockForkGroups(this.ruleContext));
     this.mergeGroups(proposal, buildPackagingGroups(this.ruleContext, { mergeSameSpec }));
 

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     createPackagingOrderItem,
     createCylinderOrderItem,
+    createHandleOrderItem,
     createLockForkOrderItem,
     findMissingCategoryFields,
     findMissingCommonFields
@@ -58,6 +59,18 @@ test('PO contract utils: cylinder/lock-fork items keep required typed fields', (
     assert.equal(lock.type, '双头锁叉 - 上头');
     assert.equal(lock.spec, '570*301 = 871');
     assert.equal(lock.quantity, 1140);
+
+    const handle = createHandleOrderItem({
+        supplier: '拉手供应商A',
+        type: 'DJ-6847双活',
+        spec: '10公分配件包',
+        quantity: 120
+    });
+    assert.equal(handle.supplier, '拉手供应商A');
+    assert.equal(handle.type, 'DJ-6847双活');
+    assert.equal(handle.spec, '10公分配件包');
+    assert.equal(handle.unit, '付');
+    assert.equal(handle.quantity, 120);
 });
 
 test('PO contract utils: validators detect missing category/common fields', () => {
@@ -74,6 +87,19 @@ test('PO contract utils: validators detect missing category/common fields', () =
     assert.equal(categoryMissing.length, 1);
     assert.ok(categoryMissing[0].missing.includes('supplier'));
     assert.ok(categoryMissing[0].missing.includes('internal_name'));
+
+    const handleMissing = findMissingCategoryFields('拉手', [{
+        id: 0,
+        material_id: 'h1',
+        supplier: '拉手供应商A',
+        name: 'DJ-6847',
+        model: 'DJ-6847',
+        quantity: 1,
+        unit: '付'
+    } as any]);
+    assert.equal(handleMissing.length, 1);
+    assert.ok(handleMissing[0].missing.includes('type'));
+    assert.ok(handleMissing[0].missing.includes('spec'));
 
     const commonMissing = findMissingCommonFields([
         { id: 0, material_id: 'm1', name: '', model: 'm', quantity: 1, unit: '个' } as any

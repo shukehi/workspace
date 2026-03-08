@@ -24,6 +24,13 @@ type LockForkResultRow = {
     remark: string;
     quantity: number;
 };
+type HandleResultRow = {
+    supplier: string;
+    type: string;
+    spec: string;
+    remark: string;
+    quantity: number;
+};
 
 /**
  * 提取锁芯采购数据
@@ -511,4 +518,137 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
 
     const result = Object.values(lockForkMap);
     return result;
+}
+
+/**
+ * 提取拉手采购数据
+ * 规则：
+ * - 根据 xsbz/ls/remark 识别单活/双活（双活优先）
+ * - 根据 mshd 识别 5/7/9/10 对应配件包
+ * - 型号未匹配或门厚异常时，生成“待人工处理”项
+ */
+export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap = {}, HANDLE_MAPPING: GenericMap = {}): HandleResultRow[] {
+    const handleMap: Record<string, HandleResultRow> = {};
+
+    const normalizeHandleKey = (value: unknown) => String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[（【［]/g, '(')
+        .replace(/[）】］]/g, ')')
+        .replace(/\s+/g, '');
+
+    const toText = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+    const defaultSupplier = toText(HANDLE_MAPPING.defaultSupplier) || '拉手供应商';
+    const unmatchedSupplier = toText(HANDLE_MAPPING.unmatchedSupplier) || '待人工处理';
+    const manualReviewLabel = toText(HANDLE_MAPPING.manualReviewLabel) || '未匹配拉手(待人工处理)';
+
+    const singleKeywords = Array.isArray(HANDLE_MAPPING.singleKeywords) && HANDLE_MAPPING.singleKeywords.length > 0
+        ? HANDLE_MAPPING.singleKeywords.map((item: unknown) => toText(item)).filter(Boolean)
+        : ['单活'];
+    const doubleKeywords = Array.isArray(HANDLE_MAPPING.doubleKeywords) && HANDLE_MAPPING.doubleKeywords.length > 0
+        ? HANDLE_MAPPING.doubleKeywords.map((item: unknown) => toText(item)).filter(Boolean)
+        : ['双活'];
+
+    const thicknessAccessoryPacks = HANDLE_MAPPING.thicknessAccessoryPacks && typeof HANDLE_MAPPING.thicknessAccessoryPacks === 'object'
+        ? HANDLE_MAPPING.thicknessAccessoryPacks
+        : {
+            '5': '5公分配件包',
+            '7': '7公分配件包',
+            '9': '9公分配件包',
+            '10': '10公分配件包'
+        };
+
+    const normalizedMapping = new Map<string, GenericMap>();
+    const mappings = HANDLE_MAPPING.mappings && typeof HANDLE_MAPPING.mappings === 'object'
+        ? HANDLE_MAPPING.mappings
+        : {};
+    Object.entries(mappings).forEach(([rawKey, entry]) => {
+        const normalized = normalizeHandleKey(rawKey);
+        if (!normalized || !entry || typeof entry !== 'object') return;
+        if (!normalizedMapping.has(normalized)) {
+            normalizedMapping.set(normalized, entry as GenericMap);
+        }
+    });
+
+    const detectActivity = (item: GenericMap): 'single' | 'double' | null => {
+        const texts = [
+            toText(item.xsbz),
+            toText(item.ls),
+            toText(item.remark),
+            toText(orderInfo.remark)
+        ].filter(Boolean);
+
+        const hasDouble = texts.some((text) => doubleKeywords.some((keyword: string) => keyword && text.includes(keyword)));
+        const hasSingle = texts.some((text) => singleKeywords.some((keyword: string) => keyword && text.includes(keyword)));
+
+        if (hasDouble) return 'double';
+        if (hasSingle) return 'single';
+        return null;
+    };
+
+    const append = (row: HandleResultRow) => {
+        const key = `${row.supplier}|${row.type}|${row.spec}|${row.remark}`;
+        if (handleMap[key]) {
+            handleMap[key].quantity += row.quantity;
+            return;
+        }
+        handleMap[key] = row;
+    };
+
+    orderList.forEach((item) => {
+        const handleName = toText(item.ls);
+        if (!handleName || handleName === '-' || handleName === '无') return;
+
+        const qtyPair = parseQuantityPair(item.qty);
+        const totalQty = qtyPair.left + qtyPair.right;
+        if (totalQty <= 0) return;
+
+        const thickness = toText(item.mshd);
+        const activity = detectActivity(item);
+        const accessoryPack = toText(thicknessAccessoryPacks[thickness]);
+
+        const mapping = mappings[handleName] || normalizedMapping.get(normalizeHandleKey(handleName));
+        if (!mapping || !activity || !accessoryPack) {
+            const pendingReason = [
+                !mapping ? `型号未匹配(${handleName})` : '',
+                !activity ? '未识别单活/双活' : '',
+                !accessoryPack ? `门厚异常(${thickness || '空值'})` : ''
+            ].filter(Boolean).join('，');
+
+            append({
+                supplier: unmatchedSupplier,
+                type: manualReviewLabel,
+                spec: accessoryPack || '-',
+                remark: `待人工处理：${pendingReason || '规则缺失'}`,
+                quantity: totalQty
+            });
+            return;
+        }
+
+        const supplier = toText(mapping.supplier) || defaultSupplier;
+        const vendorName = activity === 'double'
+            ? toText(mapping.vendorNameDouble)
+            : toText(mapping.vendorNameSingle);
+
+        if (!vendorName) {
+            append({
+                supplier: unmatchedSupplier,
+                type: manualReviewLabel,
+                spec: accessoryPack,
+                remark: `待人工处理：供应商名称缺失(${handleName}/${activity === 'double' ? '双活' : '单活'})`,
+                quantity: totalQty
+            });
+            return;
+        }
+
+        append({
+            supplier,
+            type: vendorName,
+            spec: accessoryPack,
+            remark: '',
+            quantity: totalQty
+        });
+    });
+
+    return Object.values(handleMap);
 }

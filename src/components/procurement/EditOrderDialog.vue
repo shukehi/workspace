@@ -53,6 +53,7 @@ const currentDefaultWidths = computed(() => getDefaultWidths(currentCategory.val
 const categoryOptions: Array<{ value: string; label: string }> = [
   { value: '包装', label: '包装' },
   { value: '锁芯', label: '锁芯' },
+  { value: '拉手', label: '拉手' },
   { value: '锁叉', label: '锁叉' },
   { value: '配件', label: '五金/配件' },
 ];
@@ -117,6 +118,15 @@ function createEmptyItem(category: PrintCategory): OrderItem {
     };
   }
 
+  if (category === 'handle') {
+    return {
+      ...base,
+      type: '',
+      spec: '',
+      unit: '付',
+    };
+  }
+
   return {
     ...base,
     type: '',
@@ -130,6 +140,7 @@ function createEmptyOrderDraft(categoryRaw = '包装'): Order {
   const categoryMap: Record<PrintCategory, string> = {
     packaging: '包装',
     cylinder: '锁芯',
+    handle: '拉手',
     lock: '锁叉',
     hardware: '配件',
   };

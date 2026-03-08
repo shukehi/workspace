@@ -30,6 +30,7 @@ function buildCategoryDefaultWidths(category: PrintCategory) {
 export const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, number>> = {
   packaging: buildCategoryDefaultWidths('packaging'),
   cylinder: buildCategoryDefaultWidths('cylinder'),
+  handle: buildCategoryDefaultWidths('handle'),
   lock: buildCategoryDefaultWidths('lock'),
   hardware: buildCategoryDefaultWidths('hardware')
 };

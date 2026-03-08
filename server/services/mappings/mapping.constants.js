@@ -1,7 +1,8 @@
 const PROFILE_CODES = Object.freeze({
     PACKAGING: 'packaging',
     CYLINDER: 'cylinder',
-    LOCK_FORK: 'lock_fork'
+    LOCK_FORK: 'lock_fork',
+    HANDLE: 'handle'
 });
 
 const PROFILE_CODE_LIST = Object.freeze(Object.values(PROFILE_CODES));
@@ -9,7 +10,8 @@ const PROFILE_CODE_LIST = Object.freeze(Object.values(PROFILE_CODES));
 const PROFILE_DISPLAY_NAMES = Object.freeze({
     [PROFILE_CODES.PACKAGING]: '包装映射',
     [PROFILE_CODES.CYLINDER]: '锁芯映射',
-    [PROFILE_CODES.LOCK_FORK]: '锁叉映射'
+    [PROFILE_CODES.LOCK_FORK]: '锁叉映射',
+    [PROFILE_CODES.HANDLE]: '拉手映射'
 });
 
 const PROFILE_STATUSES = Object.freeze({

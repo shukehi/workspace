@@ -1,5 +1,5 @@
-export type MappingKind = 'packaging' | 'cylinder' | 'lockFork';
-export type PublishedMappingProfileCode = 'packaging' | 'cylinder' | 'lock_fork';
+export type MappingKind = 'packaging' | 'cylinder' | 'lockFork' | 'handle';
+export type PublishedMappingProfileCode = 'packaging' | 'cylinder' | 'lock_fork' | 'handle';
 
 export interface MappingValidationIssue {
   code: string;
@@ -84,6 +84,22 @@ export interface LockForkMappingConfig {
   suppliers: Record<string, string>;
 }
 
+export interface HandleMappingEntry {
+  supplier: string;
+  vendorNameSingle: string;
+  vendorNameDouble: string;
+}
+
+export interface HandleMappingConfig {
+  defaultSupplier: string;
+  unmatchedSupplier: string;
+  manualReviewLabel: string;
+  singleKeywords: string[];
+  doubleKeywords: string[];
+  thicknessAccessoryPacks: Record<string, string>;
+  mappings: Record<string, HandleMappingEntry>;
+}
+
 export interface MappingPublishedEnvelope<
   TProfileCode extends PublishedMappingProfileCode,
   TPayload,
@@ -108,3 +124,6 @@ export type CylinderPublishedResponse = MappingPublishedResponse<'cylinder', Cyl
 
 export type LockForkPublishedPayload = LockForkMappingConfig;
 export type LockForkPublishedResponse = MappingPublishedResponse<'lock_fork', LockForkPublishedPayload>;
+
+export type HandlePublishedPayload = HandleMappingConfig;
+export type HandlePublishedResponse = MappingPublishedResponse<'handle', HandlePublishedPayload>;

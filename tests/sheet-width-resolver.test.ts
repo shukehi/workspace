@@ -5,6 +5,7 @@ import { getDefaultWidths, sanitizeWidths, resolveInitialWidths, resolveSheetWid
 test('sheet width defaults: returns category specific config', () => {
   const packaging = getDefaultWidths('packaging');
   const cylinder = getDefaultWidths('cylinder');
+  const handle = getDefaultWidths('handle');
   const lock = getDefaultWidths('lock');
 
   assert.equal(packaging.spec, 160);
@@ -14,6 +15,8 @@ test('sheet width defaults: returns category specific config', () => {
   assert.equal(cylinder.unit, 58);
   assert.equal(cylinder.eccentricity, 160);
   assert.equal(cylinder.remark, 230);
+  assert.equal(handle.quantity, 72);
+  assert.equal(handle.unit, 58);
   assert.equal(lock.quantity, 72);
 });
 

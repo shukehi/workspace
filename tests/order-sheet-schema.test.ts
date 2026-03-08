@@ -15,7 +15,7 @@ test('schema: cylinder columns include unit before remark', () => {
 });
 
 test('schema: all spec-like fields use 规格 label across categories', () => {
-  const categories = ['packaging', 'cylinder', 'lock', 'hardware'] as const;
+  const categories = ['packaging', 'cylinder', 'handle', 'lock', 'hardware'] as const;
   categories.forEach((category) => {
     const schema = getSheetSchema(category);
     schema.columns

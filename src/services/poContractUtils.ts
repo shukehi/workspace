@@ -94,11 +94,33 @@ export function createLockForkOrderItem(params: {
     };
 }
 
+export function createHandleOrderItem(params: {
+    supplier: string;
+    type: string;
+    spec: string;
+    quantity: number;
+    remark?: string;
+}): OrderItem {
+    return {
+        id: 0,
+        material_id: params.type,
+        supplier: params.supplier,
+        name: params.type || '拉手',
+        model: params.spec || '-',
+        type: params.type || '拉手',
+        spec: params.spec || '-',
+        quantity: params.quantity,
+        unit: '付',
+        remark: params.remark || ''
+    };
+}
+
 export function findMissingCategoryFields(category: string, items: OrderItem[]) {
     const requiredByCategory: Record<string, string[]> = {
         '包装': ['supplier', 'internal_name', 'external_name', 'spec', 'mb', 'quantity'],
         '锁芯': ['supplier', 'type', 'eccentricity', 'quantity'],
-        '锁叉': ['supplier', 'type', 'spec', 'quantity']
+        '锁叉': ['supplier', 'type', 'spec', 'quantity'],
+        '拉手': ['supplier', 'type', 'spec', 'quantity']
     };
     const required = requiredByCategory[category];
     if (!required) return [];

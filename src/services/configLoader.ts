@@ -3,13 +3,15 @@ import { DataNormalizer } from '@/lib/erp-engine/dataNormalizer';
 import { api } from '@/lib/api';
 import {
     adaptCylinderMapping,
+    adaptHandleMapping,
     adaptLockForkMapping,
     adaptPackagingMapping,
     EMPTY_CYLINDER_MAPPING,
+    EMPTY_HANDLE_MAPPING,
     EMPTY_LOCK_FORK_MAPPING,
     EMPTY_PACKAGING_MAPPING,
 } from '@/services/mappings';
-import type { CylinderMappingConfig, LockForkMappingConfig, PackagingMappingConfig } from '@/types/mapping';
+import type { CylinderMappingConfig, HandleMappingConfig, LockForkMappingConfig, PackagingMappingConfig } from '@/types/mapping';
 
 // Types for our configuration data
 export interface MaterialCatalog {
@@ -31,6 +33,7 @@ export class ConfigLoaderService {
     private cylinderMapping: CylinderMappingConfig = EMPTY_CYLINDER_MAPPING;
     private lockForkMapping: LockForkMappingConfig = EMPTY_LOCK_FORK_MAPPING;
     private packagingMapping: PackagingMappingConfig = EMPTY_PACKAGING_MAPPING;
+    private handleMapping: HandleMappingConfig = EMPTY_HANDLE_MAPPING;
 
     async loadAll() {
         if (this.isLoaded) return;
@@ -40,7 +43,8 @@ export class ConfigLoaderService {
                 this.loadMaterials(),
                 this.loadCylinderMapping(),
                 this.loadLockForkMapping(),
-                this.loadPackagingMapping()
+                this.loadPackagingMapping(),
+                this.loadHandleMapping()
             ]);
             try {
                 await this.loadFormulas();
@@ -91,7 +95,7 @@ export class ConfigLoaderService {
         }
     }
 
-    private applyRuntimeMapping(kind: 'packaging' | 'cylinder' | 'lockFork', payload: unknown) {
+    private applyRuntimeMapping(kind: 'packaging' | 'cylinder' | 'lockFork' | 'handle', payload: unknown) {
         if (kind === 'packaging') {
             this.packagingMapping = adaptPackagingMapping(payload);
             return;
@@ -100,10 +104,14 @@ export class ConfigLoaderService {
             this.cylinderMapping = adaptCylinderMapping(payload);
             return;
         }
+        if (kind === 'handle') {
+            this.handleMapping = adaptHandleMapping(payload);
+            return;
+        }
         this.lockForkMapping = adaptLockForkMapping(payload);
     }
 
-    private async loadStaticRuntimeMapping(kind: 'cylinder' | 'lockFork', url: string, warningMessage: string) {
+    private async loadStaticRuntimeMapping(kind: 'cylinder' | 'lockFork' | 'handle', url: string, warningMessage: string) {
         const payload = await this.fetchJson(url);
         if (payload === null) {
             console.warn(warningMessage);
@@ -148,6 +156,16 @@ export class ConfigLoaderService {
         this.applyRuntimeMapping('packaging', staticPayload);
     }
 
+    async loadHandleMapping() {
+        const apiPayload = await this.fetchJson('/api/config/handle');
+        if (apiPayload !== null) {
+            this.applyRuntimeMapping('handle', apiPayload);
+            return;
+        }
+
+        await this.loadStaticRuntimeMapping('handle', '/data/handle-mapping.json', '⚠️ loadHandleMapping failed');
+    }
+
     async refreshPackagingMapping() {
         await this.loadPackagingMapping();
     }
@@ -160,11 +178,16 @@ export class ConfigLoaderService {
         await this.loadLockForkMapping();
     }
 
+    async refreshHandleMapping() {
+        await this.loadHandleMapping();
+    }
+
     getMaterials() { return this.materialCatalog; }
     getFormulas() { return this.colorFormulas; }
     getCylinderMapping() { return this.cylinderMapping; }
     getLockForkMapping() { return this.lockForkMapping; }
     getPackagingMapping() { return this.packagingMapping; }
+    getHandleMapping() { return this.handleMapping; }
 }
 
 export const configLoader = new ConfigLoaderService();

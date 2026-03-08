@@ -59,6 +59,11 @@ const router = createRouter({
                     component: () => import('@/views/CylinderConfig.vue')
                 },
                 {
+                    path: '/config/handle',
+                    name: 'config-handle',
+                    component: () => import('@/views/HandleConfig.vue')
+                },
+                {
                     path: '/config/lock-fork',
                     name: 'config-lock-fork',
                     component: () => import('@/views/LockForkConfig.vue')

@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   adaptCylinderMapping,
+  adaptHandleMapping,
   adaptLockForkMapping,
   adaptPackagingMapping,
   validateCylinderMapping,
+  validateHandleMapping,
   validateLockForkMapping,
   validatePackagingMapping,
 } from '../src/services/mappings';
@@ -37,4 +39,11 @@ test('mapping adapter baseline: current lock-fork mapping adapts and validates c
   assert.equal(validateLockForkMapping(payload).length, 0);
   assert.ok(Object.keys(payload.baseDimensions).length > 0);
   assert.equal(payload.suppliers.default, '应志友');
+});
+
+test('mapping adapter baseline: current handle mapping adapts and validates cleanly', () => {
+  const payload = adaptHandleMapping(readJson('public/data/handle-mapping.json'));
+
+  assert.equal(validateHandleMapping(payload).length, 0);
+  assert.equal(payload.thicknessAccessoryPacks['10'], '10公分配件包');
 });

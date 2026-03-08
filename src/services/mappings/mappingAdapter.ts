@@ -4,6 +4,8 @@ import type {
   CylinderMappingConfig,
   CylinderMappingEntry,
   CylinderSpecialRule,
+  HandleMappingConfig,
+  HandleMappingEntry,
   LockForkBaseDimensionRule,
   LockForkDimensionGroup,
   LockForkDimensionPair,
@@ -18,6 +20,17 @@ const DEFAULT_PACKAGING_SUPPLIER = '方亮包装';
 const DEFAULT_LOCK_FORK_HEIGHT_REFERENCE = 2050;
 const DEFAULT_LOCK_FORK_HANGING_FEET = 35;
 const DEFAULT_CYLINDER_EXCLUDED = ['指纹锁配套锁芯'];
+const DEFAULT_HANDLE_SUPPLIER = '拉手供应商';
+const DEFAULT_HANDLE_UNMATCHED_SUPPLIER = '待人工处理';
+const DEFAULT_HANDLE_MANUAL_REVIEW_LABEL = '未匹配拉手(待人工处理)';
+const DEFAULT_HANDLE_SINGLE_KEYWORDS = ['单活'];
+const DEFAULT_HANDLE_DOUBLE_KEYWORDS = ['双活'];
+const DEFAULT_HANDLE_THICKNESS_PACKS: Record<string, string> = {
+  '5': '5公分配件包',
+  '7': '7公分配件包',
+  '9': '9公分配件包',
+  '10': '10公分配件包',
+};
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -75,6 +88,16 @@ export const EMPTY_LOCK_FORK_MAPPING: LockForkMappingConfig = {
   },
   heightReference: DEFAULT_LOCK_FORK_HEIGHT_REFERENCE,
   suppliers: {},
+};
+
+export const EMPTY_HANDLE_MAPPING: HandleMappingConfig = {
+  defaultSupplier: DEFAULT_HANDLE_SUPPLIER,
+  unmatchedSupplier: DEFAULT_HANDLE_UNMATCHED_SUPPLIER,
+  manualReviewLabel: DEFAULT_HANDLE_MANUAL_REVIEW_LABEL,
+  singleKeywords: [...DEFAULT_HANDLE_SINGLE_KEYWORDS],
+  doubleKeywords: [...DEFAULT_HANDLE_DOUBLE_KEYWORDS],
+  thicknessAccessoryPacks: { ...DEFAULT_HANDLE_THICKNESS_PACKS },
+  mappings: {},
 };
 
 function adaptCylinderVariant(value: unknown): CylinderDimensionVariant | null {
@@ -192,6 +215,48 @@ function adaptStringList(value: unknown): string[] {
   return value
     .map((item) => toTrimmedString(item))
     .filter(Boolean);
+}
+
+function adaptHandleMappingEntry(value: unknown): HandleMappingEntry | null {
+  const record = asRecord(value);
+  const supplier = toTrimmedString(record.supplier);
+  const vendorNameSingle = toTrimmedString(record.vendorNameSingle);
+  const vendorNameDouble = toTrimmedString(record.vendorNameDouble);
+  if (!supplier && !vendorNameSingle && !vendorNameDouble) return null;
+
+  return {
+    supplier,
+    vendorNameSingle,
+    vendorNameDouble,
+  };
+}
+
+function adaptHandleMappings(value: unknown): Record<string, HandleMappingEntry> {
+  const record = asRecord(value);
+  const mappings: Record<string, HandleMappingEntry> = {};
+
+  Object.entries(record).forEach(([rawKey, rawValue]) => {
+    const key = toTrimmedString(rawKey);
+    const mapping = adaptHandleMappingEntry(rawValue);
+    if (!key || !mapping) return;
+    mappings[key] = mapping;
+  });
+
+  return mappings;
+}
+
+function adaptThicknessAccessoryPacks(value: unknown): Record<string, string> {
+  const record = asRecord(value);
+  const packs: Record<string, string> = {};
+
+  Object.entries(record).forEach(([rawKey, rawValue]) => {
+    const key = toTrimmedString(rawKey);
+    const label = toTrimmedString(rawValue);
+    if (!key || !label) return;
+    packs[key] = label;
+  });
+
+  return packs;
 }
 
 function adaptLockForkDimensionPair(value: unknown): LockForkDimensionPair | null {
@@ -361,5 +426,26 @@ export function adaptLockForkMapping(value: unknown): LockForkMappingConfig {
     hangingFeet: adaptLockForkHangingFeetConfig(record.hangingFeet),
     heightReference: toFiniteNumber(record.heightReference, DEFAULT_LOCK_FORK_HEIGHT_REFERENCE),
     suppliers: adaptSuppliers(record.suppliers),
+  };
+}
+
+export function adaptHandleMapping(value: unknown): HandleMappingConfig {
+  const record = asRecord(value);
+  const packs = adaptThicknessAccessoryPacks(record.thicknessAccessoryPacks);
+
+  return {
+    defaultSupplier: toTrimmedString(record.defaultSupplier) || DEFAULT_HANDLE_SUPPLIER,
+    unmatchedSupplier: toTrimmedString(record.unmatchedSupplier) || DEFAULT_HANDLE_UNMATCHED_SUPPLIER,
+    manualReviewLabel: toTrimmedString(record.manualReviewLabel) || DEFAULT_HANDLE_MANUAL_REVIEW_LABEL,
+    singleKeywords: (() => {
+      const keywords = adaptStringList(record.singleKeywords);
+      return keywords.length > 0 ? keywords : [...DEFAULT_HANDLE_SINGLE_KEYWORDS];
+    })(),
+    doubleKeywords: (() => {
+      const keywords = adaptStringList(record.doubleKeywords);
+      return keywords.length > 0 ? keywords : [...DEFAULT_HANDLE_DOUBLE_KEYWORDS];
+    })(),
+    thicknessAccessoryPacks: { ...DEFAULT_HANDLE_THICKNESS_PACKS, ...packs },
+    mappings: adaptHandleMappings(record.mappings),
   };
 }

@@ -10,12 +10,14 @@ const path = require('path');
 const {
     adaptPackagingMapping,
     adaptCylinderMapping,
-    adaptLockForkMapping
+    adaptLockForkMapping,
+    adaptHandleMapping
 } = require('../services/mappings/mapping.adapter');
 const {
     validatePackagingMapping,
     validateCylinderMapping,
-    validateLockForkMapping
+    validateLockForkMapping,
+    validateHandleMapping
 } = require('../services/mappings/mapping.validator');
 const { createMappingProfileRoute } = require('./mappingProfile.routeFactory');
 
@@ -29,6 +31,8 @@ const CYLINDER_STATIC_FILE = path.join(DATA_DIR, 'cylinder-mapping.json');
 const CYLINDER_RUNTIME_FILE = path.join(CONFIG_DIR, 'cylinder-mapping.json');
 const LOCK_FORK_STATIC_FILE = path.join(DATA_DIR, 'lock-fork-mapping.json');
 const LOCK_FORK_RUNTIME_FILE = path.join(CONFIG_DIR, 'lock-fork-mapping.json');
+const HANDLE_STATIC_FILE = path.join(DATA_DIR, 'handle-mapping.json');
+const HANDLE_RUNTIME_FILE = path.join(CONFIG_DIR, 'handle-mapping.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -71,6 +75,17 @@ const lockForkProfile = createMappingProfileRoute({
     saveErrorMessage: 'Failed to save lock-fork mapping'
 });
 
+const handleProfile = createMappingProfileRoute({
+    profileName: 'handle',
+    endpoint: '/handle',
+    runtimeFile: HANDLE_RUNTIME_FILE,
+    staticFile: HANDLE_STATIC_FILE,
+    adapt: adaptHandleMapping,
+    validate: validateHandleMapping,
+    readErrorMessage: 'Failed to read handle mapping',
+    saveErrorMessage: 'Failed to save handle mapping'
+});
+
 // 1. Get Materials Catalog
 router.get('/materials', (req, res) => {
     try {
@@ -103,6 +118,7 @@ router.post('/materials', (req, res) => {
 packagingProfile.register(router);
 cylinderProfile.register(router);
 lockForkProfile.register(router);
+handleProfile.register(router);
 
 // Backward-compatible endpoint
 router.get('/packaging-mapping', (req, res) => {

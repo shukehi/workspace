@@ -307,7 +307,7 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
     };
   }
 
-  if (category === 'lock') {
+  if (category === 'lock' || category === 'handle') {
     return {
       supplier: String(item?.supplier || source.supplier || '未分类'),
       internal_name: '-',
@@ -320,7 +320,7 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
       qtyLeft: 0,
       qtyRight: 0,
       quantity: Number(item?.quantity || 0),
-      unit: String(item?.unit || '个'),
+      unit: String(item?.unit || (category === 'handle' ? '付' : '个')),
       remark: String(item?.remark || ''),
     };
   }
@@ -386,7 +386,12 @@ function getCellValue(item: NormalizedItem, field: string, rowNumber: number, ca
   if (field === 'type') return item.type || item.name || '-';
   if (field === 'eccentricity') return item.eccentricity || '-';
   if (field === 'quantity') return Number(item.quantity || 0);
-  if (field === 'unit') return item.unit || (category === 'cylinder' ? '套' : '个');
+  if (field === 'unit') {
+    if (item.unit) return item.unit;
+    if (category === 'cylinder') return '套';
+    if (category === 'handle') return '付';
+    return '个';
+  }
   if (field === 'remark') return category === 'packaging' ? '' : (item.remark || '');
   return '-';
 }

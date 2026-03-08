@@ -23,6 +23,7 @@ function createDeps(): RuleContext {
       },
       hardwareRequirements: {
         cylinders: [{ supplier: '忠恒', type: '锁芯A', eccentricity: '34.5*55.5', quantity: 10 }],
+        handles: [{ supplier: '供应商X', type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantity: 6 }],
         lockForks: [{ supplier: '应志友', type: '锁叉A', spec: '570*301 = 871', quantity: 12 }],
         packaging: {
           p1: {
@@ -59,6 +60,7 @@ test('po generator integration: compose groups and create selected category orde
   assert.deepEqual(proposalKeys, [
     '包装_方亮包装',
     '原辅材料_原料供应商',
+    '拉手_供应商X',
     '锁叉_应志友',
     '锁芯_忠恒',
   ]);

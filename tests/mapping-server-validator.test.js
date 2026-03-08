@@ -4,11 +4,13 @@ const assert = require('node:assert/strict');
 const {
   adaptPackagingMapping,
   adaptCylinderMapping,
+  adaptHandleMapping,
   adaptLockForkMapping,
 } = require('../server/services/mappings/mapping.adapter');
 const {
   validatePackagingMapping,
   validateCylinderMapping,
+  validateHandleMapping,
   validateLockForkMapping,
 } = require('../server/services/mappings/mapping.validator');
 
@@ -85,4 +87,30 @@ test('server mapping adapter: cylinder and lock-fork adapters preserve baseline 
   assert.equal(cylinder.dimensions['7'].code, '90AB');
   assert.equal(lockFork.hangingFeet.standard, 35);
   assert.deepEqual(lockFork.hangingFeet.keywords, ['吊脚', 'diaojiao']);
+});
+
+test('server mapping adapter/validator: handle defaults and required fields', () => {
+  const handle = adaptHandleMapping({
+    thicknessAccessoryPacks: { '5': '5公分配件包' },
+  });
+  assert.equal(handle.defaultSupplier, '拉手供应商');
+  assert.equal(handle.thicknessAccessoryPacks['5'], '5公分配件包');
+  assert.equal(handle.thicknessAccessoryPacks['10'], '10公分配件包');
+
+  const issues = validateHandleMapping({
+    defaultSupplier: '',
+    unmatchedSupplier: '',
+    manualReviewLabel: '',
+    singleKeywords: ['单活'],
+    doubleKeywords: ['单活'],
+    thicknessAccessoryPacks: { '5': '5公分配件包' },
+    mappings: {
+      拉手A: { supplier: '', vendorNameSingle: '', vendorNameDouble: '' },
+    },
+  });
+
+  assert.ok(issues.some((item) => item.path === 'defaultSupplier'));
+  assert.ok(issues.some((item) => item.path === 'unmatchedSupplier'));
+  assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
+  assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorNameDouble'));
 });
