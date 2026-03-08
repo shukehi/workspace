@@ -28,7 +28,8 @@
 .print-header,
 .print-footer,
 #printOutput,
-#printPageTemplate {
+#printPageTemplate,
+.print-page.mode-compact .print-footer {
     display: none;
 }
 
@@ -182,10 +183,6 @@ body.print-mode #printOutput {
     gap: 6px;
 }
 
-.print-page.mode-compact .print-footer {
-    display: none;
-}
-
 /* Print Table */
 .print-table {
     width: 100%;
@@ -333,4 +330,3 @@ body.print-mode #printOutput {
     background-color: #EFF6FF;
     color: var(--primary-hover);
 }
-

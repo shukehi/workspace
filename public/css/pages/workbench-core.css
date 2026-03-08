@@ -82,7 +82,8 @@
     border-color: var(--accent-color);
 }
 
-.command-input-group input::placeholder {
+.command-input-group input::placeholder,
+.remarks-box .placeholder-text {
     color: var(--text-tertiary);
     font-style: italic;
 }
@@ -194,11 +195,6 @@
     min-height: 60px;
     max-height: 120px;
     overflow-y: auto;
-}
-
-.remarks-box .placeholder-text {
-    color: var(--text-tertiary);
-    font-style: italic;
 }
 
 /* Alerts Container */
@@ -362,11 +358,15 @@
 
 /* ==================== Main Content (The Hub) ==================== */
 
-.workbench-main {
+.workbench-main,
+.hub-content {
     flex: 1;
+    min-width: 0;
+}
+
+.workbench-main {
     display: flex;
     flex-direction: column;
-    min-width: 0;
     /* Prevent flex overflow */
 }
 
@@ -426,8 +426,6 @@
 
 /* Hub Content Area */
 .hub-content {
-    flex: 1;
-    min-width: 0;
     padding: 24px;
     overflow-y: auto;
     background: var(--bg-color);
@@ -480,7 +478,8 @@
     font-size: 0.65rem;
 }
 
-.panel-actions {
+.panel-actions,
+.po-panel .po-actions {
     display: flex;
     gap: 8px;
 }
@@ -530,7 +529,9 @@
     margin-bottom: 20px;
 }
 
-.po-info {
+.po-info,
+.footer-left,
+.footer-right {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -548,11 +549,6 @@
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--primary-color);
-}
-
-.po-panel .po-actions {
-    display: flex;
-    gap: 8px;
 }
 
 /* Empty State */
@@ -677,13 +673,6 @@
     background: var(--primary-color);
     color: white;
     border-top: 2px solid var(--border-color);
-}
-
-.footer-left,
-.footer-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
 }
 
 .footer-label {
@@ -835,4 +824,3 @@
         padding: 0;
     }
 }
-
