@@ -29,3 +29,6 @@ jobs:
 
       - name: Print style guard
         run: node --test tests/print-style-guard.test.js
+
+      - name: Type check
+        run: npm run type-check

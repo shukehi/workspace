@@ -23,3 +23,4 @@ Keep CSS optimization safe and prevent accidental visual regressions.
 2. Enforced checks:
    - `npm run lint:css`
    - `node --test tests/print-style-guard.test.js`
+   - `npm run type-check`
