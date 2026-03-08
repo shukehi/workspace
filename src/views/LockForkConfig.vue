@@ -392,6 +392,13 @@ const hangingFeetKeywordIssueMap = computed(() => {
   return map;
 });
 
+const hasBaseIssues = computed(() => baseDimensionIssueMap.value.size > 0);
+const hasLockTypeIssues = computed(() => lockTypeIssueMap.value.size > 0);
+const hasEdgesIssues = computed(() => edgeTypeIssueMap.value.size > 0 || hangingFeetKeywordIssueMap.value.size > 0);
+const hasSuppliersIssues = computed(() => supplierIssueMap.value.size > 0);
+
+const activeTab = ref<'base' | 'lockType' | 'edges' | 'suppliers'>('base');
+
 const showIssuesPanel = computed(() => clientIssues.value.length > 0 || editor.serverIssues.value.length > 0);
 
 function makeBaseDimensionRow(input?: Partial<BaseDimensionRow>): BaseDimensionRow {
@@ -483,6 +490,11 @@ function resetWithPayload(raw: LockForkMappingConfig) {
 }
 
 async function scrollToFirstIssue() {
+  if (hasBaseIssues.value) activeTab.value = 'base';
+  else if (hasLockTypeIssues.value) activeTab.value = 'lockType';
+  else if (hasEdgesIssues.value) activeTab.value = 'edges';
+  else if (hasSuppliersIssues.value) activeTab.value = 'suppliers';
+
   await nextTick();
   await scrollToFirstIssueElement('[data-issue-item="true"]', '[data-issue-anchor="true"]');
 }
@@ -504,16 +516,11 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-6 p-6 md:p-8 bg-muted/20">
+  <div class="h-full flex flex-col gap-6 p-6 md:p-8 bg-muted/20 relative">
     <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
       <div>
         <h2 class="text-3xl font-semibold tracking-tight">锁叉配置</h2>
         <p class="text-muted-foreground mt-1">维护锁叉尺寸、类型、吊脚规则与供应商映射。</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新</Button>
-        <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存</Button>
-        <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
       </div>
     </div>
 
@@ -523,19 +530,91 @@ onMounted(editor.load);
       </CardContent>
     </Card>
 
-    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
+    <div class="grid grid-cols-1 gap-6 flex-1" :class="showIssuesPanel ? 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' : ''">
       <div class="flex flex-col gap-6 min-h-0">
+        <!-- 全局通用参数 -->
+        <Card>
+          <CardHeader>
+            <CardTitle>全局通用参数</CardTitle>
+            <CardDescription>吊脚标准值与高度参考值。</CardDescription>
+          </CardHeader>
+          <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-medium text-muted-foreground">吊脚标准值</label>
+              <Input
+                v-model="hangingFeetStandard"
+                class="h-9 mt-1"
+                :class="hangingFeetStandardIssues.length ? 'border-destructive' : ''"
+                :data-issue-item="hangingFeetStandardIssues.length ? 'true' : null"
+                placeholder="35"
+              />
+              <div v-if="hangingFeetStandardIssues.length" class="text-[11px] text-destructive mt-1">
+                {{ hangingFeetStandardIssues[0] }}
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-muted-foreground">高度参考值</label>
+              <Input
+                v-model="heightReference"
+                class="h-9 mt-1"
+                :class="heightReferenceIssues.length ? 'border-destructive' : ''"
+                :data-issue-item="heightReferenceIssues.length ? 'true' : null"
+                placeholder="2050"
+              />
+              <div v-if="heightReferenceIssues.length" class="text-[11px] text-destructive mt-1">
+                {{ heightReferenceIssues[0] }}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Tabs Navigation -->
+        <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
+          <button
+            @click="activeTab = 'base'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'base' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            基础尺寸
+            <span v-if="hasBaseIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'lockType'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'lockType' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            锁具类型
+            <span v-if="hasLockTypeIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'edges'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'edges' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            边型参数
+            <span v-if="hasEdgesIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'suppliers'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'suppliers' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            供应商映射
+            <span v-if="hasSuppliersIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+        </div>
+
+        <div v-show="activeTab === 'base'">
         <Card>
           <CardHeader>
             <CardTitle>基础尺寸</CardTitle>
             <CardDescription>按门厚维护常规尺寸与吊脚尺寸的上下头参数。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium">门厚尺寸</div>
-              <Button variant="outline" size="sm" @click="baseDimensions.push(makeBaseDimensionRow())">新增</Button>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
               <div
                 v-for="row in baseDimensions"
                 :key="row.id"
@@ -578,20 +657,24 @@ onMounted(editor.load);
                 </div>
               </div>
             </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="baseDimensions.push(makeBaseDimensionRow())">
+              + 新增门厚尺寸
+            </Button>
           </CardContent>
         </Card>
+        </div>
 
+        <div v-show="activeTab === 'lockType'">
         <Card>
           <CardHeader>
             <CardTitle>锁具类型</CardTitle>
             <CardDescription>如 P66、dual-head、上下头名称等。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium">类型列表</div>
-              <Button variant="outline" size="sm" @click="lockTypes.push(makeLockTypeRow())">新增</Button>
             </div>
-            <div class="overflow-auto rounded-md border">
+            <div class="overflow-auto rounded-md border max-h-[400px]">
               <table class="w-full text-sm text-left">
                 <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
                   <tr>
@@ -623,50 +706,26 @@ onMounted(editor.load);
                 </tbody>
               </table>
             </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="lockTypes.push(makeLockTypeRow())">
+              + 新增锁具类型
+            </Button>
           </CardContent>
         </Card>
+        </div>
 
+        <div v-show="activeTab === 'edges'">
         <Card>
           <CardHeader>
             <CardTitle>边型与参数</CardTitle>
-            <CardDescription>边型修饰、吊脚和高度参考值。</CardDescription>
+            <CardDescription>边型修饰和吊脚。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label class="text-xs text-muted-foreground">吊脚标准值</label>
-                <Input
-                  v-model="hangingFeetStandard"
-                  class="h-9"
-                  :class="hangingFeetStandardIssues.length ? 'border-destructive' : ''"
-                  :data-issue-item="hangingFeetStandardIssues.length ? 'true' : null"
-                  placeholder="35"
-                />
-                <div v-if="hangingFeetStandardIssues.length" class="text-[11px] text-destructive mt-1">
-                  {{ hangingFeetStandardIssues[0] }}
-                </div>
-              </div>
-              <div>
-                <label class="text-xs text-muted-foreground">高度参考值</label>
-                <Input
-                  v-model="heightReference"
-                  class="h-9"
-                  :class="heightReferenceIssues.length ? 'border-destructive' : ''"
-                  :data-issue-item="heightReferenceIssues.length ? 'true' : null"
-                  placeholder="2050"
-                />
-                <div v-if="heightReferenceIssues.length" class="text-[11px] text-destructive mt-1">
-                  {{ heightReferenceIssues[0] }}
-                </div>
-              </div>
-            </div>
-
             <div class="space-y-2">
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between mb-1">
                 <div class="text-sm font-medium">吊脚关键字</div>
-                <Button variant="outline" size="sm" @click="hangingFeetKeywords.push(makeKeywordRow())">新增</Button>
               </div>
-              <div
+              <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                <div
                 v-for="item in hangingFeetKeywords"
                 :key="item.id"
                 class="flex items-center gap-2"
@@ -689,16 +748,19 @@ onMounted(editor.load);
                   {{ hangingFeetKeywordIssueMap.get(item.id)?.[0] }}
                 </div>
               </div>
+              </div>
+              <Button variant="outline" size="sm" class="w-full mt-2 border-dashed" @click="hangingFeetKeywords.push(makeKeywordRow())">
+                + 新增关键字
+              </Button>
             </div>
 
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
+            <div class="space-y-2 mt-4">
+              <div class="flex items-center justify-between mb-1">
                 <div class="text-sm font-medium">边型列表</div>
-                <Button variant="outline" size="sm" @click="edgeTypes.push(makeEdgeTypeRow())">新增</Button>
               </div>
-              <div class="overflow-auto rounded-md border">
+              <div class="overflow-auto rounded-md border max-h-[400px]">
                 <table class="w-full text-sm text-left">
-                  <thead class="text-xs text-muted-foreground bg-muted/50">
+                  <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
                     <tr>
                       <th class="px-3 py-2">边型名称</th>
                       <th class="px-3 py-2">名称修饰</th>
@@ -722,23 +784,27 @@ onMounted(editor.load);
                   </tbody>
                 </table>
               </div>
+              <Button variant="outline" size="sm" class="w-full mt-2 border-dashed" @click="edgeTypes.push(makeEdgeTypeRow())">
+                + 新增边型
+              </Button>
             </div>
           </CardContent>
         </Card>
+        </div>
 
+        <div v-show="activeTab === 'suppliers'">
         <Card>
           <CardHeader>
             <CardTitle>供应商映射</CardTitle>
             <CardDescription>如 default -> 应志友。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium">供应商</div>
-              <Button variant="outline" size="sm" @click="suppliers.push(makeSupplierRow())">新增</Button>
             </div>
-            <div class="overflow-auto rounded-md border">
+            <div class="overflow-auto rounded-md border max-h-[400px]">
               <table class="w-full text-sm text-left">
-                <thead class="text-xs text-muted-foreground bg-muted/50">
+                <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
                   <tr>
                     <th class="px-3 py-2">键名</th>
                     <th class="px-3 py-2">值</th>
@@ -762,22 +828,16 @@ onMounted(editor.load);
                 </tbody>
               </table>
             </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="suppliers.push(makeSupplierRow())">
+              + 新增供应商
+            </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
 
-      <div class="flex flex-col gap-6 min-h-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>JSON 预览</CardTitle>
-            <CardDescription>保存前的结构化预览。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CodeMirrorEditor :model-value="editor.jsonPreview.value" readOnly class="min-h-[320px]" />
-          </CardContent>
-        </Card>
-
-        <Card v-if="showIssuesPanel" data-issue-anchor="true">
+      <div v-if="showIssuesPanel" class="flex flex-col gap-6 min-h-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+        <Card data-issue-anchor="true">
           <CardHeader>
             <CardTitle>校验结果</CardTitle>
             <CardDescription>请修正以下问题后再保存。</CardDescription>
@@ -814,5 +874,12 @@ onMounted(editor.load);
       @reset="editor.resetJsonDraft"
       @apply="editor.applyJsonDraft"
     />
+    
+    <!-- Action Bar -->
+    <div class="sticky bottom-0 -mx-6 md:-mx-8 -mb-6 md:-mb-8 p-4 mt-auto border-t bg-background/95 backdrop-blur z-10 flex items-center justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新配置</Button>
+      <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
+      <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存配置</Button>
+    </div>
   </div>
 </template>
