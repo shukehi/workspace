@@ -12,10 +12,6 @@
     border: 1px solid var(--border-color);
 }
 
-.table-responsive.sticky-wrapper {
-    overflow-x: auto;
-}
-
 .details-table {
     width: 100%;
     border-collapse: collapse;

@@ -10,10 +10,10 @@
     border-radius: 8px;
     padding: 16px;
     margin-bottom: 20px;
-    animation: slideDown 0.3s ease-out;
+    animation: po-slide-down 0.3s ease-out;
 }
 
-@keyframes slideDown {
+@keyframes po-slide-down {
     from {
         opacity: 0;
         transform: translateY(-10px);
@@ -373,6 +373,7 @@
 }
 
 /* List View: Action Buttons */
+.po-action-buttons,
 .action-buttons {
     display: flex;
     gap: 6px;
@@ -417,11 +418,6 @@
 }
 
 /* ==================== Utility Classes ==================== */
-
-.text-center {
-    text-align: center;
-}
-
 .text-secondary {
     color: var(--text-secondary, #6b7280);
 }

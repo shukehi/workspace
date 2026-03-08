@@ -238,19 +238,15 @@ body.print-mode #printOutput {
 .print-table th:last-child,
 .print-table td:last-child {
     border-right: 0;
-}
-
-.print-table tbody tr:last-child td {
-    border-bottom: 0;
-}
-
-.print-table th:last-child,
-.print-table td:last-child {
     width: auto !important;
     min-width: 160px;
     word-break: break-word;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
+}
+
+.print-table tbody tr:last-child td {
+    border-bottom: 0;
 }
 
 .print-table td.col-numeric,
@@ -302,12 +298,10 @@ body.print-mode #printOutput {
 
 #printOutput.zoom-50 {
     transform: scale(0.5);
-    transform-origin: top center;
 }
 
 #printOutput.zoom-75 {
     transform: scale(0.75);
-    transform-origin: top center;
 }
 
 #printOutput.zoom-100 {
@@ -316,10 +310,16 @@ body.print-mode #printOutput {
 
 #printOutput.zoom-125 {
     transform: scale(1.25);
+}
+
+#printOutput.zoom-50,
+#printOutput.zoom-75,
+#printOutput.zoom-125 {
     transform-origin: top center;
 }
 
 /* Navigation Link */
+.print-nav-link,
 .nav-link {
     color: var(--primary-color);
     text-decoration: none;
@@ -330,6 +330,7 @@ body.print-mode #printOutput {
     white-space: nowrap;
 }
 
+.print-nav-link:hover,
 .nav-link:hover {
     background-color: #EFF6FF;
     color: var(--primary-hover);
