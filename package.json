@@ -5,6 +5,8 @@
     "main": "server/index.js",
     "scripts": {
         "dev": "vite",
+        "lint:css": "stylelint \"public/css/**/*.css\" \"src/**/*.css\"",
+        "lint:css:fix": "stylelint \"public/css/**/*.css\" \"src/**/*.css\" --fix",
         "type-check": "vue-tsc --noEmit",
         "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\" && tsx --test \"tests/**/*.test.ts\"",
         "test:visual": "RUN_VISUAL_TESTS=1 node --test --test-concurrency=1 tests/procurement-visual-regression.test.js",
@@ -51,6 +53,7 @@
         "@vitejs/plugin-vue": "^6.0.3",
         "autoprefixer": "^10.4.24",
         "postcss": "^8.5.6",
+        "stylelint": "^17.4.0",
         "tailwindcss": "^4.1.18",
         "tsx": "^4.21.0",
         "typescript": "^5.9.3",
