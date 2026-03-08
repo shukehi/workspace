@@ -319,8 +319,7 @@ body.print-mode #printOutput {
 }
 
 /* Navigation Link */
-.print-nav-link,
-.nav-link {
+.print-nav-link {
     color: var(--primary-color);
     text-decoration: none;
     font-weight: 500;
@@ -330,8 +329,7 @@ body.print-mode #printOutput {
     white-space: nowrap;
 }
 
-.print-nav-link:hover,
-.nav-link:hover {
+.print-nav-link:hover {
     background-color: #EFF6FF;
     color: var(--primary-hover);
 }

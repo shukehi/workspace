@@ -358,8 +358,7 @@
 }
 
 /* List View: Action Buttons */
-.po-action-buttons,
-.action-buttons {
+.po-action-buttons {
     display: flex;
     gap: 6px;
     justify-content: center;
