@@ -37,6 +37,8 @@ test('extractHandleData maps matched handle by activity/thickness', () => {
   assert.equal(extracted[0].supplier, '供应商X');
   assert.equal(extracted[0].type, 'DJ-6847双活供应商名');
   assert.equal(extracted[0].spec, '10公分配件包');
+  assert.equal(extracted[0].quantityLeft, 2);
+  assert.equal(extracted[0].quantityRight, 3);
   assert.equal(extracted[0].quantity, 5);
 });
 
@@ -67,5 +69,7 @@ test('extractHandleData creates unmatched item for unknown mshd or mapping', () 
   assert.equal(extracted.length, 1);
   assert.equal(extracted[0].supplier, '待人工处理');
   assert.equal(extracted[0].type, '未匹配拉手(待人工处理)');
+  assert.equal(extracted[0].quantityLeft, 1);
+  assert.equal(extracted[0].quantityRight, 1);
   assert.ok(extracted[0].remark.includes('待人工处理'));
 });

@@ -23,7 +23,7 @@ function createDeps(): RuleContext {
       },
       hardwareRequirements: {
         cylinders: [{ supplier: '忠恒', type: '锁芯A', eccentricity: '34.5*55.5', quantity: 10 }],
-        handles: [{ supplier: '供应商X', type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantity: 6 }],
+        handles: [{ supplier: '供应商X', type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantityLeft: 2, quantityRight: 4, quantity: 6 }],
         lockForks: [{ supplier: '应志友', type: '锁叉A', spec: '570*301 = 871', quantity: 12 }],
         packaging: {
           p1: {

@@ -64,11 +64,15 @@ test('PO contract utils: cylinder/lock-fork items keep required typed fields', (
         supplier: '拉手供应商A',
         type: 'DJ-6847双活',
         spec: '10公分配件包',
+        qtyLeft: 50,
+        qtyRight: 70,
         quantity: 120
     });
     assert.equal(handle.supplier, '拉手供应商A');
     assert.equal(handle.type, 'DJ-6847双活');
     assert.equal(handle.spec, '10公分配件包');
+    assert.equal(handle.quantity_left, 50);
+    assert.equal(handle.quantity_right, 70);
     assert.equal(handle.unit, '付');
     assert.equal(handle.quantity, 120);
 });
@@ -100,6 +104,8 @@ test('PO contract utils: validators detect missing category/common fields', () =
     assert.equal(handleMissing.length, 1);
     assert.ok(handleMissing[0].missing.includes('type'));
     assert.ok(handleMissing[0].missing.includes('spec'));
+    assert.ok(handleMissing[0].missing.includes('quantity_left'));
+    assert.ok(handleMissing[0].missing.includes('quantity_right'));
 
     const commonMissing = findMissingCommonFields([
         { id: 0, material_id: 'm1', name: '', model: 'm', quantity: 1, unit: '个' } as any

@@ -24,8 +24,8 @@ test('handle rule: groups by supplier and uses unit 付', () => {
       ...baseCtx.sourceStore,
       hardwareRequirements: {
         handles: [
-          { type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantity: 12 },
-          { supplier: '供应商X', type: 'DJ-86-6B单活供应商名', spec: '7公分配件包', quantity: 8, remark: '待人工处理：打标' },
+          { type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantityLeft: 6, quantityRight: 6, quantity: 12 },
+          { supplier: '供应商X', type: 'DJ-86-6B单活供应商名', spec: '7公分配件包', quantityLeft: 3, quantityRight: 5, quantity: 8, remark: '待人工处理：打标' },
         ],
       },
     },
@@ -40,5 +40,7 @@ test('handle rule: groups by supplier and uses unit 付', () => {
   assert.ok(assigned);
   assert.equal(fallback!.category, '拉手');
   assert.equal(fallback!.items[0].unit, '付');
+  assert.equal(fallback!.items[0].quantity_left, 6);
+  assert.equal(fallback!.items[0].quantity_right, 6);
   assert.equal(assigned!.items[0].remark, '待人工处理：打标');
 });

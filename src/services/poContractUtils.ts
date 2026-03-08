@@ -98,6 +98,8 @@ export function createHandleOrderItem(params: {
     supplier: string;
     type: string;
     spec: string;
+    qtyLeft: number;
+    qtyRight: number;
     quantity: number;
     remark?: string;
 }): OrderItem {
@@ -109,6 +111,8 @@ export function createHandleOrderItem(params: {
         model: params.spec || '-',
         type: params.type || '拉手',
         spec: params.spec || '-',
+        quantity_left: params.qtyLeft,
+        quantity_right: params.qtyRight,
         quantity: params.quantity,
         unit: '付',
         remark: params.remark || ''
@@ -120,7 +124,7 @@ export function findMissingCategoryFields(category: string, items: OrderItem[]) 
         '包装': ['supplier', 'internal_name', 'external_name', 'spec', 'mb', 'quantity'],
         '锁芯': ['supplier', 'type', 'eccentricity', 'quantity'],
         '锁叉': ['supplier', 'type', 'spec', 'quantity'],
-        '拉手': ['supplier', 'type', 'spec', 'quantity']
+        '拉手': ['supplier', 'type', 'spec', 'quantity_left', 'quantity_right', 'quantity']
     };
     const required = requiredByCategory[category];
     if (!required) return [];

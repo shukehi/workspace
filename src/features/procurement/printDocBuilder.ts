@@ -308,6 +308,7 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
   }
 
   if (category === 'lock' || category === 'handle') {
+    const qty = resolveLeftRightQty(item);
     return {
       supplier: String(item?.supplier || source.supplier || '未分类'),
       internal_name: '-',
@@ -317,9 +318,9 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
       spec: String(item?.spec || item?.model || '-'),
       mb: String(item?.mb || item?.orientation || '-'),
       eccentricity: String(item?.eccentricity || '-'),
-      qtyLeft: 0,
-      qtyRight: 0,
-      quantity: Number(item?.quantity || 0),
+      qtyLeft: category === 'handle' ? Number(qty.left || 0) : 0,
+      qtyRight: category === 'handle' ? Number(qty.right || 0) : 0,
+      quantity: category === 'handle' ? Number(qty.left || 0) + Number(qty.right || 0) : Number(item?.quantity || 0),
       unit: String(item?.unit || (category === 'handle' ? '付' : '个')),
       remark: String(item?.remark || ''),
     };
@@ -397,12 +398,13 @@ function getCellValue(item: NormalizedItem, field: string, rowNumber: number, ca
 }
 
 function buildTotalRow(category: PrintCategory, fields: string[], items: NormalizedItem[]): ProcurementDocRow {
-  if (category === 'packaging') {
+  if (category === 'packaging' || category === 'handle') {
     const totalLeft = items.reduce((sum, item) => sum + Number(item.qtyLeft || 0), 0);
     const totalRight = items.reduce((sum, item) => sum + Number(item.qtyRight || 0), 0);
+    const labelColspan = category === 'packaging' ? 4 : 3;
     const values: Record<string, string | number> = {
       __label: '合计',
-      __labelColspan: 4,
+      __labelColspan: labelColspan,
       qtyLeft: totalLeft,
       qtyRight: totalRight,
     };

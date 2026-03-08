@@ -24,6 +24,8 @@ export function buildHandleGroups(ctx: RuleContext): SupplierGroup[] {
       supplier,
       type: handle.type || '拉手',
       spec: handle.spec || '-',
+      qtyLeft: Number(handle.quantityLeft || 0),
+      qtyRight: Number(handle.quantityRight || 0),
       quantity: Number(handle.quantity || 0),
       remark: handle.remark || '',
     }));

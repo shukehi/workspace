@@ -60,7 +60,8 @@
         { "key": "no", "label": "序号", "align": "center", "inputType": "number", "semantic": "index" },
         { "key": "type", "label": "产品名称", "align": "left", "inputType": "text", "semantic": "name" },
         { "key": "spec", "label": "规格", "align": "left", "inputType": "text", "semantic": "specLike" },
-        { "key": "quantity", "label": "数量", "align": "center", "inputType": "number", "semantic": "quantity" },
+        { "key": "qtyLeft", "label": "左数量", "align": "center", "inputType": "number", "semantic": "quantity" },
+        { "key": "qtyRight", "label": "右数量", "align": "center", "inputType": "number", "semantic": "quantity" },
         { "key": "unit", "label": "单位", "align": "center", "inputType": "text", "semantic": "unit" },
         { "key": "remark", "label": "备注", "align": "left", "inputType": "text", "semantic": "remark" }
       ]

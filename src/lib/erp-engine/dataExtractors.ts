@@ -29,6 +29,8 @@ type HandleResultRow = {
     type: string;
     spec: string;
     remark: string;
+    quantityLeft: number;
+    quantityRight: number;
     quantity: number;
 };
 
@@ -589,6 +591,8 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
     const append = (row: HandleResultRow) => {
         const key = `${row.supplier}|${row.type}|${row.spec}|${row.remark}`;
         if (handleMap[key]) {
+            handleMap[key].quantityLeft += row.quantityLeft;
+            handleMap[key].quantityRight += row.quantityRight;
             handleMap[key].quantity += row.quantity;
             return;
         }
@@ -620,6 +624,8 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
                 type: manualReviewLabel,
                 spec: accessoryPack || '-',
                 remark: `待人工处理：${pendingReason || '规则缺失'}`,
+                quantityLeft: qtyPair.left,
+                quantityRight: qtyPair.right,
                 quantity: totalQty
             });
             return;
@@ -636,6 +642,8 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
                 type: manualReviewLabel,
                 spec: accessoryPack,
                 remark: `待人工处理：供应商名称缺失(${handleName}/${activity === 'double' ? '双活' : '单活'})`,
+                quantityLeft: qtyPair.left,
+                quantityRight: qtyPair.right,
                 quantity: totalQty
             });
             return;
@@ -646,6 +654,8 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
             type: vendorName,
             spec: accessoryPack,
             remark: '',
+            quantityLeft: qtyPair.left,
+            quantityRight: qtyPair.right,
             quantity: totalQty
         });
     });
