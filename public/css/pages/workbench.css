@@ -960,7 +960,7 @@
 
 .config-table th {
     background: transparent;
-    color: var(--primary);
+    color: inherit;
     text-align: left;
     white-space: nowrap;
 }
@@ -980,7 +980,7 @@
 .config-input {
     background: transparent;
     border: none;
-    color: var(--text-main);
+    color: inherit;
     width: 100%;
     font-family: var(--font-mono);
     font-size: 0.85rem;
@@ -994,7 +994,7 @@
     outline: none;
     /* Removed outline */
     background: white;
-    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+    box-shadow: none;
     /* Soft shadow focus */
 }
 
@@ -1010,7 +1010,7 @@
 /* BOM Editing specific */
 .bom-row {
     font-size: 0.9em;
-    color: var(--text-dim);
+    color: inherit;
     border-bottom: 1px solid var(--border-light);
     background: white;
     transition: background 0.2s;
@@ -1090,7 +1090,7 @@
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--text-tertiary);
-    background: var(--bg-tertiary);
+    background: transparent;
     padding: 8px 12px;
     margin-top: 10px;
     margin-bottom: 5px;
@@ -1122,18 +1122,18 @@
 }
 
 .formula-item:hover {
-    background: var(--bg-hover);
+    background: white;
     transform: translateX(2px);
     border-color: var(--border-light);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .formula-item.active {
-    background: var(--bg-primary);
+    background: white;
     color: white;
     font-weight: 600;
-    box-shadow: 0 4px 10px rgba(var(--primary-rgb), 0.2);
-    border: 1px solid var(--border-dark);
+    box-shadow: none;
+    border: 1px solid transparent;
 }
 
 .formula-item .item-meta {
@@ -1299,7 +1299,7 @@
     align-items: center;
     margin-bottom: 15px;
     padding: 10px;
-    background: var(--bg-tertiary);
+    background: transparent;
     border: 1px dashed var(--border-light);
 }
 
@@ -1326,8 +1326,8 @@
 
 .inline-input:focus,
 .inline-input:hover {
-    background: var(--bg-primary);
-    border-bottom: 1px dashed var(--border-dark);
+    background: transparent;
+    border-bottom: 1px solid transparent;
 }
 
 .inline-input.number {
@@ -1336,7 +1336,7 @@
 }
 
 .add-row {
-    background: var(--bg-tertiary);
+    background: transparent;
 }
 
 .add-row td {
@@ -1348,7 +1348,7 @@
     display: flex;
     height: 100%;
     border: 1px solid var(--border-light);
-    background: var(--bg-secondary);
+    background: transparent;
 }
 
 /* Config Sidebar */
@@ -1357,13 +1357,13 @@
     border-right: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
-    background: var(--bg-tertiary);
+    background: transparent;
 }
 
 .full-width-input {
     width: 100%;
     padding: 6px 10px;
-    background: var(--bg-primary);
+    background: transparent;
     border: 1px solid var(--border-light);
     color: var(--text-primary);
     font-family: var(--font-mono);
@@ -1384,7 +1384,7 @@
     flex: 1;
     padding: 20px;
     overflow-y: auto;
-    background: var(--bg-secondary);
+    background: transparent;
 }
 
 .formula-detail {
@@ -1421,7 +1421,7 @@
     width: 100%;
     padding: 8px;
     background: transparent;
-    border: 1px dashed var(--border-dark);
+    border: none;
     color: var(--text-secondary);
     cursor: pointer;
     font-family: var(--font-mono);
@@ -1432,7 +1432,7 @@
 .btn-dashed:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
-    background: var(--bg-tertiary);
+    background: transparent;
 }
 
 /* Pagination Controls */
@@ -1449,7 +1449,7 @@
 /* ==================== Enhanced BOM Detail Styles ==================== */
 
 .bom-row:hover {
-    background: var(--bg-hover);
+    background: white;
 }
 
 /* Material Type Tag */

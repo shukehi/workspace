@@ -64,13 +64,13 @@
 
 /* Button Variants */
 .sm-btn-secondary {
-    background: var(--bg-secondary);
+    background: white;
     color: var(--text-primary);
     border: 1px solid var(--border-color);
 }
 
 .sm-btn-secondary:hover {
-    background: var(--bg-tertiary);
+    background: #F9FAFB;
     border-color: var(--primary-color);
     color: var(--primary-color);
 }

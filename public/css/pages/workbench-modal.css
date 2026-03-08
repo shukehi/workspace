@@ -106,7 +106,7 @@
 
 .category-item:hover {
     border-color: var(--accent-color);
-    background: rgba(var(--accent-rgb), 0.05);
+    background: var(--bg-color);
 }
 
 .category-item input[type="checkbox"] {
@@ -168,8 +168,8 @@
 }
 
 .btn-primary:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
+    background: var(--accent-color);
+    border-color: var(--accent-color);
 }
 
 /* ==================== Orders List Styles ==================== */
@@ -205,7 +205,7 @@
 }
 
 .orders-table tbody tr:hover {
-    background: rgba(var(--accent-rgb), 0.05);
+    background: transparent;
 }
 
 .orders-table td {
