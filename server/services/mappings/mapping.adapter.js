@@ -7,6 +7,8 @@ const DEFAULT_HANDLE_UNMATCHED_SUPPLIER = '待人工处理';
 const DEFAULT_HANDLE_MANUAL_REVIEW_LABEL = '未匹配拉手(待人工处理)';
 const DEFAULT_HANDLE_SINGLE_KEYWORDS = ['单活'];
 const DEFAULT_HANDLE_DOUBLE_KEYWORDS = ['双活'];
+const DEFAULT_HANDLE_EXPORT_CUSTOMER_KEYWORDS = ['三部'];
+const DEFAULT_HANDLE_EXPORT_ACTIVITY = 'double';
 const DEFAULT_HANDLE_THICKNESS_PACKS = {
     '5': '5公分配件包',
     '7': '7公分配件包',
@@ -353,6 +355,13 @@ function adaptHandleMapping(value) {
             const keywords = adaptStringList(record.doubleKeywords);
             return keywords.length > 0 ? keywords : [...DEFAULT_HANDLE_DOUBLE_KEYWORDS];
         })(),
+        exportCustomerKeywords: (() => {
+            const keywords = adaptStringList(record.exportCustomerKeywords);
+            return keywords.length > 0 ? keywords : [...DEFAULT_HANDLE_EXPORT_CUSTOMER_KEYWORDS];
+        })(),
+        defaultActivityForExport: toTrimmedString(record.defaultActivityForExport) === 'single'
+            ? 'single'
+            : DEFAULT_HANDLE_EXPORT_ACTIVITY,
         thicknessAccessoryPacks: { ...DEFAULT_HANDLE_THICKNESS_PACKS, ...packs },
         mappings: adaptHandleMappings(record.mappings)
     };

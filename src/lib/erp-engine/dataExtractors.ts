@@ -550,6 +550,12 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
     const doubleKeywords = Array.isArray(HANDLE_MAPPING.doubleKeywords) && HANDLE_MAPPING.doubleKeywords.length > 0
         ? HANDLE_MAPPING.doubleKeywords.map((item: unknown) => toText(item)).filter(Boolean)
         : ['双活'];
+    const exportCustomerKeywords = Array.isArray(HANDLE_MAPPING.exportCustomerKeywords) && HANDLE_MAPPING.exportCustomerKeywords.length > 0
+        ? HANDLE_MAPPING.exportCustomerKeywords.map((item: unknown) => toText(item)).filter(Boolean)
+        : ['三部'];
+    const defaultActivityForExport = toText(HANDLE_MAPPING.defaultActivityForExport) === 'single'
+        ? 'single'
+        : 'double';
 
     const thicknessAccessoryPacks = HANDLE_MAPPING.thicknessAccessoryPacks && typeof HANDLE_MAPPING.thicknessAccessoryPacks === 'object'
         ? HANDLE_MAPPING.thicknessAccessoryPacks
@@ -587,6 +593,11 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         if (hasSingle) return 'single';
         return null;
     };
+    const isExportCustomer = (customerName: unknown) => {
+        const name = toText(customerName);
+        if (!name) return false;
+        return exportCustomerKeywords.some((keyword: string) => keyword && name.includes(keyword));
+    };
     const activityLabel = (activity: 'single' | 'double') => activity === 'double' ? '双活' : '单活';
 
     const append = (row: HandleResultRow) => {
@@ -609,7 +620,10 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         if (totalQty <= 0) return;
 
         const thickness = toText(item.mshd);
-        const activity = detectActivity(item);
+        let activity = detectActivity(item);
+        if (!activity && isExportCustomer(orderInfo.customerName)) {
+            activity = defaultActivityForExport;
+        }
         const accessoryPack = toText(thicknessAccessoryPacks[thickness]);
 
         const mapping = mappings[handleName] || normalizedMapping.get(normalizeHandleKey(handleName));

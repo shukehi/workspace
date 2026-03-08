@@ -8,6 +8,10 @@
   "doubleKeywords": [
     "双活"
   ],
+  "exportCustomerKeywords": [
+    "三部"
+  ],
+  "defaultActivityForExport": "double",
   "thicknessAccessoryPacks": {
     "5": "5公分配件包",
     "7": "7公分配件包",

@@ -96,6 +96,8 @@ export interface HandleMappingConfig {
   manualReviewLabel: string;
   singleKeywords: string[];
   doubleKeywords: string[];
+  exportCustomerKeywords: string[];
+  defaultActivityForExport: 'single' | 'double';
   thicknessAccessoryPacks: Record<string, string>;
   mappings: Record<string, HandleMappingEntry>;
 }

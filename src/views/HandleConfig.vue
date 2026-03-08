@@ -28,6 +28,8 @@ const unmatchedSupplier = ref('');
 const manualReviewLabel = ref('');
 const singleKeywords = ref<KeywordRow[]>([]);
 const doubleKeywords = ref<KeywordRow[]>([]);
+const exportCustomerKeywords = ref<KeywordRow[]>([]);
+const defaultActivityForExport = ref<'single' | 'double'>('double');
 const thicknessPacks = ref<Record<string, string>>({
   '5': '',
   '7': '',
@@ -68,6 +70,8 @@ const payload = computed<HandleMappingConfig>(() => {
     manualReviewLabel: manualReviewLabel.value,
     singleKeywords: singleKeywords.value.map((item) => item.value),
     doubleKeywords: doubleKeywords.value.map((item) => item.value),
+    exportCustomerKeywords: exportCustomerKeywords.value.map((item) => item.value),
+    defaultActivityForExport: defaultActivityForExport.value,
     thicknessAccessoryPacks: { ...thicknessPacks.value },
     mappings: mappingObj
   };
@@ -117,6 +121,9 @@ function resetWithPayload(data: HandleMappingConfig) {
 
   doubleKeywords.value = (data.doubleKeywords || []).map((item) => makeKeywordRow(item));
   if (doubleKeywords.value.length === 0) doubleKeywords.value = [makeKeywordRow('')];
+  exportCustomerKeywords.value = (data.exportCustomerKeywords || []).map((item) => makeKeywordRow(item));
+  if (exportCustomerKeywords.value.length === 0) exportCustomerKeywords.value = [makeKeywordRow('三部')];
+  defaultActivityForExport.value = data.defaultActivityForExport === 'single' ? 'single' : 'double';
 
   thicknessPacks.value = {
     '5': data.thicknessAccessoryPacks?.['5'] || '',
@@ -154,6 +161,10 @@ function addSingleKeyword() {
 
 function addDoubleKeyword() {
   doubleKeywords.value.push(makeKeywordRow(''));
+}
+
+function addExportCustomerKeyword() {
+  exportCustomerKeywords.value.push(makeKeywordRow(''));
 }
 
 function removeKeyword(list: KeywordRow[], id: string) {
@@ -243,6 +254,38 @@ onMounted(editor.load);
           <div v-for="row in doubleKeywords" :key="row.id" class="flex items-center gap-2">
             <Input v-model="row.value" placeholder="例如：双活" />
             <Button variant="ghost" size="sm" @click="doubleKeywords = removeKeyword(doubleKeywords, row.id)">删除</Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>外贸默认规则</CardTitle>
+        <CardDescription>当未识别到单活/双活时，若客户名称命中关键词则使用默认活动类型。</CardDescription>
+      </CardHeader>
+      <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium">外贸客户关键词</label>
+            <Button variant="outline" size="sm" @click="addExportCustomerKeyword">新增</Button>
+          </div>
+          <div v-for="row in exportCustomerKeywords" :key="row.id" class="flex items-center gap-2">
+            <Input v-model="row.value" placeholder="例如：三部" />
+            <Button variant="ghost" size="sm" @click="exportCustomerKeywords = removeKeyword(exportCustomerKeywords, row.id)">删除</Button>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-medium">外贸默认活动类型</label>
+          <select
+            v-model="defaultActivityForExport"
+            class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="double">双活</option>
+            <option value="single">单活</option>
+          </select>
+          <div class="text-xs text-muted-foreground">
+            仅在订单文本未识别到单活/双活时生效。
           </div>
         </div>
       </CardContent>

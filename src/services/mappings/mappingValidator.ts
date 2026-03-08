@@ -446,6 +446,9 @@ export function validateHandleMapping(value: unknown): MappingValidationIssue[] 
   if (asRecord(value).doubleKeywords !== undefined && !Array.isArray(asRecord(value).doubleKeywords)) {
     issues.push(createIssue('doubleKeywords', 'invalid-type', 'doubleKeywords 必须是数组'));
   }
+  if (asRecord(value).exportCustomerKeywords !== undefined && !Array.isArray(asRecord(value).exportCustomerKeywords)) {
+    issues.push(createIssue('exportCustomerKeywords', 'invalid-type', 'exportCustomerKeywords 必须是数组'));
+  }
 
   const keywordSeen = new Set<string>();
   adapted.singleKeywords.forEach((keyword, index) => {
@@ -473,6 +476,24 @@ export function validateHandleMapping(value: unknown): MappingValidationIssue[] 
     }
     keywordSeen.add(normalized);
   });
+
+  const exportKeywordSeen = new Set<string>();
+  adapted.exportCustomerKeywords.forEach((keyword, index) => {
+    if (!keyword) {
+      issues.push(createIssue(`exportCustomerKeywords[${index}]`, 'required', 'exportCustomerKeywords 不能为空字符串'));
+      return;
+    }
+    const normalized = normalizeHandleMappingKey(keyword);
+    if (exportKeywordSeen.has(normalized)) {
+      issues.push(createIssue(`exportCustomerKeywords[${index}]`, 'duplicate', 'exportCustomerKeywords 存在重复值'));
+      return;
+    }
+    exportKeywordSeen.add(normalized);
+  });
+
+  if (!['single', 'double'].includes(adapted.defaultActivityForExport)) {
+    issues.push(createIssue('defaultActivityForExport', 'invalid-value', 'defaultActivityForExport 必须为 single 或 double'));
+  }
 
   if (asRecord(value).thicknessAccessoryPacks !== undefined && !isPlainObject(asRecord(value).thicknessAccessoryPacks)) {
     issues.push(createIssue('thicknessAccessoryPacks', 'invalid-type', 'thicknessAccessoryPacks 必须是对象'));
