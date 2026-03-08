@@ -133,7 +133,10 @@ onBeforeUnmount(() => {
     <div class="mb-6 border rounded-lg p-4">
       <h1 class="text-xl font-semibold text-center mb-5">采购订单</h1>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm">
+      <div
+        class="grid grid-cols-1 gap-5 text-sm order-sheet-info-grid"
+        :class="isPackaging ? 'md:grid-cols-3 order-sheet-info-grid-packaging' : 'md:grid-cols-2 order-sheet-info-grid-default'"
+      >
         <div class="space-y-3">
           <div class="flex items-center gap-2">
             <Label class="min-w-16">客户名称:</Label>
@@ -146,7 +149,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div class="space-y-3">
+        <div v-if="isPackaging" class="space-y-3">
           <div class="flex items-center gap-2">
             <Label class="min-w-16">内部名称:</Label>
             <Input v-if="isEditMode && isPackaging" v-model="order.metadata!.internal_name" class="h-8 text-xs" />
@@ -206,13 +209,13 @@ onBeforeUnmount(() => {
             <th
               v-for="column in schema.columns"
               :key="`head-${column.key}`"
-              class="border-r p-2 relative resizable-th"
+              class="border-r last:border-r-0 p-2 relative resizable-th"
               :class="getAlignClass(column.align)"
             >
               {{ column.label }}
               <div
+                v-if="isEditMode"
                 class="col-resize-handle"
-                :class="!isEditMode ? 'disabled' : ''"
                 @mousedown.stop.prevent="startResize(column.key, $event)"
                 @dblclick.stop.prevent="resetSingleColumnWidth(column.key)"
               />
@@ -224,7 +227,7 @@ onBeforeUnmount(() => {
             <td
               v-for="column in schema.columns"
               :key="`cell-${idx}-${column.key}`"
-              class="border-r p-0"
+              class="border-r last:border-r-0 p-0"
               :class="getAlignClass(column.align)"
             >
               <template v-if="column.key === 'no'">
@@ -253,7 +256,7 @@ onBeforeUnmount(() => {
             </td>
           </tr>
           <tr v-if="isPackaging && items.length < 5" v-for="i in (5 - items.length)" :key="`empty-${i}`">
-            <td v-for="column in schema.columns" :key="`empty-cell-${i}-${column.key}`" class="border-r p-2">&nbsp;</td>
+            <td v-for="column in schema.columns" :key="`empty-cell-${i}-${column.key}`" class="border-r last:border-r-0 p-2">&nbsp;</td>
           </tr>
         </tbody>
       </table>

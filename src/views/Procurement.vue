@@ -22,8 +22,10 @@ import {
   CheckCircle,
   Activity,
   FileSpreadsheet,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-vue-next';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import type { Order } from '@/types/order';
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 
@@ -36,6 +38,7 @@ const selectedRows = ref<Order[]>([]);
 
 const categories = [
   { id: 'ALL', label: '全部订单' },
+  { id: '颜色', label: '颜色配方' },
   { id: '锁芯', label: '锁芯' },
   { id: '锁叉', label: '锁叉' },
   { id: '包装', label: '包装材料' },
@@ -128,15 +131,55 @@ const handleStatusUpdate = async (order: Order, status: Order['status']) => {
   }
 };
 
-const handleDelete = async (order: Order) => {
-  if (confirm(`确定要删除订单 ${order.order_no} 吗？`)) {
-    try {
-      await store.deleteOrder(order.id);
-      toast({ title: '订单已删除', variant: 'success' });
-    } catch {
-      toast({ title: '删除失败', variant: 'destructive' });
+const confirmState = ref({
+  show: false,
+  title: '',
+  message: '',
+  variant: 'danger' as 'danger' | 'warning' | 'info' | 'question',
+  confirmText: '确定',
+  onConfirm: () => {}
+});
+
+const handleDelete = (order: Order) => {
+  confirmState.value = {
+    show: true,
+    title: '删除确认',
+    message: `您确定要永久删除订单 <span class="font-bold text-foreground">${order.order_no}</span> 吗？此操作将无法还原数据。`,
+    variant: 'danger',
+    confirmText: '确认删除',
+    onConfirm: async () => {
+      try {
+        await store.deleteOrder(order.id);
+        toast({ title: '订单已删除', variant: 'success' });
+      } catch {
+        toast({ title: '删除失败', variant: 'destructive' });
+      } finally {
+        confirmState.value.show = false;
+      }
     }
-  }
+  };
+};
+
+const handleBulkDelete = () => {
+  const count = selectedRows.value.length;
+  confirmState.value = {
+    show: true,
+    title: '批量删除订单',
+    message: `您即将永久删除选中的 ${count} 张采购单。确定要继续吗？`,
+    variant: 'danger',
+    confirmText: '批量删除',
+    onConfirm: async () => {
+      try {
+        await store.bulkDelete(selectedRows.value.map(o => o.id));
+        selectedRows.value = [];
+        toast({ title: '批量删除成功', description: `已移除 ${count} 张订单`, variant: 'success' });
+      } catch {
+        toast({ title: '操作失败', variant: 'destructive' });
+      } finally {
+        confirmState.value.show = false;
+      }
+    }
+  };
 };
 
 const handlePreview = (order: Order) => {
@@ -195,18 +238,8 @@ const onSelectionChange = (rows: any[]) => {
   selectedRows.value = rows;
 };
 
-const handleBulkDelete = async () => {
-  const count = selectedRows.value.length;
-  if (confirm(`⚠️ 确定要批量删除选中的 ${count} 张采购单吗？`)) {
-    try {
-      await store.bulkDelete(selectedRows.value.map(o => o.id));
-      selectedRows.value = [];
-      toast({ title: '批量删除成功', description: `已移除 ${count} 张订单`, variant: 'success' });
-    } catch {
-      toast({ title: '操作失败', variant: 'destructive' });
-    }
-  }
-};
+// Bulk delete logic moved to confirmState handler above
+
 
 const handleBulkStatusUpdate = async (status: Order['status']) => {
   const count = selectedRows.value.length;
@@ -401,5 +434,15 @@ onMounted(() => {
       :order="previewOrder"
       @edit="handlePreviewEdit"
     />
+
+    <ConfirmDialog
+      v-model:open="confirmState.show"
+      :title="confirmState.title"
+      :variant="confirmState.variant"
+      :confirm-text="confirmState.confirmText"
+      @confirm="confirmState.onConfirm"
+    >
+      <div v-html="confirmState.message"></div>
+    </ConfirmDialog>
   </div>
 </template>

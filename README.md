@@ -75,8 +75,14 @@ cp .env.example .env
 - `PORT`：后端端口（默认 `3000`）
 - `ERP_BASE_URL`：ERP 服务地址
 - `NODE_ENV`：运行环境
+- `PRINT_RENDER_BASE_URL`：PDF/打印统一渲染基地址（示例：`https://your-frontend-domain.example.com`）
 - `DB_STORAGE`：SQLite 文件路径（测试隔离时可覆盖）
 - `VITE_USE_MOCK`：是否启用前端 Mock（`true`/`false`）
+
+说明：
+
+- 生产环境下，`PRINT_RENDER_BASE_URL` 为必填；未配置时 `/api/pdf/generate` 会返回错误。
+- 非生产环境会优先使用请求来源（`Origin/Referer`），仅在缺失时回退本地地址。
 
 ## 本地开发
 
@@ -97,6 +103,12 @@ npm run server:dev
 ```bash
 npm run build
 npm start
+```
+
+生产环境示例（推荐）：
+
+```bash
+NODE_ENV=production PRINT_RENDER_BASE_URL=https://your-frontend-domain.example.com npm run server:prod
 ```
 
 ## 质量门禁

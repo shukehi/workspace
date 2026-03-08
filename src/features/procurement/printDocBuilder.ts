@@ -64,11 +64,23 @@ const PRINT_PAGE_HORIZONTAL_PADDING_MM = 16; // 8mm left + 8mm right
 const PX_PER_MM = 96 / 25.4;
 const PRINT_TABLE_SAFETY_PX = 8;
 const MIN_PRINT_COLUMN_WIDTH_PX = 36;
+const SALES_DEPARTMENT_KEYWORDS = ['一部', '二部', '三部', '六部'] as const;
 
 export const PRINT_DOC_MAX_TABLE_WIDTH_PX = Math.max(
   360,
   Math.floor((A4_PAGE_WIDTH_MM - PRINT_PAGE_HORIZONTAL_PADDING_MM) * PX_PER_MM - PRINT_TABLE_SAFETY_PX)
 );
+
+function pickSalesDepartmentLabel(rawCustomerName: unknown): string {
+  const name = String(rawCustomerName || '').trim();
+  if (!name) return '';
+
+  const bracketMatch = name.match(/[（(]\s*(一部|二部|三部|六部)\s*[）)]/);
+  if (bracketMatch?.[1]) return bracketMatch[1];
+
+  const directMatch = SALES_DEPARTMENT_KEYWORDS.find((keyword) => name.includes(keyword));
+  return directMatch || '';
+}
 
 function parseQuantityPair(qtyString: unknown) {
   if (qtyString === undefined || qtyString === null) {
@@ -216,13 +228,14 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
 
   const poNumber = String(input.poNumber || order.order_no || order.code || '').trim();
 
-  const customerName = String(
+  const rawCustomerName = String(
     order.customerName
     || order.customer_name
     || metadata.customer_name
     || order.supplier
     || ''
   ).trim();
+  const customerName = pickSalesDepartmentLabel(rawCustomerName) || rawCustomerName;
 
   const orderRemark = String(
     order.remark
@@ -307,7 +320,8 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
     };
   }
 
-  if (category === 'lock') {
+  if (category === 'lock' || category === 'handle') {
+    const qty = resolveLeftRightQty(item);
     return {
       supplier: String(item?.supplier || source.supplier || '未分类'),
       internal_name: '-',
@@ -317,10 +331,10 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
       spec: String(item?.spec || item?.model || '-'),
       mb: String(item?.mb || item?.orientation || '-'),
       eccentricity: String(item?.eccentricity || '-'),
-      qtyLeft: 0,
-      qtyRight: 0,
-      quantity: Number(item?.quantity || 0),
-      unit: String(item?.unit || '个'),
+      qtyLeft: category === 'handle' ? Number(qty.left || 0) : 0,
+      qtyRight: category === 'handle' ? Number(qty.right || 0) : 0,
+      quantity: category === 'handle' ? Number(qty.left || 0) + Number(qty.right || 0) : Number(item?.quantity || 0),
+      unit: String(item?.unit || (category === 'handle' ? '付' : '个')),
       remark: String(item?.remark || ''),
     };
   }
@@ -386,18 +400,24 @@ function getCellValue(item: NormalizedItem, field: string, rowNumber: number, ca
   if (field === 'type') return item.type || item.name || '-';
   if (field === 'eccentricity') return item.eccentricity || '-';
   if (field === 'quantity') return Number(item.quantity || 0);
-  if (field === 'unit') return item.unit || (category === 'cylinder' ? '套' : '个');
+  if (field === 'unit') {
+    if (item.unit) return item.unit;
+    if (category === 'cylinder') return '套';
+    if (category === 'handle') return '付';
+    return '个';
+  }
   if (field === 'remark') return category === 'packaging' ? '' : (item.remark || '');
   return '-';
 }
 
 function buildTotalRow(category: PrintCategory, fields: string[], items: NormalizedItem[]): ProcurementDocRow {
-  if (category === 'packaging') {
+  if (category === 'packaging' || category === 'handle') {
     const totalLeft = items.reduce((sum, item) => sum + Number(item.qtyLeft || 0), 0);
     const totalRight = items.reduce((sum, item) => sum + Number(item.qtyRight || 0), 0);
+    const labelColspan = category === 'packaging' ? 4 : 3;
     const values: Record<string, string | number> = {
       __label: '合计',
-      __labelColspan: 4,
+      __labelColspan: labelColspan,
       qtyLeft: totalLeft,
       qtyRight: totalRight,
     };

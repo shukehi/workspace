@@ -5,6 +5,37 @@ function normalizeOrderRemark(remark) {
     return String(remark);
 }
 
+function normalizeDateField(value) {
+    if (value === undefined || value === null || value === '') return null;
+    if (value instanceof Date) return value.toISOString();
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
+}
+
+function serializeOrderItem(item) {
+    if (!item) return item;
+    return typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
+}
+
+function serializeOrder(order) {
+    if (!order) return null;
+
+    const plain = typeof order.get === 'function'
+        ? order.get({ plain: true })
+        : { ...order };
+
+    return {
+        ...plain,
+        total_amount: Number.isFinite(Number(plain.total_amount)) ? Number(plain.total_amount) : 0,
+        created_at: normalizeDateField(plain.created_at) || new Date().toISOString(),
+        updated_at: normalizeDateField(plain.updated_at),
+        delivery_date: normalizeDateField(plain.delivery_date),
+        items: Array.isArray(plain.items) ? plain.items.map(serializeOrderItem) : []
+    };
+}
+
 function normalizeOrderForLog(order, index) {
     return {
         index,
@@ -36,13 +67,14 @@ class OrderService {
             console.warn('[OrderService] getAllOrders found records with missing created_at:', invalidOrders);
         }
 
-        return orders;
+        return orders.map(serializeOrder);
     }
 
     async getOrderById(id) {
-        return await Order.findByPk(id, {
+        const order = await Order.findByPk(id, {
             include: [{ model: OrderItem, as: 'items' }]
         });
+        return serializeOrder(order);
     }
 
     async createOrder(data) {
@@ -77,7 +109,18 @@ class OrderService {
             }
 
             await transaction.commit();
-            return await this.getOrderById(order.id);
+            const persisted = await this.getOrderById(order.id);
+            if (persisted) return persisted;
+
+            console.warn('[OrderService] createOrder fallback: persisted order not found after commit', {
+                id: order.id,
+                order_no: data.order_no
+            });
+
+            return serializeOrder({
+                ...order.get({ plain: true }),
+                items: Array.isArray(data.items) ? data.items : []
+            });
         } catch (error) {
             await transaction.rollback();
             throw error;
@@ -120,7 +163,19 @@ class OrderService {
             }
 
             await transaction.commit();
-            return await this.getOrderById(id);
+            const persisted = await this.getOrderById(id);
+            if (persisted) return persisted;
+
+            console.warn('[OrderService] updateOrder fallback: persisted order not found after commit', {
+                id,
+                order_no: order.order_no
+            });
+
+            return serializeOrder({
+                ...order.get({ plain: true }),
+                created_at: data.created_at !== undefined ? data.created_at : order.created_at,
+                items: Array.isArray(data.items) ? data.items : await OrderItem.findAll({ where: { order_id: id } })
+            });
         } catch (error) {
             await transaction.rollback();
             throw error;

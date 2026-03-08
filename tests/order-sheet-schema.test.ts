@@ -14,8 +14,13 @@ test('schema: cylinder columns include unit before remark', () => {
   assert.equal(schema.columns.find((c) => c.key === 'eccentricity')?.label, '规格');
 });
 
+test('schema: handle columns include left/right quantity before unit', () => {
+  const schema = getSheetSchema('handle');
+  assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark']);
+});
+
 test('schema: all spec-like fields use 规格 label across categories', () => {
-  const categories = ['packaging', 'cylinder', 'lock', 'hardware'] as const;
+  const categories = ['packaging', 'cylinder', 'handle', 'lock', 'hardware'] as const;
   categories.forEach((category) => {
     const schema = getSheetSchema(category);
     schema.columns

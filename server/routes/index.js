@@ -8,11 +8,13 @@ const apiRoutes = require('./api');
 const config = require('../config');
 const configDataRoutes = require('./configData');
 const formulasConfigRoutes = require('./formulasConfig');
+const mappingsConfigRoutes = require('./mappingsConfig');
 
 const router = express.Router();
 
 // Config Data 路由
 router.use('/api/config/formulas', formulasConfigRoutes);
+router.use('/api/config/mappings', mappingsConfigRoutes);
 router.use('/api/config', configDataRoutes);
 
 // API 路由 (包含代理，放在后面)

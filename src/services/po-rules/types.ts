@@ -1,4 +1,5 @@
 import type { OrderItem } from '@/types/order';
+import type { PackagingMappingConfig } from '@/types/mapping';
 
 export interface SupplierGroup {
   supplierName: string;
@@ -18,7 +19,7 @@ export interface PackagingMatcherPort {
 }
 
 export interface ConfigLoaderPort {
-  getPackagingMapping: () => any;
+  getPackagingMapping: () => PackagingMappingConfig;
 }
 
 export interface SourceStorePort {

@@ -4,7 +4,7 @@ import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
 import { configLoader } from '@/services/configLoader';
 import { calculateMaterialRequirements } from '@/lib/erp-engine/materialDecomposer';
-import { extractCylinderData, extractLockForkData, extractPackagingData } from '@/lib/erp-engine/dataExtractors';
+import { extractCylinderData, extractHandleData, extractLockForkData, extractPackagingData } from '@/lib/erp-engine/dataExtractors';
 import type { ContractHistoryRow } from '@/types/source';
 
 type ContractHistoryListResponse = {
@@ -83,6 +83,7 @@ export const useSourceStore = defineStore('source', () => {
     });
 
     const flatCylinders = computed(() => hardwareRequirements.value?.cylinders || []);
+    const flatHandles = computed(() => hardwareRequirements.value?.handles || []);
     const flatForks = computed(() => hardwareRequirements.value?.lockForks || []);
     const flatPackaging = computed(() => {
         const pkgMap = hardwareRequirements.value?.packaging || {};
@@ -242,6 +243,7 @@ export const useSourceStore = defineStore('source', () => {
 
             const hardwareResult = {
                 cylinders: extractCylinderData(targetItems, currentOrder.value, configLoader.getCylinderMapping()),
+                handles: extractHandleData(targetItems, currentOrder.value, configLoader.getHandleMapping()),
                 lockForks: extractLockForkData(targetItems, currentOrder.value, configLoader.getLockForkMapping()),
                 packaging: extractPackagingData(targetItems, configLoader.getPackagingMapping())
             };
@@ -291,6 +293,7 @@ export const useSourceStore = defineStore('source', () => {
         orderItems,
         flatMaterials,
         flatCylinders,
+        flatHandles,
         flatForks,
         flatPackaging,
         applyContractData,

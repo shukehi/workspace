@@ -1,0 +1,522 @@
+{
+  "basedOnRealOrder": "202408120023",
+  "sourceNote": "当前仓库只有一张真实订单样本；以下 4 个 case 都基于该真实订单最小改造而来，用于覆盖锁芯特殊规则、锁芯副锁规则、锁叉 P66 / 双头与平下档场景。",
+  "cases": [
+    {
+      "id": "derived-cylinder-primary-special-logo",
+      "sourceKind": "derived-from-real-order",
+      "sample": {
+        "code": "DERIVED-CYLINDER-PRIMARY",
+        "customerName": "测试客户（三部）",
+        "remark": "1、门头打Craft标",
+        "list": [
+          {
+            "No": "1",
+            "spec": "960*2050/7/外开外包",
+            "mb": "T型现代边",
+            "qbbc": "1.0/1.0/2.0",
+            "mshd": "10",
+            "sj": "JB-902-5铁头",
+            "fshz": "",
+            "fssx": "",
+            "sx": "ZH-微珠锌合金MAN",
+            "sc": "无",
+            "ml": "",
+            "my": "无",
+            "jl": "4隐形明合页",
+            "bs": "ZX-35-32",
+            "xd": "黑钛金不锈钢双下档",
+            "tc": "蜂窝纸+可见处铝蜂窝",
+            "color": "雅琴色",
+            "pt": "三元乙炳",
+            "bz": "罗曼蒂克",
+            "sxhz": "凸护罩",
+            "fssj": "",
+            "ls": "顾万佳7562拉手",
+            "tyls": "是",
+            "jb": "甲级",
+            "xsbz": "门头打Craft Logo",
+            "productModelName": "雅琴",
+            "qty": "2/1",
+            "price": 0,
+            "amount": 0
+          }
+        ]
+      },
+      "warningIncludes": [],
+      "expected": {
+        "extracted": {
+          "cylinders": [
+            {
+              "supplier": "忠恒",
+              "type": "81AB微珠锌合金锁芯 Craft-MAN标",
+              "eccentricity": "29*52/中心孔偏心",
+              "remark": "钥匙 1+5 英文说明书, (刻 Craft 标)",
+              "quantity": 3
+            }
+          ],
+          "lockForks": [],
+          "packaging": [
+            {
+              "internalName": "罗曼蒂克",
+              "externalName": "罗曼蒂克",
+              "productModelName": "雅琴",
+              "supplierName": "方亮包装",
+              "spec": "960*2050/7/外开外包",
+              "mb": "T型现代边",
+              "totalLeft": 2,
+              "totalRight": 1,
+              "totalQty": 3
+            }
+          ]
+        },
+        "groups": {
+          "packaging": [
+            {
+              "supplierName": "方亮包装",
+              "category": "包装",
+              "itemCount": 1,
+              "items": [
+                {
+                  "supplier": "方亮包装",
+                  "internal_name": "罗曼蒂克",
+                  "external_name": "罗曼蒂克",
+                  "name": "雅琴",
+                  "spec": "960*2050/7/外开外包",
+                  "mb": "T型现代边",
+                  "quantity": 3,
+                  "quantity_left": 2,
+                  "quantity_right": 1
+                }
+              ]
+            }
+          ],
+          "cylinders": [
+            {
+              "supplierName": "忠恒",
+              "category": "锁芯",
+              "itemCount": 1,
+              "items": [
+                {
+                  "supplier": "忠恒",
+                  "type": "81AB微珠锌合金锁芯 Craft-MAN标",
+                  "eccentricity": "29*52/中心孔偏心",
+                  "quantity": 3,
+                  "remark": "钥匙 1+5 英文说明书, (刻 Craft 标)"
+                }
+              ]
+            }
+          ],
+          "lockForks": []
+        },
+        "print": {
+          "packaging": {
+            "pages": 1,
+            "rowsPerPage": [2],
+            "checksum": "9d7660596659f512b1b604dd725dd779c84cb185fa6e31a71d78da14ef873d31"
+          },
+          "cylinder": {
+            "pages": 1,
+            "rowsPerPage": [2],
+            "checksum": "e8cc6ed1ca805456a26368128dcf1cf869a9d0a3471e2de810b62fae3a81653f"
+          },
+          "lockFork": null
+        }
+      }
+    },
+    {
+      "id": "derived-cylinder-secondary-special",
+      "sourceKind": "derived-from-real-order",
+      "sample": {
+        "code": "DERIVED-CYLINDER-SECONDARY",
+        "customerName": "测试客户（六部）",
+        "remark": "",
+        "list": [
+          {
+            "No": "1",
+            "spec": "960*2050/9/内开外包",
+            "mb": "T型现代边",
+            "qbbc": "1.0/1.0/2.0",
+            "mshd": "10",
+            "sj": "JB-902-5铁头",
+            "fshz": "哑黑护罩",
+            "fssx": "铜带菱形旋钮",
+            "sx": "无",
+            "sc": "无",
+            "ml": "",
+            "my": "无",
+            "jl": "4隐形明合页",
+            "bs": "ZX-35-32",
+            "xd": "黑钛金不锈钢双下档",
+            "tc": "蜂窝纸+可见处铝蜂窝",
+            "color": "雅琴色",
+            "pt": "三元乙炳",
+            "bz": "罗曼蒂克",
+            "sxhz": "",
+            "fssj": "",
+            "ls": "顾万佳7562拉手",
+            "tyls": "是",
+            "jb": "甲级",
+            "xsbz": "普通备注",
+            "productModelName": "雅琴",
+            "qty": "1/2",
+            "price": 0,
+            "amount": 0
+          }
+        ]
+      },
+      "warningIncludes": [],
+      "expected": {
+        "extracted": {
+          "cylinders": [
+            {
+              "supplier": "劲佳",
+              "type": "(副) 105铜带菱形旋钮",
+              "eccentricity": "37*68/中心孔偏心",
+              "remark": "旋钮在一边, 5A钥匙",
+              "quantity": 3
+            }
+          ],
+          "lockForks": [],
+          "packaging": [
+            {
+              "internalName": "罗曼蒂克",
+              "externalName": "罗曼蒂克",
+              "productModelName": "雅琴",
+              "supplierName": "方亮包装",
+              "spec": "960*2050/9/内开外包",
+              "mb": "T型现代边",
+              "totalLeft": 1,
+              "totalRight": 2,
+              "totalQty": 3
+            }
+          ]
+        },
+        "groups": {
+          "packaging": [
+            {
+              "supplierName": "方亮包装",
+              "category": "包装",
+              "itemCount": 1,
+              "items": [
+                {
+                  "supplier": "方亮包装",
+                  "internal_name": "罗曼蒂克",
+                  "external_name": "罗曼蒂克",
+                  "name": "雅琴",
+                  "spec": "960*2050/9/内开外包",
+                  "mb": "T型现代边",
+                  "quantity": 3,
+                  "quantity_left": 1,
+                  "quantity_right": 2
+                }
+              ]
+            }
+          ],
+          "cylinders": [
+            {
+              "supplierName": "劲佳",
+              "category": "锁芯",
+              "itemCount": 1,
+              "items": [
+                {
+                  "supplier": "劲佳",
+                  "type": "(副) 105铜带菱形旋钮",
+                  "eccentricity": "37*68/中心孔偏心",
+                  "quantity": 3,
+                  "remark": "旋钮在一边, 5A钥匙"
+                }
+              ]
+            }
+          ],
+          "lockForks": []
+        },
+        "print": {
+          "packaging": {
+            "pages": 1,
+            "rowsPerPage": [2],
+            "checksum": "38614152def2342e17ddf5560431be4e0511efb06df1001b30f5f0e73972f092"
+          },
+          "cylinder": {
+            "pages": 1,
+            "rowsPerPage": [2],
+            "checksum": "6cb320c4dec8d47a3e05185c9285cd9c11d999053d911fd52da6eee10827a258"
+          },
+          "lockFork": null
+        }
+      }
+    },
+    {
+      "id": "derived-lockfork-p66-hanging-feet",
+      "sourceKind": "derived-from-real-order",
+      "sample": {
+        "code": "DERIVED-LOCKFORK-P66",
+        "customerName": "罗曼蒂克（六部）",
+        "remark": "1、下档冲OD钢印",
+        "list": [
+          {
+            "No": "1",
+            "spec": "960*2050/7/内开外包",
+            "mb": "T型现代边",
+            "qbbc": "1.0/1.0/2.0",
+            "mshd": "10",
+            "sj": "SD-9030（6607大锁）",
+            "fshz": "",
+            "fssx": "",
+            "sx": "无",
+            "sc": "单头锁叉",
+            "ml": "",
+            "my": "无",
+            "jl": "4隐形明合页",
+            "bs": "ZX-35-32",
+            "xd": "黑钛金不锈钢双下档",
+            "tc": "蜂窝纸+可见处铝蜂窝",
+            "color": "雅琴色",
+            "pt": "三元乙炳",
+            "bz": "罗曼蒂克",
+            "sxhz": "",
+            "fssj": "",
+            "ls": "顾万佳7562拉手",
+            "tyls": "是",
+            "jb": "甲级",
+            "xsbz": "吊脚5mm",
+            "productModelName": "雅琴",
+            "qty": "2/1",
+            "price": 0,
+            "amount": 0
+          }
+        ]
+      },
+      "warningIncludes": [],
+      "expected": {
+        "extracted": {
+          "cylinders": [],
+          "lockForks": [
+            {
+              "supplier": "应志友",
+              "type": "单头锁叉 T型 - 上头 P66",
+              "spec": "570*301 = 871",
+              "remark": "7CM 2050, 吊脚0mm",
+              "quantity": 3
+            },
+            {
+              "supplier": "应志友",
+              "type": "单头锁叉 T型 - 下头 P66",
+              "spec": "570*313 + 35 = 918",
+              "remark": "7CM 2050, 吊脚0mm",
+              "quantity": 3
+            }
+          ],
+          "packaging": [
+            {
+              "internalName": "罗曼蒂克",
+              "externalName": "罗曼蒂克",
+              "productModelName": "雅琴",
+              "supplierName": "方亮包装",
+              "spec": "960*2050/7/内开外包",
+              "mb": "T型现代边",
+              "totalLeft": 2,
+              "totalRight": 1,
+              "totalQty": 3
+            }
+          ]
+        },
+        "groups": {
+          "packaging": [
+            {
+              "supplierName": "方亮包装",
+              "category": "包装",
+              "itemCount": 1,
+              "items": [
+                {
+                  "supplier": "方亮包装",
+                  "internal_name": "罗曼蒂克",
+                  "external_name": "罗曼蒂克",
+                  "name": "雅琴",
+                  "spec": "960*2050/7/内开外包",
+                  "mb": "T型现代边",
+                  "quantity": 3,
+                  "quantity_left": 2,
+                  "quantity_right": 1
+                }
+              ]
+            }
+          ],
+          "cylinders": [],
+          "lockForks": [
+            {
+              "supplierName": "应志友",
+              "category": "锁叉",
+              "itemCount": 2,
+              "items": [
+                {
+                  "supplier": "应志友",
+                  "type": "单头锁叉 T型 - 上头 P66",
+                  "spec": "570*301 = 871",
+                  "quantity": 3,
+                  "remark": "7CM 2050, 吊脚0mm"
+                },
+                {
+                  "supplier": "应志友",
+                  "type": "单头锁叉 T型 - 下头 P66",
+                  "spec": "570*313 + 35 = 918",
+                  "quantity": 3,
+                  "remark": "7CM 2050, 吊脚0mm"
+                }
+              ]
+            }
+          ]
+        },
+        "print": {
+          "packaging": {
+            "pages": 1,
+            "rowsPerPage": [2],
+            "checksum": "ac4b1694c625db5e4e1e87b189a99f20d594a89efc49255af7ab63457c21b8d6"
+          },
+          "cylinder": null,
+          "lockFork": {
+            "pages": 1,
+            "rowsPerPage": [3],
+            "checksum": "904901a5a3586292140e1adbbda59ecf704911a61fb5a8af0dd3bbc1c50d9f68"
+          }
+        }
+      }
+    },
+    {
+      "id": "derived-lockfork-dual-head-flat-bottom",
+      "sourceKind": "derived-from-real-order",
+      "sample": {
+        "code": "DERIVED-LOCKFORK-DUAL",
+        "customerName": "罗曼蒂克（六部）",
+        "remark": "1、下档冲OD钢印",
+        "list": [
+          {
+            "No": "1",
+            "spec": "960*2050/7/内开外包",
+            "mb": "T型现代边",
+            "qbbc": "1.0/1.0/2.0",
+            "mshd": "10",
+            "sj": "",
+            "fshz": "",
+            "fssx": "",
+            "sx": "无",
+            "sc": "单头锁叉",
+            "ml": "",
+            "my": "无",
+            "jl": "4隐形明合页",
+            "bs": "ZX-35-32",
+            "xd": "黑钛金不锈钢双下档",
+            "tc": "蜂窝纸+可见处铝蜂窝",
+            "color": "雅琴色",
+            "pt": "三元乙炳",
+            "bz": "罗曼蒂克",
+            "sxhz": "",
+            "fssj": "F02-A副锁",
+            "ls": "顾万佳7562拉手",
+            "tyls": "是",
+            "jb": "甲级",
+            "xsbz": "4CM平下档",
+            "productModelName": "雅琴",
+            "qty": "1/1",
+            "price": 0,
+            "amount": 0
+          }
+        ]
+      },
+      "warningIncludes": [],
+      "expected": {
+        "extracted": {
+          "cylinders": [],
+          "lockForks": [
+            {
+              "supplier": "应志友",
+              "type": "单头锁叉 T型 - 上头 直杆",
+              "spec": "570*301 = 871",
+              "remark": "7CM 2050, 4CM平下档",
+              "quantity": 2
+            },
+            {
+              "supplier": "应志友",
+              "type": "单头锁叉 T型 - 下头 弯杆",
+              "spec": "570*313 = 883",
+              "remark": "7CM 2050, 4CM平下档",
+              "quantity": 2
+            }
+          ],
+          "packaging": [
+            {
+              "internalName": "罗曼蒂克",
+              "externalName": "罗曼蒂克",
+              "productModelName": "雅琴",
+              "supplierName": "方亮包装",
+              "spec": "960*2050/7/内开外包",
+              "mb": "T型现代边",
+              "totalLeft": 1,
+              "totalRight": 1,
+              "totalQty": 2
+            }
+          ]
+        },
+        "groups": {
+          "packaging": [
+            {
+              "supplierName": "方亮包装",
+              "category": "包装",
+              "itemCount": 1,
+              "items": [
+                {
+                  "supplier": "方亮包装",
+                  "internal_name": "罗曼蒂克",
+                  "external_name": "罗曼蒂克",
+                  "name": "雅琴",
+                  "spec": "960*2050/7/内开外包",
+                  "mb": "T型现代边",
+                  "quantity": 2,
+                  "quantity_left": 1,
+                  "quantity_right": 1
+                }
+              ]
+            }
+          ],
+          "cylinders": [],
+          "lockForks": [
+            {
+              "supplierName": "应志友",
+              "category": "锁叉",
+              "itemCount": 2,
+              "items": [
+                {
+                  "supplier": "应志友",
+                  "type": "单头锁叉 T型 - 上头 直杆",
+                  "spec": "570*301 = 871",
+                  "quantity": 2,
+                  "remark": "7CM 2050, 4CM平下档"
+                },
+                {
+                  "supplier": "应志友",
+                  "type": "单头锁叉 T型 - 下头 弯杆",
+                  "spec": "570*313 = 883",
+                  "quantity": 2,
+                  "remark": "7CM 2050, 4CM平下档"
+                }
+              ]
+            }
+          ]
+        },
+        "print": {
+          "packaging": {
+            "pages": 1,
+            "rowsPerPage": [2],
+            "checksum": "7a3b1e6031403aa8fb2ef11afb3679e58d824f2e41ddfbb8b10abb76f06caf94"
+          },
+          "cylinder": null,
+          "lockFork": {
+            "pages": 1,
+            "rowsPerPage": [3],
+            "checksum": "55e5c88c2b4cefc0238b185e5aeb8a5c35d9987a4610a232007ecdfaae0c29bf"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -3,11 +3,23 @@ import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
 
-function isValidOrder(order: any): order is Order {
-    return !!order && typeof order === 'object' && typeof order.created_at === 'string';
+function normalizeDateField(value: any): string | null {
+    if (value === undefined || value === null || value === '') return null;
+    if (value instanceof Date) return value.toISOString();
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
 }
 
-function normalizeOrderPayload(payload: any): Order | null {
+export function isValidOrder(order: any): order is Order {
+    return !!order
+        && typeof order === 'object'
+        && typeof order.order_no === 'string'
+        && typeof order.created_at === 'string';
+}
+
+export function normalizeOrderPayload(payload: any): Order | null {
     let candidate = payload;
 
     if (candidate && typeof candidate === 'object') {
@@ -16,8 +28,17 @@ function normalizeOrderPayload(payload: any): Order | null {
         else if (Array.isArray(candidate.rows) && candidate.rows.length > 0) candidate = candidate.rows[0];
     }
 
-    if (candidate && typeof candidate === 'object' && candidate.created_at instanceof Date) {
-        candidate = { ...candidate, created_at: candidate.created_at.toISOString() };
+    if (candidate && typeof candidate === 'object') {
+        const createdAt = normalizeDateField(
+            candidate.created_at ?? candidate.createdAt ?? candidate.updated_at ?? candidate.updatedAt
+        );
+
+        candidate = {
+            ...candidate,
+            created_at: createdAt,
+            total_amount: Number.isFinite(Number(candidate.total_amount)) ? Number(candidate.total_amount) : 0,
+            items: Array.isArray(candidate.items) ? candidate.items : []
+        };
     }
 
     return isValidOrder(candidate) ? candidate : null;

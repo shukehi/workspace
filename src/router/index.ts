@@ -49,6 +49,26 @@ const router = createRouter({
                     component: () => import('@/views/MaterialManagement.vue')
                 },
                 {
+                    path: '/config/packaging',
+                    name: 'config-packaging',
+                    component: () => import('@/views/PackagingConfig.vue')
+                },
+                {
+                    path: '/config/cylinder',
+                    name: 'config-cylinder',
+                    component: () => import('@/views/CylinderConfig.vue')
+                },
+                {
+                    path: '/config/handle',
+                    name: 'config-handle',
+                    component: () => import('@/views/HandleConfig.vue')
+                },
+                {
+                    path: '/config/lock-fork',
+                    name: 'config-lock-fork',
+                    component: () => import('@/views/LockForkConfig.vue')
+                },
+                {
                     path: '/statistics',
                     name: 'statistics',
                     component: () => import('@/views/Statistics.vue')

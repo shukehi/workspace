@@ -9,8 +9,11 @@ import {
   ClipboardList,
   Database,
   FlaskConical,
+  Key,
   LayoutDashboard,
+  Package,
   ShoppingCart,
+  Wrench,
   Warehouse
 } from 'lucide-vue-next';
 import { mainNavGroups, type NavGroup, type NavIconKey } from '@/config/nav';
@@ -30,6 +33,10 @@ const iconMap: Record<NavIconKey, Component> = {
   inventory: Warehouse,
   'material-master': ClipboardList,
   formula: FlaskConical,
+  'packaging-config': Package,
+  'cylinder-config': Key,
+  'handle-config': Wrench,
+  'lock-fork-config': Wrench,
   statistics: BarChart3,
   'contracts-history': Archive
 };

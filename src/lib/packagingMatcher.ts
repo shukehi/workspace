@@ -1,3 +1,5 @@
+import { adaptPackagingMapping, normalizePackagingMappingKey } from '@/services/mappings';
+
 export interface PackagingRule {
     pattern: RegExp;
     target: string;
@@ -26,13 +28,7 @@ class PackagingMatcher {
      * - Normalize punctuation if needed
      */
     private normalize(input: string): string {
-        if (!input) return '';
-        return input
-            .trim()
-            .toLowerCase()
-            .replace(/[（【［]/g, '(')
-            .replace(/[）】］]/g, ')')
-            .replace(/\s+/g, '');
+        return normalizePackagingMappingKey(input);
     }
 
     private computeMappingVersion(mappingObj: Record<string, any>): string {
@@ -44,7 +40,7 @@ class PackagingMatcher {
     }
 
     public syncFromMapping(packagingMapping: any) {
-        const mappingObj = (packagingMapping?.mappings || packagingMapping || {}) as Record<string, any>;
+        const mappingObj = adaptPackagingMapping(packagingMapping).mappings as Record<string, any>;
         const nextVersion = this.computeMappingVersion(mappingObj);
         if (!nextVersion || nextVersion === this.mappingVersion) return;
 

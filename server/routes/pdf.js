@@ -4,32 +4,11 @@
  */
 
 const express = require('express');
-const config = require('../config');
 const { generatePurchaseOrderPDF } = require('../services/pdfGenerator');
 const snapshotStore = require('../services/printSnapshotStore');
+const { resolveRenderBaseUrl } = require('../services/renderBaseUrl');
 
 const router = express.Router();
-
-function normalizeUrlBase(urlRaw) {
-    const parsed = new URL(String(urlRaw).trim());
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error('Only http/https render base url is allowed');
-    }
-
-    return parsed.toString().replace(/\/$/, '');
-}
-
-function resolveTrustedRenderBaseUrl(req) {
-    const configured = String(process.env.PDF_RENDER_BASE_URL || '').trim();
-    if (configured) {
-        return normalizeUrlBase(configured);
-    }
-
-    const socketPort = Number(req?.socket?.localPort || 0);
-    const fallbackPort = Number(config?.server?.port || 3000);
-    const port = socketPort > 0 ? socketPort : fallbackPort;
-    return `http://127.0.0.1:${port}`;
-}
 
 function createSnapshotFromOrder({ poNumber, category, printMode, order }) {
     if (!order || typeof order !== 'object') return null;
@@ -125,7 +104,7 @@ router.post('/generate', async (req, res) => {
         ).trim() || 'order';
 
         const mode = String(printMode || snapshotPayload?.printMode || 'signature').trim() || 'signature';
-        const baseUrl = resolveTrustedRenderBaseUrl(req);
+        const baseUrl = resolveRenderBaseUrl(req);
 
         const params = new URLSearchParams();
         params.set('printMode', mode);

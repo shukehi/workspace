@@ -2,9 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '@/lib/api';
-import { buildProcurementDocModel } from '@/features/procurement/printDocBuilder';
-import { normalizePrintMode, type PrintMode, type ProcurementDocModel, type ProcurementDocPage, type ProcurementDocRow } from '@/features/procurement/docModel';
-import { computeDocPageQuantitySummary } from '@/features/procurement/quantitySummary';
+import { normalizePrintMode, type PrintMode } from '@/features/procurement/docModel';
+import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
+import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
 type PrintSourcePayload = {
   poNumber?: string;
@@ -23,7 +23,6 @@ const error = ref<string | null>(null);
 const exporting = ref(false);
 const printMode = ref<PrintMode>('signature');
 const source = ref<PrintSourcePayload | null>(null);
-const doc = ref<ProcurementDocModel | null>(null);
 
 const embedded = computed(() => route.query.embedded === '1' || window.self !== window.top);
 const modeLabels: Record<PrintMode, string> = {
@@ -31,22 +30,58 @@ const modeLabels: Record<PrintMode, string> = {
   compact: '简洁版',
 };
 
-function buildDoc() {
-  if (!source.value) {
-    doc.value = null;
-    return;
-  }
-
-  const model = buildProcurementDocModel({
-    poNumber: source.value.poNumber,
-    category: source.value.category,
-    printMode: printMode.value,
-    order: source.value.order,
-  });
-
-  doc.value = model;
-  document.title = model.title || '采购订单';
+function hasValidDeliveryDate(order: any) {
+  if (!order?.delivery_date && !order?.deliveryDate) return false;
+  const parsed = new Date(order.delivery_date || order.deliveryDate);
+  return !Number.isNaN(parsed.getTime());
 }
+
+function confirmProceedWhenDeliveryDateMissing() {
+  const order = source.value?.order;
+  if (!order) return true;
+  if (hasValidDeliveryDate(order)) return true;
+  return window.confirm('当前订单未设置交货日期，是否继续打印/导出 PDF？');
+}
+
+const previewWidthState = computed(() => {
+  const order = source.value?.order;
+  if (!order) {
+    return resolveSheetWidths('packaging', null, { preferLocalWhenMissing: true });
+  }
+  return resolveSheetWidths(
+    order.category,
+    order.metadata?.printColumnWidths,
+    { preferLocalWhenMissing: true }
+  );
+});
+const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
+const previewColumnWidths = computed(() => previewWidthState.value.widths);
+
+const PRINT_TABLE_MAX_WIDTH = 680;
+
+function getColumnMinWidth(key: string) {
+  if (key === 'no') return 36;
+  if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 62;
+  if (key === 'unit') return 50;
+  if (key === 'remark') return 120;
+  return 82;
+}
+
+function fitPrintColumnWidths(widths: Record<string, number>) {
+  const entries = Object.entries(widths);
+  const total = entries.reduce((sum, [, value]) => sum + Number(value || 0), 0);
+  if (total <= PRINT_TABLE_MAX_WIDTH || total <= 0) return widths;
+
+  const scale = PRINT_TABLE_MAX_WIDTH / total;
+  const next: Record<string, number> = {};
+  entries.forEach(([key, value]) => {
+    const scaled = Math.floor(Number(value || 0) * scale);
+    next[key] = Math.max(getColumnMinWidth(key), scaled);
+  });
+  return next;
+}
+
+const printColumnWidths = computed(() => fitPrintColumnWidths(previewColumnWidths.value));
 
 async function loadSource() {
   try {
@@ -80,14 +115,13 @@ async function loadSource() {
     }
 
     printMode.value = normalizePrintMode(String(route.query.printMode || activeSource.printMode || 'signature'));
-    buildDoc();
+    document.title = activeSource.order?.order_no ? `${activeSource.order.order_no} - 采购订单` : '采购订单';
 
     if (route.query.autoPrint === '1') {
       setTimeout(() => window.print(), 350);
     }
   } catch (e: any) {
     source.value = null;
-    doc.value = null;
     error.value = e?.message || '订单渲染失败';
   } finally {
     loading.value = false;
@@ -97,7 +131,6 @@ async function loadSource() {
 function setPrintMode(mode: PrintMode) {
   if (printMode.value === mode) return;
   printMode.value = mode;
-  buildDoc();
 
   const nextQuery = {
     ...route.query,
@@ -107,16 +140,18 @@ function setPrintMode(mode: PrintMode) {
 }
 
 function handlePrint() {
+  if (!confirmProceedWhenDeliveryDateMissing()) return;
   window.print();
 }
 
 async function exportPdf() {
-  if (!source.value || !doc.value) return;
+  if (!source.value) return;
+  if (!confirmProceedWhenDeliveryDateMissing()) return;
 
   try {
     exporting.value = true;
     const payload: Record<string, any> = {
-      poNumber: doc.value.poNumber || source.value.poNumber || 'order',
+      poNumber: source.value.order?.order_no || source.value.poNumber || 'order',
       printMode: printMode.value,
     };
 
@@ -132,7 +167,7 @@ async function exportPdf() {
     await api.downloadPDF(
       '/pdf/generate',
       payload,
-      `${doc.value.poNumber || source.value.poNumber || 'order'}.pdf`
+      `${source.value.order?.order_no || source.value.poNumber || 'order'}.pdf`
     );
   } catch (e) {
     console.error('Export PDF failed', e);
@@ -140,71 +175,6 @@ async function exportPdf() {
   } finally {
     exporting.value = false;
   }
-}
-
-function getColumnClass(column: any) {
-  const align = column?.align || 'center';
-  const keyClass = column?.key ? `col-key-${String(column.key)}` : '';
-  return {
-    [`col-${align}`]: true,
-    'col-numeric': !!column?.numeric,
-    [keyClass]: !!keyClass,
-  };
-}
-
-function getDisplayValue(row: ProcurementDocRow, key: string) {
-  const value = row.values[key];
-  if (value === undefined || value === null) return '';
-  return value;
-}
-
-type TotalCell = {
-  key: string;
-  value: string | number;
-  colspan?: number;
-  className: string;
-};
-
-function getTotalCells(page: ProcurementDocPage, row: ProcurementDocRow): TotalCell[] {
-  const cells: TotalCell[] = [];
-  const labelColspanRaw = Number(row.values.__labelColspan || 1);
-  const labelColspan = Number.isFinite(labelColspanRaw)
-    ? Math.min(Math.max(Math.floor(labelColspanRaw), 1), page.columns.length)
-    : 1;
-
-  cells.push({
-    key: '__label',
-    value: String(row.values.__label || '合计'),
-    colspan: labelColspan,
-    className: 'col-right total-label',
-  });
-
-  for (let idx = labelColspan; idx < page.columns.length; idx += 1) {
-    const column = page.columns[idx];
-    const value = row.values[column.key] ?? '';
-    const align = column.align || 'center';
-    const numericClass = column.numeric ? ' col-numeric' : '';
-
-    cells.push({
-      key: column.key,
-      value: value as string | number,
-      className: `col-${align}${numericClass}`,
-    });
-  }
-
-  return cells;
-}
-
-const pageQuantitySummaryMap = computed<Record<string, { leftTotal: number; rightTotal: number; total: number }>>(() => {
-  const pages = doc.value?.pages || [];
-  return pages.reduce<Record<string, { leftTotal: number; rightTotal: number; total: number }>>((acc, page) => {
-    acc[page.pageKey] = computeDocPageQuantitySummary(page);
-    return acc;
-  }, {});
-});
-
-function getPageQuantitySummary(page: ProcurementDocPage) {
-  return pageQuantitySummaryMap.value[page.pageKey] || { leftTotal: 0, rightTotal: 0, total: 0 };
 }
 
 watch(
@@ -221,7 +191,6 @@ watch(
     const normalized = normalizePrintMode(String(nextMode || source.value.printMode || 'signature'));
     if (normalized === printMode.value) return;
     printMode.value = normalized;
-    buildDoc();
   }
 );
 
@@ -234,8 +203,8 @@ onMounted(() => {
   <div :class="['print-document-shell', embedded ? 'is-embedded' : '']">
     <div v-if="!embedded" class="controls-bar">
       <div class="controls-title">
-        <h2>{{ doc?.title || '采购订单' }}</h2>
-        <p v-if="doc?.poNumber" class="controls-subtitle">订单号：{{ doc.poNumber }}</p>
+        <h2>采购订单</h2>
+        <p v-if="source?.order?.order_no" class="controls-subtitle">订单号：{{ source.order.order_no }}</p>
       </div>
       <div class="controls-actions">
         <div class="mode-switch">
@@ -263,137 +232,14 @@ onMounted(() => {
 
     <div v-if="loading" class="state">正在生成预览...</div>
     <div v-else-if="error" class="state error">{{ error }}</div>
-
     <div id="printDocumentOutput" v-else>
-      <section
-        v-for="page in doc?.pages || []"
-        :key="page.pageKey"
-        class="print-page"
-        :class="page.mode === 'compact' ? 'mode-compact' : ''"
-      >
-        <div class="print-header">
-          <h1>{{ page.title }}</h1>
-
-          <div class="print-info-top-columns">
-            <div class="print-col">
-              <div class="info-item">
-                <label>客户名称:</label>
-                <span>{{ page.customerName || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>订单号:</label>
-                <span>{{ page.code || '-' }}</span>
-              </div>
-            </div>
-
-            <div class="print-col">
-              <div class="info-item">
-                <label>内部名称:</label>
-                <span>{{ page.internalName || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>外协名称:</label>
-                <span>{{ page.externalName || '-' }}</span>
-              </div>
-            </div>
-
-            <div class="print-col">
-              <div class="info-item">
-                <label>制单日期:</label>
-                <span class="p-date-text">{{ page.orderDate || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>交货日期:</label>
-                <span class="p-date-text">{{ page.deliveryDate || '-' }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="print-info-bottom-row">
-            <div class="info-item">
-              <label>供应商:</label>
-              <span>{{ page.supplier || '-' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <table class="print-table" :class="`category-${page.category}`">
-          <colgroup>
-            <col
-              v-for="column in page.columns"
-              :key="`col-${page.pageKey}-${column.key}`"
-              :style="column.width ? { width: `${column.width}px` } : {}"
-            />
-          </colgroup>
-
-          <thead>
-            <tr>
-              <th
-                v-for="column in page.columns"
-                :key="`head-${page.pageKey}-${column.key}`"
-                :class="getColumnClass(column)"
-              >
-                {{ column.label }}
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <template v-for="(row, rowIndex) in page.rows" :key="`row-${page.pageKey}-${rowIndex}`">
-              <tr v-if="row.rowType === 'item'">
-                <td
-                  v-for="column in page.columns"
-                  :key="`cell-${page.pageKey}-${rowIndex}-${column.key}`"
-                  :class="getColumnClass(column)"
-                >
-                  {{ getDisplayValue(row, column.key) }}
-                </td>
-              </tr>
-              <tr v-else class="total-row">
-                <td
-                  v-for="cell in getTotalCells(page, row)"
-                  :key="`total-cell-${page.pageKey}-${rowIndex}-${cell.key}`"
-                  :colspan="cell.colspan || 1"
-                  :class="cell.className"
-                >
-                  {{ cell.value }}
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-
-        <div class="print-quantity-summary">
-          <template v-if="page.category === 'packaging'">
-            <span>左数量合计: {{ getPageQuantitySummary(page).leftTotal }}</span>
-            <span>右数量合计: {{ getPageQuantitySummary(page).rightTotal }}</span>
-            <span class="summary-total">总数量: {{ getPageQuantitySummary(page).total }}</span>
-          </template>
-          <template v-else>
-            <span class="summary-total">数量合计: {{ getPageQuantitySummary(page).total }}</span>
-          </template>
-        </div>
-
-        <div class="print-order-remark">
-          <span class="remark-label">整单备注:</span>
-          <span class="remark-value">{{ page.orderRemark || '-' }}</span>
-        </div>
-
-        <div class="print-footer">
-          <div class="sign-box">
-            <span>制单人:</span>
-            <div class="line"></div>
-          </div>
-          <div class="sign-box">
-            <span>审核人:</span>
-            <div class="line"></div>
-          </div>
-          <div class="sign-box">
-            <span>供应商签字:</span>
-            <div class="line"></div>
-          </div>
-        </div>
-      </section>
+      <OrderSheetView
+        v-if="source?.order"
+        :order="source.order"
+        mode="preview"
+        :column-widths="printColumnWidths"
+        :default-widths="previewDefaultWidths"
+      />
     </div>
   </div>
 </template>

@@ -1,0 +1,22 @@
+{
+  "defaultSupplier": "拉手供应商",
+  "unmatchedSupplier": "待人工处理",
+  "manualReviewLabel": "未匹配拉手(待人工处理)",
+  "singleKeywords": [
+    "单活"
+  ],
+  "doubleKeywords": [
+    "双活"
+  ],
+  "exportCustomerKeywords": [
+    "三部"
+  ],
+  "defaultActivityForExport": "double",
+  "thicknessAccessoryPacks": {
+    "5": "5公分配件包",
+    "7": "7公分配件包",
+    "9": "9公分配件包",
+    "10": "10公分配件包"
+  },
+  "mappings": {}
+}

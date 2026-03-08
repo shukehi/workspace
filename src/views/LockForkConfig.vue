@@ -1,0 +1,827 @@
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
+import { Input } from '@/components/ui/input';
+import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
+import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { createRowId, decodeIssuePathKey, scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
+import { configLoader } from '@/services/configLoader';
+import { adaptLockForkMapping, validateLockForkMapping } from '@/services/mappings';
+import type {
+  LockForkBaseDimensionRule,
+  LockForkDimensionGroup,
+  LockForkMappingConfig,
+  LockForkTypeConfig
+} from '@/types/mapping';
+
+type BaseDimensionRow = {
+  id: string;
+  thickness: string;
+  standardUpperBase1: string;
+  standardUpperBase2: string;
+  standardLowerBase1: string;
+  standardLowerBase2: string;
+  hangingUpperBase1: string;
+  hangingUpperBase2: string;
+  hangingLowerBase1: string;
+  hangingLowerBase2: string;
+};
+
+type LockTypeRow = {
+  id: string;
+  name: string;
+  category: string;
+  nameModifier: string;
+  upper: string;
+  lower: string;
+};
+
+type EdgeTypeRow = {
+  id: string;
+  name: string;
+  nameModifier: string;
+};
+
+type SupplierRow = {
+  id: string;
+  key: string;
+  value: string;
+};
+
+type KeywordRow = {
+  id: string;
+  value: string;
+};
+
+const baseDimensions = ref<BaseDimensionRow[]>([]);
+const lockTypes = ref<LockTypeRow[]>([]);
+const edgeTypes = ref<EdgeTypeRow[]>([]);
+const suppliers = ref<SupplierRow[]>([]);
+const hangingFeetStandard = ref('35');
+const hangingFeetKeywords = ref<KeywordRow[]>([]);
+const heightReference = ref('2050');
+
+function parseNumeric(value: string) {
+  return Number(value);
+}
+
+function toDimensionGroup(row: BaseDimensionRow, kind: 'standard' | 'withHangingFeet'): LockForkDimensionGroup {
+  if (kind === 'standard') {
+    return {
+      upper: {
+        base1: parseNumeric(row.standardUpperBase1),
+        base2: parseNumeric(row.standardUpperBase2)
+      },
+      lower: {
+        base1: parseNumeric(row.standardLowerBase1),
+        base2: parseNumeric(row.standardLowerBase2)
+      }
+    };
+  }
+  return {
+    upper: {
+      base1: parseNumeric(row.hangingUpperBase1),
+      base2: parseNumeric(row.hangingUpperBase2)
+    },
+    lower: {
+      base1: parseNumeric(row.hangingLowerBase1),
+      base2: parseNumeric(row.hangingLowerBase2)
+    }
+  };
+}
+
+const payload = computed<LockForkMappingConfig>(() => {
+  const baseMap: LockForkMappingConfig['baseDimensions'] = {};
+  baseDimensions.value.forEach((row) => {
+    const item: LockForkBaseDimensionRule = {
+      standard: toDimensionGroup(row, 'standard'),
+      withHangingFeet: toDimensionGroup(row, 'withHangingFeet')
+    };
+    baseMap[row.thickness] = item;
+  });
+
+  const lockTypeMap: LockForkMappingConfig['lockTypes'] = {};
+  lockTypes.value.forEach((row) => {
+    const config: LockForkTypeConfig = {};
+    if (row.category) config.category = row.category;
+    if (row.nameModifier) config.nameModifier = row.nameModifier;
+    if (row.upper) config.upper = row.upper;
+    if (row.lower) config.lower = row.lower;
+    lockTypeMap[row.name] = config;
+  });
+
+  const edgeTypeMap: LockForkMappingConfig['edgeTypes'] = {};
+  edgeTypes.value.forEach((row) => {
+    edgeTypeMap[row.name] = { nameModifier: row.nameModifier };
+  });
+
+  const supplierMap: LockForkMappingConfig['suppliers'] = {};
+  suppliers.value.forEach((row) => {
+    supplierMap[row.key] = row.value;
+  });
+
+  return {
+    baseDimensions: baseMap,
+    lockTypes: lockTypeMap,
+    edgeTypes: edgeTypeMap,
+    hangingFeet: {
+      standard: parseNumeric(hangingFeetStandard.value),
+      keywords: hangingFeetKeywords.value.map((k) => k.value)
+    },
+    heightReference: parseNumeric(heightReference.value),
+    suppliers: supplierMap
+  };
+});
+
+const clientIssues = computed(() => {
+  const issues = [...validateLockForkMapping(payload.value)];
+
+  const thicknessSeen = new Set<string>();
+  baseDimensions.value.forEach((row, index) => {
+    const key = row.thickness.trim();
+    if (!key) {
+      issues.push({ path: `baseDimensions[${index}].thickness`, code: 'required', message: '门厚不能为空' });
+      return;
+    }
+    if (thicknessSeen.has(key)) {
+      issues.push({ path: `baseDimensions[${index}].thickness`, code: 'duplicate', message: '门厚重复' });
+    } else {
+      thicknessSeen.add(key);
+    }
+  });
+
+  baseDimensions.value.forEach((row, index) => {
+    const fields: Array<[string, string]> = [
+      ['standardUpperBase1', row.standardUpperBase1],
+      ['standardUpperBase2', row.standardUpperBase2],
+      ['standardLowerBase1', row.standardLowerBase1],
+      ['standardLowerBase2', row.standardLowerBase2],
+      ['hangingUpperBase1', row.hangingUpperBase1],
+      ['hangingUpperBase2', row.hangingUpperBase2],
+      ['hangingLowerBase1', row.hangingLowerBase1],
+      ['hangingLowerBase2', row.hangingLowerBase2]
+    ];
+
+    fields.forEach(([field, value]) => {
+      if (!String(value).trim()) {
+        issues.push({
+          path: `baseDimensions[${index}].${field}`,
+          code: 'required',
+          message: `${field} 不能为空`
+        });
+        return;
+      }
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        issues.push({
+          path: `baseDimensions[${index}].${field}`,
+          code: 'invalid-number',
+          message: `${field} 必须是数字`
+        });
+        return;
+      }
+      if (numeric <= 0) {
+        issues.push({
+          path: `baseDimensions[${index}].${field}`,
+          code: 'invalid-range',
+          message: `${field} 必须大于 0`
+        });
+      }
+    });
+  });
+
+  const lockTypeSeen = new Set<string>();
+  lockTypes.value.forEach((row, index) => {
+    const key = row.name.trim();
+    if (!key) {
+      issues.push({ path: `lockTypes[${index}].name`, code: 'required', message: '锁具类型名称不能为空' });
+      return;
+    }
+    if (lockTypeSeen.has(key)) {
+      issues.push({ path: `lockTypes[${index}].name`, code: 'duplicate', message: '锁具类型名称重复' });
+    } else {
+      lockTypeSeen.add(key);
+    }
+  });
+
+  const edgeTypeSeen = new Set<string>();
+  edgeTypes.value.forEach((row, index) => {
+    const key = row.name.trim();
+    if (!key) {
+      issues.push({ path: `edgeTypes[${index}].name`, code: 'required', message: '边型名称不能为空' });
+      return;
+    }
+    if (edgeTypeSeen.has(key)) {
+      issues.push({ path: `edgeTypes[${index}].name`, code: 'duplicate', message: '边型名称重复' });
+    } else {
+      edgeTypeSeen.add(key);
+    }
+  });
+
+  const supplierSeen = new Set<string>();
+  suppliers.value.forEach((row, index) => {
+    const key = row.key.trim();
+    if (!key) {
+      issues.push({ path: `suppliers[${index}].key`, code: 'required', message: '供应商 key 不能为空' });
+      return;
+    }
+    if (supplierSeen.has(key)) {
+      issues.push({ path: `suppliers[${index}].key`, code: 'duplicate', message: '供应商 key 重复' });
+    } else {
+      supplierSeen.add(key);
+    }
+  });
+
+  hangingFeetKeywords.value.forEach((keyword, index) => {
+    if (!keyword.value.trim()) {
+      issues.push({ path: `hangingFeet.keywords[${index}]`, code: 'required', message: '吊脚关键字不能为空' });
+    }
+  });
+
+  if (!hangingFeetStandard.value.trim()) {
+    issues.push({ path: 'hangingFeet.standard', code: 'required', message: '吊脚标准值不能为空' });
+  } else {
+    const numeric = Number(hangingFeetStandard.value);
+    if (!Number.isFinite(numeric)) {
+      issues.push({ path: 'hangingFeet.standard', code: 'invalid-number', message: '吊脚标准值必须是数字' });
+    } else if (numeric <= 0) {
+      issues.push({ path: 'hangingFeet.standard', code: 'invalid-range', message: '吊脚标准值必须大于 0' });
+    }
+  }
+
+  if (!heightReference.value.trim()) {
+    issues.push({ path: 'heightReference', code: 'required', message: '高度参考值不能为空' });
+  } else {
+    const numeric = Number(heightReference.value);
+    if (!Number.isFinite(numeric)) {
+      issues.push({ path: 'heightReference', code: 'invalid-number', message: '高度参考值必须是数字' });
+    } else if (numeric <= 0) {
+      issues.push({ path: 'heightReference', code: 'invalid-range', message: '高度参考值必须大于 0' });
+    }
+  }
+
+  return issues;
+});
+
+const allIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value]);
+
+const baseDimensionIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as BaseDimensionRow | null;
+    const clientMatch = issue.path.match(/^baseDimensions\[(\d+)\]\./);
+    if (clientMatch) {
+      row = baseDimensions.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^baseDimensions\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const thickness = decodeIssuePathKey(serverMatch[1]);
+        row = baseDimensions.value.find((item) => item.thickness.trim() === thickness) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const lockTypeIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as LockTypeRow | null;
+    const clientMatch = issue.path.match(/^lockTypes\[(\d+)\]\.name$/);
+    if (clientMatch) {
+      row = lockTypes.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^lockTypes\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const name = decodeIssuePathKey(serverMatch[1]);
+        row = lockTypes.value.find((item) => item.name.trim() === name) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const edgeTypeIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as EdgeTypeRow | null;
+    const clientMatch = issue.path.match(/^edgeTypes\[(\d+)\]\.name$/);
+    if (clientMatch) {
+      row = edgeTypes.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^edgeTypes\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const name = decodeIssuePathKey(serverMatch[1]);
+        row = edgeTypes.value.find((item) => item.name.trim() === name) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const supplierIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+
+  allIssues.value.forEach((issue) => {
+    let row = null as SupplierRow | null;
+    const clientMatch = issue.path.match(/^suppliers\[(\d+)\]\.key$/);
+    if (clientMatch) {
+      row = suppliers.value[Number(clientMatch[1])] || null;
+    } else {
+      const serverMatch = issue.path.match(/^suppliers\[(.+?)\](?:\.|$)/);
+      if (serverMatch) {
+        const key = decodeIssuePathKey(serverMatch[1]);
+        row = suppliers.value.find((item) => item.key.trim() === key) || null;
+      }
+    }
+    if (row) add(row.id, issue.message);
+  });
+  return map;
+});
+
+const hangingFeetStandardIssues = computed(() => {
+  return allIssues.value.filter((issue) => issue.path === 'hangingFeet.standard').map((issue) => issue.message);
+});
+
+const heightReferenceIssues = computed(() => {
+  return allIssues.value.filter((issue) => issue.path === 'heightReference').map((issue) => issue.message);
+});
+
+const hangingFeetKeywordIssueMap = computed(() => {
+  const map = new Map<string, string[]>();
+  const add = (rowId: string, msg: string) => {
+    const list = map.get(rowId) || [];
+    list.push(msg);
+    map.set(rowId, list);
+  };
+  allIssues.value.forEach((issue) => {
+    const match = issue.path.match(/^hangingFeet\.keywords\[(\d+)\]$/);
+    if (!match) return;
+    const row = hangingFeetKeywords.value[Number(match[1])];
+    if (!row) return;
+    add(row.id, issue.message);
+  });
+  return map;
+});
+
+const hasBaseIssues = computed(() => baseDimensionIssueMap.value.size > 0);
+const hasLockTypeIssues = computed(() => lockTypeIssueMap.value.size > 0);
+const hasEdgesIssues = computed(() => edgeTypeIssueMap.value.size > 0 || hangingFeetKeywordIssueMap.value.size > 0);
+const hasSuppliersIssues = computed(() => supplierIssueMap.value.size > 0);
+
+const activeTab = ref<'base' | 'lockType' | 'edges' | 'suppliers'>('base');
+
+function makeBaseDimensionRow(input?: Partial<BaseDimensionRow>): BaseDimensionRow {
+  return {
+    id: createRowId(),
+    thickness: input?.thickness || '',
+    standardUpperBase1: input?.standardUpperBase1 || '',
+    standardUpperBase2: input?.standardUpperBase2 || '',
+    standardLowerBase1: input?.standardLowerBase1 || '',
+    standardLowerBase2: input?.standardLowerBase2 || '',
+    hangingUpperBase1: input?.hangingUpperBase1 || '',
+    hangingUpperBase2: input?.hangingUpperBase2 || '',
+    hangingLowerBase1: input?.hangingLowerBase1 || '',
+    hangingLowerBase2: input?.hangingLowerBase2 || ''
+  };
+}
+
+function makeLockTypeRow(input?: Partial<LockTypeRow>): LockTypeRow {
+  return {
+    id: createRowId(),
+    name: input?.name || '',
+    category: input?.category || '',
+    nameModifier: input?.nameModifier || '',
+    upper: input?.upper || '',
+    lower: input?.lower || ''
+  };
+}
+
+function makeEdgeTypeRow(input?: Partial<EdgeTypeRow>): EdgeTypeRow {
+  return {
+    id: createRowId(),
+    name: input?.name || '',
+    nameModifier: input?.nameModifier || ''
+  };
+}
+
+function makeSupplierRow(input?: Partial<SupplierRow>): SupplierRow {
+  return {
+    id: createRowId(),
+    key: input?.key || '',
+    value: input?.value || ''
+  };
+}
+
+function makeKeywordRow(input?: Partial<KeywordRow>): KeywordRow {
+  return {
+    id: createRowId(),
+    value: input?.value || ''
+  };
+}
+
+function resetWithPayload(raw: LockForkMappingConfig) {
+  const data = adaptLockForkMapping(raw);
+  baseDimensions.value = Object.entries(data.baseDimensions).map(([thickness, rule]) => makeBaseDimensionRow({
+    thickness,
+    standardUpperBase1: String(rule.standard?.upper.base1 ?? ''),
+    standardUpperBase2: String(rule.standard?.upper.base2 ?? ''),
+    standardLowerBase1: String(rule.standard?.lower.base1 ?? ''),
+    standardLowerBase2: String(rule.standard?.lower.base2 ?? ''),
+    hangingUpperBase1: String(rule.withHangingFeet?.upper.base1 ?? ''),
+    hangingUpperBase2: String(rule.withHangingFeet?.upper.base2 ?? ''),
+    hangingLowerBase1: String(rule.withHangingFeet?.lower.base1 ?? ''),
+    hangingLowerBase2: String(rule.withHangingFeet?.lower.base2 ?? '')
+  }));
+  if (baseDimensions.value.length === 0) baseDimensions.value = [makeBaseDimensionRow()];
+
+  lockTypes.value = Object.entries(data.lockTypes).map(([name, value]) => makeLockTypeRow({
+    name,
+    category: value.category,
+    nameModifier: value.nameModifier,
+    upper: value.upper,
+    lower: value.lower
+  }));
+  if (lockTypes.value.length === 0) lockTypes.value = [makeLockTypeRow()];
+
+  edgeTypes.value = Object.entries(data.edgeTypes).map(([name, value]) => makeEdgeTypeRow({
+    name,
+    nameModifier: value.nameModifier
+  }));
+  if (edgeTypes.value.length === 0) edgeTypes.value = [makeEdgeTypeRow()];
+
+  suppliers.value = Object.entries(data.suppliers).map(([key, value]) => makeSupplierRow({ key, value }));
+  if (suppliers.value.length === 0) suppliers.value = [makeSupplierRow({ key: 'default' })];
+
+  hangingFeetStandard.value = String(data.hangingFeet.standard);
+  hangingFeetKeywords.value = data.hangingFeet.keywords.map((value) => makeKeywordRow({ value }));
+  if (hangingFeetKeywords.value.length === 0) hangingFeetKeywords.value = [makeKeywordRow()];
+  heightReference.value = String(data.heightReference);
+}
+
+async function scrollToFirstIssue() {
+  if (hasBaseIssues.value) activeTab.value = 'base';
+  else if (hasLockTypeIssues.value) activeTab.value = 'lockType';
+  else if (hasEdgesIssues.value) activeTab.value = 'edges';
+  else if (hasSuppliersIssues.value) activeTab.value = 'suppliers';
+
+  await nextTick();
+  await scrollToFirstIssueElement('[data-issue-item="true"]', '[data-issue-anchor="true"]');
+}
+
+const editor = useMappingConfigEditor<LockForkMappingConfig>({
+  endpoint: '/config/lock-fork',
+  loadErrorDescription: '无法读取锁叉映射配置',
+  saveSuccessDescription: '锁叉映射已更新',
+  getPayload: () => payload.value,
+  getClientIssues: () => clientIssues.value,
+  validatePayload: validateLockForkMapping,
+  adaptPayload: (value) => adaptLockForkMapping(value),
+  resetWithPayload,
+  refreshRuntime: () => configLoader.refreshLockForkMapping(),
+  scrollToFirstIssue
+});
+
+onMounted(editor.load);
+</script>
+
+<template>
+  <ConfigPageLayout
+    title="锁叉配置"
+    description="维护锁叉拨片基础参数、锁具与边型尺寸提取以及供应商映射。"
+    :editor="editor"
+    :clientIssues="clientIssues"
+    json-dialog-description="直接编辑锁叉配置 JSON，应用前会进行校验。"
+  >
+        <!-- 全局通用参数 -->
+        <Card>
+          <CardHeader>
+            <CardTitle>全局通用参数</CardTitle>
+            <CardDescription>吊脚标准值与高度参考值。</CardDescription>
+          </CardHeader>
+          <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-medium text-muted-foreground">吊脚标准值</label>
+              <Input
+                v-model="hangingFeetStandard"
+                class="h-9 mt-1"
+                :class="hangingFeetStandardIssues.length ? 'border-destructive' : ''"
+                :data-issue-item="hangingFeetStandardIssues.length ? 'true' : null"
+                placeholder="35"
+              />
+              <div v-if="hangingFeetStandardIssues.length" class="text-[11px] text-destructive mt-1">
+                {{ hangingFeetStandardIssues[0] }}
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-muted-foreground">高度参考值</label>
+              <Input
+                v-model="heightReference"
+                class="h-9 mt-1"
+                :class="heightReferenceIssues.length ? 'border-destructive' : ''"
+                :data-issue-item="heightReferenceIssues.length ? 'true' : null"
+                placeholder="2050"
+              />
+              <div v-if="heightReferenceIssues.length" class="text-[11px] text-destructive mt-1">
+                {{ heightReferenceIssues[0] }}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Tabs Navigation -->
+        <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
+          <button
+            @click="activeTab = 'base'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'base' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            基础尺寸
+            <span v-if="hasBaseIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'lockType'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'lockType' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            锁具类型
+            <span v-if="hasLockTypeIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'edges'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'edges' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            边型参数
+            <span v-if="hasEdgesIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+          <button
+            @click="activeTab = 'suppliers'"
+            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+            :class="activeTab === 'suppliers' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+          >
+            供应商映射
+            <span v-if="hasSuppliersIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          </button>
+        </div>
+
+        <div v-show="activeTab === 'base'">
+        <Card>
+          <CardHeader>
+            <CardTitle>基础尺寸</CardTitle>
+            <CardDescription>按门厚维护常规尺寸与吊脚尺寸的上下头参数。</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-sm font-medium">门厚尺寸</div>
+            </div>
+            <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+              <div
+                v-for="row in baseDimensions"
+                :key="row.id"
+                class="rounded-md border p-3 bg-background space-y-3"
+                :class="baseDimensionIssueMap.get(row.id)?.length ? 'bg-amber-50/60 border-amber-300' : ''"
+                :data-issue-item="baseDimensionIssueMap.get(row.id)?.length ? 'true' : null"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="w-32">
+                    <label class="text-xs text-muted-foreground">门厚</label>
+                    <Input v-model="row.thickness" class="h-9" placeholder="7" />
+                  </div>
+                  <Button variant="ghost" size="sm" @click="baseDimensions = baseDimensions.filter((item) => item.id !== row.id)">
+                    删除
+                  </Button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div class="rounded-md border p-2">
+                    <div class="text-xs font-medium mb-2">常规尺寸</div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <Input v-model="row.standardUpperBase1" class="h-8" placeholder="上头 base1" />
+                      <Input v-model="row.standardUpperBase2" class="h-8" placeholder="上头 base2" />
+                      <Input v-model="row.standardLowerBase1" class="h-8" placeholder="下头 base1" />
+                      <Input v-model="row.standardLowerBase2" class="h-8" placeholder="下头 base2" />
+                    </div>
+                  </div>
+                  <div class="rounded-md border p-2">
+                    <div class="text-xs font-medium mb-2">吊脚尺寸</div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <Input v-model="row.hangingUpperBase1" class="h-8" placeholder="上头 base1" />
+                      <Input v-model="row.hangingUpperBase2" class="h-8" placeholder="上头 base2" />
+                      <Input v-model="row.hangingLowerBase1" class="h-8" placeholder="下头 base1" />
+                      <Input v-model="row.hangingLowerBase2" class="h-8" placeholder="下头 base2" />
+                    </div>
+                  </div>
+                </div>
+                <div v-if="baseDimensionIssueMap.get(row.id)?.length" class="text-[11px] text-destructive">
+                  {{ baseDimensionIssueMap.get(row.id)?.[0] }}
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="baseDimensions.push(makeBaseDimensionRow())">
+              + 新增门厚尺寸
+            </Button>
+          </CardContent>
+        </Card>
+        </div>
+
+        <div v-show="activeTab === 'lockType'">
+        <Card>
+          <CardHeader>
+            <CardTitle>锁具类型</CardTitle>
+            <CardDescription>如 P66、dual-head、上下头名称等。</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-sm font-medium">类型列表</div>
+            </div>
+            <div class="overflow-auto rounded-md border max-h-[400px]">
+              <table class="w-full text-sm text-left">
+                <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
+                  <tr>
+                    <th class="px-3 py-2">名称</th>
+                    <th class="px-3 py-2">类型分类</th>
+                    <th class="px-3 py-2">名称修饰</th>
+                    <th class="px-3 py-2">上头样式</th>
+                    <th class="px-3 py-2">下头样式</th>
+                    <th class="px-3 py-2">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in lockTypes"
+                    :key="row.id"
+                    class="bg-background border-b last:border-0"
+                    :class="lockTypeIssueMap.get(row.id)?.length ? 'bg-amber-50/60' : ''"
+                    :data-issue-item="lockTypeIssueMap.get(row.id)?.length ? 'true' : null"
+                  >
+                    <td class="px-3 py-2"><Input v-model="row.name" class="h-9" placeholder="F02-A副锁" /></td>
+                    <td class="px-3 py-2"><Input v-model="row.category" class="h-9" placeholder="dual-head" /></td>
+                    <td class="px-3 py-2"><Input v-model="row.nameModifier" class="h-9" placeholder="P66" /></td>
+                    <td class="px-3 py-2"><Input v-model="row.upper" class="h-9" placeholder="直杆" /></td>
+                    <td class="px-3 py-2"><Input v-model="row.lower" class="h-9" placeholder="弯杆" /></td>
+                    <td class="px-3 py-2">
+                      <Button variant="ghost" size="sm" @click="lockTypes = lockTypes.filter((item) => item.id !== row.id)">删除</Button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="lockTypes.push(makeLockTypeRow())">
+              + 新增锁具类型
+            </Button>
+          </CardContent>
+        </Card>
+        </div>
+
+        <div v-show="activeTab === 'edges'">
+        <Card>
+          <CardHeader>
+            <CardTitle>边型与参数</CardTitle>
+            <CardDescription>边型修饰和吊脚。</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between mb-1">
+                <div class="text-sm font-medium">吊脚关键字</div>
+              </div>
+              <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                <div
+                v-for="item in hangingFeetKeywords"
+                :key="item.id"
+                class="flex items-center gap-2"
+                :data-issue-item="hangingFeetKeywordIssueMap.get(item.id)?.length ? 'true' : null"
+              >
+                <Input
+                  v-model="item.value"
+                  class="h-9"
+                  :class="hangingFeetKeywordIssueMap.get(item.id)?.length ? 'border-destructive' : ''"
+                  placeholder="吊脚 / diaojiao"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click="hangingFeetKeywords = hangingFeetKeywords.filter((row) => row.id !== item.id)"
+                >
+                  删除
+                </Button>
+                <div v-if="hangingFeetKeywordIssueMap.get(item.id)?.length" class="text-[11px] text-destructive">
+                  {{ hangingFeetKeywordIssueMap.get(item.id)?.[0] }}
+                </div>
+              </div>
+              </div>
+              <Button variant="outline" size="sm" class="w-full mt-2 border-dashed" @click="hangingFeetKeywords.push(makeKeywordRow())">
+                + 新增关键字
+              </Button>
+            </div>
+
+            <div class="space-y-2 mt-4">
+              <div class="flex items-center justify-between mb-1">
+                <div class="text-sm font-medium">边型列表</div>
+              </div>
+              <div class="overflow-auto rounded-md border max-h-[400px]">
+                <table class="w-full text-sm text-left">
+                  <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
+                    <tr>
+                      <th class="px-3 py-2">边型名称</th>
+                      <th class="px-3 py-2">名称修饰</th>
+                      <th class="px-3 py-2">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="row in edgeTypes"
+                      :key="row.id"
+                      class="bg-background border-b last:border-0"
+                      :class="edgeTypeIssueMap.get(row.id)?.length ? 'bg-amber-50/60' : ''"
+                      :data-issue-item="edgeTypeIssueMap.get(row.id)?.length ? 'true' : null"
+                    >
+                      <td class="px-3 py-2"><Input v-model="row.name" class="h-9" placeholder="T型" /></td>
+                      <td class="px-3 py-2"><Input v-model="row.nameModifier" class="h-9" placeholder="T型" /></td>
+                      <td class="px-3 py-2">
+                        <Button variant="ghost" size="sm" @click="edgeTypes = edgeTypes.filter((item) => item.id !== row.id)">删除</Button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <Button variant="outline" size="sm" class="w-full mt-2 border-dashed" @click="edgeTypes.push(makeEdgeTypeRow())">
+                + 新增边型
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        </div>
+
+        <div v-show="activeTab === 'suppliers'">
+        <Card>
+          <CardHeader>
+            <CardTitle>供应商映射</CardTitle>
+            <CardDescription>如 default -> 应志友。</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-sm font-medium">供应商</div>
+            </div>
+            <div class="overflow-auto rounded-md border max-h-[400px]">
+              <table class="w-full text-sm text-left">
+                <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
+                  <tr>
+                    <th class="px-3 py-2">键名</th>
+                    <th class="px-3 py-2">值</th>
+                    <th class="px-3 py-2">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in suppliers"
+                    :key="row.id"
+                    class="bg-background border-b last:border-0"
+                    :class="supplierIssueMap.get(row.id)?.length ? 'bg-amber-50/60' : ''"
+                    :data-issue-item="supplierIssueMap.get(row.id)?.length ? 'true' : null"
+                  >
+                    <td class="px-3 py-2"><Input v-model="row.key" class="h-9" placeholder="default" /></td>
+                    <td class="px-3 py-2"><Input v-model="row.value" class="h-9" placeholder="应志友" /></td>
+                    <td class="px-3 py-2">
+                      <Button variant="ghost" size="sm" @click="suppliers = suppliers.filter((item) => item.id !== row.id)">删除</Button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="suppliers.push(makeSupplierRow())">
+              + 新增供应商
+            </Button>
+          </CardContent>
+        </Card>
+        </div>
+  </ConfigPageLayout>
+</template>

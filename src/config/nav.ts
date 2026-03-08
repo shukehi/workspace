@@ -6,6 +6,10 @@ export type NavIconKey =
     | 'inventory'
     | 'material-master'
     | 'formula'
+    | 'packaging-config'
+    | 'cylinder-config'
+    | 'handle-config'
+    | 'lock-fork-config'
     | 'statistics'
     | 'contracts-history';
 
@@ -38,7 +42,11 @@ export const mainNavGroups: NavGroup[] = [
         title: '配置中心',
         items: [
             { title: '物料数据', href: '/material-master', icon: 'material-master' },
-            { title: '配方配置', href: '/formula', icon: 'formula' }
+            { title: '配方配置', href: '/formula', icon: 'formula' },
+            { title: '包装配置', href: '/config/packaging', icon: 'packaging-config' },
+            { title: '锁芯配置', href: '/config/cylinder', icon: 'cylinder-config' },
+            { title: '拉手配置', href: '/config/handle', icon: 'handle-config' },
+            { title: '锁叉配置', href: '/config/lock-fork', icon: 'lock-fork-config' }
         ]
     },
     {

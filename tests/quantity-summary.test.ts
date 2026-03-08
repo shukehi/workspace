@@ -24,6 +24,17 @@ test('computeItemQuantitySummary: non-packaging uses quantity total', () => {
   assert.equal(summary.total, 5);
 });
 
+test('computeItemQuantitySummary: handle uses left/right and total', () => {
+  const summary = computeItemQuantitySummary('handle', [
+    { quantity_left: 3, quantity_right: 2 } as any,
+    { quantity_left: 1, quantity_right: 4 } as any,
+  ]);
+
+  assert.equal(summary.leftTotal, 4);
+  assert.equal(summary.rightTotal, 6);
+  assert.equal(summary.total, 10);
+});
+
 test('computeDocPageQuantitySummary: packaging row summary', () => {
   const summary = computeDocPageQuantitySummary({
     pageKey: 'p1',

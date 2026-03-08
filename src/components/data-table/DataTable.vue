@@ -58,7 +58,11 @@ const emit = defineEmits<{
 const sorting = ref<SortingState>([])
 const columnFilters = ref<ColumnFiltersState>([])
 const columnVisibility = ref<VisibilityState>({})
-const rowSelection = ref({})
+const rowSelection = ref<Record<string, boolean>>({})
+const pagination = ref({
+  pageIndex: 0,
+  pageSize: 50,
+})
 
 const table = useVueTable({
   get data() { return props.data },
@@ -71,11 +75,23 @@ const table = useVueTable({
   onColumnFiltersChange: (updaterOrValue) => valueUpdater(updaterOrValue, columnFilters),
   onColumnVisibilityChange: (updaterOrValue) => valueUpdater(updaterOrValue, columnVisibility),
   onRowSelectionChange: (updaterOrValue) => valueUpdater(updaterOrValue, rowSelection),
+  onPaginationChange: (updaterOrValue) => valueUpdater(updaterOrValue, pagination),
+  enableRowSelection: true,
   state: {
     get sorting() { return sorting.value },
     get columnFilters() { return columnFilters.value },
     get columnVisibility() { return columnVisibility.value },
     get rowSelection() { return rowSelection.value },
+    get pagination() { return pagination.value },
+  },
+  getRowId: (row: any, index: number) => {
+    if (row?.id !== undefined && row?.id !== null && String(row.id) !== '') {
+      return String(row.id)
+    }
+    if (row?.order_no !== undefined && row?.order_no !== null && String(row.order_no) !== '') {
+      return String(row.order_no)
+    }
+    return `row-${index}`
   },
 })
 
@@ -138,8 +154,8 @@ defineExpose({
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
             <TableHead v-if="enableSelection" class="w-12 text-center">
               <Checkbox
-                :checked="table.getIsAllPageRowsSelected()"
-                @update:checked="(value: boolean | string) => table.toggleAllPageRowsSelected(!!value)"
+                :model-value="table.getIsAllRowsSelected() || (table.getIsSomeRowsSelected() && 'indeterminate')"
+                @update:model-value="(value: any) => table.toggleAllRowsSelected(!!value)"
               />
             </TableHead>
 
@@ -164,12 +180,12 @@ defineExpose({
               v-for="row in table.getRowModel().rows"
               :key="row.id"
               :data-state="row.getIsSelected() ? 'selected' : undefined"
-              class="data-[state=selected]:bg-muted/60"
+              class="transition-colors hover:bg-muted/30 data-[state=selected]:bg-primary/5 data-[state=selected]:hover:bg-primary/10"
             >
               <TableCell v-if="enableSelection" class="w-12 text-center">
                 <Checkbox
-                  :checked="row.getIsSelected()"
-                  @update:checked="(value: boolean | string) => row.toggleSelected(!!value)"
+                  :model-value="row.getIsSelected()"
+                  @update:model-value="(value: any) => row.toggleSelected(!!value)"
                 />
               </TableCell>
 

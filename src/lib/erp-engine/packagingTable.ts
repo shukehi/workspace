@@ -3,6 +3,7 @@
  * 负责聚合和展示包装采购数据
  */
 
+import { adaptPackagingMapping } from '@/services/mappings';
 
 // import { PACKAGING_MAPPING } from '../config/index.js';
 import { parseQuantity, parseQuantityPair } from './parsers';
@@ -48,6 +49,9 @@ function normalizeProductNames(raw: string): string[] {
  */
 export function aggregatePackaging(items: PackagingItem[], PACKAGING_MAPPING: PackagingMapping = {}): AggregatedPackaging {
     const groups: AggregatedPackaging = {};
+    const packagingConfig = adaptPackagingMapping(PACKAGING_MAPPING);
+    const mappings = packagingConfig.mappings;
+    const supplierName = packagingConfig.supplierName || "方亮包装";
 
     if (!items || !Array.isArray(items)) {
         console.warn('aggregatePackaging received invalid items:', items);
@@ -57,9 +61,6 @@ export function aggregatePackaging(items: PackagingItem[], PACKAGING_MAPPING: Pa
     items.forEach((item) => {
         const rawInternalName = String(item?.bz || '').trim();
         const internalName = rawInternalName || "未匹配";
-        // mappings maps internal packaging name -> external packaging name, not supplier.
-        const mappings = PACKAGING_MAPPING.mappings || PACKAGING_MAPPING;
-        const supplierName = PACKAGING_MAPPING.supplierName || "方亮包装";
         const externalName = rawInternalName
             ? (mappings[internalName] || `${internalName} (未匹配)`)
             : "未匹配";
