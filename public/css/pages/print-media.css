@@ -32,7 +32,9 @@
     /* Hide all UI controls when printing */
     .controls-bar,
     .zoom-controls,
-    .preview-controls {
+    .preview-controls,
+    body.print-mode .preview-controls,
+    body.print-mode .zoom-controls {
         display: none !important;
     }
 
@@ -49,11 +51,6 @@
         padding: 0;
         display: block;
         transform: none !important;
-    }
-
-    body.print-mode .preview-controls,
-    body.print-mode .zoom-controls {
-        display: none !important;
     }
 
     #printOutput {

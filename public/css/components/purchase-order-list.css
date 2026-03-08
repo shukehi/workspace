@@ -52,24 +52,25 @@
 }
 
 /* List View: Status Badge */
-.po-status-badge {
+.po-status-badge,
+.category-tag {
     display: inline-block;
     padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.po-status-badge {
     font-family: var(--font-mono, 'IBM Plex Mono', monospace);
     font-size: 0.7rem;
     font-weight: 500;
-    border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 /* List View: Category Tag */
 .category-tag {
-    display: inline-block;
-    padding: 4px 8px;
     background: var(--bg-color, #f9fafb);
     border: 1px solid var(--border-color, #e5e7eb);
-    border-radius: 4px;
     font-size: 0.75rem;
     color: var(--text-secondary, #6b7280);
     font-family: var(--font-sans, 'Inter', sans-serif);
@@ -132,4 +133,3 @@
     font-size: 0.8rem;
     color: var(--text-secondary, #6b7280);
 }
-
