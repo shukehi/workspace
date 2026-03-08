@@ -3,7 +3,7 @@ import { computed, nextTick, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import MappingJsonDialog from '@/features/config-editor/components/MappingJsonDialog.vue';
+import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { createRowId, decodeIssuePathKey } from '@/features/config-editor/utils/mappingIssueUtils';
 import { configLoader } from '@/services/configLoader';
@@ -176,10 +176,6 @@ const hasUnsavedChanges = computed(() => {
   return serializePayload(editor.payload.value) !== baselineSnapshot.value;
 });
 
-const showSidePanel = computed(() => {
-  return clientIssues.value.length > 0 || editor.serverIssues.value.length > 0;
-});
-
 function serializePayload(data: PackagingMappingConfig) {
   const sortedMappings: Record<string, string> = {};
   Object.keys(data.mappings || {})
@@ -237,39 +233,30 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-6 p-6 md:p-8 bg-muted/20">
-    <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div>
-          <h2 class="text-3xl font-semibold tracking-tight">包装配置</h2>
-          <p class="text-muted-foreground mt-1">管理包装名称到采购条目的映射关系。</p>
-        </div>
-        <span
-          v-if="hasUnsavedChanges"
-          class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
-        >
-          未保存
-        </span>
-      </div>
-      <div class="hidden lg:flex items-center gap-2 text-xs text-muted-foreground">
+  <ConfigPageLayout
+    title="包装配置"
+    description="管理包装名称到采购条目的映射关系。"
+    :editor="editor"
+    :clientIssues="clientIssues"
+    :showJsonCopyButton="true"
+  >
+    <template #header-extra>
+      <span
+        v-if="hasUnsavedChanges"
+        class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+      >
+        未保存
+      </span>
+    </template>
+
+    <template #header-right>
+      <div class="hidden lg:flex items-center gap-2 text-xs text-muted-foreground mt-2 lg:mt-0">
         <span>共 {{ rows.length }} 条</span>
         <span v-if="searchQuery">匹配 {{ filteredRows.length }} 条</span>
       </div>
-    </div>
+    </template>
 
-    <Card v-if="editor.loadError.value">
-      <CardContent class="p-4 text-sm text-destructive">
-        {{ editor.loadError.value }}
-      </CardContent>
-    </Card>
-
-    <div
-      :class="[
-        'grid grid-cols-1 gap-6',
-        showSidePanel ? 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' : 'xl:grid-cols-1'
-      ]"
-    >
-      <Card class="min-h-0">
+    <Card class="min-h-0">
         <CardHeader class="space-y-4">
           <div>
             <CardTitle>编辑映射</CardTitle>
@@ -292,34 +279,20 @@ onMounted(editor.load);
         </CardHeader>
 
         <CardContent class="space-y-4 min-h-0">
-          <div class="max-h-[520px] overflow-auto rounded-md border">
-            <div class="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-3 py-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div class="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
-                <span class="text-sm font-medium text-foreground">映射列表</span>
-                <span>共 {{ rows.length }} 条</span>
-                <span v-if="searchQuery">匹配 {{ filteredRows.length }} 条</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <Button variant="outline" size="sm" @click="editor.openJsonEditor">JSON 编辑</Button>
-                <Button variant="outline" size="sm" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">
-                  刷新
-                </Button>
-                <Button variant="outline" size="sm" @click="addRow">新增</Button>
-                <div class="flex flex-col items-end gap-1">
-                  <Button size="sm" :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存</Button>
-                  <div v-if="clientIssues.length > 0" class="text-[11px] text-muted-foreground">
-                    校验未通过
-                  </div>
-                </div>
-              </div>
+          <div class="flex items-center justify-between mb-1">
+            <div class="text-sm font-medium">映射列表</div>
+            <div class="text-xs text-muted-foreground flex items-center gap-2">
+              <span>共 {{ rows.length }} 条</span>
+              <span v-if="searchQuery">匹配 {{ filteredRows.length }} 条</span>
             </div>
-
-            <table class="w-full text-sm text-left">
-              <thead class="text-xs text-muted-foreground bg-muted/50">
+          </div>
+          <div class="max-h-[520px] overflow-auto rounded-md border">
+            <table class="w-full text-sm text-left border-separate border-spacing-0">
+              <thead class="sticky top-0 z-20 text-xs text-muted-foreground bg-muted shadow-sm">
                 <tr>
-                  <th class="px-3 py-2 w-[46%]">包装名称</th>
-                  <th class="px-3 py-2 w-[44%]">采购名称</th>
-                  <th class="px-3 py-2 w-[10%]">操作</th>
+                  <th class="px-3 py-2 w-[46%] border-b">包装名称</th>
+                  <th class="px-3 py-2 w-[44%] border-b">采购名称</th>
+                  <th class="px-3 py-2 w-[10%] border-b">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -370,47 +343,10 @@ onMounted(editor.load);
               </tbody>
             </table>
           </div>
+          <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="addRow">
+            + 新增包装映射
+          </Button>
         </CardContent>
       </Card>
-
-      <div v-if="showSidePanel" class="flex flex-col gap-6 min-h-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>校验结果</CardTitle>
-            <CardDescription>请修正以下问题后再保存。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div v-if="clientIssues.length > 0" class="space-y-1">
-              <div class="text-sm font-medium">本地校验</div>
-              <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                <li v-for="issue in clientIssues" :key="`client-${issue.path}-${issue.code}`">
-                  {{ issue.path }}: {{ issue.message }}
-                </li>
-              </ul>
-            </div>
-            <div v-if="editor.serverIssues.value.length > 0" class="space-y-1">
-              <div class="text-sm font-medium">服务端校验</div>
-              <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                <li v-for="issue in editor.serverIssues.value" :key="`server-${issue.path}-${issue.code}`">
-                  {{ issue.path }}: {{ issue.message }}
-                </li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-
-    <MappingJsonDialog
-      v-model:open="editor.isJsonDialogOpen.value"
-      v-model:draft="editor.jsonDraft.value"
-      :error="editor.jsonDraftError.value"
-      :issues="editor.jsonDraftIssues.value"
-      :show-copy-button="true"
-      @format="editor.formatJsonDraft"
-      @reset="editor.resetJsonDraft"
-      @apply="editor.applyJsonDraft"
-      @copy="editor.copyJsonPreview"
-    />
-  </div>
+  </ConfigPageLayout>
 </template>

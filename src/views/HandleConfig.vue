@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import MappingJsonDialog from '@/features/config-editor/components/MappingJsonDialog.vue';
+import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { createRowId, scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
 import { configLoader } from '@/services/configLoader';
@@ -219,265 +219,213 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-6 p-6 md:p-8 bg-muted/20">
-    <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div>
-          <h2 class="text-3xl font-semibold tracking-tight">拉手配置</h2>
-          <p class="text-muted-foreground mt-1">维护拉手单双活映射、门厚配件包与人工处理策略。</p>
-        </div>
-        <span
-          v-if="hasUnsavedChanges"
-          class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
-        >
-          未保存
-        </span>
-      </div>
+  <ConfigPageLayout
+    title="拉手配置"
+    description="维护拉手单双活映射、门厚配件包与人工处理策略。"
+    :editor="editor"
+    :clientIssues="clientIssues"
+  >
+    <template #header-extra>
+      <span
+        v-if="hasUnsavedChanges"
+        class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+      >
+        未保存
+      </span>
+    </template>
+
+    <!-- Tabs Navigation -->
+    <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
+      <button
+        @click="activeTab = 'basic'"
+        class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+        :class="activeTab === 'basic' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+      >
+        基础策略
+        <span v-if="hasBasicIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+      </button>
+      <button
+        @click="activeTab = 'keywords'"
+        class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+        :class="activeTab === 'keywords' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+      >
+        识别规则
+        <span v-if="hasKeywordsIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+      </button>
+      <button
+        @click="activeTab = 'mappings'"
+        class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
+        :class="activeTab === 'mappings' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
+      >
+        型号映射
+        <span v-if="hasMappingsIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+      </button>
     </div>
 
-    <Card v-if="editor.loadError.value">
-      <CardContent class="p-4 text-sm text-destructive">
-        {{ editor.loadError.value }}
-      </CardContent>
-    </Card>
-
-    <div class="grid grid-cols-1 gap-6 flex-1" :class="showIssuesPanel ? 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' : ''">
-      <div class="flex flex-col gap-6 min-h-0">
-        <!-- Tabs Navigation -->
-        <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
-          <button
-            @click="activeTab = 'basic'"
-            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
-            :class="activeTab === 'basic' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
-          >
-            基础策略
-            <span v-if="hasBasicIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
-          </button>
-          <button
-            @click="activeTab = 'keywords'"
-            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
-            :class="activeTab === 'keywords' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
-          >
-            识别规则
-            <span v-if="hasKeywordsIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
-          </button>
-          <button
-            @click="activeTab = 'mappings'"
-            class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap"
-            :class="activeTab === 'mappings' ? 'bg-background border-t border-l border-r text-foreground' : 'text-muted-foreground hover:bg-muted'"
-          >
-            型号映射
-            <span v-if="hasMappingsIssues" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
-          </button>
-        </div>
-
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 pt-6">
+      <div class="flex flex-col gap-6 xl:col-span-2">
         <div v-show="activeTab === 'basic'" class="flex flex-col gap-6">
-        <Card>
-      <CardHeader>
-        <CardTitle>基础策略</CardTitle>
-        <CardDescription>配置默认供应商、未匹配供应商和人工处理标签。</CardDescription>
-      </CardHeader>
-      <CardContent class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="space-y-1">
-          <label class="text-sm font-medium">默认供应商</label>
-          <Input v-model="defaultSupplier" placeholder="例如：拉手供应商" />
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">未匹配供应商</label>
-          <Input v-model="unmatchedSupplier" placeholder="例如：待人工处理" />
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">人工处理标签</label>
-          <Input v-model="manualReviewLabel" placeholder="例如：未匹配拉手(待人工处理)" />
-        </div>
-      </CardContent>
-    </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>外贸默认规则</CardTitle>
-            <CardDescription>当未识别到单活/双活时，若客户名称命中关键词则使用默认活动类型。</CardDescription>
-          </CardHeader>
-          <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-3">
-              <div class="flex items-center justify-between mb-1">
-                <label class="text-sm font-medium">外贸客户关键词</label>
+          <Card>
+            <CardHeader>
+              <CardTitle>基础策略</CardTitle>
+              <CardDescription>配置默认供应商、未匹配供应商和人工处理标签。</CardDescription>
+            </CardHeader>
+            <CardContent class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="space-y-1">
+                <label class="text-sm font-medium">默认供应商</label>
+                <Input v-model="defaultSupplier" placeholder="例如：拉手供应商" />
               </div>
-              <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                <div v-for="row in exportCustomerKeywords" :key="row.id" class="flex items-center gap-2">
-                  <Input v-model="row.value" placeholder="例如：三部" />
-                  <Button variant="ghost" size="sm" @click="exportCustomerKeywords = removeKeyword(exportCustomerKeywords, row.id)">删除</Button>
+              <div class="space-y-1">
+                <label class="text-sm font-medium">未匹配供应商</label>
+                <Input v-model="unmatchedSupplier" placeholder="例如：待人工处理" />
+              </div>
+              <div class="space-y-1">
+                <label class="text-sm font-medium">人工处理标签</label>
+                <Input v-model="manualReviewLabel" placeholder="例如：未匹配拉手(待人工处理)" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>外贸默认规则</CardTitle>
+              <CardDescription>当未识别到单活/双活时，若客户名称命中关键词则使用默认活动类型。</CardDescription>
+            </CardHeader>
+            <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-sm font-medium">外贸客户关键词</label>
+                </div>
+                <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                  <div v-for="row in exportCustomerKeywords" :key="row.id" class="flex items-center gap-2">
+                    <Input v-model="row.value" placeholder="例如：三部" />
+                    <Button variant="ghost" size="sm" @click="exportCustomerKeywords = removeKeyword(exportCustomerKeywords, row.id)">删除</Button>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" class="w-full border-dashed" @click="addExportCustomerKeyword">
+                  + 新增关键字
+                </Button>
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium">外贸默认活动类型</label>
+                <select
+                  v-model="defaultActivityForExport"
+                  class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="double">双活</option>
+                  <option value="single">单活</option>
+                </select>
+                <div class="text-xs text-muted-foreground">
+                  仅在订单文本未识别到单活/双活时生效。
                 </div>
               </div>
-              <Button variant="outline" size="sm" class="w-full border-dashed" @click="addExportCustomerKeyword">
-                + 新增关键字
-              </Button>
-            </div>
-            <div class="space-y-2">
-              <label class="text-sm font-medium">外贸默认活动类型</label>
-              <select
-                v-model="defaultActivityForExport"
-                class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="double">双活</option>
-                <option value="single">单活</option>
-              </select>
-              <div class="text-xs text-muted-foreground">
-                仅在订单文本未识别到单活/双活时生效。
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>门厚配件包</CardTitle>
-            <CardDescription>`mshd` 仅允许 5/7/9/10，其他值将进入人工处理项。</CardDescription>
-          </CardHeader>
-          <CardContent class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="space-y-1" v-for="thickness in ['5', '7', '9', '10']" :key="thickness">
-              <label class="text-sm font-medium">{{ thickness }}cm</label>
-              <Input v-model="thicknessPacks[thickness]" :placeholder="`${thickness}公分配件包`" />
-            </div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>门厚配件包</CardTitle>
+              <CardDescription>`mshd` 仅允许 5/7/9/10，其他值将进入人工处理项。</CardDescription>
+            </CardHeader>
+            <CardContent class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="space-y-1" v-for="thickness in ['5', '7', '9', '10']" :key="thickness">
+                <label class="text-sm font-medium">{{ thickness }}cm</label>
+                <Input v-model="thicknessPacks[thickness]" :placeholder="`${thickness}公分配件包`" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div v-show="activeTab === 'keywords'" class="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>单双活关键词</CardTitle>
-        <CardDescription>从 xsbz/ls/remark 中识别单活或双活（双活优先）。</CardDescription>
-      </CardHeader>
-      <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="space-y-3">
-          <div class="flex items-center justify-between mb-1">
-            <label class="text-sm font-medium">单活关键词</label>
-          </div>
-          <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-            <div v-for="row in singleKeywords" :key="row.id" class="flex items-center gap-2">
-              <Input v-model="row.value" placeholder="例如：单活" />
-              <Button variant="ghost" size="sm" @click="singleKeywords = removeKeyword(singleKeywords, row.id)">删除</Button>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" class="w-full border-dashed" @click="addSingleKeyword">
-            + 新增单活关键字
-          </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>单双活关键词</CardTitle>
+              <CardDescription>从 xsbz/ls/remark 中识别单活或双活（双活优先）。</CardDescription>
+            </CardHeader>
+            <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-sm font-medium">单活关键词</label>
+                </div>
+                <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                  <div v-for="row in singleKeywords" :key="row.id" class="flex items-center gap-2">
+                    <Input v-model="row.value" placeholder="例如：单活" />
+                    <Button variant="ghost" size="sm" @click="singleKeywords = removeKeyword(singleKeywords, row.id)">删除</Button>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" class="w-full border-dashed" @click="addSingleKeyword">
+                  + 新增单活关键字
+                </Button>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-sm font-medium">双活关键词</label>
+                </div>
+                <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                  <div v-for="row in doubleKeywords" :key="row.id" class="flex items-center gap-2">
+                    <Input v-model="row.value" placeholder="例如：双活" />
+                    <Button variant="ghost" size="sm" @click="doubleKeywords = removeKeyword(doubleKeywords, row.id)">删除</Button>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" class="w-full border-dashed" @click="addDoubleKeyword">
+                  + 新增双活关键字
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between mb-1">
-            <label class="text-sm font-medium">双活关键词</label>
-          </div>
-          <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-            <div v-for="row in doubleKeywords" :key="row.id" class="flex items-center gap-2">
-              <Input v-model="row.value" placeholder="例如：双活" />
-              <Button variant="ghost" size="sm" @click="doubleKeywords = removeKeyword(doubleKeywords, row.id)">删除</Button>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" class="w-full border-dashed" @click="addDoubleKeyword">
-            + 新增双活关键字
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-    </div>
 
-    <div v-show="activeTab === 'mappings'" class="flex flex-col gap-6">
-    <Card class="min-h-0">
-      <CardHeader class="space-y-3">
-        <div>
-          <CardTitle>型号映射</CardTitle>
-          <CardDescription>内部拉手名称映射到供应商名称（单活/双活）。</CardDescription>
+        <div v-show="activeTab === 'mappings'" class="flex flex-col gap-6">
+          <Card class="min-h-0">
+            <CardHeader class="space-y-3">
+              <div>
+                <CardTitle>型号映射</CardTitle>
+                <CardDescription>内部拉手名称映射到供应商名称（单活/双活）。</CardDescription>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
+                <div class="space-y-1">
+                  <label class="text-sm font-medium">搜索</label>
+                  <Input v-model="searchQuery" placeholder="搜索型号、供应商或名称" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent class="min-h-0">
+              <div class="max-h-[520px] overflow-auto rounded-md border">
+                <table class="w-full text-sm text-left">
+                  <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0 z-10">
+                    <tr>
+                      <th class="px-3 py-2 w-[25%]">内部型号</th>
+                      <th class="px-3 py-2 w-[20%]">供应商</th>
+                      <th class="px-3 py-2 w-[35%]">供应商名称</th>
+                      <th class="px-3 py-2 w-[10%]">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in filteredRows" :key="row.id" class="bg-background border-b last:border-0 align-top">
+                      <td class="px-3 py-2">
+                        <Input v-model="row.model" placeholder="例如：DJ-6847双活不分左右" />
+                      </td>
+                      <td class="px-3 py-2">
+                        <Input v-model="row.supplier" placeholder="供应商" />
+                      </td>
+                      <td class="px-3 py-2">
+                        <Input v-model="row.vendorName" placeholder="供应商采购名称" />
+                      </td>
+                      <td class="px-3 py-2">
+                        <Button variant="ghost" size="sm" @click="removeMappingRow(row.id)">删除</Button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="addMappingRow">
+                + 新增型号映射
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
-          <div class="space-y-1">
-            <label class="text-sm font-medium">搜索</label>
-            <Input v-model="searchQuery" placeholder="搜索型号、供应商或名称" />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent class="min-h-0">
-        <div class="max-h-[520px] overflow-auto rounded-md border">
-          <table class="w-full text-sm text-left">
-            <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0 z-10">
-              <tr>
-                <th class="px-3 py-2 w-[25%]">内部型号</th>
-                <th class="px-3 py-2 w-[20%]">供应商</th>
-                <th class="px-3 py-2 w-[35%]">供应商名称</th>
-                <th class="px-3 py-2 w-[10%]">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in filteredRows" :key="row.id" class="bg-background border-b last:border-0 align-top">
-                <td class="px-3 py-2">
-                  <Input v-model="row.model" placeholder="例如：DJ-6847双活不分左右" />
-                </td>
-                <td class="px-3 py-2">
-                  <Input v-model="row.supplier" placeholder="供应商" />
-                </td>
-                <td class="px-3 py-2">
-                  <Input v-model="row.vendorName" placeholder="供应商采购名称" />
-                </td>
-                <td class="px-3 py-2">
-                  <Button variant="ghost" size="sm" @click="removeMappingRow(row.id)">删除</Button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <Button variant="outline" size="sm" class="w-full mt-3 border-dashed" @click="addMappingRow">
-          + 新增型号映射
-        </Button>
-      </CardContent>
-    </Card>
-    </div>
-    </div>
-    
-    <div v-if="showIssuesPanel" class="flex flex-col gap-6 min-h-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
-      <Card data-issue-anchor="true">
-        <CardHeader>
-          <CardTitle>校验结果</CardTitle>
-          <CardDescription>请修正以下问题后再保存。</CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-3">
-          <div v-if="clientIssues.length > 0" class="space-y-1">
-            <div class="text-sm font-medium">本地校验</div>
-            <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-              <li v-for="issue in clientIssues" :key="`client-${issue.path}-${issue.code}`">
-                {{ issue.path }}: {{ issue.message }}
-              </li>
-            </ul>
-          </div>
-          <div v-if="editor.serverIssues.value.length > 0" class="space-y-1">
-            <div class="text-sm font-medium">服务端校验</div>
-            <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-              <li v-for="issue in editor.serverIssues.value" :key="`server-${issue.path}-${issue.code}`">
-                {{ issue.path }}: {{ issue.message }}
-              </li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-    </div>
-
-    <MappingJsonDialog
-      v-model:open="editor.isJsonDialogOpen.value"
-      v-model:draft="editor.jsonDraft.value"
-      title="拉手配置 JSON"
-      :description="'直接编辑拉手配置 JSON，应用前会进行校验。'"
-      :error="editor.jsonDraftError.value"
-      :issues="editor.jsonDraftIssues.value"
-      @reset="editor.resetJsonDraft"
-      @format="editor.formatJsonDraft"
-      @apply="editor.applyJsonDraft"
-    />
-
-    <!-- Action Bar -->
-    <div class="sticky bottom-0 -mx-6 md:-mx-8 -mb-6 md:-mb-8 p-4 mt-auto border-t bg-background/95 backdrop-blur z-10 flex items-center justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-      <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新配置</Button>
-      <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
-      <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存配置</Button>
-    </div>
-  </div>
+      </div>
+      
+      </div>
+  </ConfigPageLayout>
 </template>
