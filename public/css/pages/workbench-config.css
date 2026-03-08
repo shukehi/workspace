@@ -1,0 +1,661 @@
+/* ==================== Materials Components ==================== */
+
+/* Supplier Group */
+.supplier-group {
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.supplier-header {
+    padding: 12px 16px;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.material-type {
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.material-usage {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+}
+
+/* ================== CONFIG TAB STYLES ================== */
+
+#panel-config .panel-header {
+    /* Fixed: Removed previous column layout to allow single line */
+    flex-direction: row;
+    align-items: center;
+}
+
+.config-controls {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    /* Take remaining space */
+    align-items: center;
+}
+
+.config-tabs {
+    display: flex;
+    gap: 0;
+    background: transparent;
+    padding: 0;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+
+.config-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    padding: 8px 20px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -18px;
+    /* Align with parent bottom border if existing */
+}
+
+.config-tab:hover {
+    color: var(--primary-color);
+}
+
+.config-tab.active {
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--primary-color);
+    font-weight: 600;
+}
+
+.config-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.config-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+}
+
+.config-table th,
+.config-table td {
+    padding: 8px;
+    border: 1px solid var(--border-light);
+    background: transparent;
+}
+
+.config-table th {
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.header-filter {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.7em;
+    padding: 2px;
+    margin-left: 5px;
+    border-radius: 3px;
+    max-width: 80px;
+}
+
+/* Editable Inputs in Table */
+.config-input {
+    background: transparent;
+    border: none;
+    color: inherit;
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    /* Reduced from default/inherited */
+    padding: 6px 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.config-input:focus {
+    outline: none;
+    /* Removed outline */
+    background: white;
+    box-shadow: none;
+    /* Soft shadow focus */
+}
+
+/* Config Section Toggle */
+.config-section {
+    display: none;
+}
+
+.config-section.active {
+    display: block;
+}
+
+/* BOM Editing specific */
+.bom-row {
+    font-size: 0.9em;
+    color: inherit;
+    border-bottom: 1px solid var(--border-light);
+    background: white;
+    transition: background 0.2s;
+}
+
+.delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+/* ==================== Config Formula Layout ==================== */
+
+.formula-layout {
+    display: flex;
+    height: 600px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+
+/* Sidebar */
+.formula-sidebar {
+    width: 250px;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+}
+
+.sidebar-header {
+    padding: 10px;
+    border-bottom: 1px dashed var(--border-light);
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    background: white;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--primary-color);
+}
+
+.icon-btn:hover {
+    background: var(--border-light);
+}
+
+/* Sidebar List Styling */
+.formula-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.formula-group-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    background: transparent;
+    padding: 8px 12px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.formula-group-header:first-child {
+    margin-top: 0;
+}
+
+.formula-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    background: white;
+}
+
+.formula-item:hover {
+    background: white;
+    transform: translateX(2px);
+    border-color: var(--border-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.formula-item.active {
+    background: white;
+    color: white;
+    font-weight: 600;
+    box-shadow: none;
+    border: 1px solid transparent;
+}
+
+.formula-item .item-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.formula-item .item-tag {
+    font-size: 0.7em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-secondary);
+}
+
+.formula-item.active .item-tag {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* Search Highlight */
+.search-highlight {
+    background-color: rgba(255, 255, 0, 0.4);
+    border-radius: 2px;
+    color: inherit;
+}
+
+.formula-item.active .search-highlight {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Editor Area */
+.formula-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+}
+
+.editor-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card-bg);
+}
+
+.editor-header h3 {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+}
+
+.editor-body {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.action-btn.danger {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: transparent;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+    background: #ef4444;
+    color: white;
+}
+
+/* Autocomplete/Search Dropdown */
+.autocomplete-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.suggestions-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.suggestions-list.show {
+    display: block;
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.suggestion-item:hover {
+    background: var(--border-light);
+}
+
+.suggestion-item .sub {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-left: 8px;
+}
+
+/* ==================== Sub-Tabs (for Config Panel) ==================== */
+
+.sub-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0;
+}
+
+.sub-tab {
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: -2px;
+}
+
+.sub-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-color);
+}
+
+.sub-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: var(--bg-color);
+}
+
+.config-content {
+    padding: 20px 0;
+}
+
+.config-content.full-height {
+    height: calc(100vh - 250px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Config Toolbar */
+.config-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: transparent;
+    border: 1px dashed var(--border-light);
+}
+
+.filter-group {
+    display: flex;
+    gap: 10px;
+}
+
+/* Inline Inputs */
+.inline-input {
+    width: 100%;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    /* Reduced from default */
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.inline-input:focus,
+.inline-input:hover {
+    background: transparent;
+    border-bottom: 1px solid transparent;
+}
+
+.inline-input.number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.add-row {
+    background: transparent;
+}
+
+.add-row td {
+    padding: 2px !important;
+}
+
+/* Split View Layout */
+.config-split-view {
+    display: flex;
+    height: 100%;
+    border: 1px solid var(--border-light);
+    background: transparent;
+}
+
+/* Config Sidebar */
+.config-sidebar {
+    width: 250px;
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+}
+
+.full-width-input {
+    width: 100%;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    outline: none;
+}
+
+.full-width-input:focus {
+    border-color: var(--primary-color);
+}
+
+.sidebar-footer {
+    padding: 10px;
+    border-top: 1px dashed var(--border-light);
+}
+
+/* Config Main Detail */
+.config-main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: transparent;
+}
+
+.formula-detail {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--text-primary);
+}
+
+.detail-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detail-header .subtitle {
+    font-size: 0.6em;
+    font-weight: normal;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.btn-dashed {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    transition: all 0.2s;
+}
+
+.btn-dashed:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: transparent;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 0;
+    margin-top: 10px;
+    border-top: 1px dashed var(--border-light);
+}
+
+/* ==================== Enhanced BOM Detail Styles ==================== */
+
+.bom-row:hover {
+    background: white;
+}
+
+/* Material Type Tag */
+.mat-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 6px;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.mat-tag.powder {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Red for Powder */
+.mat-tag.paper {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* Blue for Paper */
+.mat-tag.paint {
+    background: #d1fae5;
+    color: #047857;
+}
+
+/* Green for Paint */
+.mat-tag.other {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Usage Visualization Bar */
+.usage-cell {
+    position: relative;
+    vertical-align: middle;
+}
+
+.usage-bar-container {
+    position: absolute;
+    bottom: 2px;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.usage-bar {
+    height: 100%;
+    background: var(--primary-color);
+    opacity: 0.4;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.usage-input-wrapper {
+    position: relative;
+    z-index: 2;
+}
