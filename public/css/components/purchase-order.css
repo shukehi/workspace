@@ -144,19 +144,22 @@
 }
 
 /* Status Variants */
-.po-card .po-status.pending {
+.po-card .po-status.pending,
+.po-status-badge.pending {
     background: #fef3c7;
     color: #92400e;
     border: 1px solid #fbbf24;
 }
 
-.po-card .po-status.completed {
+.po-card .po-status.completed,
+.po-status-badge.completed {
     background: #d1fae5;
     color: #065f46;
     border: 1px solid #10b981;
 }
 
-.po-card .po-status.cancelled {
+.po-card .po-status.cancelled,
+.po-status-badge.cancelled {
     background: #fee2e2;
     color: #991b1b;
     border: 1px solid #ef4444;
@@ -340,24 +343,6 @@
     border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-}
-
-.po-status-badge.pending {
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fbbf24;
-}
-
-.po-status-badge.completed {
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid #10b981;
-}
-
-.po-status-badge.cancelled {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #ef4444;
 }
 
 /* List View: Category Tag */

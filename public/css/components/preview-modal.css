@@ -103,22 +103,13 @@
     box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
 }
 
-/* Print Button - Green */
-.modal-btn-print {
-    background: #10b981;
-}
-
-.modal-btn-print:hover {
-    background: #059669;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
-}
-
-/* Export Button - Emerald */
+/* Print/Export Buttons */
+.modal-btn-print,
 .modal-btn-export {
     background: #10b981;
 }
 
+.modal-btn-print:hover,
 .modal-btn-export:hover {
     background: #059669;
     transform: translateY(-1px);
