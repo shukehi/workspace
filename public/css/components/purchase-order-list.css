@@ -121,15 +121,15 @@
 }
 
 /* ==================== Utility Classes ==================== */
-.text-secondary {
-    color: var(--text-secondary, #6b7280);
-}
-
 .mono {
     font-family: var(--font-mono, 'IBM Plex Mono', monospace);
 }
 
+.text-secondary,
+.mono.small {
+    color: var(--text-secondary, #6b7280);
+}
+
 .mono.small {
     font-size: 0.8rem;
-    color: var(--text-secondary, #6b7280);
 }
