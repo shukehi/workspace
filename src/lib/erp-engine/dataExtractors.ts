@@ -587,6 +587,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         if (hasSingle) return 'single';
         return null;
     };
+    const activityLabel = (activity: 'single' | 'double') => activity === 'double' ? '双活' : '单活';
 
     const append = (row: HandleResultRow) => {
         const key = `${row.supplier}|${row.type}|${row.spec}|${row.remark}`;
@@ -649,9 +650,12 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
             return;
         }
 
+        const label = activityLabel(activity);
+        const finalType = vendorName.includes(label) ? vendorName : `${vendorName} - ${label}`;
+
         append({
             supplier,
-            type: vendorName,
+            type: finalType,
             spec: accessoryPack,
             remark: '',
             quantityLeft: qtyPair.left,

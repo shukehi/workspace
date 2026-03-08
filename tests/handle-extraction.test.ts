@@ -26,8 +26,8 @@ test('extractHandleData maps matched handle by activity/thickness', () => {
     mappings: {
       'DJ-6847双活不分左右': {
         supplier: '供应商X',
-        vendorNameSingle: 'DJ-6847单活供应商名',
-        vendorNameDouble: 'DJ-6847双活供应商名',
+        vendorNameSingle: 'FC-09太空灰',
+        vendorNameDouble: 'FC-09太空灰',
       },
     },
   };
@@ -35,7 +35,7 @@ test('extractHandleData maps matched handle by activity/thickness', () => {
   const extracted = extractHandleData(rows as any[], { remark: '' }, mapping);
   assert.equal(extracted.length, 1);
   assert.equal(extracted[0].supplier, '供应商X');
-  assert.equal(extracted[0].type, 'DJ-6847双活供应商名');
+  assert.equal(extracted[0].type, 'FC-09太空灰 - 双活');
   assert.equal(extracted[0].spec, '10公分配件包');
   assert.equal(extracted[0].quantityLeft, 2);
   assert.equal(extracted[0].quantityRight, 3);

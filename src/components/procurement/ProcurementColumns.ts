@@ -2,7 +2,37 @@ import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { Order } from '@/types/order';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Eye, CheckCircle2, PackageCheck } from 'lucide-vue-next';
+import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle } from 'lucide-vue-next';
+
+type RiskLevel = 'high' | 'medium' | null;
+
+function resolveOrderRisk(order: Order): { level: RiskLevel; reason: string } {
+    const items = Array.isArray(order.items) ? order.items : [];
+    const hasHighRisk = items.some((item: any) => {
+        const supplier = String(item?.supplier || '');
+        const type = String(item?.type || item?.name || '');
+        const remark = String(item?.remark || '');
+        return supplier.includes('待人工处理')
+            || type.includes('未匹配')
+            || remark.includes('待人工处理');
+    });
+    if (hasHighRisk) {
+        return { level: 'high', reason: '存在待人工处理明细' };
+    }
+
+    const hasMediumRisk = items.some((item: any) => {
+        const type = String(item?.type || item?.name || '');
+        const remark = String(item?.remark || '');
+        return type.includes('待确认')
+            || remark.includes('待确认')
+            || remark.includes('未识别');
+    });
+    if (hasMediumRisk) {
+        return { level: 'medium', reason: '存在需人工确认明细' };
+    }
+
+    return { level: null, reason: '' };
+}
 
 export const createColumns = (actions: {
     onEdit: (order: Order) => void;
@@ -13,12 +43,36 @@ export const createColumns = (actions: {
     {
         accessorKey: 'order_no',
         header: '订单号',
-        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('order_no'))
+        cell: ({ row }) => {
+            const order = row.original;
+            const { level, reason } = resolveOrderRisk(order);
+            const orderNo = row.getValue('order_no');
+            if (!level) {
+                return h('div', { class: 'font-medium' }, String(orderNo));
+            }
+
+            const toneClass = level === 'high'
+                ? 'text-red-600'
+                : 'text-amber-600';
+            const iconClass = level === 'high'
+                ? 'h-4 w-4 text-red-600'
+                : 'h-4 w-4 text-amber-500';
+
+            return h('div', {
+                class: `font-medium inline-flex items-center gap-1.5 ${toneClass}`,
+                title: reason
+            }, [
+                h(AlertTriangle, { class: iconClass }),
+                h('span', { class: 'font-semibold' }, String(orderNo))
+            ]);
+        }
     },
     {
         accessorKey: 'category',
         header: '类别',
         cell: ({ row }) => {
+            const order = row.original;
+            const risk = resolveOrderRisk(order);
             const category = row.getValue<string>('category') || '常规';
             const categoryClassMap: Record<string, string> = {
                 包装: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -28,7 +82,12 @@ export const createColumns = (actions: {
                 配件: 'bg-slate-100 text-slate-700 border-slate-300',
                 常规: 'bg-muted/40 text-muted-foreground border-border'
             };
-            const colorClass = categoryClassMap[category] || categoryClassMap.常规;
+            const riskClass = risk.level === 'high'
+                ? 'bg-red-50 text-red-700 border-red-200'
+                : risk.level === 'medium'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : '';
+            const colorClass = riskClass || categoryClassMap[category] || categoryClassMap.常规;
             return h('span', {
                 class: `px-2 py-0.5 rounded text-[10px] font-medium border ${colorClass}`
             }, category);
