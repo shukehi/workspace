@@ -44,6 +44,11 @@ export function normalizeOrderPayload(payload: any): Order | null {
     return isValidOrder(candidate) ? candidate : null;
 }
 
+function isNotFoundError(error: unknown): boolean {
+    const status = (error as any)?.response?.status;
+    return status === 404;
+}
+
 function logInvalidOrders(source: string, orders: any[]) {
     if (!Array.isArray(orders)) return;
     const invalid = orders
@@ -117,23 +122,37 @@ export const useProcurementStore = defineStore('procurement', () => {
     async function deleteOrder(id: number) {
         try {
             await api.delete(`/orders/${id}`);
-            purchaseOrders.value = purchaseOrders.value.filter(o => o && o.id !== id);
         } catch (e) {
-            console.error('Failed to delete order', e);
-            throw e;
+            if (!isNotFoundError(e)) {
+                console.error('Failed to delete order', e);
+                throw e;
+            }
+            console.warn('[ProcurementStore] deleteOrder got 404, treating as already deleted', { id });
+        } finally {
+            // Keep client state idempotent with server-side delete semantics.
+            purchaseOrders.value = purchaseOrders.value.filter(o => o && o.id !== id);
         }
     }
 
     async function bulkDelete(ids: number[]) {
         loading.value = true;
         try {
-            // Sequential deletion to ensure DB integrity, or use Promise.all for speed
-            await Promise.all(ids.map(id => api.delete(`/orders/${id}`)));
-            purchaseOrders.value = purchaseOrders.value.filter(o => o && !ids.includes(o.id));
+            const results = await Promise.allSettled(ids.map(id => api.delete(`/orders/${id}`)));
+            const fatalErrors = results
+                .map((result, idx) => ({ result, id: ids[idx] }))
+                .filter(({ result }) => result.status === 'rejected')
+                .map(({ result, id }) => ({ id, reason: (result as PromiseRejectedResult).reason }))
+                .filter(({ reason }) => !isNotFoundError(reason));
+
+            if (fatalErrors.length > 0) {
+                console.error('Bulk delete failed', fatalErrors);
+                throw (fatalErrors[0] as any).reason;
+            }
         } catch (e) {
-            console.error('Bulk delete failed', e);
+            console.error('Failed to delete order', e);
             throw e;
         } finally {
+            purchaseOrders.value = purchaseOrders.value.filter(o => o && !ids.includes(o.id));
             loading.value = false;
         }
     }

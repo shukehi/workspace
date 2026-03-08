@@ -11,16 +11,27 @@
     --primary-color: #000000;
     /* Use black as primary for terminal look */
     --primary-hover: #333333;
+    --primary: var(--primary-color);
+    --primary-rgb: 0, 0, 0;
     --accent-color: #2563EB;
+    --accent-hover: var(--accent-color);
+    --accent-rgb: 37, 99, 235;
     /* Keep a blue accent for critical actions */
     --bg-color: #FFFFFF;
+    --bg-primary: transparent;
+    --bg-secondary: transparent;
+    --bg-tertiary: transparent;
+    --bg-hover: #FFFFFF;
     --card-bg: #FFFFFF;
     --text-primary: #000000;
+    --text-main: inherit;
     --text-secondary: #4B5563;
+    --text-dim: inherit;
     --text-tertiary: #9CA3AF;
     --border-color: #000000;
     /* Explicit black borders */
     --border-light: #E5E7EB;
+    --border-dark: transparent;
     --error-bg: #000000;
     --error-text: #FF4444;
     --success-bg: #F0FDF4;

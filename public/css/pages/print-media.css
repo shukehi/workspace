@@ -1,0 +1,114 @@
+@media screen {
+    .print-page {
+        width: 100%;
+        max-width: none;
+        min-height: auto;
+        padding: 12px;
+        margin: 0;
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
+
+    .print-header {
+        margin-bottom: 10px;
+        padding: 10px 12px;
+    }
+
+    .print-footer {
+        margin-top: 14px;
+        padding-top: 8px;
+    }
+
+    .print-table tbody tr:not(.total-row):hover td {
+        background-color: #f5f7fb;
+        transition: background-color 0.16s ease;
+    }
+}
+
+@media print {
+
+    /* Hide all UI controls when printing */
+    .controls-bar,
+    .zoom-controls,
+    .preview-controls,
+    body.print-mode .preview-controls,
+    body.print-mode .zoom-controls {
+        display: none !important;
+    }
+
+    body {
+        background: none;
+        padding-top: 0 !important;
+    }
+
+    body.print-mode {
+        background: none;
+    }
+
+    body.print-mode #printOutput {
+        padding: 0;
+        display: block;
+        transform: none !important;
+    }
+
+    #printOutput {
+        padding: 0 !important;
+        transform: none !important;
+    }
+
+    .print-page {
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: auto;
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    .print-page:last-child {
+        page-break-after: auto;
+    }
+
+    .print-table th {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+        /* Try to hide browser default headers/footers (browser support varies) */
+        margin-top: 10mm;
+        margin-bottom: 10mm;
+    }
+
+    /* Additional attempts to suppress browser headers/footers */
+    @page {
+        @top-left {
+            content: none;
+        }
+
+        @top-center {
+            content: none;
+        }
+
+        @top-right {
+            content: none;
+        }
+
+        @bottom-left {
+            content: none;
+        }
+
+        @bottom-center {
+            content: none;
+        }
+
+        @bottom-right {
+            content: none;
+        }
+    }
+}

@@ -12,10 +12,6 @@
     border: 1px solid var(--border-color);
 }
 
-.table-responsive.sticky-wrapper {
-    overflow-x: auto;
-}
-
 .details-table {
     width: 100%;
     border-collapse: collapse;
@@ -29,11 +25,30 @@
     width: 100%;
     min-width: 800px;
     /* Sensible minimum for materials */
+    border-collapse: collapse;
+}
+
+.materials-table th,
+.materials-table td {
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    text-align: left;
+}
+
+.materials-table th {
+    background: var(--bg-color);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 /* Explicit width for Materials columns */
 .materials-table th:nth-child(1),
-.materials-table td:nth-child(1) {
+.materials-table th:nth-child(4),
+.materials-table td:nth-child(1),
+.materials-table td:nth-child(4) {
     width: 15%;
 }
 
@@ -47,12 +62,6 @@
 .materials-table th:nth-child(3),
 .materials-table td:nth-child(3) {
     width: 12%;
-}
-
-/* Type */
-.materials-table th:nth-child(4),
-.materials-table td:nth-child(4) {
-    width: 15%;
 }
 
 /* Supplier */
@@ -130,10 +139,6 @@
     width: 60px;
 }
 
-.order-source-table td:nth-child(1) {
-    background-color: white;
-}
-
 /* Column 2: 产品名称 */
 .order-source-table th:nth-child(2),
 .order-source-table td:nth-child(2) {
@@ -142,10 +147,6 @@
     z-index: 3;
     background-color: #F9FAFB;
     min-width: 200px;
-}
-
-.order-source-table td:nth-child(2) {
-    background-color: white;
 }
 
 /* Column 3: 规格 */
@@ -158,6 +159,8 @@
     min-width: 150px;
 }
 
+.order-source-table td:nth-child(1),
+.order-source-table td:nth-child(2),
 .order-source-table td:nth-child(3) {
     background-color: white;
 }
@@ -182,20 +185,24 @@
 /* 锁具 */
 .order-source-table th:nth-child(8),
 /* 锁芯 */
-.order-source-table th:nth-child(13),
-/* 锁叉 */
-.order-source-table th:nth-child(16),
-/* 铰链 */
-.order-source-table th:nth-child(25),
-/* 前/后/门架 */
 .order-source-table th:nth-child(10),
 /* 副锁锁具 */
 .order-source-table th:nth-child(11),
 /* 副锁锁芯 */
-.order-source-table th:nth-child(12)
-
+.order-source-table th:nth-child(12),
 /* 副锁护罩 */
-    {
+.order-source-table th:nth-child(13),
+/* 锁叉 */
+.order-source-table th:nth-child(16),
+/* 铰链 */
+.order-source-table th:nth-child(19),
+/* 颜色 */
+.order-source-table th:nth-child(21),
+/* 包装 */
+.order-source-table th:nth-child(25),
+/* 前/后/门架 */
+.order-source-table th:nth-child(27)
+/* 下档 */ {
     min-width: 120px;
 }
 
@@ -229,17 +236,6 @@
 /* 是否通用拉手 */
     {
     min-width: 150px;
-}
-
-.order-source-table th:nth-child(19),
-/* 颜色 */
-.order-source-table th:nth-child(21),
-/* 包装 */
-.order-source-table th:nth-child(27)
-
-/* 下档 */
-    {
-    min-width: 120px;
 }
 
 .order-source-table th:nth-child(23)

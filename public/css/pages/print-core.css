@@ -1,0 +1,332 @@
+/* ========== PRINT & PREVIEW STYLES (Keep mostly strictly functional) ========== */
+
+.preview-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 0;
+    /* Sharp Edges */
+    border: 2px solid #000;
+    box-shadow: none;
+    display: flex;
+    gap: 10px;
+}
+
+.secondary {
+    background-color: #6B7280;
+    color: white;
+}
+
+.secondary:hover {
+    background-color: #4B5563;
+}
+
+/* Everything below here is critical for Print functionality */
+.print-header,
+.print-footer,
+#printOutput,
+#printPageTemplate,
+.print-page.mode-compact .print-footer {
+    display: none;
+}
+
+body.print-mode {
+    background-color: #525659;
+    padding: 0;
+    align-items: flex-start;
+    /* Reset center alignment */
+}
+
+body.print-mode .app-container {
+    display: none !important;
+}
+
+body.print-mode #printOutput {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 0;
+    width: 100%;
+}
+
+.print-page {
+    background: white;
+    width: 100%;
+    max-width: 210mm;
+    min-height: auto;
+    padding: 8mm;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    box-sizing: border-box;
+}
+
+.print-header {
+    display: block;
+    text-align: center;
+    border: 1.2px solid #1f2937;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    background-color: #fff;
+}
+
+.print-header h1 {
+    font-size: 22px;
+    margin: 0 0 10px 0;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #000;
+    letter-spacing: 0.02em;
+}
+
+.print-info-top-columns {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    text-align: left;
+    font-size: 11.5px;
+    color: #000;
+}
+
+.print-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.print-info-bottom-row {
+    margin-top: 6px;
+    text-align: left;
+    font-size: 12px;
+    padding-top: 6px;
+    color: #000;
+}
+
+.info-item {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+
+.info-item label {
+    font-weight: 600;
+    white-space: nowrap;
+    color: #000;
+    font-family: var(--font-sans);
+}
+
+.info-item span {
+    flex: 1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    color: #000;
+    font-family: var(--font-sans);
+    font-weight: 500;
+}
+
+.p-date-text {
+    display: inline-block;
+    min-width: 92px;
+    font-size: 11.5px;
+    font-family: var(--font-sans);
+    line-height: 1.2;
+    border-bottom: 0.8px solid #4b5563;
+    padding: 0 2px 1px;
+    color: #111827;
+}
+
+.print-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 22px;
+    padding-top: 12px;
+    border-top: 1px solid #374151;
+    color: #000;
+    font-family: var(--font-sans);
+}
+
+.sign-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+}
+
+.line {
+    border-bottom: 1px solid #4b5563;
+    width: 100px;
+    height: 1px;
+}
+
+.print-page.mode-compact .print-header {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+}
+
+.print-page.mode-compact .print-header h1 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.print-page.mode-compact .print-info-top-columns {
+    margin-top: 8px;
+    gap: 10px;
+    font-size: 11px;
+}
+
+.print-page.mode-compact .print-col {
+    gap: 6px;
+}
+
+/* Print Table */
+.print-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    table-layout: fixed;
+    color: #111827;
+    font-family: var(--font-sans);
+    overflow: hidden;
+}
+
+.print-table th,
+.print-table td {
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 6px;
+    text-align: center;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.print-table th.col-left,
+.print-table td.col-left {
+    text-align: left;
+}
+
+.print-table th.col-center,
+.print-table td.col-center {
+    text-align: center;
+}
+
+.print-table th.col-right,
+.print-table td.col-right {
+    text-align: right;
+}
+
+.print-table tbody tr:not(.total-row) td {
+    height: 38px;
+}
+
+.print-table th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+    color: #374151;
+}
+
+.print-table th:last-child,
+.print-table td:last-child {
+    border-right: 0;
+    width: auto !important;
+    min-width: 160px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.print-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.print-table td.col-numeric,
+.print-table th.col-numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
+.print-table tbody tr:nth-child(even):not(.total-row) {
+    background-color: #fff;
+}
+
+.print-table .total-row td {
+    background-color: #f9fafb;
+    font-weight: 600;
+}
+
+/* Print Zoom Controls */
+.zoom-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.zoom-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    min-width: 50px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.zoom-btn.active {
+    background-color: #10B981;
+    color: white;
+    border-color: #059669;
+}
+
+#printOutput.zoom-50 {
+    transform: scale(0.5);
+}
+
+#printOutput.zoom-75 {
+    transform: scale(0.75);
+}
+
+#printOutput.zoom-100 {
+    transform: scale(1);
+}
+
+#printOutput.zoom-125 {
+    transform: scale(1.25);
+}
+
+#printOutput.zoom-50,
+#printOutput.zoom-75,
+#printOutput.zoom-125 {
+    transform-origin: top center;
+}
+
+/* Navigation Link */
+.print-nav-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.print-nav-link:hover {
+    background-color: #EFF6FF;
+    color: var(--primary-hover);
+}

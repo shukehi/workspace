@@ -19,3 +19,20 @@
     border-color: var(--text-tertiary);
     background-color: #F9FAFB;
 }
+
+.sm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sm-btn-secondary {
+    background: white;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.sm-btn-secondary:hover {
+    background: #F9FAFB;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
