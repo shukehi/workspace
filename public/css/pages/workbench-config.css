@@ -80,7 +80,8 @@
     font-weight: 600;
 }
 
-.config-actions {
+.config-actions,
+.filter-group {
     display: flex;
     gap: 10px;
 }
@@ -144,7 +145,8 @@
     display: none;
 }
 
-.config-section.active {
+.config-section.active,
+.suggestions-list.show {
     display: block;
 }
 
@@ -216,7 +218,8 @@
     color: var(--primary-color);
 }
 
-.icon-btn:hover {
+.icon-btn:hover,
+.suggestion-item:hover {
     background: var(--border-light);
 }
 
@@ -367,19 +370,11 @@
     display: none;
 }
 
-.suggestions-list.show {
-    display: block;
-}
-
 .suggestion-item {
     padding: 8px 12px;
     cursor: pointer;
     font-size: 0.85rem;
     border-bottom: 1px solid var(--border-light);
-}
-
-.suggestion-item:hover {
-    background: var(--border-light);
 }
 
 .suggestion-item .sub {
@@ -442,11 +437,6 @@
     padding: 10px;
     background: transparent;
     border: 1px dashed var(--border-light);
-}
-
-.filter-group {
-    display: flex;
-    gap: 10px;
 }
 
 /* Inline Inputs */
