@@ -45,7 +45,7 @@
     font-family: var(--font-sans);
 }
 
-.po-number {
+.po-info-panel .po-number {
     font-family: var(--font-mono);
     font-size: 1.1rem;
     font-weight: 600;
@@ -57,7 +57,7 @@
     letter-spacing: 0.5px;
 }
 
-.po-actions {
+.po-info-panel .po-actions {
     display: flex;
     gap: 10px;
 }
@@ -423,12 +423,12 @@
         align-items: flex-start;
     }
 
-    .po-actions {
+    .po-info-panel .po-actions {
         width: 100%;
         flex-direction: column;
     }
 
-    .po-actions .sm-btn {
+    .po-info-panel .po-actions .sm-btn {
         width: 100%;
     }
 
