@@ -1,74 +1,87 @@
-# 工程开发约定
+# 前后端开发规范（强约束版）
 
-## 1. 目标
+## 1. 目标与适用范围
 
-统一前后端契约、请求层、Mock 行为和提交流程，降低联调偏差与回归风险。
+1. 统一前端、后端、数据库与测试规则，降低回归风险。
+2. 本规范适用于 `src/**`、`server/**`、`public/css/**`、`tests/**` 全部改动。
+3. 规则默认强制执行，除非在 PR 中明确写出偏离原因和回滚方案。
 
-## 2. API 与路由约定
+## 2. 分支与提交规范
 
-1. 所有业务 API 以 `/api` 为前缀。
-2. 配置读写统一使用 `/api/config/*`。
-3. `/api/formulas` 已下线；配方读取与写入统一走 `/api/config/formulas/*`。
-4. 配方主数据源为 SQLite（`formula_*` 表），`public/data/color-formulas.json` 仅作为迁移输入与回退导出，不作为运行时真源。
-5. 路由变更必须同步更新：
-   - 前端调用点
-   - README API 列表
-   - 回归测试
+1. 新功能/重构分支必须使用 `codex/` 前缀。
+2. 禁止直接在 `main` 开发。
+3. 每次提交只做一类改动（功能、重构、修复、文档分开）。
+4. 提交信息建议使用：`feat|fix|refactor|chore|docs|test(scope): message`。
 
-## 3. 前端请求层约定
+## 3. 前端规范
 
-1. `src` 内禁止直接使用 `axios`。
-2. 统一通过 `src/lib/api.ts` 发起请求。
-3. `api.ts` 负责响应标准化：
-   - 原始 payload 直接透传
-   - `{ success, data }` 自动解包 `data`
-4. 新增接口时，优先补充类型定义，再写调用。
+1. `src` 内禁止直接使用 `axios`，统一通过 `src/lib/api.ts`。
+2. 接口调用前先补类型定义，再写业务逻辑。
+3. CSS 优先使用模块拆分与选择器合并，不在同一 PR 同时改“结构 + 视觉值”。
+4. 新增 CSS 规则遵循已有分层：
+   - `public/css/core/*`
+   - `public/css/layout/*`
+   - `public/css/components/*`
+   - `public/css/pages/*`
+5. 禁止跨页面文件覆盖他页组件样式（除非有明确兼容方案）。
 
-## 4. Mock 约定
+## 4. 后端规范
 
-1. Mock 仅在 `import.meta.env.DEV && VITE_USE_MOCK === 'true'` 时启用。
-2. 默认本地联调应以真实后端为准（`VITE_USE_MOCK=false`）。
-3. Mock 数据结构必须与后端实体类型一致（特别是 `id` 类型）。
+1. 路由层只做参数校验与响应包装，业务逻辑放 service 层。
+2. 所有业务 API 使用 `/api/*` 前缀。
+3. 破坏性接口变更必须保持向后兼容窗口，或同步迁移前端并在 PR 标注影响面。
+4. 删除类操作默认按幂等设计（重复删除不应导致系统异常）。
+5. 涉及多表写入必须放事务。
 
-## 5. 数据契约约定
+## 5. 数据库与迁移规范
 
-1. `Order.id`、`OrderItem.id`、`InventoryItem.id` 使用 `number`。
-2. 后端 Sequelize 模型字段类型变更时，必须同步：
-   - `src/types/*`
+1. 模型字段变更必须提供迁移策略，禁止仅依赖手工改库。
+2. 生产/共享环境禁止直接改 SQLite 文件结构。
+3. 字段新增优先“可加性迁移”（additive migration），避免破坏已有数据。
+4. 模型变更后必须同步：
+   - `src/types/**`
    - Mock 数据
-   - 测试用例
-3. 删除订单时必须确保子项一致删除（事务内处理）。
+   - 对应测试
 
-## 6. Legacy 约定
+## 6. 测试与质量门禁
 
-1. 业务层不得直接依赖多个 `src/lib/legacy/*` 文件。
-2. 统一通过 `src/lib/legacy/facade.ts` 访问 legacy 能力。
-3. `public/js` 仅保留当前运行必需链路（详见 `LEGACY_PUBLIC_JS_CLEANUP_PLAN.md`）。
+每个 PR 至少满足：
 
-## 7. 测试与质量门禁
+```bash
+npm run lint:css
+node --test tests/print-style-guard.test.js
+npm run type-check
+```
 
-PR 前至少执行：
+涉及后端接口、数据契约或核心流程变更时，额外执行：
 
 ```bash
 npm test
-npm run type-check
-npm run build
 ```
 
-最小回归覆盖：
+## 7. CI 规范
 
-1. 订单 CRUD + 分类筛选
-2. 配置接口读写（formulas/materials）
-3. 库存查询与更新
+1. CSS 治理工作流文件：`.github/workflows/css-governance.yml`。
+2. CI 必须通过后才能合并。
+3. 禁止跳过失败检查直接合并（紧急修复需在事后补齐测试与复盘）。
 
-## 8. 提交流程约定
+## 8. PR 规范
 
-1. 功能变更需附带对应测试或说明为什么暂不加测。
-2. 文档变更与代码变更尽量同 PR 完成，避免漂移。
-3. 涉及 API 契约变更时，必须在 PR 描述中列出影响面与回滚策略。
+1. 必须使用 PR 模板：`.github/pull_request_template.md`。
+2. PR 描述必须包含：
+   - 变更范围
+   - 风险评估
+   - 验证步骤
+   - 回滚方案
+3. API/DB 变更必须列出契约差异与兼容策略。
 
-## 9. 文档优先级
+## 9. 文档同步规范
 
-1. `README.md`：项目入口与运行方式（最高优先）
-2. `ENGINEERING_CONVENTIONS.md`：开发约定（执行标准）
-3. 规划文档：阶段性方案与历史记录
+1. 影响开发流程的改动，必须同步更新本规范文档。
+2. 影响运行或排障的改动，必须同步更新 `README.md` 或 `docs/troubleshooting.md`。
+
+## 10. 关联文档
+
+1. CSS 治理清单：`docs/CSS_GOVERNANCE_CHECKLIST.md`
+2. Legacy 清理计划：`docs/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md`
+3. 模板迁移计划：`docs/CSS_TEMPLATE_MIGRATION_PLAN.md`
