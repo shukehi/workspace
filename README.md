@@ -43,10 +43,17 @@
 workspace/
 ├── src/                     # Vue 前端主应用
 ├── server/                  # Express 后端
-├── public/                  # 静态资源与打印预览页面
+├── data/
+│   ├── config/              # 业务配置唯一来源
+│   ├── imports/             # 原始导入文件
+│   └── runtime/             # 运行期数据库、备份、导出结果（不入库）
+├── public/                  # 纯静态资源与打印模板
+├── scripts/                 # 开发/迁移/导入脚本
+├── tests/
+│   ├── fixtures/            # 测试夹具
+│   ├── manual/              # 手工验证脚本
+│   └── visual-baseline/     # 视觉基线
 ├── docs/                    # 项目文档
-├── tests/                   # Node 原生测试
-├── data/                    # SQLite 与数据文件
 ├── package.json
 └── README.md
 ```
@@ -83,6 +90,8 @@ cp .env.example .env
 
 - 生产环境下，`PRINT_RENDER_BASE_URL` 为必填；未配置时 `/api/pdf/generate` 会返回错误。
 - 非生产环境会优先使用请求来源（`Origin/Referer`），仅在缺失时回退本地地址。
+- 默认数据库路径为 `data/runtime/database.sqlite`；如需复用旧库，请显式设置 `DB_STORAGE`。
+- 运行时 `/data/*` 统一由后端映射到 `data/config/`，`public/data/` 不再作为业务配置源。
 
 ## 本地开发
 
@@ -91,6 +100,10 @@ cp .env.example .env
 ```bash
 npm run dev
 ```
+
+说明：
+
+- 前端对 `/api/*` 和 `/data/*` 的请求依赖后端服务；本地联调时需要同时启动 `npm run server:dev`。
 
 后端开发（Express）：
 
@@ -129,6 +142,12 @@ npm test
 
 ```bash
 npm run build
+```
+
+仓库结构守护：
+
+```bash
+node --test tests/repository-structure-guard.test.js
 ```
 
 ## 核心 API（当前）
@@ -177,6 +196,7 @@ npm run db:export:formulas
 请优先阅读：
 
 - [工程开发约定](docs/ENGINEERING_CONVENTIONS.md)
+- [目录结构优化计划](docs/PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md)
 - [优化计划（阶段跟踪）](docs/OPTIMIZATION_PLAN_2026-03-03.md)
 - [legacy 清理计划](docs/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md)
 - [PO 字段契约](docs/PO_FIELD_CONTRACT.md)

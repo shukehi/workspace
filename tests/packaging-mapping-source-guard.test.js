@@ -43,16 +43,17 @@ test('mapping source guard: mapping JSON runtime reads stay inside configLoader'
 test('mapping source guard: runtime mapping read points stay explicitly inventoried', () => {
   assert.deepEqual(
     rgFiles('packaging-mapping\\.json|cylinder-mapping\\.json|lock-fork-mapping\\.json|handle-mapping\\.json', ['src', 'server']).sort(),
-    ['server/routes/configData.js', 'src/services/configLoader.ts'],
+    ['server/config/paths.js', 'src/services/configLoader.ts'],
   );
 });
 
 test('mapping source guard: server runtime must not start reading cylinder/lock-fork JSON directly', () => {
-  assert.deepEqual(rgFiles('cylinder-mapping\\.json|lock-fork-mapping\\.json|handle-mapping\\.json', ['server']), ['server/routes/configData.js']);
+  assert.deepEqual(rgFiles('cylinder-mapping\\.json|lock-fork-mapping\\.json|handle-mapping\\.json', ['server']), ['server/config/paths.js']);
 });
 
-test('mapping source guard: duplicated packaging mapping files should stay in sync', () => {
-  const dataMapping = JSON.parse(read('data/packaging-mapping.json'));
-  const publicMapping = JSON.parse(read('public/data/packaging-mapping.json'));
-  assert.deepEqual(dataMapping, publicMapping);
+test('mapping source guard: runtime code no longer depends on public/data JSON files', () => {
+  assert.deepEqual(
+    rgFiles('public/data/(packaging|cylinder|lock-fork|handle|materials-catalog)\\.json', ['src', 'server', 'scripts']),
+    [],
+  );
 });

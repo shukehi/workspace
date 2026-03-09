@@ -6,7 +6,6 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const path = require('path');
 const {
     adaptPackagingMapping,
     adaptCylinderMapping,
@@ -20,26 +19,31 @@ const {
     validateHandleMapping
 } = require('../services/mappings/mapping.validator');
 const { createMappingProfileRoute } = require('./mappingProfile.routeFactory');
+const {
+    CONFIG_FILES,
+    LEGACY_PUBLIC_FILES,
+    ensureProjectDirs,
+} = require('../config/paths');
 
-// Path to data files (resolved relative to project root)
-const DATA_DIR = path.join(__dirname, '../../public/data');
-const CONFIG_DIR = path.join(__dirname, '../../data/config');
-const MATERIALS_FILE = path.join(DATA_DIR, 'materials-catalog.json');
-const PACKAGING_STATIC_FILE = path.join(DATA_DIR, 'packaging-mapping.json');
-const PACKAGING_RUNTIME_FILE = path.join(CONFIG_DIR, 'packaging-mapping.json');
-const CYLINDER_STATIC_FILE = path.join(DATA_DIR, 'cylinder-mapping.json');
-const CYLINDER_RUNTIME_FILE = path.join(CONFIG_DIR, 'cylinder-mapping.json');
-const LOCK_FORK_STATIC_FILE = path.join(DATA_DIR, 'lock-fork-mapping.json');
-const LOCK_FORK_RUNTIME_FILE = path.join(CONFIG_DIR, 'lock-fork-mapping.json');
-const HANDLE_STATIC_FILE = path.join(DATA_DIR, 'handle-mapping.json');
-const HANDLE_RUNTIME_FILE = path.join(CONFIG_DIR, 'handle-mapping.json');
+const MATERIALS_FILE = CONFIG_FILES.materialsCatalog;
+const PACKAGING_STATIC_FILE = LEGACY_PUBLIC_FILES.packagingMapping;
+const PACKAGING_RUNTIME_FILE = CONFIG_FILES.packagingMapping;
+const CYLINDER_STATIC_FILE = LEGACY_PUBLIC_FILES.cylinderMapping;
+const CYLINDER_RUNTIME_FILE = CONFIG_FILES.cylinderMapping;
+const LOCK_FORK_STATIC_FILE = LEGACY_PUBLIC_FILES.lockForkMapping;
+const LOCK_FORK_RUNTIME_FILE = CONFIG_FILES.lockForkMapping;
+const HANDLE_STATIC_FILE = LEGACY_PUBLIC_FILES.handleMapping;
+const HANDLE_RUNTIME_FILE = CONFIG_FILES.handleMapping;
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+ensureProjectDirs();
+
+function ensureJsonFile(filePath, fallbackFile, fallbackValue = {}) {
+    if (fs.existsSync(filePath)) return;
+    if (fallbackFile && fs.existsSync(fallbackFile)) {
+        fs.copyFileSync(fallbackFile, filePath);
+        return;
+    }
+    fs.writeFileSync(filePath, JSON.stringify(fallbackValue, null, 2));
 }
 
 const packagingProfile = createMappingProfileRoute({
@@ -89,13 +93,10 @@ const handleProfile = createMappingProfileRoute({
 // 1. Get Materials Catalog
 router.get('/materials', (req, res) => {
     try {
-        if (fs.existsSync(MATERIALS_FILE)) {
-            const data = fs.readFileSync(MATERIALS_FILE, 'utf8');
-            res.header('Content-Type', 'application/json');
-            res.send(data);
-        } else {
-            res.json({});
-        }
+        ensureJsonFile(MATERIALS_FILE, LEGACY_PUBLIC_FILES.materialsCatalog);
+        const data = fs.readFileSync(MATERIALS_FILE, 'utf8');
+        res.header('Content-Type', 'application/json');
+        res.send(data);
     } catch (error) {
         console.error('Error reading materials:', error);
         res.status(500).json({ success: false, error: 'Failed to read materials catalog' });
@@ -106,6 +107,7 @@ router.get('/materials', (req, res) => {
 router.post('/materials', (req, res) => {
     try {
         const newData = req.body;
+        ensureProjectDirs();
         fs.writeFileSync(MATERIALS_FILE, JSON.stringify(newData, null, 4));
         console.log('✅ Materials catalog updated via API');
         res.json({ success: true, message: 'Materials catalog saved successfully' });

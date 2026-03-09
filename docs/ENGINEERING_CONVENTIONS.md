@@ -80,7 +80,16 @@ npm test
 1. 影响开发流程的改动，必须同步更新本规范文档。
 2. 影响运行或排障的改动，必须同步更新 `README.md` 或 `docs/troubleshooting.md`。
 
-## 10. 关联文档
+## 10. 目录与文件放置规则
+
+1. `data/config/` 是映射、材料目录、采购设置等配置数据的唯一来源，禁止新增 `public/data/` 业务配置依赖。
+2. `data/runtime/` 仅允许放运行期数据库、备份和导出文件，禁止入库。
+3. 原始导入文件统一放 `data/imports/`，禁止再放到仓库根目录。
+4. 手工验证脚本统一放 `tests/manual/` 或 `scripts/experiments/`，禁止散落在根目录。
+5. 说明性文档统一放 `docs/` 子目录，截图或示意图统一放 `docs/assets/`。
+6. 禁止跟踪 `dist/`、`node_modules/`、`temp/`、`database.sqlite` 及 `data/runtime/**`。
+
+## 11. 关联文档
 
 1. CSS 治理清单：`docs/CSS_GOVERNANCE_CHECKLIST.md`
 2. Legacy 清理计划：`docs/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md`

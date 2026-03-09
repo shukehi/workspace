@@ -36,11 +36,11 @@ if (config.server.env === 'development') {
 
 // ==================== 静态文件服务 ====================
 
+// Serve unified config data before the built bundle so `/data/*` never resolves to stale copied assets.
+app.use('/data', express.static(path.join(__dirname, '..', config.static.data)));
+
 // 服务前端静态文件
 app.use(express.static(path.join(__dirname, '..', config.static.public)));
-
-// Mount data directory for legacy config loading
-app.use('/data', express.static(path.join(__dirname, '..', config.static.data)));
 
 // ==================== 路由配置 ====================
 

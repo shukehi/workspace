@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# Keep package-lock.json tracked for reproducible installs
 
 # Environment variables
 .env
@@ -29,20 +29,22 @@ build/
 # Temporary files
 *.tmp
 .cache/
+temp/
 
 # Backup files
 *.backup
 *.bak
 
-# Data files (uncomment if they contain sensitive information)
+# Data files (runtime exports and local datasets can be ignored selectively if needed)
 # data/*.json
-data/config/*.json
 
 # Database files (runtime data, should not be committed)
+database.sqlite
+database.sqlite-*
 data/*.sqlite
 data/*.sqlite-*
 data/*.db
+data/runtime/
 
 # Antigravity brain directory (optional - uncomment if you don't want to track it)
 # .gemini/
-temp/

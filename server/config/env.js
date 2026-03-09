@@ -1,3 +1,5 @@
+const { RUNTIME_FILES } = require('./paths');
+
 /**
  * 环境变量配置
  * Environment Configuration
@@ -19,7 +21,7 @@ module.exports = {
     // 数据库配置
     database: {
         dialect: 'sqlite',
-        storage: process.env.DB_STORAGE || './data/database.sqlite',
+        storage: process.env.DB_STORAGE || RUNTIME_FILES.database,
         logging: process.env.NODE_ENV === 'development' ? console.log : false
     },
 

@@ -88,9 +88,9 @@ test('mapping runtime regression: real order sample 202408120023 keeps current e
   };
 
   try {
-    const packagingMapping = adaptPackagingMapping(readJson('public/data/packaging-mapping.json'));
-    const cylinderMapping = adaptCylinderMapping(readJson('public/data/cylinder-mapping.json'));
-    const lockForkMapping = adaptLockForkMapping(readJson('public/data/lock-fork-mapping.json'));
+    const packagingMapping = adaptPackagingMapping(readJson('data/config/packaging-mapping.json'));
+    const cylinderMapping = adaptCylinderMapping(readJson('data/config/cylinder-mapping.json'));
+    const lockForkMapping = adaptLockForkMapping(readJson('data/config/lock-fork-mapping.json'));
 
     const hardwareRequirements = {
       cylinders: extractCylinderData(sample.list, sample, cylinderMapping),

@@ -2,9 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const CSV_FILE = '/Users/aries/Dve/workspace/color.csv';
-const MATERIALS_FILE = '/Users/aries/Dve/workspace/public/data/materials-catalog.json';
-const FORMULAS_FILE = '/Users/aries/Dve/workspace/public/data/color-formulas.json';
+const CSV_FILE = path.join(__dirname, '../data/imports/color.csv');
+const MATERIALS_FILE = path.join(__dirname, '../data/config/materials-catalog.json');
+const FORMULAS_FILE = path.join(__dirname, '../data/config/color-formulas.json');
+
+fs.mkdirSync(path.dirname(MATERIALS_FILE), { recursive: true });
 
 // Known suppliers for smart extraction
 const KNOWN_SUPPLIERS = [

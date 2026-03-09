@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../public/data');
+const DATA_DIR = path.join(__dirname, '../data/config');
 const MATERIALS_FILE = path.join(DATA_DIR, 'materials-catalog.json');
 const FORMULAS_FILE = path.join(DATA_DIR, 'color-formulas.json');
 
-const BACKUP_DIR = path.join(__dirname, '../public/data/backup_' + Date.now());
+const BACKUP_DIR = path.join(__dirname, '../data/runtime/backup_' + Date.now());
 
 // Known suppliers (copied from import_csv.js)
 const KNOWN_SUPPLIERS = [
@@ -21,7 +21,7 @@ PREFIXES.sort((a, b) => b.length - a.length);
 
 function createBackup() {
     if (!fs.existsSync(BACKUP_DIR)) {
-        fs.mkdirSync(BACKUP_DIR);
+        fs.mkdirSync(BACKUP_DIR, { recursive: true });
     }
     fs.copyFileSync(MATERIALS_FILE, path.join(BACKUP_DIR, 'materials-catalog.json'));
     fs.copyFileSync(FORMULAS_FILE, path.join(BACKUP_DIR, 'color-formulas.json'));

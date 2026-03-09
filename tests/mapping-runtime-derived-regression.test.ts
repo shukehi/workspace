@@ -87,9 +87,9 @@ function buildPrintChecksum(category: string, group: any, sample: any) {
 
 test('mapping runtime regression: derived edge cases from real order keep current cylinder/lock-fork baseline', () => {
   const fixture = readJson('tests/fixtures/mapping-runtime-baseline.derived-cases.json');
-  const packagingMapping = adaptPackagingMapping(readJson('public/data/packaging-mapping.json'));
-  const cylinderMapping = adaptCylinderMapping(readJson('public/data/cylinder-mapping.json'));
-  const lockForkMapping = adaptLockForkMapping(readJson('public/data/lock-fork-mapping.json'));
+  const packagingMapping = adaptPackagingMapping(readJson('data/config/packaging-mapping.json'));
+  const cylinderMapping = adaptCylinderMapping(readJson('data/config/cylinder-mapping.json'));
+  const lockForkMapping = adaptLockForkMapping(readJson('data/config/lock-fork-mapping.json'));
 
   fixture.cases.forEach((testCase: any) => {
     const warnings: string[] = [];

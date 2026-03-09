@@ -1,12 +1,13 @@
 const fs = require('fs');
-const path = require('path');
 const sequelize = require('../config/database');
 const FormulaService = require('../services/FormulaService');
 const { initDB } = require('../models');
+const { RUNTIME_FILES, ensureProjectDirs } = require('../config/paths');
 
-const OUTPUT_FILE = path.join(__dirname, '../../public/data/color-formulas.exported.json');
+const OUTPUT_FILE = RUNTIME_FILES.exportedFormulas;
 
 async function run() {
+    ensureProjectDirs();
     await initDB();
     const mapping = await FormulaService.getPublishedFormulasMap();
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(mapping, null, 2));
