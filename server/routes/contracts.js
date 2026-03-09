@@ -66,4 +66,16 @@ router.get('/:code', async (req, res) => {
     }
 });
 
+// DELETE /api/contracts/:code
+router.delete('/:code', async (req, res) => {
+    try {
+        await contractCacheService.deleteByCode(req.params.code);
+        res.json({ success: true });
+    } catch (e) {
+        if (e.message === 'NOT_FOUND') return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+        console.error('Delete cached contract failed', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 module.exports = router;

@@ -67,6 +67,15 @@ class ContractCacheService {
         return ErpContract.findOne({ where: { contract_code: key } });
     }
 
+    async deleteByCode(code) {
+        const key = String(code || '').trim();
+        if (!key) throw new Error('MISSING_CONTRACT_CODE');
+        const existing = await ErpContract.findOne({ where: { contract_code: key } });
+        if (!existing) throw new Error('NOT_FOUND');
+        await existing.destroy();
+        return true;
+    }
+
     async listContracts(query = {}) {
         const page = Math.max(1, Number(query.page) || 1);
         const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 20));
