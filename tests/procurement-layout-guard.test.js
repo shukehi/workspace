@@ -16,18 +16,24 @@ test('layout guard: edit and preview shells should share OrderSheet renderer', (
   assert.match(editDialog, /<OrderSheetView/);
   assert.match(previewModal, /<OrderSheetView/);
   assert.match(previewModal, /mode=\"preview\"/);
-  assert.match(printDocument, /<table/);
+  assert.match(printDocument, /<OrderSheetView/);
+  assert.match(printDocument, /mode=\"preview\"/);
+  assert.match(printDocument, /print-document\.css/);
 
   assert.equal(editDialog.includes('<table'), false);
   assert.equal(previewModal.includes('<table'), false);
+  assert.equal(printDocument.includes('<table'), false);
   assert.equal(previewModal.includes('<iframe'), false);
   assert.equal(previewModal.includes('embedded=1'), false);
+  assert.equal(printDocument.includes('<iframe'), false);
 });
 
-test('layout guard: dedicated print renderer owns print table markup', () => {
+test('layout guard: shared order sheet owns procurement table markup', () => {
   const printDocument = read('src/views/PrintDocument.vue');
-  assert.match(printDocument, /buildProcurementDocModel/);
-  assert.match(printDocument, /class=\"print-table\"/);
+  assert.match(printDocument, /controls-bar/);
+  assert.match(printDocument, /print-document-shell/);
+  assert.match(printDocument, /printMode/);
+  assert.match(printDocument, /resolveSheetWidths/);
 
   const orderSheet = read('src/components/procurement/OrderSheetView.vue');
   assert.match(orderSheet, /<table/);

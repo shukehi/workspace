@@ -347,8 +347,10 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
 
         // 1. 提取基础属性
         const parts = (item.spec || '').split('/');
+        const specThickness = parts.length >= 2 ? parts[1].trim() : '';
         const rawThickness = String((item as any)?.mshd || '').trim();
-        let thickness = rawThickness || (parts.length >= 2 ? parts[1].trim() : '') || '7';
+        // `spec` is the visible contract thickness and should win when fixture or source rows are partially edited.
+        let thickness = specThickness || rawThickness || '7';
 
         // 2. 解析门高
         const doorHeight = parseHeight(item.spec);
