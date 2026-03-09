@@ -21,7 +21,7 @@
 5. 保留迁移导入和回滚导出能力。
 
 ### 2.2 验收标准
-1. 运行时代码不再直接读取 `public/data/*mapping*.json`。
+1. 运行时代码不再直接读取 `public/data/*mapping*.json`（旧路径）。
 2. `/api/config/mappings/:type/published` 成为唯一运行态映射来源。
 3. 映射管理工作台可完成草稿保存、发布、回滚、历史查看。
 4. 关键业务样本在迁移前后结果一致。
@@ -208,9 +208,9 @@
 3. `db:export:mappings`
 
 ### 10.4 输入源
-1. `public/data/packaging-mapping.json`
-2. `public/data/cylinder-mapping.json`
-3. `public/data/lock-fork-mapping.json`
+1. `public/data/packaging-mapping.json`（历史路径，当前为 `data/config/packaging-mapping.json`）
+2. `public/data/cylinder-mapping.json`（历史路径，当前为 `data/config/cylinder-mapping.json`）
+3. `public/data/lock-fork-mapping.json`（历史路径，当前为 `data/config/lock-fork-mapping.json`）
 
 ### 10.5 测试
 1. `tests/mapping-migration.test.js`

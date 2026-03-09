@@ -215,7 +215,7 @@ generatePurchaseOrder(orderData, itemsData, mergeFlags, 'cylinder')
 
 ## 相关配置文件
 
-- `public/data/cylinder-mapping.json` - 锁芯映射配置（尺寸规则和产品映射）
+- `public/data/cylinder-mapping.json`（历史路径，当前为 `data/config/cylinder-mapping.json`）- 锁芯映射配置（尺寸规则和产品映射）
 - `public/js/config/mergeRules.js` - 合并规则配置
 
 ---
