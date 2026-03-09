@@ -1,5 +1,7 @@
 # Vite 重构方案 (Vite Refactoring Plan)
 
+> 注：本文档为早期 Vite 迁移方案底稿，涉及 `public/data` 的描述反映的是迁移阶段设想。当前运行结构以 `README.md` 和 `data/config/` 约定为准。
+
 ## 1. 目标与收益
 本方案旨在将现有的 **No-Build (原生 ESM)** 项目架构平滑迁移到 **Vite + Vue SFC (单文件组件)** 架构。
 

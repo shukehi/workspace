@@ -1,5 +1,7 @@
 # 锁芯数据问题修复报告
 
+> 注：本文档记录的是 `public/js` / `public/data` 时代的问题排查。当前实现已迁移到 `src/**`，锁芯配置当前以 `data/config/cylinder-mapping.json` 为准。
+
 ## 问题描述
 
 用户反馈在锁芯采购订单中：
