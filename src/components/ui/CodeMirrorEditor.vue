@@ -35,8 +35,12 @@ function buildState(doc: string) {
     }),
     EditorView.theme({
       '&': {
+        height: '100%',
         fontSize: '12px',
         backgroundColor: 'transparent'
+      },
+      '.cm-scroller': {
+        overflow: 'auto'
       },
       '.cm-content': {
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'

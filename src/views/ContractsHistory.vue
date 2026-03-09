@@ -23,6 +23,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
 import { Search, User, Loader2, Code, Download, Copy, Check, Trash2 } from 'lucide-vue-next';
 
 interface ContractRow {
@@ -318,18 +319,23 @@ onMounted(() => {
             </div>
           </div>
         </DialogHeader>
-        <div class="flex-1 overflow-auto p-4 bg-muted/10 relative group">
+        <div class="flex-1 overflow-hidden p-0 bg-muted/10 relative group">
           <Button
             size="sm"
             variant="secondary"
-            class="absolute top-6 right-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            class="absolute top-4 right-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
             @click="copyJson"
           >
             <Check v-if="copied" class="w-4 h-4 mr-2" />
             <Copy v-else class="w-4 h-4 mr-2" />
             {{ copied ? '已复制' : '复制代码' }}
           </Button>
-          <pre class="text-xs bg-background p-4 rounded-md border shadow-sm font-mono whitespace-pre-wrap word-break-all">{{ activeJsonContract ? JSON.stringify(activeJsonContract.raw_json, null, 2) : '' }}</pre>
+          <CodeMirrorEditor 
+            class="h-[60vh] border-0"
+            :model-value="activeJsonContract ? JSON.stringify(activeJsonContract.raw_json, null, 2) : ''"
+            read-only
+            :lint="false"
+          />
         </div>
       </DialogContent>
     </Dialog>
