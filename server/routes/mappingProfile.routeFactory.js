@@ -24,7 +24,6 @@ function createMappingProfileRoute(options) {
     profileName,
     endpoint,
     runtimeFile,
-    staticFile,
     adapt,
     validate,
     readErrorMessage,
@@ -33,8 +32,7 @@ function createMappingProfileRoute(options) {
 
   function ensureRuntimeFile() {
     if (fs.existsSync(runtimeFile)) return;
-    const seed = readJsonOrFallback(staticFile, {}, `static ${profileName} mapping`);
-    const payload = adapt(seed);
+    const payload = adapt({});
     writeJsonAtomic(runtimeFile, payload);
   }
 

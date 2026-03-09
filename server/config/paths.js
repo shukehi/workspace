@@ -5,7 +5,6 @@ const ROOT_DIR = path.resolve(__dirname, '../..');
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 const CONFIG_DIR = path.join(DATA_DIR, 'config');
 const RUNTIME_DIR = path.join(DATA_DIR, 'runtime');
-const LEGACY_PUBLIC_DATA_DIR = path.join(ROOT_DIR, 'public', 'data');
 
 function ensureDir(dirPath) {
     if (!fs.existsSync(dirPath)) {
@@ -28,15 +27,6 @@ const CONFIG_FILES = {
     procurementSettings: path.join(CONFIG_DIR, 'procurement-settings.json'),
 };
 
-const LEGACY_PUBLIC_FILES = {
-    materialsCatalog: path.join(LEGACY_PUBLIC_DATA_DIR, 'materials-catalog.json'),
-    colorFormulas: path.join(LEGACY_PUBLIC_DATA_DIR, 'color-formulas.json'),
-    packagingMapping: path.join(LEGACY_PUBLIC_DATA_DIR, 'packaging-mapping.json'),
-    cylinderMapping: path.join(LEGACY_PUBLIC_DATA_DIR, 'cylinder-mapping.json'),
-    lockForkMapping: path.join(LEGACY_PUBLIC_DATA_DIR, 'lock-fork-mapping.json'),
-    handleMapping: path.join(LEGACY_PUBLIC_DATA_DIR, 'handle-mapping.json'),
-};
-
 const LEGACY_DATABASE_FILES = [
     path.join(ROOT_DIR, 'database.sqlite'),
     path.join(DATA_DIR, 'database.sqlite'),
@@ -52,9 +42,7 @@ module.exports = {
     DATA_DIR,
     CONFIG_DIR,
     RUNTIME_DIR,
-    LEGACY_PUBLIC_DATA_DIR,
     CONFIG_FILES,
-    LEGACY_PUBLIC_FILES,
     LEGACY_DATABASE_FILES,
     RUNTIME_FILES,
     ensureDir,

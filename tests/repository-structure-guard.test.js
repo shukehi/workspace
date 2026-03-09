@@ -18,6 +18,7 @@ test('repository structure guard: generated artifacts must stay out of git track
   const trackedFiles = gitLsFiles();
   const blockedEntries = trackedFiles.filter((file) => (
     /^(dist|node_modules|temp)\//.test(file) ||
+    /^public\/data\/.+\.json$/.test(file) ||
     /^database\.sqlite(?:-.*)?$/.test(file) ||
     /^data\/runtime\//.test(file) ||
     /^data\/.*\.(sqlite|db)(?:-.*)?$/.test(file)

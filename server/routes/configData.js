@@ -21,28 +21,19 @@ const {
 const { createMappingProfileRoute } = require('./mappingProfile.routeFactory');
 const {
     CONFIG_FILES,
-    LEGACY_PUBLIC_FILES,
     ensureProjectDirs,
 } = require('../config/paths');
 
 const MATERIALS_FILE = CONFIG_FILES.materialsCatalog;
-const PACKAGING_STATIC_FILE = LEGACY_PUBLIC_FILES.packagingMapping;
 const PACKAGING_RUNTIME_FILE = CONFIG_FILES.packagingMapping;
-const CYLINDER_STATIC_FILE = LEGACY_PUBLIC_FILES.cylinderMapping;
 const CYLINDER_RUNTIME_FILE = CONFIG_FILES.cylinderMapping;
-const LOCK_FORK_STATIC_FILE = LEGACY_PUBLIC_FILES.lockForkMapping;
 const LOCK_FORK_RUNTIME_FILE = CONFIG_FILES.lockForkMapping;
-const HANDLE_STATIC_FILE = LEGACY_PUBLIC_FILES.handleMapping;
 const HANDLE_RUNTIME_FILE = CONFIG_FILES.handleMapping;
 
 ensureProjectDirs();
 
-function ensureJsonFile(filePath, fallbackFile, fallbackValue = {}) {
+function ensureJsonFile(filePath, fallbackValue = {}) {
     if (fs.existsSync(filePath)) return;
-    if (fallbackFile && fs.existsSync(fallbackFile)) {
-        fs.copyFileSync(fallbackFile, filePath);
-        return;
-    }
     fs.writeFileSync(filePath, JSON.stringify(fallbackValue, null, 2));
 }
 
@@ -50,7 +41,6 @@ const packagingProfile = createMappingProfileRoute({
     profileName: 'packaging',
     endpoint: '/packaging',
     runtimeFile: PACKAGING_RUNTIME_FILE,
-    staticFile: PACKAGING_STATIC_FILE,
     adapt: adaptPackagingMapping,
     validate: validatePackagingMapping,
     readErrorMessage: 'Failed to read packaging mapping',
@@ -61,7 +51,6 @@ const cylinderProfile = createMappingProfileRoute({
     profileName: 'cylinder',
     endpoint: '/cylinder',
     runtimeFile: CYLINDER_RUNTIME_FILE,
-    staticFile: CYLINDER_STATIC_FILE,
     adapt: adaptCylinderMapping,
     validate: validateCylinderMapping,
     readErrorMessage: 'Failed to read cylinder mapping',
@@ -72,7 +61,6 @@ const lockForkProfile = createMappingProfileRoute({
     profileName: 'lock-fork',
     endpoint: '/lock-fork',
     runtimeFile: LOCK_FORK_RUNTIME_FILE,
-    staticFile: LOCK_FORK_STATIC_FILE,
     adapt: adaptLockForkMapping,
     validate: validateLockForkMapping,
     readErrorMessage: 'Failed to read lock-fork mapping',
@@ -83,7 +71,6 @@ const handleProfile = createMappingProfileRoute({
     profileName: 'handle',
     endpoint: '/handle',
     runtimeFile: HANDLE_RUNTIME_FILE,
-    staticFile: HANDLE_STATIC_FILE,
     adapt: adaptHandleMapping,
     validate: validateHandleMapping,
     readErrorMessage: 'Failed to read handle mapping',
@@ -93,7 +80,7 @@ const handleProfile = createMappingProfileRoute({
 // 1. Get Materials Catalog
 router.get('/materials', (req, res) => {
     try {
-        ensureJsonFile(MATERIALS_FILE, LEGACY_PUBLIC_FILES.materialsCatalog);
+        ensureJsonFile(MATERIALS_FILE);
         const data = fs.readFileSync(MATERIALS_FILE, 'utf8');
         res.header('Content-Type', 'application/json');
         res.send(data);
