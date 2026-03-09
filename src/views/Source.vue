@@ -6,9 +6,10 @@ import GeneratePODialog from '@/components/source/GeneratePODialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import DataTable from '@/components/data-table/DataTable.vue';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Search } from 'lucide-vue-next';
+import { Search, Loader2, ArrowRight, Settings2, RefreshCw } from 'lucide-vue-next';
 import LongTextCell from '@/components/source/LongTextCell.vue';
 import ContractHistoryDialog from '@/components/source/ContractHistoryDialog.vue';
 
@@ -96,40 +97,39 @@ const columns = computed<ColumnDef<any>[]>(() => {
           </div>
 
           <Button @click="handleSearch" :disabled="store.loading">
-            {{ store.loading ? 'Fetching...' : '获取合同' }}
+            <Loader2 v-if="store.loading" class="w-4 h-4 mr-2 animate-spin" />
+            {{ store.loading ? '获取中...' : '获取合同' }}
           </Button>
 
           <Button variant="outline" :disabled="store.loading" @click="historyDialogOpen = true">
             历史合同
           </Button>
 
-          <div class="flex items-center gap-1 rounded-md border bg-background p-1">
-            <button
-              class="px-2 py-1 text-xs rounded-sm transition-colors"
-              :class="longTextMode === 'clip' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
-              @click="longTextMode = 'clip'"
-            >
-              紧凑省略
-            </button>
-            <button
-              class="px-2 py-1 text-xs rounded-sm transition-colors"
-              :class="longTextMode === 'hover' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
-              @click="longTextMode = 'hover'"
-            >
-              悬浮全文
-            </button>
-            <button
-              class="px-2 py-1 text-xs rounded-sm transition-colors"
-              :class="longTextMode === 'expand' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
-              @click="longTextMode = 'expand'"
-            >
-              点击展开
-            </button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" size="icon" class="ml-auto lg:ml-0" title="文本显示设置">
+                <Settings2 class="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>长文本显示</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup v-model="longTextMode">
+                <DropdownMenuRadioItem value="clip">紧凑省略</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="hover">悬浮全文</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="expand">点击展开</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div v-if="store.currentOrder" class="lg:ml-auto flex items-center gap-3 lg:text-right">
             <div>
-              <div class="text-sm font-semibold">{{ store.currentOrder.customerName }}</div>
+              <div class="text-sm font-semibold flex items-center justify-end gap-2">
+                {{ store.currentOrder.customerName }}
+                <Button variant="ghost" size="icon" class="h-6 w-6" title="刷新数据" @click="handleSearch" :disabled="store.loading">
+                  <RefreshCw :class="['h-3 w-3', store.loading ? 'animate-spin' : '']" />
+                </Button>
+              </div>
               <div class="text-xs text-muted-foreground">{{ store.currentOrder.code }}</div>
             </div>
             <GeneratePODialog :disabled="!store.hasOrder" />
@@ -148,11 +148,15 @@ const columns = computed<ColumnDef<any>[]>(() => {
           density="compact"
           :use-column-size="true"
         />
-        <div v-else class="h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
-          <div class="w-12 h-12 rounded-full border flex items-center justify-center bg-background">
-            <Search class="w-5 h-5" />
+        <div v-else class="h-full flex flex-col items-center justify-center text-muted-foreground gap-5">
+          <div class="w-16 h-16 rounded-full border border-dashed flex items-center justify-center bg-muted/30">
+            <Search class="w-8 h-8 opacity-50" />
           </div>
-          <p class="text-sm">Waiting for Contract ID...</p>
+          <p class="text-base text-foreground font-medium">请输入或者选择历史合同，以开始解析订单明细</p>
+          <Button @click="historyDialogOpen = true" variant="secondary" class="shadow-sm">
+            历史合同快照
+            <ArrowRight class="w-4 h-4 ml-2 opacity-70" />
+          </Button>
         </div>
       </CardContent>
     </Card>
