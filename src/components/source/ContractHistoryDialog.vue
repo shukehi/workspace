@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useSourceStore } from '@/stores/useSourceStore';
 import type { ContractHistoryRow } from '@/types/source';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
+import { Code, Copy, Check, Search, User, Loader2 } from 'lucide-vue-next';
 
 const props = defineProps<{
   open: boolean;
@@ -25,6 +27,10 @@ const emit = defineEmits<{
 const store = useSourceStore();
 
 const totalPages = computed(() => store.historyTotalPages);
+
+const jsonDialogOpen = ref(false);
+const activeJsonContract = ref<ContractHistoryRow | null>(null);
+const copied = ref(false);
 
 watch(
   () => props.open,
@@ -79,6 +85,22 @@ async function handleLoadSelected() {
     window.alert(message);
   }
 }
+
+function viewJson(row: ContractHistoryRow) {
+  activeJsonContract.value = row;
+  jsonDialogOpen.value = true;
+}
+
+async function copyJson() {
+  if (!activeJsonContract.value) return;
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(activeJsonContract.value.raw_json, null, 2));
+    copied.value = true;
+    setTimeout(() => { copied.value = false; }, 2000);
+  } catch (e) {
+    console.error('Copy failed', e);
+  }
+}
 </script>
 
 <template>
@@ -113,25 +135,37 @@ async function handleLoadSelected() {
           <div v-if="store.historyLoading" class="p-4 text-sm text-muted-foreground">加载中...</div>
           <div v-else-if="store.historyRows.length === 0" class="p-4 text-sm text-muted-foreground">暂无历史合同数据</div>
           <div v-else class="max-h-[240px] overflow-auto p-2 space-y-2">
-            <button
+            <div
               v-for="row in store.historyRows"
               :key="row.id"
-              type="button"
-              class="w-full text-left border rounded-md p-3 transition-colors"
+              class="w-full flex items-center justify-between border rounded-md p-3 transition-colors"
               :class="store.historySelected?.contract_code === row.contract_code ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'"
-              @click="selectRow(row)"
             >
-              <div class="flex items-center justify-between gap-2">
-                <div>
-                  <div class="text-sm font-medium">{{ row.contract_code }}</div>
-                  <div class="text-xs text-muted-foreground">{{ row.customer_name || '-' }}</div>
-                </div>
-                <div class="text-right text-xs text-muted-foreground">
-                  <div>¥{{ Number(row.total_amount || 0).toLocaleString() }}</div>
-                  <div>{{ new Date(row.last_fetched_at).toLocaleString() }}</div>
+              <div class="flex-1 cursor-pointer" @click="selectRow(row)">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <div class="text-sm font-medium">{{ row.contract_code }}</div>
+                    <div class="text-xs text-muted-foreground">{{ row.customer_name || '-' }}</div>
+                  </div>
+                  <div class="text-xs text-muted-foreground mr-4">
+                    {{ new Date(row.last_fetched_at).toLocaleString() }}
+                  </div>
                 </div>
               </div>
-            </button>
+              <div class="shrink-0 flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  class="h-8 px-2" 
+                  @click.stop="viewJson(row)"
+                  :disabled="!row.raw_json"
+                  title="查看 JSON"
+                >
+                  <Code class="w-4 h-4 mr-1 text-muted-foreground" />
+                  <span class="text-xs text-muted-foreground">JSON</span>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -144,9 +178,44 @@ async function handleLoadSelected() {
       <DialogFooter>
         <Button variant="outline" @click="handleClose">取消</Button>
         <Button :disabled="!store.historySelected || store.loading" @click="handleLoadSelected">
+          <Loader2 v-if="store.loading" class="w-4 h-4 mr-2 animate-spin" />
           {{ store.loading ? '加载中...' : '加载该合同' }}
         </Button>
       </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- Nested JSON Viewer Dialog -->
+  <Dialog v-model:open="jsonDialogOpen">
+    <DialogContent class="max-w-3xl max-h-[85vh] flex flex-col p-0 z-[100]">
+      <DialogHeader class="px-6 py-4 border-b shrink-0 bg-muted/20">
+        <div class="flex items-start justify-between">
+          <div>
+            <DialogTitle>底层数据视图 (Raw JSON)</DialogTitle>
+            <DialogDescription class="mt-1" v-if="activeJsonContract">
+              合同号：{{ activeJsonContract.contract_code }} | 抓取于 {{ new Date(activeJsonContract.last_fetched_at).toLocaleString() }}
+            </DialogDescription>
+          </div>
+        </div>
+      </DialogHeader>
+      <div class="flex-1 overflow-hidden p-0 bg-muted/10 relative group">
+        <Button
+          size="sm"
+          variant="secondary"
+          class="absolute top-4 right-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+          @click="copyJson"
+        >
+          <Check v-if="copied" class="w-4 h-4 mr-2" />
+          <Copy v-else class="w-4 h-4 mr-2" />
+          {{ copied ? '已复制' : '复制代码' }}
+        </Button>
+        <CodeMirrorEditor 
+          class="h-[60vh] border-0"
+          :model-value="activeJsonContract ? JSON.stringify(activeJsonContract.raw_json, null, 2) : ''"
+          read-only
+          :lint="false"
+        />
+      </div>
     </DialogContent>
   </Dialog>
 </template>
