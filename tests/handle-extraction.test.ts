@@ -144,3 +144,109 @@ test('extractHandleData keeps explicit single keyword over export default', () =
   assert.equal(extracted[0].type, 'DJ-86-6B - 单活');
   assert.equal(extracted[0].remark, '外贸白包');
 });
+
+test('extractHandleData uses remark fallback when ls is placeholder text', () => {
+  const rows = [{
+    ls: '冲整体拉手孔',
+    xsbz: '平下档3公分',
+    remark: '',
+    mshd: '7',
+    qty: '2/2',
+  }];
+
+  const mapping = {
+    singleKeywords: ['单活'],
+    doubleKeywords: ['双活'],
+    placeholderKeywords: ['冲整体拉手孔', '拉手孔'],
+    fallbackModelSources: ['remark', 'xsbz'],
+    thicknessAccessoryPacks: {
+      '5': '5公分配件包',
+      '7': '7公分配件包',
+      '9': '9公分配件包',
+      '10': '10公分配件包',
+    },
+    mappings: {
+      'PS-9015': {
+        supplier: '迪江',
+        vendorName: 'PS-9015',
+      },
+    },
+  };
+
+  const extracted = extractHandleData(rows as any[], {
+    customerName: '外贸雄库鲁(三部)',
+    remark: '另购7公分迪江PS-9015不分左右拉手',
+  }, mapping);
+  assert.equal(extracted.length, 1);
+  assert.equal(extracted[0].supplier, '迪江');
+  assert.equal(extracted[0].type, 'PS-9015 - 双活');
+  assert.equal(extracted[0].spec, '7公分配件包');
+});
+
+test('extractHandleData uses xsbz fallback when ls exact mapping misses', () => {
+  const rows = [{
+    ls: '冲整体拉手孔',
+    xsbz: '型号PS-9015双活',
+    remark: '',
+    mshd: '7',
+    qty: '1/1',
+  }];
+
+  const mapping = {
+    singleKeywords: ['单活'],
+    doubleKeywords: ['双活'],
+    placeholderKeywords: ['冲整体拉手孔'],
+    fallbackModelSources: ['remark', 'xsbz'],
+    thicknessAccessoryPacks: {
+      '5': '5公分配件包',
+      '7': '7公分配件包',
+      '9': '9公分配件包',
+      '10': '10公分配件包',
+    },
+    mappings: {
+      'PS-9015': {
+        supplier: '迪江',
+        vendorName: 'PS-9015',
+      },
+    },
+  };
+
+  const extracted = extractHandleData(rows as any[], { remark: '无' }, mapping);
+  assert.equal(extracted.length, 1);
+  assert.equal(extracted[0].supplier, '迪江');
+  assert.equal(extracted[0].type, 'PS-9015 - 双活');
+});
+
+test('extractHandleData marks manual review when remark and xsbz model conflict', () => {
+  const rows = [{
+    ls: '冲整体拉手孔',
+    xsbz: 'DJ-86-6B双活',
+    remark: 'PS-9015',
+    mshd: '7',
+    qty: '1/1',
+  }];
+
+  const mapping = {
+    singleKeywords: ['单活'],
+    doubleKeywords: ['双活'],
+    placeholderKeywords: ['冲整体拉手孔'],
+    fallbackModelSources: ['remark', 'xsbz'],
+    unmatchedSupplier: '待人工处理',
+    manualReviewLabel: '未匹配拉手(待人工处理)',
+    thicknessAccessoryPacks: {
+      '5': '5公分配件包',
+      '7': '7公分配件包',
+      '9': '9公分配件包',
+      '10': '10公分配件包',
+    },
+    mappings: {
+      'PS-9015': { supplier: '迪江', vendorName: 'PS-9015' },
+      'DJ-86-6B': { supplier: '迪江', vendorName: 'DJ-86-6B' },
+    },
+  };
+
+  const extracted = extractHandleData(rows as any[], { remark: '' }, mapping);
+  assert.equal(extracted.length, 1);
+  assert.equal(extracted[0].supplier, '待人工处理');
+  assert.ok(extracted[0].remark.includes('型号冲突'));
+});

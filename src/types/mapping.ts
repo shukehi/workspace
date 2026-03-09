@@ -97,6 +97,8 @@ export interface HandleMappingConfig {
   doubleKeywords: string[];
   exportCustomerKeywords: string[];
   defaultActivityForExport: 'single' | 'double';
+  placeholderKeywords: string[];
+  fallbackModelSources: Array<'remark' | 'xsbz'>;
   thicknessAccessoryPacks: Record<string, string>;
   mappings: Record<string, HandleMappingEntry>;
 }

@@ -449,6 +449,12 @@ function validateHandleMapping(value) {
     if (asRecord(value).exportCustomerKeywords !== undefined && !Array.isArray(asRecord(value).exportCustomerKeywords)) {
         issues.push(createIssue('exportCustomerKeywords', 'invalid-type', 'exportCustomerKeywords 必须是数组'));
     }
+    if (asRecord(value).placeholderKeywords !== undefined && !Array.isArray(asRecord(value).placeholderKeywords)) {
+        issues.push(createIssue('placeholderKeywords', 'invalid-type', 'placeholderKeywords 必须是数组'));
+    }
+    if (asRecord(value).fallbackModelSources !== undefined && !Array.isArray(asRecord(value).fallbackModelSources)) {
+        issues.push(createIssue('fallbackModelSources', 'invalid-type', 'fallbackModelSources 必须是数组'));
+    }
 
     const keywordSeen = new Set();
     adapted.singleKeywords.forEach((keyword, index) => {
@@ -489,6 +495,33 @@ function validateHandleMapping(value) {
             return;
         }
         exportKeywordSeen.add(normalized);
+    });
+
+    const placeholderKeywordSeen = new Set();
+    adapted.placeholderKeywords.forEach((keyword, index) => {
+        if (!keyword) {
+            issues.push(createIssue(`placeholderKeywords[${index}]`, 'required', 'placeholderKeywords 不能为空字符串'));
+            return;
+        }
+        const normalized = normalizeHandleMappingKey(keyword);
+        if (placeholderKeywordSeen.has(normalized)) {
+            issues.push(createIssue(`placeholderKeywords[${index}]`, 'duplicate', 'placeholderKeywords 存在重复值'));
+            return;
+        }
+        placeholderKeywordSeen.add(normalized);
+    });
+
+    const fallbackSourceSeen = new Set();
+    adapted.fallbackModelSources.forEach((source, index) => {
+        if (source !== 'remark' && source !== 'xsbz') {
+            issues.push(createIssue(`fallbackModelSources[${index}]`, 'invalid-value', 'fallbackModelSources 仅允许 remark 或 xsbz'));
+            return;
+        }
+        if (fallbackSourceSeen.has(source)) {
+            issues.push(createIssue(`fallbackModelSources[${index}]`, 'duplicate', 'fallbackModelSources 存在重复值'));
+            return;
+        }
+        fallbackSourceSeen.add(source);
     });
 
     if (!['single', 'double'].includes(adapted.defaultActivityForExport)) {

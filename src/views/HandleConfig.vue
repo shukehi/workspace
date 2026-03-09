@@ -28,6 +28,8 @@ const manualReviewLabel = ref('');
 const singleKeywords = ref<KeywordRow[]>([]);
 const doubleKeywords = ref<KeywordRow[]>([]);
 const exportCustomerKeywords = ref<KeywordRow[]>([]);
+const placeholderKeywords = ref<KeywordRow[]>([]);
+const fallbackModelSources = ref<Array<'remark' | 'xsbz'>>(['remark', 'xsbz']);
 const defaultActivityForExport = ref<'single' | 'double'>('double');
 const thicknessPacks = ref<Record<string, string>>({
   '5': '',
@@ -68,6 +70,8 @@ const payload = computed<HandleMappingConfig>(() => {
     singleKeywords: singleKeywords.value.map((item) => item.value),
     doubleKeywords: doubleKeywords.value.map((item) => item.value),
     exportCustomerKeywords: exportCustomerKeywords.value.map((item) => item.value),
+    placeholderKeywords: placeholderKeywords.value.map((item) => item.value),
+    fallbackModelSources: [...fallbackModelSources.value],
     defaultActivityForExport: defaultActivityForExport.value,
     thicknessAccessoryPacks: { ...thicknessPacks.value },
     mappings: mappingObj
@@ -107,7 +111,9 @@ const hasKeywordsIssues = computed(() => {
   return [...clientIssues.value, ...editor.serverIssues.value].some(issue => 
     issue.path.startsWith('singleKeywords[') ||
     issue.path.startsWith('doubleKeywords[') ||
-    issue.path.startsWith('exportCustomerKeywords[')
+    issue.path.startsWith('exportCustomerKeywords[') ||
+    issue.path.startsWith('placeholderKeywords[') ||
+    issue.path.startsWith('fallbackModelSources[')
   );
 });
 
@@ -145,6 +151,11 @@ function resetWithPayload(data: HandleMappingConfig) {
   if (doubleKeywords.value.length === 0) doubleKeywords.value = [makeKeywordRow('')];
   exportCustomerKeywords.value = (data.exportCustomerKeywords || []).map((item) => makeKeywordRow(item));
   if (exportCustomerKeywords.value.length === 0) exportCustomerKeywords.value = [makeKeywordRow('三部')];
+  placeholderKeywords.value = (data.placeholderKeywords || []).map((item) => makeKeywordRow(item));
+  if (placeholderKeywords.value.length === 0) placeholderKeywords.value = [makeKeywordRow('冲整体拉手孔')];
+  fallbackModelSources.value = Array.isArray(data.fallbackModelSources) && data.fallbackModelSources.length > 0
+    ? data.fallbackModelSources.filter((item): item is 'remark' | 'xsbz' => item === 'remark' || item === 'xsbz')
+    : ['remark', 'xsbz'];
   defaultActivityForExport.value = data.defaultActivityForExport === 'single' ? 'single' : 'double';
 
   thicknessPacks.value = {
