@@ -5,19 +5,20 @@
 以下文件属于项目入口、构建配置或仓库元信息，继续保留在根目录：
 
 1. `.editorconfig`
-2. `.env.example`
-3. `.gitignore`
-4. `.nvmrc`
-5. `README.md`
-6. `components.json`
-7. `index.html`
-8. `package.json`
-9. `package-lock.json`
-10. `postcss.config.js`
-11. `stylelint.config.cjs`
-12. `tsconfig.json`
-13. `tsconfig.node.json`
-14. `vite.config.ts`
+2. `.env.development`
+3. `.env.example`
+4. `.gitignore`
+5. `.nvmrc`
+6. `README.md`
+7. `components.json`
+8. `index.html`
+9. `package.json`
+10. `package-lock.json`
+11. `postcss.config.js`
+12. `stylelint.config.cjs`
+13. `tsconfig.json`
+14. `tsconfig.node.json`
+15. `vite.config.ts`
 
 ## 已迁移到 docs
 
@@ -56,6 +57,7 @@
 
 1. `database.sqlite`
 2. `node_modules/`
+3. `data/runtime/`
 
 ## 处理顺序建议
 

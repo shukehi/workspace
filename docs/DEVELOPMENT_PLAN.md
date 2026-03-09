@@ -83,14 +83,14 @@ npm install sequelize sqlite3 cors body-parser
 mkdir -p server/{routes,controllers,services,models}
 ```
 
-3. **创建数据库配置文件** `server/db.js`
+3. **创建数据库配置文件** `server/config/database.js`
 ```javascript
 const { Sequelize } = require('sequelize');
 const path = require('path');
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: path.join(__dirname, '../data/database.sqlite'),
+  storage: path.join(__dirname, '../data/runtime/database.sqlite'),
   logging: console.log, // 开发环境显示 SQL
 });
 
@@ -523,3 +523,4 @@ const Product = sequelize.define('Product', {
 
 **最后更新**：2024年12月29日
 **文档版本**：v1.0
+> 注：本文档为早期开发计划记录，当前实现以 `README.md` 和 `server/config/database.js` 为准。

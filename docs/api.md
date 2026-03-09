@@ -37,5 +37,6 @@ http://47.98.198.45:8802/getOutContractDetail
 ## 注意事项
 
 1. 当前系统已移除库存管理功能模块
-2. 数据库配置保留但未启用，订单查询完全依赖外部 API
-3. 如需扩展本地数据存储功能，可参考保留的 `server/db.js` 配置文件
+2. 订单查询仍依赖外部 ERP API
+3. 本地数据库已启用，默认 SQLite 路径为 `data/runtime/database.sqlite`
+4. 数据库配置入口位于 `server/config/database.js`
