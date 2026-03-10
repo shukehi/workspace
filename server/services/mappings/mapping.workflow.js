@@ -1,3 +1,4 @@
+const fs = require('fs');
 const MappingRepository = require('./mapping.repository');
 const {
     AUDIT_ACTIONS,
@@ -341,13 +342,67 @@ async function listRevisions(profileCode) {
     };
 }
 
+async function getPublishedMapping(profileCode) {
+    const detail = await getMappingDetail(profileCode);
+    if (!detail) return null;
+    if (!detail.ok) return detail;
+    return {
+        ok: true,
+        payload: detail.mapping.publishedPayload
+    };
+}
+
+async function seedFromLegacyPayload(profileCode, payload, { operator, changeNote } = {}) {
+    const draft = await updateDraft(profileCode, {
+        revision: 0,
+        payload,
+        changeNote: changeNote || 'seed from legacy runtime',
+        operator: operator || 'system-admin'
+    });
+    if (!draft.ok) return draft;
+
+    return publish(profileCode, {
+        fromRevision: draft.revision.revision,
+        changeNote: changeNote || 'publish legacy runtime seed',
+        operator: operator || 'system-admin'
+    });
+}
+
+async function ensurePublishedMapping(profileCode, { legacyPayload, operator, changeNote } = {}) {
+    const published = await getPublishedMapping(profileCode);
+    if (published && published.ok && published.payload) {
+        return published;
+    }
+    if (!legacyPayload) {
+        return published || null;
+    }
+
+    const seeded = await seedFromLegacyPayload(profileCode, legacyPayload, {
+        operator,
+        changeNote
+    });
+    if (!seeded || !seeded.ok) return seeded;
+
+    return getPublishedMapping(profileCode);
+}
+
+function syncLegacyRuntimeFile(runtimeFile, payload) {
+    if (!runtimeFile) return;
+    const tempPath = `${runtimeFile}.tmp-${process.pid}-${Date.now()}`;
+    fs.writeFileSync(tempPath, JSON.stringify(payload, null, 4));
+    fs.renameSync(tempPath, runtimeFile);
+}
+
 module.exports = {
     operatorFromRequest,
     toRevisionMeta,
     listMappings,
     getMappingDetail,
+    getPublishedMapping,
+    ensurePublishedMapping,
     updateDraft,
     publish,
     rollback,
-    listRevisions
+    listRevisions,
+    syncLegacyRuntimeFile
 };

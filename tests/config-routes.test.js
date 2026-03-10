@@ -11,14 +11,19 @@ process.env.DB_STORAGE = tempDbPath;
 const configRoutes = require('../server/routes/configData');
 const formulasConfigRoutes = require('../server/routes/formulasConfig');
 const materialsConfigRoutes = require('../server/routes/materialsConfig');
+const MappingService = require('../server/services/mappings');
 const { CONFIG_FILES, ensureProjectDirs } = require('../server/config/paths');
 const { initDB, sequelize, Material } = require('../server/models');
 
 let server;
 let baseUrl;
 const materialsFile = CONFIG_FILES.materialsCatalog;
+const handleFile = CONFIG_FILES.handleMapping;
 const originalMaterialsFile = fs.existsSync(materialsFile)
   ? fs.readFileSync(materialsFile, 'utf8')
+  : null;
+const originalHandleFile = fs.existsSync(handleFile)
+  ? fs.readFileSync(handleFile, 'utf8')
   : null;
 
 async function startServer() {
@@ -150,6 +155,60 @@ test('GET /api/config/packaging-mapping returns canonical DTO shape', async () =
   assert.ok(body.supplierName.length > 0);
   assert.equal(typeof body.mappings, 'object');
   assert.equal(Array.isArray(body.mappings), false);
+});
+
+test('legacy handle mapping endpoints seed and publish workflow revisions', async () => {
+  fs.writeFileSync(handleFile, JSON.stringify({
+    defaultSupplier: '旧拉手供应商',
+    unmatchedSupplier: '待人工处理',
+    manualReviewLabel: '未匹配拉手(待人工处理)',
+    mappings: {
+      拉手旧版: {
+        supplier: '旧拉手供应商',
+        vendorName: '旧拉手外协名'
+      },
+    },
+  }, null, 2));
+
+  const getRes = await fetch(`${baseUrl}/api/config/handle`);
+  assert.equal(getRes.status, 200);
+  const getBody = await getRes.json();
+  assert.equal(getBody.defaultSupplier, '旧拉手供应商');
+  assert.equal(getBody.mappings['拉手旧版'].vendorName, '旧拉手外协名');
+
+  const workflowDetail = await MappingService.getMappingDetail('handle');
+  assert.equal(workflowDetail.ok, true);
+  assert.equal(workflowDetail.mapping.publishedRevision.revision, 2);
+  assert.deepEqual(workflowDetail.mapping.publishedPayload, getBody);
+
+  const putRes = await fetch(`${baseUrl}/api/config/handle`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      defaultSupplier: '新拉手供应商',
+      unmatchedSupplier: '待人工处理',
+      manualReviewLabel: '未匹配拉手(待人工处理)',
+      mappings: {
+        拉手新版: {
+          supplier: '新拉手供应商',
+          vendorName: '新拉手外协名'
+        },
+      },
+    }),
+  });
+  assert.equal(putRes.status, 200);
+  const putBody = await putRes.json();
+  assert.equal(putBody.ok, true);
+  assert.equal(putBody.revision.revision, 4);
+  assert.equal(putBody.revision.state, 'published');
+
+  const workflowAfterPut = await MappingService.getMappingDetail('handle');
+  assert.equal(workflowAfterPut.ok, true);
+  assert.equal(workflowAfterPut.mapping.publishedRevision.revision, 4);
+  assert.deepEqual(workflowAfterPut.mapping.publishedPayload, putBody.data);
+
+  const syncedLegacyFile = JSON.parse(fs.readFileSync(handleFile, 'utf8'));
+  assert.deepEqual(syncedLegacyFile, putBody.data);
 });
 
 test('materials routes: legacy endpoint and workflow endpoints expose published catalog consistently', async () => {
@@ -319,5 +378,12 @@ test.after(async () => {
     }
   } else {
     fs.writeFileSync(materialsFile, originalMaterialsFile);
+  }
+  if (originalHandleFile === null) {
+    if (fs.existsSync(handleFile)) {
+      fs.unlinkSync(handleFile);
+    }
+  } else {
+    fs.writeFileSync(handleFile, originalHandleFile);
   }
 });
