@@ -2,14 +2,13 @@
   "sampleCode": "202408120023",
   "customerName": "罗曼蒂克（六部）",
   "warningIncludes": [
-    "[CylinderMapping] 未命中锁芯映射（TOP 10）",
     "未找到门厚 10cm 的锁叉基础尺寸配置"
   ],
   "extracted": {
     "cylinders": [
       {
-        "supplier": "未知供应商",
-        "type": "120ABXT锌合金普子母珠",
+        "supplier": "航鹰",
+        "type": "120AB32-2锌合金钥匙字母复合锌包铜锁芯",
         "eccentricity": "41*79/中心孔偏心",
         "remark": "钥匙 2+5 中文说明书",
         "quantity": 6
@@ -53,13 +52,13 @@
     ],
     "cylinders": [
       {
-        "supplierName": "未知供应商",
+        "supplierName": "航鹰",
         "category": "锁芯",
         "itemCount": 1,
         "items": [
           {
-            "supplier": "未知供应商",
-            "type": "120ABXT锌合金普子母珠",
+            "supplier": "航鹰",
+            "type": "120AB32-2锌合金钥匙字母复合锌包铜锁芯",
             "eccentricity": "41*79/中心孔偏心",
             "quantity": 6,
             "remark": "钥匙 2+5 中文说明书"
@@ -82,7 +81,7 @@
       "rowsPerPage": [
         2
       ],
-      "checksum": "8093c336f465b305f0f644aa1aeedbce9df73e3c2cfe53f46c95533d82fd9a31"
+      "checksum": "fff2f1d13f801915b2ea62c82639f7a262e605209cab55690a6b270c4258446a"
     }
   }
 }

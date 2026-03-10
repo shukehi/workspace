@@ -1,5 +1,7 @@
 # 锁芯数据问题修复报告
 
+> 注：本文档记录的是 `public/js` / `public/data` 时代的问题排查。当前实现已迁移到 `src/**`，锁芯配置当前以 `data/config/cylinder-mapping.json` 为准。
+
 ## 问题描述
 
 用户反馈在锁芯采购订单中：
@@ -213,7 +215,7 @@ generatePurchaseOrder(orderData, itemsData, mergeFlags, 'cylinder')
 
 ## 相关配置文件
 
-- `public/data/cylinder-mapping.json` - 锁芯映射配置（尺寸规则和产品映射）
+- `public/data/cylinder-mapping.json`（历史路径，当前为 `data/config/cylinder-mapping.json`）- 锁芯映射配置（尺寸规则和产品映射）
 - `public/js/config/mergeRules.js` - 合并规则配置
 
 ---

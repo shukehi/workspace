@@ -112,12 +112,16 @@
         "print": {
           "packaging": {
             "pages": 1,
-            "rowsPerPage": [2],
+            "rowsPerPage": [
+              2
+            ],
             "checksum": "9d7660596659f512b1b604dd725dd779c84cb185fa6e31a71d78da14ef873d31"
           },
           "cylinder": {
             "pages": 1,
-            "rowsPerPage": [2],
+            "rowsPerPage": [
+              2
+            ],
             "checksum": "e8cc6ed1ca805456a26368128dcf1cf869a9d0a3471e2de810b62fae3a81653f"
           },
           "lockFork": null
@@ -234,12 +238,16 @@
         "print": {
           "packaging": {
             "pages": 1,
-            "rowsPerPage": [2],
+            "rowsPerPage": [
+              2
+            ],
             "checksum": "38614152def2342e17ddf5560431be4e0511efb06df1001b30f5f0e73972f092"
           },
           "cylinder": {
             "pages": 1,
-            "rowsPerPage": [2],
+            "rowsPerPage": [
+              2
+            ],
             "checksum": "6cb320c4dec8d47a3e05185c9285cd9c11d999053d911fd52da6eee10827a258"
           },
           "lockFork": null
@@ -296,14 +304,14 @@
               "supplier": "应志友",
               "type": "单头锁叉 T型 - 上头 P66",
               "spec": "570*301 = 871",
-              "remark": "7CM 2050, 吊脚0mm",
+              "remark": "7CM 2050, 吊脚5mm",
               "quantity": 3
             },
             {
               "supplier": "应志友",
               "type": "单头锁叉 T型 - 下头 P66",
-              "spec": "570*313 + 35 = 918",
-              "remark": "7CM 2050, 吊脚0mm",
+              "spec": "570*313 + 30 = 913",
+              "remark": "7CM 2050, 吊脚5mm",
               "quantity": 3
             }
           ],
@@ -354,14 +362,14 @@
                   "type": "单头锁叉 T型 - 上头 P66",
                   "spec": "570*301 = 871",
                   "quantity": 3,
-                  "remark": "7CM 2050, 吊脚0mm"
+                  "remark": "7CM 2050, 吊脚5mm"
                 },
                 {
                   "supplier": "应志友",
                   "type": "单头锁叉 T型 - 下头 P66",
-                  "spec": "570*313 + 35 = 918",
+                  "spec": "570*313 + 30 = 913",
                   "quantity": 3,
-                  "remark": "7CM 2050, 吊脚0mm"
+                  "remark": "7CM 2050, 吊脚5mm"
                 }
               ]
             }
@@ -370,14 +378,18 @@
         "print": {
           "packaging": {
             "pages": 1,
-            "rowsPerPage": [2],
-            "checksum": "ac4b1694c625db5e4e1e87b189a99f20d594a89efc49255af7ab63457c21b8d6"
+            "rowsPerPage": [
+              2
+            ],
+            "checksum": "c121154ddf2625af9cb9081a059c8643b263fddbfc327e8c15901f57c3cee37f"
           },
           "cylinder": null,
           "lockFork": {
             "pages": 1,
-            "rowsPerPage": [3],
-            "checksum": "904901a5a3586292140e1adbbda59ecf704911a61fb5a8af0dd3bbc1c50d9f68"
+            "rowsPerPage": [
+              3
+            ],
+            "checksum": "40b4b15fc312323424f662bffed67a51ca33b4f0a1d8a528d66d6b99727563bf"
           }
         }
       }
@@ -506,14 +518,18 @@
         "print": {
           "packaging": {
             "pages": 1,
-            "rowsPerPage": [2],
-            "checksum": "7a3b1e6031403aa8fb2ef11afb3679e58d824f2e41ddfbb8b10abb76f06caf94"
+            "rowsPerPage": [
+              2
+            ],
+            "checksum": "1f33ac1702081fa619e4cc93273361b2ac739858c99a784556610b3e3ba38f57"
           },
           "cylinder": null,
           "lockFork": {
             "pages": 1,
-            "rowsPerPage": [3],
-            "checksum": "55e5c88c2b4cefc0238b185e5aeb8a5c35d9987a4610a232007ecdfaae0c29bf"
+            "rowsPerPage": [
+              3
+            ],
+            "checksum": "ff7165441a4c0f90f1fae6255a0a87afc0e078a9b471d2a8c696dddb411d5dfb"
           }
         }
       }

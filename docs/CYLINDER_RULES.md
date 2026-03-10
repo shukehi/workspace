@@ -153,7 +153,7 @@
 ## 配置文件说明
 
 ### 文件位置
-`/public/data/cylinder-mapping.json`
+`/data/config/cylinder-mapping.json`
 
 ### 配置结构
 

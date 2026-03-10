@@ -1,0 +1,164 @@
+{
+    "dimensions": {
+        "5": {
+            "code": "70AB",
+            "eccentricity": "30*40/中心孔偏心"
+        },
+        "7": {
+            "code": "90AB",
+            "eccentricity": "34.5*55.5/中心孔偏心"
+        },
+        "9": {
+            "code": "110AB",
+            "eccentricity": "40*70/中心孔偏心"
+        },
+        "10": {
+            "code": "120AB",
+            "eccentricity": "41*79/中心孔偏心"
+        }
+    },
+    "specialRules": [
+        {
+            "conditionField": "sxhz",
+            "keyword": "16-7-5+ZS17",
+            "thickness": "7",
+            "variants": {
+                "内开": {
+                    "code": "84AB",
+                    "eccentricity": "28*56/中心孔偏心"
+                },
+                "外开": {
+                    "code": "84AB",
+                    "eccentricity": "34*50/中心孔偏心"
+                }
+            }
+        },
+        {
+            "conditionField": "sxhz",
+            "keyword": "16-1-5+ZS4",
+            "thickness": "7",
+            "variants": {
+                "内开": {
+                    "code": "78AB",
+                    "eccentricity": "28*50/中心孔偏心"
+                },
+                "外开": {
+                    "code": "78AB",
+                    "eccentricity": "28*50/中心孔偏心"
+                }
+            }
+        },
+        {
+            "conditionField": "sxhz",
+            "keyword": "凸护罩",
+            "thickness": "7",
+            "variants": {
+                "内开": {
+                    "code": "81AB",
+                    "eccentricity": "29*52/中心孔偏心"
+                },
+                "外开": {
+                    "code": "81AB",
+                    "eccentricity": "29*52/中心孔偏心"
+                }
+            }
+        }
+    ],
+    "secondaryDimensions": {
+        "7": {
+            "code": "",
+            "eccentricity": "",
+            "variants": {
+                "内开": {
+                    "code": "90",
+                    "eccentricity": "30*60/中心孔偏心",
+                    "remark": "旋钮在长一边"
+                },
+                "外开": {
+                    "code": "90",
+                    "eccentricity": "35*55/中心孔偏心",
+                    "remark": "旋钮在短一边"
+                }
+            }
+        }
+    },
+    "secondarySpecialRules": [
+        {
+            "conditionField": "fshz",
+            "keyword": "哑黑护罩",
+            "thickness": "9",
+            "variants": {
+                "内开": {
+                    "code": "105",
+                    "eccentricity": "37*68/中心孔偏心",
+                    "remark": "旋钮在一边"
+                }
+            }
+        }
+    ],
+    "mappings": {
+        "90P35锌合金锁芯扣封": {
+            "supplier": "忠恒",
+            "template": "{code}微珠锌合金锁芯 ORIGINAL&SED(TURKEY)"
+        },
+        "塑2铜锁芯": {
+            "supplier": "劲佳",
+            "template": "{code}塑2铜锁芯"
+        },
+        "锌合金高低齿": {
+            "supplier": "兴泰锁芯",
+            "template": "{code}锌合金高低齿铜锁芯"
+        },
+        "ZH-微珠锌合金MAN": {
+            "supplier": "忠恒",
+            "template": "{code}微珠锌合金锁芯 Craft-MAN标"
+        },
+        "ZH-微珠锌合金锁芯": {
+            "supplier": "忠恒",
+            "template": "{code}微珠锌合金锁芯"
+        },
+        "JJ-锌合金子母": {
+            "supplier": "劲佳",
+            "template": "{code}电镀锌合金子母珠"
+        },
+        "铜带菱形旋钮": {
+            "supplier": "劲佳",
+            "template": "{code}铜带菱形旋钮"
+        },
+        "B2铜（英文）": {
+            "supplier": "安鑫",
+            "template": "{code}蛇形铜锁芯"
+        },
+        "XT锌合金普子母珠": {
+            "supplier": "航鹰",
+            "template": "{code}32-2锌合金钥匙字母复合锌包铜锁芯"
+        },
+        "铜柄铜": {
+            "supplier": "劲佳",
+            "template": "{code}铜柄铜锁芯"
+        },
+        "90铜3号铁柄（ABC）": {
+            "supplier": "诺远",
+            "template": "{code}90铜3号铁柄（ABC）"
+        },
+        "铝包铜椭圆旋钮": {
+            "supplier": "劲佳",
+            "template": "{code}铝包铜椭圆旋钮锁芯"
+        },
+        "大白板铜": {
+            "supplier": "安鑫",
+            "template": "{code}大白板铜锁芯"
+        }
+    },
+    "customLogos": [
+        "MEGASTAR",
+        "Craft",
+        "ORIGINAL&SED(TURKEY)",
+        "VAnric",
+        "Railingo",
+        "HOME SECURE"
+    ],
+    "excludedCylinders": [
+        "指纹锁配套锁芯"
+    ]
+}

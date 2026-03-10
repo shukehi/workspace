@@ -6,7 +6,6 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const path = require('path');
 const {
     adaptPackagingMapping,
     adaptCylinderMapping,
@@ -20,33 +19,28 @@ const {
     validateHandleMapping
 } = require('../services/mappings/mapping.validator');
 const { createMappingProfileRoute } = require('./mappingProfile.routeFactory');
+const {
+    CONFIG_FILES,
+    ensureProjectDirs,
+} = require('../config/paths');
 
-// Path to data files (resolved relative to project root)
-const DATA_DIR = path.join(__dirname, '../../public/data');
-const CONFIG_DIR = path.join(__dirname, '../../data/config');
-const MATERIALS_FILE = path.join(DATA_DIR, 'materials-catalog.json');
-const PACKAGING_STATIC_FILE = path.join(DATA_DIR, 'packaging-mapping.json');
-const PACKAGING_RUNTIME_FILE = path.join(CONFIG_DIR, 'packaging-mapping.json');
-const CYLINDER_STATIC_FILE = path.join(DATA_DIR, 'cylinder-mapping.json');
-const CYLINDER_RUNTIME_FILE = path.join(CONFIG_DIR, 'cylinder-mapping.json');
-const LOCK_FORK_STATIC_FILE = path.join(DATA_DIR, 'lock-fork-mapping.json');
-const LOCK_FORK_RUNTIME_FILE = path.join(CONFIG_DIR, 'lock-fork-mapping.json');
-const HANDLE_STATIC_FILE = path.join(DATA_DIR, 'handle-mapping.json');
-const HANDLE_RUNTIME_FILE = path.join(CONFIG_DIR, 'handle-mapping.json');
+const MATERIALS_FILE = CONFIG_FILES.materialsCatalog;
+const PACKAGING_RUNTIME_FILE = CONFIG_FILES.packagingMapping;
+const CYLINDER_RUNTIME_FILE = CONFIG_FILES.cylinderMapping;
+const LOCK_FORK_RUNTIME_FILE = CONFIG_FILES.lockForkMapping;
+const HANDLE_RUNTIME_FILE = CONFIG_FILES.handleMapping;
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+ensureProjectDirs();
+
+function ensureJsonFile(filePath, fallbackValue = {}) {
+    if (fs.existsSync(filePath)) return;
+    fs.writeFileSync(filePath, JSON.stringify(fallbackValue, null, 2));
 }
 
 const packagingProfile = createMappingProfileRoute({
     profileName: 'packaging',
     endpoint: '/packaging',
     runtimeFile: PACKAGING_RUNTIME_FILE,
-    staticFile: PACKAGING_STATIC_FILE,
     adapt: adaptPackagingMapping,
     validate: validatePackagingMapping,
     readErrorMessage: 'Failed to read packaging mapping',
@@ -57,7 +51,6 @@ const cylinderProfile = createMappingProfileRoute({
     profileName: 'cylinder',
     endpoint: '/cylinder',
     runtimeFile: CYLINDER_RUNTIME_FILE,
-    staticFile: CYLINDER_STATIC_FILE,
     adapt: adaptCylinderMapping,
     validate: validateCylinderMapping,
     readErrorMessage: 'Failed to read cylinder mapping',
@@ -68,7 +61,6 @@ const lockForkProfile = createMappingProfileRoute({
     profileName: 'lock-fork',
     endpoint: '/lock-fork',
     runtimeFile: LOCK_FORK_RUNTIME_FILE,
-    staticFile: LOCK_FORK_STATIC_FILE,
     adapt: adaptLockForkMapping,
     validate: validateLockForkMapping,
     readErrorMessage: 'Failed to read lock-fork mapping',
@@ -79,7 +71,6 @@ const handleProfile = createMappingProfileRoute({
     profileName: 'handle',
     endpoint: '/handle',
     runtimeFile: HANDLE_RUNTIME_FILE,
-    staticFile: HANDLE_STATIC_FILE,
     adapt: adaptHandleMapping,
     validate: validateHandleMapping,
     readErrorMessage: 'Failed to read handle mapping',
@@ -89,13 +80,10 @@ const handleProfile = createMappingProfileRoute({
 // 1. Get Materials Catalog
 router.get('/materials', (req, res) => {
     try {
-        if (fs.existsSync(MATERIALS_FILE)) {
-            const data = fs.readFileSync(MATERIALS_FILE, 'utf8');
-            res.header('Content-Type', 'application/json');
-            res.send(data);
-        } else {
-            res.json({});
-        }
+        ensureJsonFile(MATERIALS_FILE);
+        const data = fs.readFileSync(MATERIALS_FILE, 'utf8');
+        res.header('Content-Type', 'application/json');
+        res.send(data);
     } catch (error) {
         console.error('Error reading materials:', error);
         res.status(500).json({ success: false, error: 'Failed to read materials catalog' });
@@ -106,6 +94,7 @@ router.get('/materials', (req, res) => {
 router.post('/materials', (req, res) => {
     try {
         const newData = req.body;
+        ensureProjectDirs();
         fs.writeFileSync(MATERIALS_FILE, JSON.stringify(newData, null, 4));
         console.log('✅ Materials catalog updated via API');
         res.json({ success: true, message: 'Materials catalog saved successfully' });

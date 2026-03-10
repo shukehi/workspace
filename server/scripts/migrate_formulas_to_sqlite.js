@@ -1,9 +1,9 @@
 const fs = require('fs');
-const path = require('path');
 const sequelize = require('../config/database');
 const { initDB, FormulaDefinition, FormulaRevision, FormulaAuditLog } = require('../models');
+const { CONFIG_FILES } = require('../config/paths');
 
-const FORMULAS_FILE = path.join(__dirname, '../../public/data/color-formulas.json');
+const FORMULAS_FILE = CONFIG_FILES.colorFormulas;
 
 function parseFormulasJson() {
     if (!fs.existsSync(FORMULAS_FILE)) return {};
@@ -64,7 +64,7 @@ async function migrate() {
                 from_revision: null,
                 to_revision: 1,
                 operator: 'migration-script',
-                meta_json: JSON.stringify({ source: 'public/data/color-formulas.json' })
+                meta_json: JSON.stringify({ source: 'data/config/color-formulas.json' })
             }, { transaction: tx });
 
             created += 1;

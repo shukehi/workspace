@@ -60,9 +60,14 @@ export class ConfigLoaderService {
     }
 
     async loadMaterials() {
-        const res = await fetch('/data/materials-catalog.json');
-        if (!res.ok) throw new Error('Failed to load materials catalog');
-        const raw = await res.json();
+        const apiPayload = await this.fetchJson('/api/config/materials');
+        if (apiPayload !== null) {
+            this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(apiPayload);
+            return;
+        }
+
+        const raw = await this.fetchJson('/data/materials-catalog.json');
+        if (raw === null) throw new Error('Failed to load materials catalog');
         this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(raw);
     }
 

@@ -1,0 +1,62 @@
+{
+    "defaultSupplier": "请人工处理",
+    "unmatchedSupplier": "待人工处理",
+    "manualReviewLabel": "未匹配拉手(待人工处理)",
+    "singleKeywords": [
+        "单活"
+    ],
+    "doubleKeywords": [
+        "双活"
+    ],
+    "exportCustomerKeywords": [
+        "三部"
+    ],
+    "defaultActivityForExport": "double",
+    "placeholderKeywords": [
+        "冲整体拉手孔",
+        "拉手孔",
+        "开拉手孔",
+        "开孔",
+        "打孔"
+    ],
+    "fallbackModelSources": [
+        "remark",
+        "xsbz"
+    ],
+    "thicknessAccessoryPacks": {
+        "5": "5公分配件包",
+        "7": "7公分配件包",
+        "9": "9公分配件包",
+        "10": "10公分配件包"
+    },
+    "mappings": {
+        "FC-09": {
+            "supplier": "顾万佳",
+            "vendorName": "FC-09太空灰"
+        },
+        "DJ-86-6B": {
+            "supplier": "迪江",
+            "vendorName": "DJ-86-6B"
+        },
+        "DJ-6847双活不分左右": {
+            "supplier": "迪江",
+            "vendorName": "DJ-6847"
+        },
+        "9909黄古长款拉手双活": {
+            "supplier": "永嘉",
+            "vendorName": "9909黄古长款"
+        },
+        "PS-9015": {
+            "supplier": "迪江",
+            "vendorName": "PS-9015"
+        },
+        "DJ-8020": {
+            "supplier": "迪江",
+            "vendorName": "DJ-8020"
+        },
+        "PS-86-9A": {
+            "supplier": "迪江",
+            "vendorName": "PS-86-9A"
+        }
+    }
+}

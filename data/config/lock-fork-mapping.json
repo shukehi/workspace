@@ -1,0 +1,75 @@
+{
+    "baseDimensions": {
+        "5": {
+            "standard": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 301
+                }
+            },
+            "withHangingFeet": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 313
+                }
+            }
+        },
+        "7": {
+            "standard": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 301
+                }
+            },
+            "withHangingFeet": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 313
+                }
+            }
+        }
+    },
+    "lockTypes": {
+        "SD-9030（6607大锁）": {
+            "category": "P66",
+            "nameModifier": "P66"
+        },
+        "F02-A副锁": {
+            "category": "dual-head",
+            "upper": "直杆",
+            "lower": "弯杆"
+        }
+    },
+    "edgeTypes": {
+        "T型": {
+            "nameModifier": "T型"
+        }
+    },
+    "hangingFeet": {
+        "standard": 35,
+        "keywords": [
+            "吊脚",
+            "diaojiao"
+        ]
+    },
+    "heightReference": 2050,
+    "suppliers": {
+        "default": "应志友"
+    }
+}

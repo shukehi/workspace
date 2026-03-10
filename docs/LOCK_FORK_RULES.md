@@ -155,7 +155,7 @@
 ## 配置文件说明
 
 ### 文件位置
-`/public/data/lock-fork-mapping.json`
+`/data/config/lock-fork-mapping.json`
 
 ### 配置结构
 

@@ -1,6 +1,6 @@
 const fs = require('fs');
-const path = require('path');
 const { initDB, Material } = require('../models');
+const { CONFIG_FILES } = require('../config/paths');
 
 async function importMaterials() {
     console.log('🚀 Starting Material Migration...');
@@ -9,7 +9,7 @@ async function importMaterials() {
     await initDB();
 
     // Read JSON
-    const jsonPath = path.join(__dirname, '../../public/data/materials-catalog.json');
+    const jsonPath = CONFIG_FILES.materialsCatalog;
     if (!fs.existsSync(jsonPath)) {
         console.error('❌ JSON file not found:', jsonPath);
         process.exit(1);

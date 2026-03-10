@@ -19,7 +19,6 @@ module.exports = {
     // 静态文件配置
     static: {
         public: 'dist',
-        // Enable data access for legacy configuration files
-        data: 'data'
+        data: 'data/config'
     }
 };
