@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
@@ -20,7 +20,7 @@ import {
 } from 'lucide-vue-next';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import type { Order } from '@/types/order';
-import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
+import { useProcurementDialogs } from '@/features/procurement/useProcurementDialogs';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
@@ -97,19 +97,25 @@ const filteredOrders = computed(() => {
 
 const visibleOrderCount = computed(() => filteredOrders.value.length);
 
-const isEditDialogOpen = ref(false);
-const isPreviewDialogOpen = ref(false);
-const selectedOrder = ref<Order | null>(null);
-const draftOrderForPreview = ref<Order | null>(null);
-const editDialogMode = ref<'edit' | 'create'>('edit');
-
-const handleEdit = (order: Order) => {
-  editDialogMode.value = 'edit';
-  const draft = prepareOrderDraft(order);
-  selectedOrder.value = draft;
-  draftOrderForPreview.value = draft;
-  isEditDialogOpen.value = true;
-};
+const {
+  isEditDialogOpen,
+  isPreviewDialogOpen,
+  selectedOrder,
+  editDialogMode,
+  previewOrder,
+  confirmState,
+  openEdit,
+  openPreview,
+  openManualEntry,
+  syncDraftForPreview,
+  previewDraft,
+  editFromPreview,
+  requestDelete,
+  requestBulkDelete,
+} = useProcurementDialogs({
+  store,
+  toast,
+});
 
 const handleStatusUpdate = async (order: Order, status: Order['status']) => {
   try {
@@ -124,98 +130,11 @@ const handleStatusUpdate = async (order: Order, status: Order['status']) => {
   }
 };
 
-const confirmState = ref({
-  show: false,
-  title: '',
-  message: '',
-  variant: 'danger' as 'danger' | 'warning' | 'info' | 'question',
-  confirmText: '确定',
-  onConfirm: () => {}
-});
-
-const handleDelete = (order: Order) => {
-  confirmState.value = {
-    show: true,
-    title: '删除确认',
-    message: `您确定要永久删除订单 <span class="font-bold text-foreground">${order.order_no}</span> 吗？此操作将无法还原数据。`,
-    variant: 'danger',
-    confirmText: '确认删除',
-    onConfirm: async () => {
-      try {
-        await store.deleteOrder(order.id);
-        toast({ title: '订单已删除', variant: 'success' });
-      } catch {
-        toast({ title: '删除失败', variant: 'destructive' });
-      } finally {
-        confirmState.value.show = false;
-      }
-    }
-  };
-};
-
 const handleBulkDelete = () => {
-  const count = selectedRows.value.length;
-  confirmState.value = {
-    show: true,
-    title: '批量删除订单',
-    message: `您即将永久删除选中的 ${count} 张采购单。确定要继续吗？`,
-    variant: 'danger',
-    confirmText: '批量删除',
-    onConfirm: async () => {
-      try {
-        await store.bulkDelete(selectedRows.value.map(o => o.id));
-        selectedRows.value = [];
-        toast({ title: '批量删除成功', description: `已移除 ${count} 张订单`, variant: 'success' });
-      } catch {
-        toast({ title: '操作失败', variant: 'destructive' });
-      } finally {
-        confirmState.value.show = false;
-      }
-    }
-  };
+  requestBulkDelete(selectedRows.value, () => {
+    selectedRows.value = [];
+  });
 };
-
-const handlePreview = (order: Order) => {
-  const draft = prepareOrderDraft(order);
-  selectedOrder.value = draft;
-  draftOrderForPreview.value = draft;
-  isPreviewDialogOpen.value = true;
-};
-
-const handleDraftChange = (draft: Order) => {
-  if (!selectedOrder.value || selectedOrder.value.id !== draft.id) return;
-  draftOrderForPreview.value = draft;
-};
-
-const handleEditPreview = (draft: Order) => {
-  const normalizedDraft = prepareOrderDraft(draft);
-  selectedOrder.value = normalizedDraft;
-  draftOrderForPreview.value = normalizedDraft;
-  isPreviewDialogOpen.value = true;
-};
-
-const handlePreviewEdit = (order: Order) => {
-  editDialogMode.value = 'edit';
-  const draft = prepareOrderDraft(order);
-  isPreviewDialogOpen.value = false;
-  selectedOrder.value = draft;
-  draftOrderForPreview.value = draft;
-  isEditDialogOpen.value = true;
-};
-
-const previewOrder = computed(() => {
-  if (!selectedOrder.value) return null;
-  if (draftOrderForPreview.value && draftOrderForPreview.value.id === selectedOrder.value.id) {
-    return draftOrderForPreview.value;
-  }
-  return selectedOrder.value;
-});
-
-watch(isEditDialogOpen, (open) => {
-  if (!open) {
-    draftOrderForPreview.value = null;
-  }
-});
 
 const handleExport = () => {
   const dataToExport = selectedRows.value.length > 0 ? selectedRows.value : filteredOrders.value;
@@ -245,22 +164,15 @@ const handleBulkStatusUpdate = async (status: Order['status']) => {
   }
 };
 
-const handleManualEntry = () => {
-  editDialogMode.value = 'create';
-  selectedOrder.value = null;
-  draftOrderForPreview.value = null;
-  isEditDialogOpen.value = true;
-};
-
 const resetFilters = () => {
   activeCategory.value = 'ALL';
   searchQuery.value = '';
 };
 
 const columns = createColumns({
-  onEdit: handleEdit,
-  onDelete: handleDelete,
-  onPreview: handlePreview,
+  onEdit: openEdit,
+  onDelete: requestDelete,
+  onPreview: openPreview,
   onStatusUpdate: handleStatusUpdate
 });
 
@@ -285,7 +197,7 @@ onMounted(() => {
           <Download class="w-4 h-4 mr-2" />
           导出数据
         </Button>
-        <Button size="sm" variant="secondary" @click="handleManualEntry">
+        <Button size="sm" variant="secondary" @click="openManualEntry">
           <Plus class="w-4 h-4 mr-2" />
           手动录入
         </Button>
@@ -338,13 +250,13 @@ onMounted(() => {
       :order="selectedOrder"
       :mode="editDialogMode"
       @saved="store.fetchOrders()"
-      @draft-change="handleDraftChange"
-      @preview="handleEditPreview"
+      @draft-change="syncDraftForPreview"
+      @preview="previewDraft"
     />
     <ProcurementPreviewModal
       v-model:open="isPreviewDialogOpen"
       :order="previewOrder"
-      @edit="handlePreviewEdit"
+      @edit="editFromPreview"
     />
 
     <ConfirmDialog
