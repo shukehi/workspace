@@ -63,6 +63,13 @@ export class ApiWithStaticFallbackConfigRepository implements ConfigRepository {
     }
 
     async readMapping(kind: MappingKind): Promise<ConfigReadResult<unknown>> {
+        const workflowType = kind === 'lockFork' ? 'lock_fork' : kind;
+        const workflowPublishedPath = `/api/config/mappings/${workflowType}/published`;
+        const workflowPayload = await this.fetchJson(workflowPublishedPath);
+        if (workflowPayload !== null) {
+            return { payload: workflowPayload, source: 'api' };
+        }
+
         const apiPath = `/api/config/${kind === 'lockFork' ? 'lock-fork' : kind}`;
         const apiPayload = await this.fetchJson(apiPath);
         if (apiPayload !== null) {

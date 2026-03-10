@@ -120,6 +120,14 @@ class MappingRepository {
         return MappingAuditLog.create(payload, txOpts(transaction));
     }
 
+    static async listAuditLogsByProfileId(profileId, transaction) {
+        return MappingAuditLog.findAll({
+            where: { profile_id: profileId },
+            order: [['created_at', 'DESC'], ['id', 'DESC']],
+            ...txOpts(transaction)
+        });
+    }
+
     static async listPublishedRevisionsByProfileIds(profileIds, transaction) {
         if (!profileIds.length) return [];
         return MappingRevision.findAll({

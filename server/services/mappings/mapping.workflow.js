@@ -16,7 +16,8 @@ const {
 const {
     toDetail,
     toRevisionMeta,
-    toSummary
+    toSummary,
+    toAuditLog
 } = require('./mapping.mapper');
 
 function operatorFromRequest(req) {
@@ -342,6 +343,23 @@ async function listRevisions(profileCode) {
     };
 }
 
+async function listAuditLogs(profileCode) {
+    const profileCodeErrors = validateProfileCode(profileCode);
+    if (profileCodeErrors.length > 0) {
+        return { ok: false, status: 422, errors: toWorkflowErrors(profileCodeErrors) };
+    }
+
+    const normalizedProfileCode = normalizeProfileCode(profileCode);
+    const profile = await MappingRepository.findProfileByCode(normalizedProfileCode);
+    if (!profile) return null;
+
+    const logs = await MappingRepository.listAuditLogsByProfileId(profile.id);
+    return {
+        ok: true,
+        items: logs.map(toAuditLog)
+    };
+}
+
 async function getPublishedMapping(profileCode) {
     const detail = await getMappingDetail(profileCode);
     if (!detail) return null;
@@ -404,5 +422,6 @@ module.exports = {
     publish,
     rollback,
     listRevisions,
+    listAuditLogs,
     syncLegacyRuntimeFile
 };

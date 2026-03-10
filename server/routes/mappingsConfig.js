@@ -48,6 +48,24 @@ router.get('/:type', async (req, res) => {
     }
 });
 
+router.get('/:type/published', async (req, res) => {
+    try {
+        const result = await MappingService.getPublishedMapping(req.params.type);
+        if (!result) {
+            res.status(404).json({ success: false, error: 'Mapping profile not found' });
+            return;
+        }
+        if (!result.ok) {
+            sendWorkflowError(res, result);
+            return;
+        }
+        res.json(result.payload || {});
+    } catch (error) {
+        console.error('Error reading published mapping:', error);
+        res.status(500).json({ success: false, error: 'Failed to read published mapping' });
+    }
+});
+
 router.put('/:type/draft', async (req, res) => {
     try {
         const result = await MappingService.updateDraft(req.params.type, {
@@ -130,6 +148,24 @@ router.get('/:type/revisions', async (req, res) => {
     } catch (error) {
         console.error('Error listing mapping revisions:', error);
         res.status(500).json({ success: false, error: 'Failed to list mapping revisions' });
+    }
+});
+
+router.get('/:type/audit-logs', async (req, res) => {
+    try {
+        const result = await MappingService.listAuditLogs(req.params.type);
+        if (!result) {
+            res.status(404).json({ success: false, error: 'Mapping profile not found' });
+            return;
+        }
+        if (!result.ok) {
+            sendWorkflowError(res, result);
+            return;
+        }
+        res.json({ success: true, items: result.items });
+    } catch (error) {
+        console.error('Error listing mapping audit logs:', error);
+        res.status(500).json({ success: false, error: 'Failed to list mapping audit logs' });
     }
 });
 
