@@ -37,6 +37,12 @@ const handleHistoryLoaded = (contractCode: string) => {
   contractInput.value = contractCode;
 };
 
+const sourceTableMinWidth = computed(() => {
+  const indexColumnWidth = 50;
+  const contentWidth = sourceColumns.reduce((total, column) => total + (column.width || 100), 0);
+  return indexColumnWidth + contentWidth + 120;
+});
+
 const columns = computed<ColumnDef<any>[]>(() => {
   const cols: ColumnDef<any>[] = [
     {
@@ -140,6 +146,7 @@ const columns = computed<ColumnDef<any>[]>(() => {
 
     <Card class="flex-1 min-h-0">
       <CardContent class="h-full p-4">
+        <p v-if="store.hasOrder" class="px-1 pb-2 text-[11px] text-muted-foreground md:hidden">表格可左右滑动查看更多列</p>
         <DataTable
           v-if="store.hasOrder"
           :columns="columns"
@@ -147,6 +154,7 @@ const columns = computed<ColumnDef<any>[]>(() => {
           :enable-selection="false"
           density="compact"
           :use-column-size="true"
+          :table-min-width="sourceTableMinWidth"
         />
         <div v-else class="h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
           <div class="w-12 h-12 rounded-full border flex items-center justify-center bg-background">
