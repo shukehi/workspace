@@ -2,6 +2,8 @@ const sequelize = require('../config/database');
 const Order = require('./Order');
 const OrderItem = require('./OrderItem');
 const Material = require('./Material');
+const MaterialCatalogProfile = require('./MaterialCatalogProfile');
+const MaterialCatalogRevision = require('./MaterialCatalogRevision');
 const ErpContract = require('./ErpContract');
 const FormulaDefinition = require('./FormulaDefinition');
 const FormulaRevision = require('./FormulaRevision');
@@ -22,6 +24,8 @@ MappingProfile.hasMany(MappingRevision, { foreignKey: 'profile_id', as: 'revisio
 MappingRevision.belongsTo(MappingProfile, { foreignKey: 'profile_id' });
 MappingProfile.hasMany(MappingAuditLog, { foreignKey: 'profile_id', as: 'auditLogs', onDelete: 'CASCADE' });
 MappingAuditLog.belongsTo(MappingProfile, { foreignKey: 'profile_id' });
+MaterialCatalogProfile.hasMany(MaterialCatalogRevision, { foreignKey: 'profile_id', as: 'revisions', onDelete: 'CASCADE' });
+MaterialCatalogRevision.belongsTo(MaterialCatalogProfile, { foreignKey: 'profile_id' });
 
 async function ensureOrderItemColumns() {
     const queryInterface = sequelize.getQueryInterface();
@@ -124,6 +128,8 @@ module.exports = {
     Order,
     OrderItem,
     Material,
+    MaterialCatalogProfile,
+    MaterialCatalogRevision,
     ErpContract,
     FormulaDefinition,
     FormulaRevision,

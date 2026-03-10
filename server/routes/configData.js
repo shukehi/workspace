@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
+const MaterialCatalogService = require('../services/materials');
 const {
     adaptPackagingMapping,
     adaptCylinderMapping,
@@ -79,25 +80,32 @@ const handleProfile = createMappingProfileRoute({
 
 // 1. Get Materials Catalog
 router.get('/materials', (req, res) => {
-    try {
-        ensureJsonFile(MATERIALS_FILE);
-        const data = fs.readFileSync(MATERIALS_FILE, 'utf8');
-        res.header('Content-Type', 'application/json');
-        res.send(data);
-    } catch (error) {
+    MaterialCatalogService.getPublishedMaterialsCatalog().then((payload) => {
+        res.json(payload);
+    }).catch((error) => {
         console.error('Error reading materials:', error);
         res.status(500).json({ success: false, error: 'Failed to read materials catalog' });
-    }
+    });
 });
 
 // 2. Save Materials Catalog
-router.post('/materials', (req, res) => {
+router.post('/materials', async (req, res) => {
     try {
-        const newData = req.body;
-        ensureProjectDirs();
-        fs.writeFileSync(MATERIALS_FILE, JSON.stringify(newData, null, 4));
-        console.log('✅ Materials catalog updated via API');
-        res.json({ success: true, message: 'Materials catalog saved successfully' });
+        const result = await MaterialCatalogService.saveAndPublishLegacyCompatible(req.body, req);
+        if (!result.ok) {
+            res.status(result.status).json({
+                success: false,
+                errors: result.errors || [],
+                latestRevision: result.latestRevision ?? null
+            });
+            return;
+        }
+        console.log('✅ Materials catalog updated via workflow-backed API');
+        res.json({
+            success: true,
+            message: 'Materials catalog saved successfully',
+            revision: result.revision
+        });
     } catch (error) {
         console.error('Error saving materials:', error);
         res.status(500).json({ success: false, error: 'Failed to save materials catalog' });
