@@ -38,6 +38,7 @@
 - 新增 [`src/services/packagingConfig.ts`](/Users/aries/Dve/workspace/src/services/packagingConfig.ts)
 - `configLoader` 已经通过 repository 读取配置，并暴露 `getLoadSources()`
 - 材料目录读取优先走 `/api/config/material-catalog/published`，旧 `/api/config/materials` 退为兼容层
+- mapping 读取优先走 `/api/config/mappings/:type/published`
 - 页面和业务代码中对 `configLoader` 的直接依赖已大幅减少
 
 典型消费方已切换：
@@ -55,6 +56,7 @@
 
 - 前端“配置加载实现”和“配置消费接口”已开始分层
 - 页面读到的配置来源可追踪，不再完全依赖隐式 fallback
+- mapping 与 materials 的前端读取都已优先对齐到 workflow published 真源
 
 ### 3. Materials 后端版本化工作流
 
@@ -93,7 +95,31 @@
 - `materials` 已经不再只是“文件读写式配置”
 - 新旧接口之间已有明确的迁移桥梁
 
-### 4. Materials 前端管理入口
+### 4. Mapping 配置域 workflow 收口
+
+已完成：
+
+- legacy mapping route 已改为 workflow-backed：
+  - [`server/routes/configData.js`](/Users/aries/Dve/workspace/server/routes/configData.js)
+- mapping workflow 新增 published / audit-logs 能力：
+  - [`server/routes/mappingsConfig.js`](/Users/aries/Dve/workspace/server/routes/mappingsConfig.js)
+  - [`server/services/mappings/mapping.workflow.js`](/Users/aries/Dve/workspace/server/services/mappings/mapping.workflow.js)
+  - [`server/services/mappings/mapping.repository.js`](/Users/aries/Dve/workspace/server/services/mappings/mapping.repository.js)
+  - [`server/services/mappings/mapping.mapper.js`](/Users/aries/Dve/workspace/server/services/mappings/mapping.mapper.js)
+- 前端 mapping 配置编辑页已改为走 workflow：
+  - [`src/services/mappingConfigApi.ts`](/Users/aries/Dve/workspace/src/services/mappingConfigApi.ts)
+  - [`src/features/config-editor/composables/useMappingConfigEditor.ts`](/Users/aries/Dve/workspace/src/features/config-editor/composables/useMappingConfigEditor.ts)
+- mapping 配置编辑页现已展示 workflow 元信息与审计记录：
+  - [`src/features/config-editor/components/ConfigPageLayout.vue`](/Users/aries/Dve/workspace/src/features/config-editor/components/ConfigPageLayout.vue)
+
+结果：
+
+- `packaging / cylinder / lock-fork / handle` 四类 mapping 已经基本从“legacy 文件配置页”转为“workflow 配置页”
+- 读取优先 published，保存走 `draft -> publish`
+- legacy `/api/config/*` mapping route 进一步退为兼容层
+- 用户在页面上已经可以直接看到 revision 与审计动作，而不是只依赖后端能力
+
+### 5. Materials 前端管理入口
 
 已完成：
 
@@ -108,7 +134,7 @@
 - materials 版本化工作流已经有前端入口，不再只是后端能力
 - 保存后运行时配置能立即生效，避免“发布了但分析还是旧数据”
 
-### 5. Procurement 页面 feature 化
+### 6. Procurement 页面 feature 化
 
 已完成：
 
@@ -120,11 +146,16 @@
   - [`src/features/procurement/useProcurementDialogs.ts`](/Users/aries/Dve/workspace/src/features/procurement/useProcurementDialogs.ts)
 - 抽出页面状态：
   - [`src/features/procurement/useProcurementPageState.ts`](/Users/aries/Dve/workspace/src/features/procurement/useProcurementPageState.ts)
+- 抽出编辑草稿 helper：
+  - [`src/features/procurement/editOrderDraft.ts`](/Users/aries/Dve/workspace/src/features/procurement/editOrderDraft.ts)
+- 抽出预览动作流程：
+  - [`src/features/procurement/useProcurementPreview.ts`](/Users/aries/Dve/workspace/src/features/procurement/useProcurementPreview.ts)
 
 结果：
 
 - [`src/views/Procurement.vue`](/Users/aries/Dve/workspace/src/views/Procurement.vue) 已从“大而全页面”收缩为 feature shell
 - 页面现在主要负责子组件装配、列定义和少量事件连接
+- [`src/components/procurement/EditOrderDialog.vue`](/Users/aries/Dve/workspace/src/components/procurement/EditOrderDialog.vue) 与 [`src/components/procurement/ProcurementPreviewModal.vue`](/Users/aries/Dve/workspace/src/components/procurement/ProcurementPreviewModal.vue) 的核心领域逻辑已下沉到独立 helper / composable
 
 ## 验证结果
 
@@ -133,19 +164,25 @@
 - `npm run type-check`
 - `node --test tests/materials-workflow.test.js`
 - `node --test tests/config-routes.test.js`
+- `node --test tests/mapping-routes.test.js`
 - `npx tsx --test tests/source/sourceAnalysis.spec.ts`
 - `npx tsx --test tests/config-loader-mapping.test.ts`
 - `npx tsx --test tests/po-generator-integration.test.ts`
 - `npx tsx --test tests/po-rule-packaging.test.ts`
 - `npx tsx --test tests/procurement-page-state.test.ts tests/procurement-dialogs.test.ts`
+- `npx tsx --test tests/edit-order-draft.test.ts`
+- `npx tsx --test tests/procurement-preview.test.ts`
 
 新增的回归测试：
 
 - [`tests/source/sourceAnalysis.spec.ts`](/Users/aries/Dve/workspace/tests/source/sourceAnalysis.spec.ts)
 - [`tests/materials-workflow.test.js`](/Users/aries/Dve/workspace/tests/materials-workflow.test.js)
 - [`tests/config-routes.test.js`](/Users/aries/Dve/workspace/tests/config-routes.test.js)
+- [`tests/mapping-routes.test.js`](/Users/aries/Dve/workspace/tests/mapping-routes.test.js)
 - [`tests/procurement-page-state.test.ts`](/Users/aries/Dve/workspace/tests/procurement-page-state.test.ts)
 - [`tests/procurement-dialogs.test.ts`](/Users/aries/Dve/workspace/tests/procurement-dialogs.test.ts)
+- [`tests/edit-order-draft.test.ts`](/Users/aries/Dve/workspace/tests/edit-order-draft.test.ts)
+- [`tests/procurement-preview.test.ts`](/Users/aries/Dve/workspace/tests/procurement-preview.test.ts)
 
 ## 对应提交序列
 
@@ -161,15 +198,21 @@
 - `bfcc34f` `refactor(procurement): extract dialog orchestration`
 - `6f596b9` `refactor(procurement): extract page state composition`
 - `71f5563` `test(procurement): cover extracted page composables`
+- `3b25f19` `refactor(procurement): extract edit order draft helpers`
+- `ff25322` `refactor(procurement): extract preview actions`
+- `1950bf3` `feat(config): back legacy mapping routes with workflow`
+- `8911803` `feat(config): prefer workflow published mapping endpoints`
+- `967923b` `refactor(config): route mapping editors through workflow`
+- `9f27e1c` `feat(config): show workflow metadata in mapping editors`
 
 ## 当前未完成项
 
 以下事项仍未结束：
 
-1. `configLoader` 仍然存在兼容期语义，虽然消费面已收口，但尚未彻底消除前端 fallback 责任
+1. `configLoader` 仍然存在兼容期语义，虽然默认读取已经优先 published，但前端 fallback 责任尚未彻底收敛
 2. `materials` workflow 目前已有 revision 和 audit，但尚未扩展到更完整的治理能力，例如更细粒度校验、权限/操作人体系、历史版本对比
-3. 其他配置域仍然存在“双轨制”，尚未像 `materials` 一样向统一版本化模型收口
-4. Procurement 页面虽然已拆层，但 `EditOrderDialog.vue` 和 `ProcurementPreviewModal.vue` 本身仍偏重，后续仍可继续 feature 化
+3. mapping 已基本 workflow 化，但其他 legacy `/api/config/*` 仍有进一步统一空间
+4. Procurement 主要结构已拆开，但编辑与预览组件仍可继续做更细粒度的表单/打印模块化
 
 ## 下一阶段建议
 
@@ -177,15 +220,15 @@
 
 1. 收敛前端配置真源
    - 明确哪些配置必须只读 workflow/published 接口
-   - 将更多 `configLoader` 读法替换为更窄的 facade
+   - 将剩余兼容 fallback 语义继续封装进更窄的 facade 或 repository
 
 2. 继续统一后端配置域
    - 评估将其他 legacy `/api/config/*` 配置逐步纳入版本化模型
    - 明确 legacy 接口的退场策略
 
 3. 继续拆 Procurement 细项
-   - 评估 [`src/components/procurement/EditOrderDialog.vue`](/Users/aries/Dve/workspace/src/components/procurement/EditOrderDialog.vue) 的进一步拆分
-   - 评估 [`src/components/procurement/ProcurementPreviewModal.vue`](/Users/aries/Dve/workspace/src/components/procurement/ProcurementPreviewModal.vue) 的打印/导出逻辑下沉
+   - 评估 [`src/components/procurement/EditOrderDialog.vue`](/Users/aries/Dve/workspace/src/components/procurement/EditOrderDialog.vue) 的表单块进一步拆分
+   - 评估 [`src/components/procurement/ProcurementPreviewModal.vue`](/Users/aries/Dve/workspace/src/components/procurement/ProcurementPreviewModal.vue) 的展示层进一步纯化
 
 ## 结论
 
