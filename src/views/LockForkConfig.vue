@@ -499,6 +499,7 @@ async function scrollToFirstIssue() {
 
 const editor = useMappingConfigEditor<LockForkMappingConfig>({
   endpoint: '/config/lock-fork',
+  workflowProfileCode: 'lock_fork',
   loadErrorDescription: '无法读取锁叉映射配置',
   saveSuccessDescription: '锁叉映射已更新',
   getPayload: () => payload.value,

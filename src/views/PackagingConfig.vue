@@ -208,6 +208,7 @@ function resetWithPayload(data: PackagingMappingConfig) {
 
 const editor = useMappingConfigEditor<PackagingMappingConfig>({
   endpoint: '/config/packaging',
+  workflowProfileCode: 'packaging',
   loadErrorDescription: '无法读取包装映射配置',
   saveSuccessDescription: '包装映射已更新',
   getPayload: () => payload.value,

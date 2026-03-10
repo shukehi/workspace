@@ -187,6 +187,7 @@ async function scrollToFirstIssue() {
 
 const editor = useMappingConfigEditor<HandleMappingConfig>({
   endpoint: '/config/handle',
+  workflowProfileCode: 'handle',
   loadErrorDescription: '无法读取拉手映射配置',
   saveSuccessDescription: '拉手映射已更新',
   getPayload: () => payload.value,

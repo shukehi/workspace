@@ -418,6 +418,7 @@ async function scrollToFirstIssue() {
 
 const editor = useMappingConfigEditor<CylinderMappingConfig>({
   endpoint: '/config/cylinder',
+  workflowProfileCode: 'cylinder',
   loadErrorDescription: '无法读取锁芯映射配置',
   saveSuccessDescription: '锁芯映射已更新',
   getPayload: () => payload.value,
