@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted } from 'vue';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
@@ -21,22 +21,10 @@ import {
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import type { Order } from '@/types/order';
 import { useProcurementDialogs } from '@/features/procurement/useProcurementDialogs';
+import { useProcurementPageState } from '@/features/procurement/useProcurementPageState';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
-
-const activeCategory = ref('ALL');
-const searchQuery = ref('');
-const selectedRows = ref<Order[]>([]);
-
-const categories = [
-  { id: 'ALL', label: '全部订单' },
-  { id: '颜色', label: '颜色配方' },
-  { id: '锁芯', label: '锁芯' },
-  { id: '锁叉', label: '锁叉' },
-  { id: '包装', label: '包装材料' },
-  { id: '配件', label: '其他配件' }
-];
 
 const statusLabels: Record<Order['status'], string> = {
   draft: '草稿',
@@ -46,56 +34,20 @@ const statusLabels: Record<Order['status'], string> = {
   cancelled: '已取消'
 };
 
-const summaryStats = computed(() => {
-  const totalAmount = store.purchaseOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-  const pendingCount = store.purchaseOrders.filter(o => ['draft', 'submitted', 'processing'].includes(o.status)).length;
-  const completedCount = store.purchaseOrders.filter(o => o.status === 'completed').length;
-  const today = new Date().toISOString().split('T')[0];
-  const todayCount = store.purchaseOrders.filter(o => o.created_at.startsWith(today)).length;
-
-  return { totalAmount, pendingCount, completedCount, todayCount };
-});
-
-const categoryOptions = computed(() => {
-  return categories.map((category) => {
-    const count = category.id === 'ALL'
-      ? store.sortedOrders.length
-      : store.sortedOrders.filter((order) => order.category === category.id).length;
-
-    return {
-      ...category,
-      count
-    };
-  });
-});
-
-const tableEmptyText = computed(() => {
-  if (store.loading) return '加载中...';
-  if (searchQuery.value.trim()) return '没有匹配到订单';
-  return '暂无采购订单数据';
-});
-
-const hasActiveFilters = computed(() => {
-  return activeCategory.value !== 'ALL' || searchQuery.value.trim().length > 0;
-});
-
-const filteredOrders = computed(() => {
-  let list = store.sortedOrders;
-  if (activeCategory.value !== 'ALL') {
-    list = list.filter(o => o.category === activeCategory.value);
-  }
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    list = list.filter(o =>
-      o.order_no.toLowerCase().includes(query) ||
-      o.supplier.toLowerCase().includes(query) ||
-      o.items.some(item => (item.name + item.model).toLowerCase().includes(query))
-    );
-  }
-  return list;
-});
-
-const visibleOrderCount = computed(() => filteredOrders.value.length);
+const {
+  activeCategory,
+  searchQuery,
+  selectedRows,
+  summaryStats,
+  categoryOptions,
+  filteredOrders,
+  visibleOrderCount,
+  tableEmptyText,
+  hasActiveFilters,
+  resetFilters,
+  onSelectionChange,
+  clearSelection,
+} = useProcurementPageState(store);
 
 const {
   isEditDialogOpen,
@@ -131,9 +83,7 @@ const handleStatusUpdate = async (order: Order, status: Order['status']) => {
 };
 
 const handleBulkDelete = () => {
-  requestBulkDelete(selectedRows.value, () => {
-    selectedRows.value = [];
-  });
+  requestBulkDelete(selectedRows.value, clearSelection);
 };
 
 const handleExport = () => {
@@ -146,27 +96,15 @@ const handleExport = () => {
   });
 };
 
-const onSelectionChange = (rows: any[]) => {
-  selectedRows.value = rows;
-};
-
-// Bulk delete logic moved to confirmState handler above
-
-
 const handleBulkStatusUpdate = async (status: Order['status']) => {
   const count = selectedRows.value.length;
   try {
     await store.bulkUpdateStatus(selectedRows.value.map(o => o.id), status);
-    selectedRows.value = [];
+    clearSelection();
     toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${statusLabels[status]}`, variant: 'success' });
   } catch {
     toast({ title: '操作失败', variant: 'destructive' });
   }
-};
-
-const resetFilters = () => {
-  activeCategory.value = 'ALL';
-  searchQuery.value = '';
 };
 
 const columns = createColumns({
@@ -242,7 +180,7 @@ onMounted(() => {
       @status="handleBulkStatusUpdate"
       @export="handleExport"
       @delete="handleBulkDelete"
-      @clear="selectedRows = []"
+      @clear="clearSelection"
     />
 
     <EditOrderDialog
