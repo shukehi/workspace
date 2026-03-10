@@ -1,6 +1,6 @@
 # Docs Index
 
-`docs/` 目前按“长期规范 / 路线图 / 进度 / 参考资料 / 主题文档”分层。
+`docs/` 目前按“长期规范 / 路线图 / 进度 / 参考资料 / 历史归档 / 主题文档”分层。
 
 ## governance
 
@@ -31,6 +31,22 @@
 - [PO_FIELD_CONTRACT.md](/Users/aries/Dve/workspace/docs/reference/PO_FIELD_CONTRACT.md)
 - [CYLINDER_RULES.md](/Users/aries/Dve/workspace/docs/reference/CYLINDER_RULES.md)
 - [LOCK_FORK_RULES.md](/Users/aries/Dve/workspace/docs/reference/LOCK_FORK_RULES.md)
+
+## archive
+
+历史迁移方案、旧实现说明和阶段性文档归档区，不作为当前实现依据。
+
+- [README.md](/Users/aries/Dve/workspace/docs/archive/README.md)
+- [DEVELOPMENT_GUIDE.md](/Users/aries/Dve/workspace/docs/archive/DEVELOPMENT_GUIDE.md)
+- [TECH_STACK.md](/Users/aries/Dve/workspace/docs/archive/TECH_STACK.md)
+- [PROCUREMENT_REFACTOR_PLAN.md](/Users/aries/Dve/workspace/docs/archive/PROCUREMENT_REFACTOR_PLAN.md)
+- [预览模态框功能实现.md](/Users/aries/Dve/workspace/docs/archive/预览模态框功能实现.md)
+- [代码重构总结.md](/Users/aries/Dve/workspace/docs/archive/代码重构总结.md)
+- [视图切换功能说明.md](/Users/aries/Dve/workspace/docs/archive/视图切换功能说明.md)
+- [VUE_REFACTOR_PLAN.md](/Users/aries/Dve/workspace/docs/archive/VUE_REFACTOR_PLAN.md)
+- [VITE_REFACTOR_PLAN.md](/Users/aries/Dve/workspace/docs/archive/VITE_REFACTOR_PLAN.md)
+- [DEVELOPMENT_PLAN.md](/Users/aries/Dve/workspace/docs/archive/DEVELOPMENT_PLAN.md)
+- [troubleshooting.md](/Users/aries/Dve/workspace/docs/archive/troubleshooting.md)
 
 ## other docs
 
