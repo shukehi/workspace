@@ -48,6 +48,10 @@
 - [FIX_CYLINDER_DATA_ISSUES.md](/Users/aries/Dve/workspace/docs/issues/FIX_CYLINDER_DATA_ISSUES.md)
 - [采购订单管理-布局样式问题分析.md](/Users/aries/Dve/workspace/docs/issues/采购订单管理-布局样式问题分析.md)
 
+## mapping-migration-plan
+
+映射迁移阶段文档集合，主要用于保留 workflow 化过程中的阶段计划、契约草案和任务拆分。阅读时需结合文档顶部状态说明判断其是否仍代表当前执行状态。
+
 ## archive
 
 历史迁移方案、旧实现说明和阶段性文档归档区，不作为当前实现依据。
