@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { Order, OrderItem } from '@/types/order';
+import { resolveDisplayCustomerName } from '@/features/procurement/customerName';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
@@ -41,6 +42,7 @@ const schema = computed(() => {
 const quantitySummary = computed(() => {
   return computeItemQuantitySummary(category.value, items.value);
 });
+const displayCustomerName = computed(() => resolveDisplayCustomerName(props.order.metadata?.customer_name));
 
 const formattedOrderDate = computed({
   get: () => props.order.created_at ? new Date(props.order.created_at).toISOString().split('T')[0] : '',
@@ -141,7 +143,7 @@ onBeforeUnmount(() => {
           <div class="flex items-center gap-2">
             <Label class="min-w-16">客户名称:</Label>
             <Input v-if="isEditMode" v-model="order.metadata!.customer_name" placeholder="内部" class="h-8 text-xs" />
-            <span v-else class="text-xs">{{ order.metadata?.customer_name || '-' }}</span>
+            <span v-else class="text-xs">{{ displayCustomerName || '-' }}</span>
           </div>
           <div class="flex items-center gap-2">
             <Label class="min-w-16">订单号:</Label>

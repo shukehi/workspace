@@ -522,6 +522,13 @@ onMounted(editor.load);
     :clientIssues="clientIssues"
     json-dialog-description="直接编辑锁叉配置 JSON，应用前会进行校验。"
   >
+        <Card class="border-amber-300 bg-amber-50/60">
+          <CardHeader>
+            <CardTitle>规则说明</CardTitle>
+            <CardDescription>如果遇到 10cm 门厚，门边为 “T型”，而且是内开门，则使用正常的锁叉，不要使用 T型锁叉。</CardDescription>
+          </CardHeader>
+        </Card>
+
         <!-- 全局通用参数 -->
         <Card>
           <CardHeader>

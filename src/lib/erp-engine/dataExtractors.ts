@@ -266,6 +266,25 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
     // const { LOCK_FORK_MAPPING } = await import('../config/index.js');
     const lockForkMap: Record<string, LockForkResultRow> = {};
 
+    const parseOpenDirection = (spec: unknown): '内开' | '外开' | '' => {
+        if (!spec || typeof spec !== 'string') return '';
+        const parts = spec.split('/');
+        if (parts.length < 3) return '';
+        const directionPart = parts[2];
+        if (directionPart.includes('内开')) return '内开';
+        if (directionPart.includes('外开')) return '外开';
+        return '';
+    };
+
+    const shouldSkipTEdgeModifier = (item: OrderItem, edgeModifier: string | null): boolean => {
+        if (edgeModifier !== 'T型') return false;
+        if (String((item as any)?.mshd || '').trim() !== '10') return false;
+        if (parseOpenDirection(item.spec) !== '内开') return false;
+
+        const mb = String(item.mb || '').trim();
+        return mb.includes('T型铝材边');
+    };
+
     // 助手：检测吊脚
     const detectHangingFeet = (xsbz: unknown): number | null => {
         if (!xsbz || typeof xsbz !== 'string') return null;
@@ -388,7 +407,10 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         }
 
         // 5. 检测边型和锁具类型
-        const edgeModifier = detectEdgeType(item.mb);
+        const rawEdgeModifier = detectEdgeType(item.mb);
+        const edgeModifier = shouldSkipTEdgeModifier(item, rawEdgeModifier)
+            ? null
+            : rawEdgeModifier;
         const lockTypeConfig = detectLockType(item.sj, item.fssj);
 
 
