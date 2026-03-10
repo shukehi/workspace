@@ -127,4 +127,3 @@ ERP 输入：
 3. 存储类型（`types/order.ts`）
 4. 预览层（`printPreviewGenerator`）
 5. Mock 契约（`src/lib/mock.ts`）
-

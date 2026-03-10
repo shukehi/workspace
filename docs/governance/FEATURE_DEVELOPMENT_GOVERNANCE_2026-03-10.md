@@ -289,6 +289,6 @@ review 时应优先拦截：
 
 ## 12. 关联文档
 
-- [前后端开发规范（强约束版）](/Users/aries/Dve/workspace/docs/ENGINEERING_CONVENTIONS.md)
-- [Legacy 配置接口退场策略（2026-03-10）](/Users/aries/Dve/workspace/docs/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
-- [Source/配置重构阶段性总结（2026-03-10）](/Users/aries/Dve/workspace/docs/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)
+- [前后端开发规范（强约束版）](/Users/aries/Dve/workspace/docs/governance/ENGINEERING_CONVENTIONS.md)
+- [Legacy 配置接口退场策略（2026-03-10）](/Users/aries/Dve/workspace/docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
+- [Source/配置重构阶段性总结（2026-03-10）](/Users/aries/Dve/workspace/docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)

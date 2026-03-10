@@ -38,6 +38,6 @@
 
 ## 关联文档
 
-- [功能开发与配置接入规范](/Users/aries/Dve/workspace/docs/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
-- [Legacy 配置接口退场策略](/Users/aries/Dve/workspace/docs/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
-- [Source/配置重构阶段性总结](/Users/aries/Dve/workspace/docs/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)
+- [功能开发与配置接入规范](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
+- [Legacy 配置接口退场策略](/Users/aries/Dve/workspace/docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
+- [Source/配置重构阶段性总结](/Users/aries/Dve/workspace/docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)
