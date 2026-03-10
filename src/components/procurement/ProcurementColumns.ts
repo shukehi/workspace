@@ -68,6 +68,14 @@ export const createColumns = (actions: {
         }
     },
     {
+        id: 'customer_name',
+        header: '客户名称',
+        cell: ({ row }) => {
+            const customerName = String(row.original?.metadata?.customer_name || '-').trim() || '-';
+            return h('div', { class: 'font-medium' }, customerName);
+        }
+    },
+    {
         accessorKey: 'category',
         header: '类别',
         cell: ({ row }) => {
@@ -100,18 +108,10 @@ export const createColumns = (actions: {
     },
     {
         accessorKey: 'created_at',
-        header: '下单日期',
+        header: '制单日期',
         cell: ({ row }) => {
             const date = new Date(row.getValue<string>('created_at'));
             return h('div', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString());
-        }
-    },
-    {
-        accessorKey: 'total_amount',
-        header: '金额',
-        cell: ({ row }) => {
-            const amount = row.getValue<number>('total_amount') || 0;
-            return h('div', { class: 'font-medium' }, `¥${amount.toFixed(2)}`);
         }
     },
     {
