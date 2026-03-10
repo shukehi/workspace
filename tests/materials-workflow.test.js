@@ -13,6 +13,7 @@ const {
   sequelize,
   MaterialCatalogProfile,
   MaterialCatalogRevision,
+  MaterialCatalogAuditLog,
 } = require('../server/models');
 const MaterialCatalogWorkflow = require('../server/services/materials');
 
@@ -31,11 +32,12 @@ const legacyPayload = {
 
 test.before(async () => {
   ensureProjectDirs();
-  fs.writeFileSync(materialsFile, JSON.stringify(legacyPayload, null, 2));
   await initDB();
 });
 
 test('materials workflow: seed from legacy file, update draft, publish and sync back to legacy file', async () => {
+  fs.writeFileSync(materialsFile, JSON.stringify(legacyPayload, null, 2));
+
   const publishedFromSeed = await MaterialCatalogWorkflow.getPublishedMaterialsCatalog();
   assert.deepEqual(publishedFromSeed, legacyPayload);
 
@@ -104,6 +106,15 @@ test('materials workflow: seed from legacy file, update draft, publish and sync 
 
   const legacyFilePayload = JSON.parse(fs.readFileSync(materialsFile, 'utf8'));
   assert.deepEqual(legacyFilePayload, draftPayload);
+
+  const auditLogs = await MaterialCatalogAuditLog.findAll({
+    where: { profile_id: profile.id },
+    order: [['id', 'ASC']],
+  });
+  assert.deepEqual(
+    auditLogs.map((item) => item.action),
+    ['seed_legacy', 'update_draft', 'publish'],
+  );
 });
 
 test.after(async () => {

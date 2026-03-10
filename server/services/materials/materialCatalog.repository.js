@@ -1,6 +1,6 @@
 const fs = require('fs');
 const sequelize = require('../../config/database');
-const { MaterialCatalogProfile, MaterialCatalogRevision } = require('../../models');
+const { MaterialCatalogProfile, MaterialCatalogRevision, MaterialCatalogAuditLog } = require('../../models');
 const { CONFIG_FILES } = require('../../config/paths');
 
 function txOpts(transaction) {
@@ -78,6 +78,18 @@ class MaterialCatalogRepository {
             state: nextState
         }, {
             where: { profile_id: profileId, state: currentState },
+            ...txOpts(transaction)
+        });
+    }
+
+    static async createAuditLog(payload, transaction) {
+        return MaterialCatalogAuditLog.create(payload, txOpts(transaction));
+    }
+
+    static async listAuditLogs(profileId, transaction) {
+        return MaterialCatalogAuditLog.findAll({
+            where: { profile_id: profileId },
+            order: [['id', 'DESC']],
             ...txOpts(transaction)
         });
     }

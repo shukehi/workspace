@@ -153,6 +153,14 @@ test('GET /api/config/packaging-mapping returns canonical DTO shape', async () =
 });
 
 test('materials routes: legacy endpoint and workflow endpoints expose published catalog consistently', async () => {
+  fs.writeFileSync(materialsFile, JSON.stringify({
+    LEGACY001: {
+      supplier: '旧供应商',
+      name: '旧材料',
+      unit: 'kg',
+    },
+  }, null, 2));
+
   const legacyRes = await fetch(`${baseUrl}/api/config/materials`);
   assert.equal(legacyRes.status, 200);
   const legacyBody = await legacyRes.json();
@@ -253,6 +261,15 @@ test('materials routes: draft, publish and legacy POST stay workflow-compatible'
 
   const syncedLegacyFile = JSON.parse(fs.readFileSync(materialsFile, 'utf8'));
   assert.deepEqual(syncedLegacyFile, legacySavePayload);
+
+  const auditLogsRes = await fetch(`${baseUrl}/api/config/material-catalog/audit-logs`);
+  assert.equal(auditLogsRes.status, 200);
+  const auditLogsBody = await auditLogsRes.json();
+  assert.equal(auditLogsBody.success, true);
+  assert.deepEqual(
+    auditLogsBody.items.map((item) => item.action),
+    ['publish', 'update_draft', 'publish', 'update_draft', 'seed_legacy'],
+  );
 });
 
 test('create formula accepts supplier + model split and canonicalizes to material code', async () => {

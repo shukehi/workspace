@@ -75,4 +75,14 @@ router.get('/revisions', async (req, res) => {
     }
 });
 
+router.get('/audit-logs', async (req, res) => {
+    try {
+        const logs = await MaterialCatalogService.listAuditLogs();
+        res.json({ success: true, items: logs });
+    } catch (error) {
+        console.error('Error listing materials catalog audit logs:', error);
+        res.status(500).json({ success: false, error: 'Failed to list materials catalog audit logs' });
+    }
+});
+
 module.exports = router;

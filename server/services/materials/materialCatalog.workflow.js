@@ -2,6 +2,12 @@ const MaterialCatalogRepository = require('./materialCatalog.repository');
 
 const PROFILE_CODE = 'materials';
 const PROFILE_NAME = 'Materials Catalog';
+const AUDIT_ACTIONS = Object.freeze({
+    SEED_LEGACY: 'seed_legacy',
+    CREATE_DRAFT: 'create_draft',
+    UPDATE_DRAFT: 'update_draft',
+    PUBLISH: 'publish'
+});
 
 function operatorFromRequest(req) {
     const fromHeader = req?.headers?.['x-operator'] || req?.headers?.['x-user'];
@@ -59,6 +65,15 @@ async function seedFromLegacyIfNeeded(transaction) {
         active_revision: seededRevision.revision
     }, transaction);
 
+    await MaterialCatalogRepository.createAuditLog({
+        profile_id: profile.id,
+        action: AUDIT_ACTIONS.SEED_LEGACY,
+        from_revision: null,
+        to_revision: seededRevision.revision,
+        operator: 'system-admin',
+        meta_json: serializePayload({ source: 'legacy-file' })
+    }, transaction);
+
     return { profile, seeded: true };
 }
 
@@ -70,6 +85,18 @@ function toRevisionMeta(revision) {
         createdBy: revision.created_by,
         createdAt: revision.created_at
     } : null;
+}
+
+function toAuditLog(log) {
+    return {
+        id: log.id,
+        action: log.action,
+        fromRevision: log.from_revision,
+        toRevision: log.to_revision,
+        operator: log.operator,
+        meta: parsePayload(log.meta_json),
+        createdAt: log.created_at
+    };
 }
 
 async function getPublishedMaterialsCatalog() {
@@ -142,6 +169,18 @@ async function updateDraft({ revision, payload, changeNote, operator }) {
             created_by: operator || 'system-admin'
         }, transaction);
 
+        await MaterialCatalogRepository.createAuditLog({
+            profile_id: profile.id,
+            action: latest ? AUDIT_ACTIONS.UPDATE_DRAFT : AUDIT_ACTIONS.CREATE_DRAFT,
+            from_revision: latest ? latest.revision : null,
+            to_revision: nextRevisionNumber,
+            operator: operator || 'system-admin',
+            meta_json: serializePayload({
+                changeNote: changeNote || '',
+                mode: latest ? 'update' : 'init'
+            })
+        }, transaction);
+
         return {
             ok: true,
             revision: toRevisionMeta(nextRevision)
@@ -193,6 +232,18 @@ async function publish({ fromRevision, changeNote, operator }) {
         const publishedPayload = parsePayload(publishedRevision.payload_json);
         MaterialCatalogRepository.writeLegacyCatalog(publishedPayload);
 
+        await MaterialCatalogRepository.createAuditLog({
+            profile_id: profile.id,
+            action: AUDIT_ACTIONS.PUBLISH,
+            from_revision: draft.revision,
+            to_revision: nextRevisionNumber,
+            operator: operator || 'system-admin',
+            meta_json: serializePayload({
+                changeNote: changeNote || '',
+                legacySync: true
+            })
+        }, transaction);
+
         return {
             ok: true,
             revision: toRevisionMeta(publishedRevision)
@@ -225,6 +276,14 @@ async function listRevisions() {
     });
 }
 
+async function listAuditLogs() {
+    return MaterialCatalogRepository.withTransaction(async (transaction) => {
+        const { profile } = await seedFromLegacyIfNeeded(transaction);
+        const logs = await MaterialCatalogRepository.listAuditLogs(profile.id, transaction);
+        return logs.map(toAuditLog);
+    });
+}
+
 module.exports = {
     operatorFromRequest,
     getPublishedMaterialsCatalog,
@@ -232,5 +291,6 @@ module.exports = {
     updateDraft,
     publish,
     saveAndPublishLegacyCompatible,
-    listRevisions
+    listRevisions,
+    listAuditLogs
 };
