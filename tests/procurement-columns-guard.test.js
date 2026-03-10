@@ -22,4 +22,21 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.ok(customerIndex > -1);
   assert.ok(categoryIndex > -1);
   assert.ok(customerIndex < categoryIndex);
+  assert.match(content, /title:\s*'恢复草稿'/);
+  assert.match(content, /actions\.onStatusUpdate\(order,\s*'draft'\)/);
+});
+
+test('procurement bulk action guard: supports restoring selected orders to draft', () => {
+  const content = read('src/components/procurement/ProcurementBulkActionBar.vue');
+  const page = read('src/views/Procurement.vue');
+
+  assert.match(content, /emit\('status',\s*'draft'\)/);
+  assert.match(content, /恢复草稿/);
+  assert.match(content, /:disabled="!canSubmit"/);
+  assert.match(content, /:disabled="!canComplete"/);
+  assert.match(content, /:disabled="!canRestoreDraft"/);
+  assert.match(page, /canBulkSubmit/);
+  assert.match(page, /canBulkComplete/);
+  assert.match(page, /canBulkRestoreDraft/);
+  assert.match(page, /当前所选订单不能批量设为/);
 });

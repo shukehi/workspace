@@ -160,14 +160,28 @@ export const useProcurementStore = defineStore('procurement', () => {
     async function bulkUpdateStatus(ids: number[], status: Order['status']) {
         loading.value = true;
         try {
-            await Promise.all(ids.map(id => api.put(`/orders/${id}`, { status })));
-            // Refresh local state
-            ids.forEach(id => {
+            const results = await Promise.all(ids.map(id => api.put<Order>(`/orders/${id}`, { status })));
+            let shouldRefetch = false;
+
+            ids.forEach((id, resultIndex) => {
                 const index = purchaseOrders.value.findIndex(o => o && o.id === id);
                 if (index !== -1) {
-                    purchaseOrders.value[index].status = status;
+                    const normalized = normalizeOrderPayload(results[resultIndex]);
+                    if (normalized) {
+                        purchaseOrders.value[index] = normalized;
+                    } else {
+                        shouldRefetch = true;
+                        purchaseOrders.value[index] = {
+                            ...purchaseOrders.value[index],
+                            status,
+                        };
+                    }
                 }
             });
+
+            if (shouldRefetch) {
+                await fetchOrders();
+            }
         } catch (e) {
             console.error('Bulk update failed', e);
             throw e;

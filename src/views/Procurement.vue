@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
@@ -96,8 +96,39 @@ const handleExport = () => {
   });
 };
 
+const canBulkSubmit = computed(() => (
+  selectedRows.value.length > 0
+  && selectedRows.value.every((order) => order.status === 'draft')
+));
+
+const canBulkComplete = computed(() => (
+  selectedRows.value.length > 0
+  && selectedRows.value.every((order) => order.status === 'submitted' || order.status === 'processing')
+));
+
+const canBulkRestoreDraft = computed(() => (
+  selectedRows.value.length > 0
+  && selectedRows.value.every((order) => order.status === 'cancelled')
+));
+
+function isBulkStatusTransitionAllowed(status: Order['status']) {
+  if (status === 'submitted') return canBulkSubmit.value;
+  if (status === 'completed') return canBulkComplete.value;
+  if (status === 'draft') return canBulkRestoreDraft.value;
+  return false;
+}
+
 const handleBulkStatusUpdate = async (status: Order['status']) => {
   const count = selectedRows.value.length;
+  if (!isBulkStatusTransitionAllowed(status)) {
+    toast({
+      title: '状态流转不允许',
+      description: `当前所选订单不能批量设为${statusLabels[status]}`,
+      variant: 'destructive',
+    });
+    return;
+  }
+
   try {
     await store.bulkUpdateStatus(selectedRows.value.map(o => o.id), status);
     clearSelection();
@@ -177,6 +208,9 @@ onMounted(() => {
 
     <ProcurementBulkActionBar
       :selected-count="selectedRows.length"
+      :can-submit="canBulkSubmit"
+      :can-complete="canBulkComplete"
+      :can-restore-draft="canBulkRestoreDraft"
       @status="handleBulkStatusUpdate"
       @export="handleExport"
       @delete="handleBulkDelete"

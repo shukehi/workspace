@@ -2,7 +2,7 @@ import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { Order } from '@/types/order';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle } from 'lucide-vue-next';
+import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw } from 'lucide-vue-next';
 
 type RiskLevel = 'high' | 'medium' | null;
 
@@ -157,6 +157,15 @@ export const createColumns = (actions: {
                     title: '结案入库',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onStatusUpdate(order, 'completed'); }
                 }, () => h(PackageCheck, { class: 'h-4 w-4' })) : null,
+
+                // Quick Action: Restore to Draft
+                status === 'cancelled' ? h(Button, {
+                    variant: 'ghost',
+                    size: 'icon',
+                    class: 'h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100',
+                    title: '恢复草稿',
+                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onStatusUpdate(order, 'draft'); }
+                }, () => h(RotateCcw, { class: 'h-4 w-4' })) : null,
 
                 // Spacer
                 h('div', { class: 'w-[1px] h-4 bg-slate-200 mx-1' }),

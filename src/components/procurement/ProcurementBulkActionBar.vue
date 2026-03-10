@@ -5,6 +5,9 @@ import type { Order } from '@/types/order';
 
 defineProps<{
   selectedCount: number;
+  canSubmit: boolean;
+  canComplete: boolean;
+  canRestoreDraft: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -31,11 +34,14 @@ const emit = defineEmits<{
       <div class="bg-card text-card-foreground px-3 md:px-4 py-3 rounded-lg shadow-lg flex flex-wrap items-center justify-center md:justify-start gap-2 border w-full md:w-auto">
         <div class="text-xs text-muted-foreground mr-2">已选 {{ selectedCount }}</div>
 
-        <Button variant="outline" size="sm" @click="emit('status', 'submitted')">
+        <Button variant="outline" size="sm" :disabled="!canSubmit" @click="emit('status', 'submitted')">
           <CheckCircle2 class="w-4 h-4 mr-2" /> 提交
         </Button>
-        <Button variant="outline" size="sm" @click="emit('status', 'completed')">
+        <Button variant="outline" size="sm" :disabled="!canComplete" @click="emit('status', 'completed')">
           <PackageCheck class="w-4 h-4 mr-2" /> 结案
+        </Button>
+        <Button variant="outline" size="sm" :disabled="!canRestoreDraft" @click="emit('status', 'draft')">
+          <CheckCircle2 class="w-4 h-4 mr-2" /> 恢复草稿
         </Button>
         <Button variant="outline" size="sm" @click="emit('export')">
           <FileSpreadsheet class="w-4 h-4 mr-2" /> 导出
