@@ -13,6 +13,15 @@ export interface MappingWorkflowDetail<T> {
   latestRevision: number;
   draftRevision: number | null;
   publishedRevision: number | null;
+  auditLogs: Array<{
+    id: number;
+    action: string;
+    fromRevision: number | null;
+    toRevision: number | null;
+    operator: string;
+    meta: Record<string, any>;
+    createdAt: string;
+  }>;
 }
 
 export const mappingConfigApi = {
@@ -23,16 +32,30 @@ export const mappingConfigApi = {
     return api.put<MappingSaveResponse<T>>(endpoint, payload);
   },
   async loadWorkflow<T>(profileCode: string): Promise<MappingWorkflowDetail<T>> {
-    const res = await api.get<{
-      success: boolean;
-      mapping: {
-        latestRevision: { revision: number } | null;
-        draftRevision: { revision: number } | null;
-        publishedRevision: { revision: number } | null;
-        draftPayload: T | null;
-        publishedPayload: T | null;
-      };
-    }>(`/config/mappings/${profileCode}/detail`);
+    const [res, logsRes] = await Promise.all([
+      api.get<{
+        success: boolean;
+        mapping: {
+          latestRevision: { revision: number } | null;
+          draftRevision: { revision: number } | null;
+          publishedRevision: { revision: number } | null;
+          draftPayload: T | null;
+          publishedPayload: T | null;
+        };
+      }>(`/config/mappings/${profileCode}/detail`),
+      api.get<{
+        success: boolean;
+        items: Array<{
+          id: number;
+          action: string;
+          fromRevision: number | null;
+          toRevision: number | null;
+          operator: string;
+          meta: Record<string, any>;
+          createdAt: string;
+        }>;
+      }>(`/config/mappings/${profileCode}/audit-logs`)
+    ]);
 
     const mapping = res.mapping;
     const payload = (mapping.draftPayload || mapping.publishedPayload || {}) as T;
@@ -41,6 +64,7 @@ export const mappingConfigApi = {
       latestRevision: mapping.latestRevision?.revision ?? 0,
       draftRevision: mapping.draftRevision?.revision ?? null,
       publishedRevision: mapping.publishedRevision?.revision ?? null,
+      auditLogs: Array.isArray(logsRes.items) ? logsRes.items : [],
     };
   },
   async saveWorkflow<T>(profileCode: string, payload: T, latestRevision: number): Promise<MappingSaveResponse<T>> {

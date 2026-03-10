@@ -15,6 +15,9 @@ const props = defineProps<{
 }>();
 
 const showIssuesPanel = computed(() => props.clientIssues.length > 0 || props.editor.serverIssues.value.length > 0);
+const hasWorkflowMeta = computed(() => {
+  return props.editor.latestRevision?.value !== undefined;
+});
 </script>
 
 <template>
@@ -36,6 +39,44 @@ const showIssuesPanel = computed(() => props.clientIssues.length > 0 || props.ed
       </CardContent>
     </Card>
 
+    <div v-if="hasWorkflowMeta" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">Latest Revision</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ editor.latestRevision.value || '-' }}</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">Draft Revision</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ editor.draftRevision?.value ?? '-' }}</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">Published Revision</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ editor.publishedRevision?.value ?? '-' }}</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">最近动作</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-sm font-medium">{{ editor.auditLogs?.value?.[0]?.action || '-' }}</div>
+          <div class="text-xs text-muted-foreground mt-1">
+            {{ editor.auditLogs?.value?.[0]?.createdAt ? new Date(editor.auditLogs.value[0].createdAt).toLocaleString() : '暂无记录' }}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
     <div
       :class="[
         'grid grid-cols-1 gap-6 flex-1',
@@ -47,6 +88,30 @@ const showIssuesPanel = computed(() => props.clientIssues.length > 0 || props.ed
       </div>
 
       <div v-if="showIssuesPanel" class="flex flex-col gap-6 min-h-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+        <Card v-if="hasWorkflowMeta && editor.auditLogs?.value?.length > 0">
+          <CardHeader>
+            <CardTitle>审计记录</CardTitle>
+            <CardDescription>最近的 workflow 操作记录。</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div
+              v-for="log in editor.auditLogs.value.slice(0, 6)"
+              :key="log.id"
+              class="rounded-md border bg-background px-3 py-3"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <div class="font-medium text-sm">{{ log.action }}</div>
+                <div class="text-xs text-muted-foreground">{{ new Date(log.createdAt).toLocaleString() }}</div>
+              </div>
+              <div class="mt-2 text-xs text-muted-foreground space-y-1">
+                <div>operator: {{ log.operator }}</div>
+                <div>from: {{ log.fromRevision ?? '-' }} -> to: {{ log.toRevision ?? '-' }}</div>
+                <div v-if="log.meta?.changeNote">note: {{ log.meta.changeNote }}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card data-issue-anchor="true">
           <CardHeader>
             <CardTitle>校验结果</CardTitle>

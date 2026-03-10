@@ -24,6 +24,17 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
   const loadError = ref<string | null>(null);
   const serverIssues = ref<MappingValidationIssue[]>([]);
   const latestRevision = ref(0);
+  const draftRevision = ref<number | null>(null);
+  const publishedRevision = ref<number | null>(null);
+  const auditLogs = ref<Array<{
+    id: number;
+    action: string;
+    fromRevision: number | null;
+    toRevision: number | null;
+    operator: string;
+    meta: Record<string, any>;
+    createdAt: string;
+  }>>([]);
 
   const isJsonDialogOpen = ref(false);
   const jsonDraft = ref('');
@@ -42,6 +53,9 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
       if (options.workflowProfileCode) {
         const res = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode);
         latestRevision.value = res.latestRevision;
+        draftRevision.value = res.draftRevision;
+        publishedRevision.value = res.publishedRevision;
+        auditLogs.value = res.auditLogs;
         options.resetWithPayload(res.payload);
       } else {
         const res = await mappingConfigApi.load<T>(options.endpoint);
@@ -79,6 +93,13 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
       latestRevision.value = res.latestRevision ?? latestRevision.value;
       options.resetWithPayload(res.data || payload.value);
       await options.refreshRuntime();
+      if (options.workflowProfileCode) {
+        const refreshed = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode);
+        latestRevision.value = refreshed.latestRevision;
+        draftRevision.value = refreshed.draftRevision;
+        publishedRevision.value = refreshed.publishedRevision;
+        auditLogs.value = refreshed.auditLogs;
+      }
       toast({
         title: '保存成功',
         description: options.saveSuccessDescription,
@@ -175,6 +196,9 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
     loadError,
     serverIssues,
     latestRevision,
+    draftRevision,
+    publishedRevision,
+    auditLogs,
     payload,
     clientIssues,
     jsonPreview,
