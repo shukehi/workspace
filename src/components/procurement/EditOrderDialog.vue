@@ -9,19 +9,21 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useProcurementStore } from '@/stores/useProcurementStore';
-import type { Order, OrderItem } from '@/types/order';
-import { packagingMatcher } from '@/lib/packagingMatcher';
-import { getPackagingMapping } from '@/services/packagingConfig';
+import type { Order } from '@/types/order';
 import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
-import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
-import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   getDefaultWidths,
   persistLocalCategoryWidths,
-  resolveSheetWidths,
 } from '@/features/procurement/sheetWidthResolver';
+import {
+  applyPackagingHeaderNames,
+  bootstrapOrderDraft,
+  buildManualOrderNo,
+  createEmptyItem,
+  nowStamp,
+} from '@/features/procurement/editOrderDraft';
 
 type DialogMode = 'edit' | 'create';
 
@@ -58,141 +60,6 @@ const categoryOptions: Array<{ value: string; label: string }> = [
   { value: '配件', label: '五金/配件' },
 ];
 
-function nowStamp() {
-  return new Date().toISOString();
-}
-
-function buildManualOrderNo() {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const yyyy = now.getFullYear();
-  const mm = pad(now.getMonth() + 1);
-  const dd = pad(now.getDate());
-  const hh = pad(now.getHours());
-  const mi = pad(now.getMinutes());
-  const ss = pad(now.getSeconds());
-  return `PO-MANUAL-${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
-}
-
-function createEmptyItem(category: PrintCategory): OrderItem {
-  const base: OrderItem = {
-    id: 0,
-    material_id: '',
-    supplier: '',
-    name: '',
-    model: '',
-    quantity: 0,
-    unit: '个',
-    remark: '',
-  };
-
-  if (category === 'packaging') {
-    return {
-      ...base,
-      internal_name: '',
-      external_name: '',
-      spec: '',
-      mb: '',
-      quantity_left: 0,
-      quantity_right: 0,
-      unit: '套',
-    };
-  }
-
-  if (category === 'cylinder') {
-    return {
-      ...base,
-      type: '',
-      eccentricity: '',
-      spec: '',
-      unit: '套',
-    };
-  }
-
-  if (category === 'lock') {
-    return {
-      ...base,
-      type: '',
-      spec: '',
-      unit: '个',
-    };
-  }
-
-  if (category === 'handle') {
-    return {
-      ...base,
-      type: '',
-      spec: '',
-      unit: '付',
-    };
-  }
-
-  return {
-    ...base,
-    type: '',
-    spec: '',
-    unit: '个',
-  };
-}
-
-function createEmptyOrderDraft(categoryRaw = '包装'): Order {
-  const category = normalizePrintCategory(categoryRaw);
-  const packagingMapping = getPackagingMapping();
-  const categoryMap: Record<PrintCategory, string> = {
-    packaging: '包装',
-    cylinder: '锁芯',
-    handle: '拉手',
-    lock: '锁叉',
-    hardware: '配件',
-  };
-
-  const draft: Order = {
-    id: 0,
-    order_no: buildManualOrderNo(),
-    supplier: category === 'packaging' ? (packagingMapping?.supplierName || '') : '',
-    category: categoryMap[category],
-    items: [createEmptyItem(category)],
-    total_amount: 0,
-    created_at: nowStamp(),
-    delivery_date: nowStamp(),
-    status: 'draft',
-    remark: '',
-    metadata: {
-      customer_name: '',
-      internal_name: '',
-      external_name: '',
-      printColumnWidths: { ...getDefaultWidths(category) },
-    },
-  };
-
-  if (category === 'packaging') {
-    const names = resolvePackagingHeaderNames(draft, packagingMapping, packagingMatcher);
-    draft.metadata!.internal_name = names.internalName;
-    draft.metadata!.external_name = names.externalName;
-  }
-
-  return normalizeOrderDraft(draft);
-}
-
-function applyPackagingHeaderNames(target: Order) {
-  const isPackagingOrder = target.category && String(target.category).includes('包装');
-  if (!isPackagingOrder) return;
-  if (!target.metadata) target.metadata = {};
-  const packagingMapping = getPackagingMapping();
-
-  const names = resolvePackagingHeaderNames(
-    target,
-    packagingMapping,
-    packagingMatcher
-  );
-  target.metadata.internal_name = names.internalName;
-  target.metadata.external_name = names.externalName;
-
-  if (!target.supplier) {
-    target.supplier = packagingMapping?.supplierName || '默认供应商';
-  }
-}
-
 watch(columnWidths, (next) => {
   const category = currentCategory.value;
   persistLocalCategoryWidths(category, next);
@@ -211,33 +78,16 @@ const hasUnsavedChanges = computed(() => {
 });
 
 function bootstrapEditOrder(order: Order) {
-  const normalizedDraft = prepareOrderDraft(order);
-  form.value = normalizedDraft;
-
-  const resolved = resolveSheetWidths(
-    normalizedDraft.category,
-    normalizedDraft.metadata?.printColumnWidths,
-    { preferLocalWhenMissing: true }
-  );
-  columnWidths.value = resolved.widths;
-  if (form.value.metadata) {
-    form.value.metadata.printColumnWidths = { ...resolved.widths };
-  }
-  initialSnapshot.value = JSON.stringify(normalizedDraft);
+  const { draft, widths } = bootstrapOrderDraft({ mode: 'edit', order });
+  form.value = draft;
+  columnWidths.value = widths;
+  initialSnapshot.value = JSON.stringify(draft);
 }
 
 function bootstrapCreateOrder() {
-  const draft = createEmptyOrderDraft('包装');
+  const { draft, widths } = bootstrapOrderDraft({ mode: 'create' });
   form.value = draft;
-  const resolved = resolveSheetWidths(
-    draft.category,
-    draft.metadata?.printColumnWidths,
-    { preferLocalWhenMissing: true }
-  );
-  columnWidths.value = resolved.widths;
-  if (form.value.metadata) {
-    form.value.metadata.printColumnWidths = { ...resolved.widths };
-  }
+  columnWidths.value = widths;
   initialSnapshot.value = JSON.stringify(draft);
 }
 
