@@ -4,25 +4,18 @@ import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
 import { createColumns } from '@/components/procurement/ProcurementColumns';
+import ProcurementSummaryCards from '@/components/procurement/ProcurementSummaryCards.vue';
+import ProcurementFilterBar from '@/components/procurement/ProcurementFilterBar.vue';
+import ProcurementBulkActionBar from '@/components/procurement/ProcurementBulkActionBar.vue';
 import EditOrderDialog from '@/components/procurement/EditOrderDialog.vue';
 import ProcurementPreviewModal from '@/components/procurement/ProcurementPreviewModal.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Plus,
   RefreshCcw,
-  Search,
   Trash2,
-  CheckCircle2,
-  PackageCheck,
   Download,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  Activity,
-  FileSpreadsheet,
-  X,
   AlertTriangle
 } from 'lucide-vue-next';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -299,80 +292,22 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-      <Card>
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-xs text-muted-foreground">待付总额</CardTitle>
-          <TrendingUp class="h-4 w-4 text-emerald-500" />
-        </CardHeader>
-        <CardContent>
-          <div class="text-lg md:text-2xl font-semibold">¥{{ summaryStats.totalAmount.toLocaleString() }}</div>
-        </CardContent>
-      </Card>
+    <ProcurementSummaryCards
+      :total-amount="summaryStats.totalAmount"
+      :pending-count="summaryStats.pendingCount"
+      :today-count="summaryStats.todayCount"
+      :completed-count="summaryStats.completedCount"
+    />
 
-      <Card>
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-xs text-muted-foreground">待处理单</CardTitle>
-          <Clock class="h-4 w-4 text-amber-500" />
-        </CardHeader>
-        <CardContent>
-          <div class="text-lg md:text-2xl font-semibold">{{ summaryStats.pendingCount }}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-xs text-muted-foreground">今日新增</CardTitle>
-          <Activity class="h-4 w-4 text-blue-500" />
-        </CardHeader>
-        <CardContent>
-          <div class="text-lg md:text-2xl font-semibold">{{ summaryStats.todayCount }}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-xs text-muted-foreground">已结案</CardTitle>
-          <CheckCircle class="h-4 w-4 text-emerald-500" />
-        </CardHeader>
-        <CardContent>
-          <div class="text-lg md:text-2xl font-semibold">{{ summaryStats.completedCount }}</div>
-        </CardContent>
-      </Card>
-    </div>
-
-    <Card>
-      <CardContent class="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="w-full md:w-auto overflow-x-auto">
-          <div class="flex w-max gap-1 rounded-md border bg-background p-1">
-          <button
-            v-for="cat in categoryOptions"
-            :key="cat.id"
-            @click="activeCategory = cat.id"
-            class="px-3 py-1.5 text-sm rounded-sm whitespace-nowrap transition-colors"
-            :class="activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
-          >
-            {{ cat.label }} ({{ cat.count }})
-          </button>
-          </div>
-        </div>
-
-        <div class="relative w-full md:w-80">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            v-model="searchQuery"
-            placeholder="搜单号、供应商、物料..."
-            class="pl-10"
-          />
-        </div>
-      </CardContent>
-      <div class="px-4 pb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span class="whitespace-nowrap">当前显示 {{ visibleOrderCount }} / {{ store.sortedOrders.length }} 张订单</span>
-        <Button v-if="hasActiveFilters" variant="ghost" size="sm" class="h-7 px-2" @click="resetFilters">
-          清空筛选
-        </Button>
-      </div>
-    </Card>
+    <ProcurementFilterBar
+      v-model:active-category="activeCategory"
+      v-model:search-query="searchQuery"
+      :category-options="categoryOptions"
+      :visible-order-count="visibleOrderCount"
+      :total-order-count="store.sortedOrders.length"
+      :has-active-filters="hasActiveFilters"
+      @reset="resetFilters"
+    />
 
     <Card class="flex-1 min-h-0">
       <CardContent class="p-2 sm:p-4 h-full overflow-hidden">
@@ -390,36 +325,13 @@ onMounted(() => {
       </CardContent>
     </Card>
 
-    <transition
-      enter-active-class="transition duration-300 ease-out transform"
-      enter-from-class="translate-y-full opacity-0"
-      enter-to-class="translate-y-0 opacity-100"
-      leave-active-class="transition duration-200 ease-in transform"
-      leave-from-class="translate-y-0 opacity-100"
-      leave-to-class="translate-y-full opacity-0"
-    >
-      <div v-if="selectedRows.length > 0" class="fixed md:absolute bottom-3 md:bottom-6 left-3 right-3 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50">
-        <div class="bg-card text-card-foreground px-3 md:px-4 py-3 rounded-lg shadow-lg flex flex-wrap items-center justify-center md:justify-start gap-2 border w-full md:w-auto">
-          <div class="text-xs text-muted-foreground mr-2">已选 {{ selectedRows.length }}</div>
-
-          <Button variant="outline" size="sm" @click="handleBulkStatusUpdate('submitted')">
-            <CheckCircle2 class="w-4 h-4 mr-2" /> 提交
-          </Button>
-          <Button variant="outline" size="sm" @click="handleBulkStatusUpdate('completed')">
-            <PackageCheck class="w-4 h-4 mr-2" /> 结案
-          </Button>
-          <Button variant="outline" size="sm" @click="handleExport">
-            <FileSpreadsheet class="w-4 h-4 mr-2" /> 导出
-          </Button>
-          <Button variant="destructive" size="sm" @click="handleBulkDelete">
-            <Trash2 class="w-4 h-4 mr-2" /> 删除
-          </Button>
-          <Button variant="ghost" size="icon" @click="selectedRows = []">
-            <X class="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    </transition>
+    <ProcurementBulkActionBar
+      :selected-count="selectedRows.length"
+      @status="handleBulkStatusUpdate"
+      @export="handleExport"
+      @delete="handleBulkDelete"
+      @clear="selectedRows = []"
+    />
 
     <EditOrderDialog
       v-model:open="isEditDialogOpen"
