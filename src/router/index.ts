@@ -49,6 +49,11 @@ const router = createRouter({
                     component: () => import('@/views/MaterialManagement.vue')
                 },
                 {
+                    path: '/config/material-catalog',
+                    name: 'config-material-catalog',
+                    component: () => import('@/views/MaterialCatalogConfig.vue')
+                },
+                {
                     path: '/config/packaging',
                     name: 'config-packaging',
                     component: () => import('@/views/PackagingConfig.vue')

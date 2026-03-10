@@ -4,6 +4,10 @@ export async function initializeConfigRuntime() {
     await configLoader.loadAll();
 }
 
+export async function refreshMaterialsRuntime() {
+    await configLoader.refreshMaterials();
+}
+
 export async function refreshPackagingRuntime() {
     await configLoader.refreshPackagingMapping();
 }

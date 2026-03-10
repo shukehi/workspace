@@ -151,6 +151,10 @@ export class ConfigLoaderService {
         }
     }
 
+    async refreshMaterials() {
+        await this.loadMaterials();
+    }
+
     async refreshPackagingMapping() {
         await this.loadPackagingMapping();
     }
