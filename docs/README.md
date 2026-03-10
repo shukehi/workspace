@@ -46,8 +46,9 @@
 
 已记录的问题分析、缺陷背景与排查说明。
 
-- [FIX_CYLINDER_DATA_ISSUES.md](/Users/aries/Dve/workspace/docs/issues/FIX_CYLINDER_DATA_ISSUES.md)
-- [采购订单管理-布局样式问题分析.md](/Users/aries/Dve/workspace/docs/issues/采购订单管理-布局样式问题分析.md)
+- [README.md](/Users/aries/Dve/workspace/docs/issues/README.md)
+- `active/`：仍有效的需求记录与接口变更背景
+- `archive/`：纯历史问题分析与旧实现缺陷说明
 
 ## mapping-migration-plan
 
