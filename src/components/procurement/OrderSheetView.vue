@@ -10,6 +10,7 @@ import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, is
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
 
 type Mode = 'edit' | 'preview';
+type CustomerNameDisplayMode = 'full' | 'salesDepartment';
 
 const props = withDefaults(defineProps<{
   order: Partial<Order>;
@@ -17,9 +18,11 @@ const props = withDefaults(defineProps<{
   columnWidths: Record<string, number>;
   defaultWidths: Record<string, number>;
   hiddenColumns?: string[];
+  customerNameDisplay?: CustomerNameDisplayMode;
 }>(), {
   mode: 'preview',
-  hiddenColumns: () => []
+  hiddenColumns: () => [],
+  customerNameDisplay: 'full',
 });
 
 const emit = defineEmits<{
@@ -42,7 +45,13 @@ const schema = computed(() => {
 const quantitySummary = computed(() => {
   return computeItemQuantitySummary(category.value, items.value);
 });
-const displayCustomerName = computed(() => resolveDisplayCustomerName(props.order.metadata?.customer_name));
+const displayCustomerName = computed(() => {
+  const rawName = props.order.metadata?.customer_name;
+  if (props.customerNameDisplay === 'salesDepartment') {
+    return resolveDisplayCustomerName(rawName);
+  }
+  return String(rawName || '').trim();
+});
 
 const formattedOrderDate = computed({
   get: () => props.order.created_at ? new Date(props.order.created_at).toISOString().split('T')[0] : '',

@@ -18,6 +18,8 @@ test('layout guard: edit and preview shells should share OrderSheet renderer', (
   assert.match(previewModal, /mode=\"preview\"/);
   assert.match(printDocument, /<OrderSheetView/);
   assert.match(printDocument, /mode=\"preview\"/);
+  assert.doesNotMatch(previewModal, /customer-name-display=/);
+  assert.match(printDocument, /customer-name-display=\"salesDepartment\"/);
   assert.match(printDocument, /print-document\.css/);
 
   assert.equal(editDialog.includes('<table'), false);

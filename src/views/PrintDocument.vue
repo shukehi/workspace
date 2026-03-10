@@ -237,6 +237,7 @@ onMounted(() => {
         v-if="source?.order"
         :order="source.order"
         mode="preview"
+        customer-name-display="salesDepartment"
         :column-widths="printColumnWidths"
         :default-widths="previewDefaultWidths"
       />
