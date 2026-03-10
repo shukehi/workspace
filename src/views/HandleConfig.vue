@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { createRowId, scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
-import { configLoader } from '@/services/configLoader';
+import { refreshHandleRuntime } from '@/services/configRuntime';
 import { adaptHandleMapping, validateHandleMapping } from '@/services/mappings';
 import type { HandleMappingConfig } from '@/types/mapping';
 
@@ -187,6 +187,7 @@ async function scrollToFirstIssue() {
 
 const editor = useMappingConfigEditor<HandleMappingConfig>({
   endpoint: '/config/handle',
+  workflowProfileCode: 'handle',
   loadErrorDescription: '无法读取拉手映射配置',
   saveSuccessDescription: '拉手映射已更新',
   getPayload: () => payload.value,
@@ -194,7 +195,7 @@ const editor = useMappingConfigEditor<HandleMappingConfig>({
   validatePayload: validateHandleMapping,
   adaptPayload: (value) => adaptHandleMapping(value),
   resetWithPayload,
-  refreshRuntime: () => configLoader.refreshHandleMapping(),
+  refreshRuntime: refreshHandleRuntime,
   scrollToFirstIssue
 });
 

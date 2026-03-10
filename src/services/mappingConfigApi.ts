@@ -5,6 +5,23 @@ export interface MappingSaveResponse<T> {
   ok: boolean;
   data?: T;
   errors?: MappingValidationIssue[];
+  latestRevision?: number | null;
+}
+
+export interface MappingWorkflowDetail<T> {
+  payload: T;
+  latestRevision: number;
+  draftRevision: number | null;
+  publishedRevision: number | null;
+  auditLogs: Array<{
+    id: number;
+    action: string;
+    fromRevision: number | null;
+    toRevision: number | null;
+    operator: string;
+    meta: Record<string, any>;
+    createdAt: string;
+  }>;
 }
 
 export const mappingConfigApi = {
@@ -13,5 +30,65 @@ export const mappingConfigApi = {
   },
   save<T>(endpoint: string, payload: T) {
     return api.put<MappingSaveResponse<T>>(endpoint, payload);
+  },
+  async loadWorkflow<T>(profileCode: string): Promise<MappingWorkflowDetail<T>> {
+    const [res, logsRes] = await Promise.all([
+      api.get<{
+        success: boolean;
+        mapping: {
+          latestRevision: { revision: number } | null;
+          draftRevision: { revision: number } | null;
+          publishedRevision: { revision: number } | null;
+          draftPayload: T | null;
+          publishedPayload: T | null;
+        };
+      }>(`/config/mappings/${profileCode}/detail`),
+      api.get<{
+        success: boolean;
+        items: Array<{
+          id: number;
+          action: string;
+          fromRevision: number | null;
+          toRevision: number | null;
+          operator: string;
+          meta: Record<string, any>;
+          createdAt: string;
+        }>;
+      }>(`/config/mappings/${profileCode}/audit-logs`)
+    ]);
+
+    const mapping = res.mapping;
+    const payload = (mapping.draftPayload || mapping.publishedPayload || {}) as T;
+    return {
+      payload,
+      latestRevision: mapping.latestRevision?.revision ?? 0,
+      draftRevision: mapping.draftRevision?.revision ?? null,
+      publishedRevision: mapping.publishedRevision?.revision ?? null,
+      auditLogs: Array.isArray(logsRes.items) ? logsRes.items : [],
+    };
+  },
+  async saveWorkflow<T>(profileCode: string, payload: T, latestRevision: number): Promise<MappingSaveResponse<T>> {
+    const draftRes = await api.put<{
+      success: boolean;
+      revision: { revision: number };
+    }>(`/config/mappings/${profileCode}/draft`, {
+      revision: latestRevision,
+      payload,
+      changeNote: 'workflow config editor save',
+    });
+
+    const publishRes = await api.post<{
+      success: boolean;
+      revision: { revision: number };
+    }>(`/config/mappings/${profileCode}/publish`, {
+      fromRevision: draftRes.revision.revision,
+      changeNote: 'workflow config editor publish',
+    });
+
+    return {
+      ok: true,
+      data: payload,
+      latestRevision: publishRes.revision.revision
+    };
   }
 };

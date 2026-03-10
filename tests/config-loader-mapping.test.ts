@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ConfigLoaderService } from '../src/services/configLoader';
+import { ApiWithStaticFallbackConfigRepository } from '../src/services/configRepository';
 
 type MockResponse = {
   ok: boolean;
@@ -26,21 +27,48 @@ test('configLoader: packaging mapping prefers API and normalizes legacy dictiona
     const url = String(input);
     calls.push(url);
 
-    if (url === '/api/config/packaging') {
+    if (url === '/api/config/mappings/packaging/published') {
       return createResponse(true, { 包装A: '外协包装A' }) as unknown as Response;
     }
 
     return createResponse(false, null) as unknown as Response;
   }) as typeof fetch;
 
-  const loader = new ConfigLoaderService();
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
   await loader.loadPackagingMapping();
 
-  assert.deepEqual(calls, ['/api/config/packaging']);
+  assert.deepEqual(calls, ['/api/config/mappings/packaging/published']);
   assert.deepEqual(loader.getPackagingMapping(), {
     supplierName: '方亮包装',
     mappings: { 包装A: '外协包装A' },
   });
+  assert.equal(loader.getLoadSources().packaging, 'api');
+});
+
+test('configLoader: materials prefer workflow published endpoint before legacy config endpoint', async () => {
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+    calls.push(url);
+
+    if (url === '/api/config/material-catalog/published') {
+      return createResponse(true, {
+        M001: {
+          supplier: '供应商A',
+          name: '材料A',
+        },
+      }) as unknown as Response;
+    }
+
+    return createResponse(false, null) as unknown as Response;
+  }) as typeof fetch;
+
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
+  await loader.loadMaterials();
+
+  assert.deepEqual(calls, ['/api/config/material-catalog/published']);
+  assert.equal(loader.getLoadSources().materials, 'api');
+  assert.equal(loader.getMaterials().M001?.name, '材料A');
 });
 
 test('configLoader: packaging mapping keeps JSON fallback when API is unavailable', async () => {
@@ -49,6 +77,9 @@ test('configLoader: packaging mapping keeps JSON fallback when API is unavailabl
     const url = String(input);
     calls.push(url);
 
+    if (url === '/api/config/mappings/packaging/published') {
+      return createResponse(false, null) as unknown as Response;
+    }
     if (url === '/api/config/packaging') {
       return createResponse(false, null) as unknown as Response;
     }
@@ -62,10 +93,11 @@ test('configLoader: packaging mapping keeps JSON fallback when API is unavailabl
     return createResponse(false, null) as unknown as Response;
   }) as typeof fetch;
 
-  const loader = new ConfigLoaderService();
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
   await loader.loadPackagingMapping();
 
   assert.deepEqual(calls, [
+    '/api/config/mappings/packaging/published',
     '/api/config/packaging',
     '/data/packaging-mapping.json',
   ]);
@@ -73,6 +105,7 @@ test('configLoader: packaging mapping keeps JSON fallback when API is unavailabl
     supplierName: '回退包装供应商',
     mappings: { 包装B: '外协包装B' },
   });
+  assert.equal(loader.getLoadSources().packaging, 'static');
 });
 
 test('configLoader: cylinder and lock-fork loaders normalize static payloads through adapters', async () => {
@@ -109,7 +142,7 @@ test('configLoader: cylinder and lock-fork loaders normalize static payloads thr
     return createResponse(false, null) as unknown as Response;
   }) as typeof fetch;
 
-  const loader = new ConfigLoaderService();
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
   await loader.loadCylinderMapping();
   await loader.loadLockForkMapping();
 
@@ -118,11 +151,25 @@ test('configLoader: cylinder and lock-fork loaders normalize static payloads thr
   assert.equal(loader.getLockForkMapping().hangingFeet.standard, 35);
   assert.deepEqual(loader.getLockForkMapping().hangingFeet.keywords, ['吊脚', 'diaojiao']);
   assert.equal(loader.getLockForkMapping().suppliers.default, '应志友');
+  assert.equal(loader.getLoadSources().cylinder, 'static');
+  assert.equal(loader.getLoadSources().lockFork, 'static');
 });
 
 test('configLoader: handle loader normalizes payloads through adapter', async () => {
   globalThis.fetch = (async (input: string | URL | Request) => {
     const url = String(input);
+
+    if (url === '/api/config/mappings/handle/published') {
+      return createResponse(true, {
+        defaultSupplier: '拉手供应商A',
+        unmatchedSupplier: '待人工处理',
+        manualReviewLabel: '未匹配拉手(待人工处理)',
+        singleKeywords: ['单活'],
+        doubleKeywords: ['双活'],
+        thicknessAccessoryPacks: { '10': '10公分配件包' },
+        mappings: {},
+      }) as unknown as Response;
+    }
 
     if (url === '/api/config/handle') {
       return createResponse(true, {
@@ -138,10 +185,11 @@ test('configLoader: handle loader normalizes payloads through adapter', async ()
     return createResponse(false, null) as unknown as Response;
   }) as typeof fetch;
 
-  const loader = new ConfigLoaderService();
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
   await loader.loadHandleMapping();
 
   assert.equal(loader.getHandleMapping().defaultSupplier, '拉手供应商A');
   assert.equal(loader.getHandleMapping().thicknessAccessoryPacks['10'], '10公分配件包');
   assert.equal(loader.getHandleMapping().thicknessAccessoryPacks['7'], '7公分配件包');
+  assert.equal(loader.getLoadSources().handle, 'api');
 });

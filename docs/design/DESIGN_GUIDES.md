@@ -1,5 +1,8 @@
 # 📦 订单管理系统 - 视觉设计与开发指南 (V2.0)
 
+> 状态：历史设计方向文档。
+> 本文档描述的是较早期的 “Terminal Aesthetic” 方案，不作为当前页面视觉实现的唯一依据。现行页面约束请优先参考 `docs/governance/STYLE_CONSTRAINTS_NEW_YORK.md`。
+
 本指南旨在确保所有开发者在扩展系统功能时，能够保持一致的 **“技术极简主义 / 终端美学” (Terminal Aesthetic)** 风格。
 
 ---

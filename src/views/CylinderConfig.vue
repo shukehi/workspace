@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { createRowId, scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
-import { configLoader } from '@/services/configLoader';
+import { refreshCylinderRuntime } from '@/services/configRuntime';
 import { adaptCylinderMapping, validateCylinderMapping } from '@/services/mappings';
 import type {
   CylinderMappingConfig,
@@ -418,6 +418,7 @@ async function scrollToFirstIssue() {
 
 const editor = useMappingConfigEditor<CylinderMappingConfig>({
   endpoint: '/config/cylinder',
+  workflowProfileCode: 'cylinder',
   loadErrorDescription: '无法读取锁芯映射配置',
   saveSuccessDescription: '锁芯映射已更新',
   getPayload: () => payload.value,
@@ -425,7 +426,7 @@ const editor = useMappingConfigEditor<CylinderMappingConfig>({
   validatePayload: validateCylinderMapping,
   adaptPayload: (value) => adaptCylinderMapping(value),
   resetWithPayload,
-  refreshRuntime: () => configLoader.refreshCylinderMapping(),
+  refreshRuntime: refreshCylinderRuntime,
   scrollToFirstIssue
 });
 

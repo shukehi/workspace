@@ -2,15 +2,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
-import { configLoader } from '@/services/configLoader';
-import { calculateMaterialRequirements } from '@/lib/erp-engine/materialDecomposer';
-import { extractCylinderData, extractHandleData, extractLockForkData, extractPackagingData } from '@/lib/erp-engine/dataExtractors';
-import type { ContractHistoryRow } from '@/types/source';
-
-type ContractHistoryListResponse = {
-    rows?: ContractHistoryRow[];
-    total?: number;
-};
+import { analyzeSourceOrder } from '@/services/sourceAnalysis';
+import { loadSourceAnalysisConfig } from '@/services/sourceAnalysisConfig';
+import type { SourceAnalysisResult } from '@/types/sourceAnalysis';
 
 const ORDER_SNAPSHOT_KEY = 'source_current_order_snapshot';
 
@@ -52,43 +46,20 @@ export const useSourceStore = defineStore('source', () => {
     const currentOrder = ref<any>(loadOrderSnapshot()); // Raw ERP Order
     const materialRequirements = ref<any>(null);
     const hardwareRequirements = ref<any>(null);
+    const analysisResult = ref<SourceAnalysisResult | null>(null);
     const loading = ref(false);
     const error = ref<string | null>(null);
-    const historyLoading = ref(false);
-    const historyRows = ref<ContractHistoryRow[]>([]);
-    const historyPage = ref(1);
-    const historyPageSize = ref(20);
-    const historyTotal = ref(0);
-    const historyFilters = ref({
-        code: '',
-        customer: ''
-    });
-    const historySelected = ref<ContractHistoryRow | null>(null);
 
     // Getters
     const hasOrder = computed(() => !!currentOrder.value);
     const orderItems = computed(() => currentOrder.value?.list || []);
-    const historyTotalPages = computed(() => Math.max(1, Math.ceil(historyTotal.value / historyPageSize.value)));
 
     // Flattened Data for Views
-    const flatMaterials = computed(() => {
-        if (!materialRequirements.value?.requirements) return [];
-        const list: any[] = [];
-        Object.values(materialRequirements.value.requirements).forEach((group: any) => {
-            group.materials.forEach((mat: any) => {
-                list.push({ ...mat, supplierName: group.supplierName });
-            });
-        });
-        return list;
-    });
-
-    const flatCylinders = computed(() => hardwareRequirements.value?.cylinders || []);
-    const flatHandles = computed(() => hardwareRequirements.value?.handles || []);
-    const flatForks = computed(() => hardwareRequirements.value?.lockForks || []);
-    const flatPackaging = computed(() => {
-        const pkgMap = hardwareRequirements.value?.packaging || {};
-        return Object.values(pkgMap);
-    });
+    const flatMaterials = computed(() => analysisResult.value?.flatMaterials || []);
+    const flatCylinders = computed(() => analysisResult.value?.flatCylinders || []);
+    const flatHandles = computed(() => analysisResult.value?.flatHandles || []);
+    const flatForks = computed(() => analysisResult.value?.flatForks || []);
+    const flatPackaging = computed(() => analysisResult.value?.flatPackaging || []);
 
     // Actions
     async function applyContractData(orderData: any, options: { persistCache?: boolean } = {}) {
@@ -145,41 +116,6 @@ export const useSourceStore = defineStore('source', () => {
         }
     }
 
-    async function fetchHistoryContracts(resetPage = false) {
-        if (resetPage) historyPage.value = 1;
-
-        historyLoading.value = true;
-        error.value = null;
-
-        try {
-            const res = await api.get<ContractHistoryListResponse>('/contracts', {
-                params: {
-                    page: historyPage.value,
-                    pageSize: historyPageSize.value,
-                    code: historyFilters.value.code || undefined,
-                    customer: historyFilters.value.customer || undefined
-                }
-            });
-
-            historyRows.value = Array.isArray(res?.rows) ? res.rows : [];
-            historyTotal.value = Number(res?.total || 0);
-
-            if (
-                historySelected.value &&
-                !historyRows.value.some((row) => row.contract_code === historySelected.value?.contract_code)
-            ) {
-                historySelected.value = null;
-            }
-        } catch (e: any) {
-            console.error('Fetch history contracts failed', e);
-            error.value = e.message || '历史合同列表加载失败，请稍后重试';
-            historyRows.value = [];
-            historyTotal.value = 0;
-        } finally {
-            historyLoading.value = false;
-        }
-    }
-
     async function loadHistoryContractByCode(code: string) {
         const contractCode = String(code || '').trim();
         if (!contractCode) {
@@ -215,44 +151,19 @@ export const useSourceStore = defineStore('source', () => {
         if (!currentOrder.value) return;
 
         try {
-            // Ensure config is loaded
-            await configLoader.loadAll();
-            // Always try refreshing published formulas so material analysis reflects latest changes.
-            await configLoader.refreshFormulas();
+            const config = await loadSourceAnalysisConfig();
+            const result = analyzeSourceOrder({
+                order: currentOrder.value,
+                items: itemsToProcess,
+                config
+            });
 
-            // Use provided items or default to all items from current order
-            const targetItems = itemsToProcess || currentOrder.value.list;
-            
-            if (!targetItems || targetItems.length === 0) {
-                materialRequirements.value = null;
-                hardwareRequirements.value = null;
-                return;
-            }
-
-            const items = targetItems.map((item: any, index: number) => ({
-                ...item,
-                _originOrder: currentOrder.value.code,
-                _originIndex: index
-            }));
-
-            const result = calculateMaterialRequirements(
-                items,
-                configLoader.getFormulas(),
-                configLoader.getMaterials()
-            );
-
-            const hardwareResult = {
-                cylinders: extractCylinderData(targetItems, currentOrder.value, configLoader.getCylinderMapping()),
-                handles: extractHandleData(targetItems, currentOrder.value, configLoader.getHandleMapping()),
-                lockForks: extractLockForkData(targetItems, currentOrder.value, configLoader.getLockForkMapping()),
-                packaging: extractPackagingData(targetItems, configLoader.getPackagingMapping())
-            };
-
-            materialRequirements.value = result;
-            hardwareRequirements.value = hardwareResult;
-
+            analysisResult.value = result;
+            materialRequirements.value = result.materialRequirements;
+            hardwareRequirements.value = result.hardwareRequirements;
         } catch (e) {
             console.error('Calculation failed', e);
+            analysisResult.value = null;
             materialRequirements.value = null;
             hardwareRequirements.value = null;
             error.value = 'Material calculation failed';
@@ -261,10 +172,10 @@ export const useSourceStore = defineStore('source', () => {
 
     function clear() {
         currentOrder.value = null;
+        analysisResult.value = null;
         materialRequirements.value = null;
         hardwareRequirements.value = null;
         error.value = null;
-        historySelected.value = null;
         clearOrderSnapshot();
     }
 
@@ -279,16 +190,9 @@ export const useSourceStore = defineStore('source', () => {
         currentOrder,
         materialRequirements,
         hardwareRequirements,
+        analysisResult,
         loading,
         error,
-        historyLoading,
-        historyRows,
-        historyPage,
-        historyPageSize,
-        historyTotal,
-        historyTotalPages,
-        historyFilters,
-        historySelected,
         hasOrder,
         orderItems,
         flatMaterials,
@@ -298,7 +202,6 @@ export const useSourceStore = defineStore('source', () => {
         flatPackaging,
         applyContractData,
         fetchContract,
-        fetchHistoryContracts,
         loadHistoryContractByCode,
         calculateMaterials,
         clear

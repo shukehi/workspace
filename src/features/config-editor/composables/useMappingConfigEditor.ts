@@ -5,6 +5,7 @@ import type { MappingValidationIssue } from '@/types/mapping';
 
 type MappingConfigEditorOptions<T> = {
   endpoint: string;
+  workflowProfileCode?: string;
   loadErrorDescription: string;
   saveSuccessDescription: string;
   getPayload: () => T;
@@ -22,6 +23,18 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
   const isSaving = ref(false);
   const loadError = ref<string | null>(null);
   const serverIssues = ref<MappingValidationIssue[]>([]);
+  const latestRevision = ref(0);
+  const draftRevision = ref<number | null>(null);
+  const publishedRevision = ref<number | null>(null);
+  const auditLogs = ref<Array<{
+    id: number;
+    action: string;
+    fromRevision: number | null;
+    toRevision: number | null;
+    operator: string;
+    meta: Record<string, any>;
+    createdAt: string;
+  }>>([]);
 
   const isJsonDialogOpen = ref(false);
   const jsonDraft = ref('');
@@ -37,8 +50,17 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
     loadError.value = null;
     serverIssues.value = [];
     try {
-      const res = await mappingConfigApi.load<T>(options.endpoint);
-      options.resetWithPayload(res);
+      if (options.workflowProfileCode) {
+        const res = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode);
+        latestRevision.value = res.latestRevision;
+        draftRevision.value = res.draftRevision;
+        publishedRevision.value = res.publishedRevision;
+        auditLogs.value = res.auditLogs;
+        options.resetWithPayload(res.payload);
+      } else {
+        const res = await mappingConfigApi.load<T>(options.endpoint);
+        options.resetWithPayload(res);
+      }
     } catch (e: any) {
       console.error(e);
       loadError.value = e?.message || '加载失败';
@@ -60,14 +82,24 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
     isSaving.value = true;
     serverIssues.value = [];
     try {
-      const res = await mappingConfigApi.save<T>(options.endpoint, payload.value);
+      const res = options.workflowProfileCode
+        ? await mappingConfigApi.saveWorkflow<T>(options.workflowProfileCode, payload.value, latestRevision.value)
+        : await mappingConfigApi.save<T>(options.endpoint, payload.value);
       if (!res.ok) {
         serverIssues.value = res.errors || [];
         await options.scrollToFirstIssue?.();
         return;
       }
+      latestRevision.value = res.latestRevision ?? latestRevision.value;
       options.resetWithPayload(res.data || payload.value);
       await options.refreshRuntime();
+      if (options.workflowProfileCode) {
+        const refreshed = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode);
+        latestRevision.value = refreshed.latestRevision;
+        draftRevision.value = refreshed.draftRevision;
+        publishedRevision.value = refreshed.publishedRevision;
+        auditLogs.value = refreshed.auditLogs;
+      }
       toast({
         title: '保存成功',
         description: options.saveSuccessDescription,
@@ -163,6 +195,10 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
     isSaving,
     loadError,
     serverIssues,
+    latestRevision,
+    draftRevision,
+    publishedRevision,
+    auditLogs,
     payload,
     clientIssues,
     jsonPreview,

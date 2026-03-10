@@ -5,6 +5,7 @@ export type NavIconKey =
     | 'procurement'
     | 'inventory'
     | 'material-master'
+    | 'material-catalog'
     | 'formula'
     | 'packaging-config'
     | 'cylinder-config'
@@ -42,6 +43,7 @@ export const mainNavGroups: NavGroup[] = [
         title: '配置中心',
         items: [
             { title: '物料数据', href: '/material-master', icon: 'material-master' },
+            { title: '物料目录配置', href: '/config/material-catalog', icon: 'material-catalog' },
             { title: '配方配置', href: '/formula', icon: 'formula' },
             { title: '包装配置', href: '/config/packaging', icon: 'packaging-config' },
             { title: '锁芯配置', href: '/config/cylinder', icon: 'cylinder-config' },

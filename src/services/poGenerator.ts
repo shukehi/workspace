@@ -1,6 +1,5 @@
-import { useSourceStore } from '@/stores/useSourceStore';
 import { packagingMatcher } from '@/lib/packagingMatcher';
-import { configLoader } from '@/services/configLoader';
+import { packagingConfigReader } from '@/services/packagingConfig';
 import type { Order, OrderItem } from '@/types/order';
 import { findMissingCategoryFields, findMissingCommonFields } from '@/services/poContractUtils';
 import {
@@ -19,11 +18,15 @@ export class POGenerator {
   private ruleContext: RuleContext;
 
   constructor(deps?: Partial<RuleContext>) {
-    this.sourceStore = deps?.sourceStore || (useSourceStore() as unknown as SourceStorePort);
+    if (!deps?.sourceStore) {
+      throw new Error('POGenerator requires an explicit sourceStore dependency');
+    }
+
+    this.sourceStore = deps.sourceStore;
     this.ruleContext = {
       sourceStore: this.sourceStore,
       packagingMatcher: deps?.packagingMatcher || packagingMatcher,
-      configLoader: deps?.configLoader || configLoader,
+      packagingConfig: deps?.packagingConfig || packagingConfigReader,
     };
   }
 
@@ -68,7 +71,7 @@ export class POGenerator {
     const mergeSameSpec = options?.mergeSameSpec ?? true;
     const proposal: Record<string, SupplierGroup> = {};
 
-    this.ruleContext.packagingMatcher.syncFromMapping(this.ruleContext.configLoader.getPackagingMapping());
+    this.ruleContext.packagingMatcher.syncFromMapping(this.ruleContext.packagingConfig.getPackagingMapping());
 
     this.mergeGroups(proposal, buildRawMaterialGroups(this.ruleContext));
     this.mergeGroups(proposal, buildCylinderGroups(this.ruleContext));

@@ -1,5 +1,8 @@
 # 锁芯 / 锁叉 Published Contract Draft
 
+> 状态：历史契约草案。
+> `published` 接口现已落地，本文档保留用于追溯契约设计背景；当前接口行为请以实际 route、测试和 reference 文档为准。
+
 ## 目的
 
 冻结进入里程碑 B 之前的 `published` API 草案，避免在迁移脚本、后端 `/published` 实现、前端 `configLoader` 接入时反复改语义。

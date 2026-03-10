@@ -10,15 +10,27 @@ process.env.DB_STORAGE = tempDbPath;
 
 const configRoutes = require('../server/routes/configData');
 const formulasConfigRoutes = require('../server/routes/formulasConfig');
+const materialsConfigRoutes = require('../server/routes/materialsConfig');
+const MappingService = require('../server/services/mappings');
+const { CONFIG_FILES, ensureProjectDirs } = require('../server/config/paths');
 const { initDB, sequelize, Material } = require('../server/models');
 
 let server;
 let baseUrl;
+const materialsFile = CONFIG_FILES.materialsCatalog;
+const handleFile = CONFIG_FILES.handleMapping;
+const originalMaterialsFile = fs.existsSync(materialsFile)
+  ? fs.readFileSync(materialsFile, 'utf8')
+  : null;
+const originalHandleFile = fs.existsSync(handleFile)
+  ? fs.readFileSync(handleFile, 'utf8')
+  : null;
 
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '5mb' }));
   app.use('/api/config/formulas', formulasConfigRoutes);
+  app.use('/api/config/material-catalog', materialsConfigRoutes);
   app.use('/api/config', configRoutes);
 
   return await new Promise((resolve) => {
@@ -33,6 +45,14 @@ async function startServer() {
 }
 
 test.before(async () => {
+  ensureProjectDirs();
+  fs.writeFileSync(materialsFile, JSON.stringify({
+    LEGACY001: {
+      supplier: '旧供应商',
+      name: '旧材料',
+      unit: 'kg',
+    },
+  }, null, 2));
   await initDB();
   await Material.create({
     code: 'M-001',
@@ -137,6 +157,180 @@ test('GET /api/config/packaging-mapping returns canonical DTO shape', async () =
   assert.equal(Array.isArray(body.mappings), false);
 });
 
+test('legacy handle mapping endpoints seed and publish workflow revisions', async () => {
+  fs.writeFileSync(handleFile, JSON.stringify({
+    defaultSupplier: '旧拉手供应商',
+    unmatchedSupplier: '待人工处理',
+    manualReviewLabel: '未匹配拉手(待人工处理)',
+    mappings: {
+      拉手旧版: {
+        supplier: '旧拉手供应商',
+        vendorName: '旧拉手外协名'
+      },
+    },
+  }, null, 2));
+
+  const getRes = await fetch(`${baseUrl}/api/config/handle`);
+  assert.equal(getRes.status, 200);
+  const getBody = await getRes.json();
+  assert.equal(getBody.defaultSupplier, '旧拉手供应商');
+  assert.equal(getBody.mappings['拉手旧版'].vendorName, '旧拉手外协名');
+
+  const workflowDetail = await MappingService.getMappingDetail('handle');
+  assert.equal(workflowDetail.ok, true);
+  assert.equal(workflowDetail.mapping.publishedRevision.revision, 2);
+  assert.deepEqual(workflowDetail.mapping.publishedPayload, getBody);
+
+  const putRes = await fetch(`${baseUrl}/api/config/handle`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      defaultSupplier: '新拉手供应商',
+      unmatchedSupplier: '待人工处理',
+      manualReviewLabel: '未匹配拉手(待人工处理)',
+      mappings: {
+        拉手新版: {
+          supplier: '新拉手供应商',
+          vendorName: '新拉手外协名'
+        },
+      },
+    }),
+  });
+  assert.equal(putRes.status, 200);
+  const putBody = await putRes.json();
+  assert.equal(putBody.ok, true);
+  assert.equal(putBody.revision.revision, 4);
+  assert.equal(putBody.revision.state, 'published');
+
+  const workflowAfterPut = await MappingService.getMappingDetail('handle');
+  assert.equal(workflowAfterPut.ok, true);
+  assert.equal(workflowAfterPut.mapping.publishedRevision.revision, 4);
+  assert.deepEqual(workflowAfterPut.mapping.publishedPayload, putBody.data);
+
+  const syncedLegacyFile = JSON.parse(fs.readFileSync(handleFile, 'utf8'));
+  assert.deepEqual(syncedLegacyFile, putBody.data);
+});
+
+test('materials routes: legacy endpoint and workflow endpoints expose published catalog consistently', async () => {
+  fs.writeFileSync(materialsFile, JSON.stringify({
+    LEGACY001: {
+      supplier: '旧供应商',
+      name: '旧材料',
+      unit: 'kg',
+    },
+  }, null, 2));
+
+  const legacyRes = await fetch(`${baseUrl}/api/config/materials`);
+  assert.equal(legacyRes.status, 200);
+  const legacyBody = await legacyRes.json();
+  assert.equal(legacyBody.LEGACY001.name, '旧材料');
+
+  const publishedRes = await fetch(`${baseUrl}/api/config/material-catalog/published`);
+  assert.equal(publishedRes.status, 200);
+  const publishedBody = await publishedRes.json();
+  assert.deepEqual(publishedBody, legacyBody);
+
+  const detailRes = await fetch(`${baseUrl}/api/config/material-catalog/detail`);
+  assert.equal(detailRes.status, 200);
+  const detailBody = await detailRes.json();
+  assert.equal(detailBody.success, true);
+  assert.equal(detailBody.catalog.profile.profileCode, 'materials');
+  assert.equal(detailBody.catalog.publishedRevision.revision, 1);
+  assert.deepEqual(detailBody.catalog.publishedPayload, legacyBody);
+});
+
+test('materials routes: draft, publish and legacy POST stay workflow-compatible', async () => {
+  const draftPayload = {
+    LEGACY001: {
+      supplier: '新供应商',
+      name: '新材料',
+      unit: 'kg',
+    },
+    LEGACY002: {
+      supplier: '供应商B',
+      name: '第二材料',
+      unit: 'pcs',
+    },
+  };
+
+  const draftRes = await fetch(`${baseUrl}/api/config/material-catalog/draft`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      revision: 1,
+      payload: draftPayload,
+      changeNote: 'materials draft',
+    }),
+  });
+  assert.equal(draftRes.status, 200);
+  const draftBody = await draftRes.json();
+  assert.equal(draftBody.success, true);
+  assert.equal(draftBody.revision.revision, 2);
+
+  const publishRes = await fetch(`${baseUrl}/api/config/material-catalog/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      fromRevision: 2,
+      changeNote: 'materials publish',
+    }),
+  });
+  assert.equal(publishRes.status, 200);
+  const publishBody = await publishRes.json();
+  assert.equal(publishBody.success, true);
+  assert.equal(publishBody.revision.revision, 3);
+
+  const afterPublishRes = await fetch(`${baseUrl}/api/config/material-catalog/published`);
+  assert.equal(afterPublishRes.status, 200);
+  const afterPublishBody = await afterPublishRes.json();
+  assert.deepEqual(afterPublishBody, draftPayload);
+
+  const legacySavePayload = {
+    DIRECT001: {
+      supplier: '直写供应商',
+      name: '直写材料',
+      unit: '套',
+    },
+  };
+  const legacySaveRes = await fetch(`${baseUrl}/api/config/materials`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify(legacySavePayload),
+  });
+  assert.equal(legacySaveRes.status, 200);
+  const legacySaveBody = await legacySaveRes.json();
+  assert.equal(legacySaveBody.success, true);
+  assert.equal(legacySaveBody.revision.revision, 5);
+  assert.equal(legacySaveBody.revision.state, 'published');
+
+  const revisionsRes = await fetch(`${baseUrl}/api/config/material-catalog/revisions`);
+  assert.equal(revisionsRes.status, 200);
+  const revisionsBody = await revisionsRes.json();
+  assert.equal(revisionsBody.success, true);
+  assert.deepEqual(
+    revisionsBody.items.map((item) => [item.revision, item.state]),
+    [
+      [5, 'published'],
+      [4, 'archived'],
+      [3, 'archived'],
+      [2, 'archived'],
+      [1, 'archived'],
+    ],
+  );
+
+  const syncedLegacyFile = JSON.parse(fs.readFileSync(materialsFile, 'utf8'));
+  assert.deepEqual(syncedLegacyFile, legacySavePayload);
+
+  const auditLogsRes = await fetch(`${baseUrl}/api/config/material-catalog/audit-logs`);
+  assert.equal(auditLogsRes.status, 200);
+  const auditLogsBody = await auditLogsRes.json();
+  assert.equal(auditLogsBody.success, true);
+  assert.deepEqual(
+    auditLogsBody.items.map((item) => item.action),
+    ['publish', 'update_draft', 'publish', 'update_draft', 'seed_legacy'],
+  );
+});
+
 test('create formula accepts supplier + model split and canonicalizes to material code', async () => {
   const createRes = await fetch(`${baseUrl}/api/config/formulas`, {
     method: 'POST',
@@ -177,5 +371,19 @@ test.after(async () => {
   await sequelize.close();
   if (fs.existsSync(tempDbPath)) {
     fs.unlinkSync(tempDbPath);
+  }
+  if (originalMaterialsFile === null) {
+    if (fs.existsSync(materialsFile)) {
+      fs.unlinkSync(materialsFile);
+    }
+  } else {
+    fs.writeFileSync(materialsFile, originalMaterialsFile);
+  }
+  if (originalHandleFile === null) {
+    if (fs.existsSync(handleFile)) {
+      fs.unlinkSync(handleFile);
+    }
+  } else {
+    fs.writeFileSync(handleFile, originalHandleFile);
   }
 });

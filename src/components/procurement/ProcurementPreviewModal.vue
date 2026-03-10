@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -9,13 +8,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, Printer } from 'lucide-vue-next';
-import { api } from '@/lib/api';
 import { useToastStore } from '@/stores/useToastStore';
 import type { Order } from '@/types/order';
-import { type PrintMode } from '@/features/procurement/docModel';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
-import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
-
+import { toRef } from 'vue';
+import { createProcurementPreview } from '@/features/procurement/useProcurementPreview';
 const props = defineProps<{
   open: boolean;
   order: Order | null;
@@ -27,162 +24,23 @@ const emit = defineEmits<{
 }>();
 
 const { toast } = useToastStore();
-
-const exportingPdf = ref(false);
-const snapshotLoading = ref(false);
-const snapshotId = ref('');
-
-const printMode = ref<PrintMode>('signature');
-const modeOptions: Array<{ value: PrintMode; label: string }> = [
-  { value: 'signature', label: '签字版' },
-  { value: 'compact', label: '简洁版' }
-];
-
-const categoryLabels: Record<string, string> = {
-  packaging: '包装',
-  cylinder: '锁芯',
-  handle: '拉手',
-  hardware: '五金',
-  lock: '锁叉'
-};
-
-const statusLabels: Record<Order['status'], string> = {
-  draft: '草稿',
-  submitted: '已提交',
-  processing: '处理中',
-  completed: '已完成',
-  cancelled: '已取消'
-};
-
-const orderCategoryLabel = computed(() => {
-  if (!props.order?.category) return '未分类';
-  const raw = String(props.order.category).toLowerCase();
-  if (raw.includes('包装') || raw === 'packaging') return categoryLabels.packaging;
-  if (raw.includes('锁芯') || raw === 'cylinder') return categoryLabels.cylinder;
-  if (raw.includes('拉手') || raw === 'handle') return categoryLabels.handle;
-  if (raw.includes('锁叉') || raw === 'lock') return categoryLabels.lock;
-  if (raw.includes('五金') || raw.includes('配件') || raw === 'hardware') return categoryLabels.hardware;
-  return props.order.category;
+const {
+  exportingPdf,
+  snapshotLoading,
+  printMode,
+  modeOptions,
+  orderCategoryLabel,
+  orderStatusLabel,
+  previewDefaultWidths,
+  previewColumnWidths,
+  handlePrint,
+  handleExportPdf,
+  handlePrintModeChange,
+} = createProcurementPreview({
+  order: toRef(props, 'order'),
+  open: toRef(props, 'open'),
+  toast,
 });
-
-const orderStatusLabel = computed(() => {
-  if (!props.order) return '-';
-  return statusLabels[props.order.status] || props.order.status;
-});
-
-const previewWidthState = computed(() => {
-  if (!props.order) {
-    return resolveSheetWidths('packaging', null, { preferLocalWhenMissing: true });
-  }
-  return resolveSheetWidths(
-    props.order.category,
-    props.order.metadata?.printColumnWidths,
-    { preferLocalWhenMissing: true }
-  );
-});
-const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
-const previewColumnWidths = computed(() => previewWidthState.value.widths);
-
-function hasValidDeliveryDate(order: Order) {
-  if (!order.delivery_date) return false;
-  const parsed = new Date(order.delivery_date);
-  return !Number.isNaN(parsed.getTime());
-}
-
-function confirmProceedWhenDeliveryDateMissing(order: Order) {
-  if (hasValidDeliveryDate(order)) return true;
-  return window.confirm('当前订单未设置交货日期，是否继续打印/导出 PDF？');
-}
-
-async function createSnapshot() {
-  if (!props.order) return '';
-
-  snapshotLoading.value = true;
-
-  try {
-    const payload = {
-      poNumber: props.order.order_no,
-      category: props.order.category || '',
-      printMode: printMode.value,
-      order: props.order,
-    };
-
-    const result = await api.post<any>('/print/snapshots', payload);
-    const id = String(result?.snapshotId || '').trim();
-    if (!id) {
-      throw new Error('快照创建失败');
-    }
-
-    snapshotId.value = id;
-    return id;
-  } catch (error: any) {
-    snapshotId.value = '';
-    throw error;
-  } finally {
-    snapshotLoading.value = false;
-  }
-}
-
-async function ensureSnapshot() {
-  if (snapshotId.value) return snapshotId.value;
-  return await createSnapshot();
-}
-
-const handlePrint = async () => {
-  if (!props.order) return;
-  if (!confirmProceedWhenDeliveryDateMissing(props.order)) return;
-
-  try {
-    const id = await ensureSnapshot();
-    window.open(
-      `/print-document?snapshotId=${encodeURIComponent(id)}&printMode=${printMode.value}&autoPrint=1&t=${Date.now()}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
-  } catch (error) {
-    console.error('Open print window failed', error);
-    toast({
-      title: '打印失败',
-      description: '无法生成打印预览',
-      variant: 'destructive'
-    });
-  }
-};
-
-const handleExportPdf = async () => {
-  if (!props.order) return;
-  if (!confirmProceedWhenDeliveryDateMissing(props.order)) return;
-
-  exportingPdf.value = true;
-  try {
-    const id = await ensureSnapshot();
-    await api.downloadPDF('/pdf/generate', {
-      poNumber: props.order.order_no,
-      snapshotId: id,
-      printMode: printMode.value,
-    }, `${props.order.order_no}.pdf`);
-
-    toast({
-      title: '导出成功',
-      description: `已导出 ${props.order.order_no}.pdf`,
-      variant: 'success'
-    });
-  } catch (error) {
-    console.error('Export PDF failed', error);
-    toast({
-      title: '导出失败',
-      description: '请稍后重试',
-      variant: 'destructive'
-    });
-  } finally {
-    exportingPdf.value = false;
-  }
-};
-
-const handlePrintModeChange = (mode: PrintMode) => {
-  if (printMode.value === mode) return;
-  printMode.value = mode;
-};
 
 const handleClose = () => {
   emit('update:open', false);
@@ -192,14 +50,6 @@ const handleEdit = () => {
   if (!props.order) return;
   emit('edit', props.order);
 };
-
-watch(
-  () => [props.open, props.order],
-  () => {
-    snapshotId.value = '';
-  },
-  { deep: true }
-);
 </script>
 
 <template>

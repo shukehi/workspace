@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { createRowId, decodeIssuePathKey } from '@/features/config-editor/utils/mappingIssueUtils';
-import { configLoader } from '@/services/configLoader';
+import { refreshPackagingRuntime } from '@/services/configRuntime';
 import { adaptPackagingMapping, normalizePackagingMappingKey, validatePackagingMapping } from '@/services/mappings';
 import type { PackagingMappingConfig } from '@/types/mapping';
 import { useToastStore } from '@/stores/useToastStore';
@@ -208,6 +208,7 @@ function resetWithPayload(data: PackagingMappingConfig) {
 
 const editor = useMappingConfigEditor<PackagingMappingConfig>({
   endpoint: '/config/packaging',
+  workflowProfileCode: 'packaging',
   loadErrorDescription: '无法读取包装映射配置',
   saveSuccessDescription: '包装映射已更新',
   getPayload: () => payload.value,
@@ -215,7 +216,7 @@ const editor = useMappingConfigEditor<PackagingMappingConfig>({
   validatePayload: validatePackagingMapping,
   adaptPayload: (value) => adaptPackagingMapping(value),
   resetWithPayload,
-  refreshRuntime: () => configLoader.refreshPackagingMapping(),
+  refreshRuntime: refreshPackagingRuntime,
   scrollToFirstIssue
 });
 

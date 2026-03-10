@@ -1,5 +1,8 @@
 # Chat Conversation
 
+> 状态：历史讨论记录。
+> 本文档是聊天内容导出，不是正式需求规格。若需要当前功能定位说明，建议整理为正式的领域文档后再作为现行依据。
+
 Note: _This is purely the output of the chat conversation and does not contain any raw data, codebase snippets, etc. used to generate the output._
 
 ### User Input

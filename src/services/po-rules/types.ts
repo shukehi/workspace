@@ -1,5 +1,6 @@
 import type { OrderItem } from '@/types/order';
 import type { PackagingMappingConfig } from '@/types/mapping';
+import type { PackagingConfigReader } from '@/services/packagingConfig';
 
 export interface SupplierGroup {
   supplierName: string;
@@ -18,10 +19,6 @@ export interface PackagingMatcherPort {
   consumeUnmatchedSummary: (limit?: number) => Array<{ name: string; count: number }>;
 }
 
-export interface ConfigLoaderPort {
-  getPackagingMapping: () => PackagingMappingConfig;
-}
-
 export interface SourceStorePort {
   currentOrder: any;
   materialRequirements: any;
@@ -31,7 +28,7 @@ export interface SourceStorePort {
 export interface RuleContext {
   sourceStore: SourceStorePort;
   packagingMatcher: PackagingMatcherPort;
-  configLoader: ConfigLoaderPort;
+  packagingConfig: PackagingConfigReader;
 }
 
 export interface RuleBuildResult {

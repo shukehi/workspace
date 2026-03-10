@@ -27,6 +27,10 @@
 
 ## Checklist
 
-- [ ] Followed `docs/ENGINEERING_CONVENTIONS.md`
+- [ ] Followed `docs/governance/ENGINEERING_CONVENTIONS.md`
+- [ ] Followed `docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md`
+- [ ] New code does not depend on legacy `/api/config/*` compatibility routes unless explicitly justified
+- [ ] Page/store boundaries remain clear; no new "big page" or "big store" introduced
+- [ ] Fallback logic stays inside repository/facade layers, not in pages/components
 - [ ] Updated docs if behavior/contract changed
 - [ ] Added/updated tests or explained why not needed

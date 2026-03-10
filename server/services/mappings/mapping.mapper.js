@@ -40,8 +40,28 @@ function toDetail(profile, options = {}) {
     };
 }
 
+function toAuditLog(log) {
+    let meta = {};
+    try {
+        meta = log.meta_json ? JSON.parse(log.meta_json) : {};
+    } catch {
+        meta = {};
+    }
+
+    return {
+        id: log.id,
+        action: log.action,
+        fromRevision: log.from_revision,
+        toRevision: log.to_revision,
+        operator: log.operator,
+        meta,
+        createdAt: log.created_at
+    };
+}
+
 module.exports = {
     toSummary,
     toRevisionMeta,
-    toDetail
+    toDetail,
+    toAuditLog
 };

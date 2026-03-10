@@ -108,6 +108,17 @@ test('mapping routes: detail, draft update, publish, rollback and revisions work
   assert.equal(published.revision.revision, 3);
   assert.equal(published.revision.state, 'published');
 
+  const publishedRes = await fetch(`${baseUrl}/api/config/mappings/${PROFILE_CODES.PACKAGING}/published`);
+  assert.equal(publishedRes.status, 200);
+  const publishedPayload = await publishedRes.json();
+  assert.deepEqual(publishedPayload, {
+    supplierName: '方亮包装',
+    mappings: {
+      包装A: '外协包装A',
+      包装B: '外协包装B',
+    },
+  });
+
   const rollbackRes = await fetch(`${baseUrl}/api/config/mappings/${PROFILE_CODES.PACKAGING}/rollback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-operator': 'route-tester' },
@@ -134,6 +145,15 @@ test('mapping routes: detail, draft update, publish, rollback and revisions work
       [2, 'archived'],
       [1, 'archived'],
     ],
+  );
+
+  const auditLogsRes = await fetch(`${baseUrl}/api/config/mappings/${PROFILE_CODES.PACKAGING}/audit-logs`);
+  assert.equal(auditLogsRes.status, 200);
+  const auditLogs = await auditLogsRes.json();
+  assert.equal(auditLogs.success, true);
+  assert.deepEqual(
+    auditLogs.items.map((item) => item.action),
+    ['rollback', 'publish', 'update_draft', 'create_draft'],
   );
 });
 
