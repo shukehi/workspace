@@ -111,19 +111,41 @@ ERP 输入：
 
 - `/src/services/poGenerator.ts`
 
-## 4. Known Anti-Patterns
+## 4. Header Display Contract
+
+订单头部的 `customer_name` 需要区分“存储值”和“显示值”：
+
+- 存储值：始终保存完整客户名称，例如 `外贸马其顿Orient（三部）`
+- 编辑模式：显示完整客户名称
+- 预览模式：显示完整客户名称
+- 打印和导出 PDF：若客户名称包含销售部门括号，则只显示括号中的部门，例如 `三部`
+
+说明：
+
+- 打印格式化只影响展示，不得回写或覆盖订单存储中的 `metadata.customer_name`
+- 预览/编辑与打印/PDF 的显示规则不同，修改客户名称展示时必须分别检查
+
+当前实现位置：
+
+- 完整名称展示：`/src/components/procurement/OrderSheetView.vue`
+- 打印/PDF 部门提取：`/src/features/procurement/customerName.ts`
+- 打印页入口：`/src/views/PrintDocument.vue`
+
+## 5. Known Anti-Patterns
 
 - 把包装映射 `mappings[bz]` 当供应商使用（错误）
 - 锁芯/锁叉只写 `name/model` 不写 `type/spec/eccentricity`
 - 预览层通过 `remark` 反解析结构化数据
+- 把打印/PDF 的客户名称脱敏规则错误应用到预览或编辑模式
 - Mock 返回结构和真实后端不一致
 
-## 5. Change Checklist
+## 6. Change Checklist
 
 修改任何 PO 字段前，必须同时检查：
 
 1. 提取层（`dataExtractors`）
 2. 生成层（`poGenerator`）
 3. 存储类型（`types/order.ts`）
-4. 预览层（`printPreviewGenerator`）
-5. Mock 契约（`src/lib/mock.ts`）
+4. 预览/编辑层（`OrderSheetView`）
+5. 打印/PDF 层（`PrintDocument` / `printDocBuilder`）
+6. Mock 契约（`src/lib/mock.ts`）
