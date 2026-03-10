@@ -275,6 +275,12 @@ review 时应优先拦截：
 3. 页面直接访问 legacy 接口
 4. 兼容层新增特殊语义
 
+补充检查：
+
+1. 新增文档是否放到了正确目录
+2. 计划、迁移、issue、草案类文档是否补了状态说明
+3. 是否明确了当前应以哪份文档为准
+
 ## 11. 当前默认建议
 
 如果后续继续新增功能，默认按下面方式放置：
@@ -290,5 +296,6 @@ review 时应优先拦截：
 ## 12. 关联文档
 
 - [前后端开发规范（强约束版）](/Users/aries/Dve/workspace/docs/governance/ENGINEERING_CONVENTIONS.md)
+- [文档状态标注规范](/Users/aries/Dve/workspace/docs/governance/DOCUMENT_STATUS_CONVENTIONS.md)
 - [Legacy 配置接口退场策略（2026-03-10）](/Users/aries/Dve/workspace/docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
 - [Source/配置重构阶段性总结（2026-03-10）](/Users/aries/Dve/workspace/docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)

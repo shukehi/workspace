@@ -29,6 +29,7 @@
 
 - [ ] 如果改动了真源、边界或接入方式，是否同步更新规范或阶段总结文档
 - [ ] 如果是迁移/兼容改动，是否记录了迁移顺序或退场策略
+- [ ] 如果新增了计划、迁移、issue 或草案文档，是否补了状态说明并放到正确目录
 
 ## 6. 合并前自问
 
@@ -39,5 +40,6 @@
 ## 关联文档
 
 - [功能开发与配置接入规范](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
+- [文档状态标注规范](/Users/aries/Dve/workspace/docs/governance/DOCUMENT_STATUS_CONVENTIONS.md)
 - [Legacy 配置接口退场策略](/Users/aries/Dve/workspace/docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
 - [Source/配置重构阶段性总结](/Users/aries/Dve/workspace/docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)

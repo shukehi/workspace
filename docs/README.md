@@ -10,6 +10,7 @@
 - [FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
 - [PR_FEATURE_CHECKLIST_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/PR_FEATURE_CHECKLIST_2026-03-10.md)
 - [LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
+- [DOCUMENT_STATUS_CONVENTIONS.md](/Users/aries/Dve/workspace/docs/governance/DOCUMENT_STATUS_CONVENTIONS.md)
 - [CSS_GOVERNANCE_CHECKLIST.md](/Users/aries/Dve/workspace/docs/governance/CSS_GOVERNANCE_CHECKLIST.md)
 - [GIT_GUIDE.md](/Users/aries/Dve/workspace/docs/governance/GIT_GUIDE.md)
 - [STYLE_CONSTRAINTS_NEW_YORK.md](/Users/aries/Dve/workspace/docs/governance/STYLE_CONSTRAINTS_NEW_YORK.md)
