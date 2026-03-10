@@ -1,5 +1,8 @@
 # CSS Template Migration Plan (Zero Visual Change)
 
+> 状态：历史迁移计划。
+> 文中 `*.bak` 模板和兼容层清理步骤对应的是旧模板迁移阶段，保留用于追溯 CSS 治理背景，不作为当前页面改造清单。
+
 ## Goal
 Migrate legacy templates to new class names without changing layout or visual style.
 

@@ -1,5 +1,8 @@
 # Source 与配置域重构计划（2026-03-10）
 
+> 状态：该计划的大部分关键项已在 `codex/source-config-refactor` 分支落地。
+> 最新状态、已完成项与剩余工作请优先查看 `docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md`。
+
 ## 1. 目标
 
 在不改变现有业务结果的前提下，完成 Source 主链、配置加载策略、后端配置持久化边界和采购页结构的分阶段重构，使项目满足以下要求：
