@@ -10,6 +10,9 @@
 - [FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
 - [PR_FEATURE_CHECKLIST_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/PR_FEATURE_CHECKLIST_2026-03-10.md)
 - [LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
+- [CSS_GOVERNANCE_CHECKLIST.md](/Users/aries/Dve/workspace/docs/governance/CSS_GOVERNANCE_CHECKLIST.md)
+- [GIT_GUIDE.md](/Users/aries/Dve/workspace/docs/governance/GIT_GUIDE.md)
+- [STYLE_CONSTRAINTS_NEW_YORK.md](/Users/aries/Dve/workspace/docs/governance/STYLE_CONSTRAINTS_NEW_YORK.md)
 
 ## roadmaps
 
@@ -17,6 +20,10 @@
 
 - [SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md)
 - [STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md](/Users/aries/Dve/workspace/docs/roadmaps/STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md)
+- [PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md](/Users/aries/Dve/workspace/docs/roadmaps/PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md)
+- [ROOT_FILE_MIGRATION_INVENTORY_2026-03-09.md](/Users/aries/Dve/workspace/docs/roadmaps/ROOT_FILE_MIGRATION_INVENTORY_2026-03-09.md)
+- [OPTIMIZATION_PLAN_2026-03-03.md](/Users/aries/Dve/workspace/docs/roadmaps/OPTIMIZATION_PLAN_2026-03-03.md)
+- [CSS_TEMPLATE_MIGRATION_PLAN.md](/Users/aries/Dve/workspace/docs/roadmaps/CSS_TEMPLATE_MIGRATION_PLAN.md)
 
 ## progress
 
@@ -31,6 +38,15 @@
 - [PO_FIELD_CONTRACT.md](/Users/aries/Dve/workspace/docs/reference/PO_FIELD_CONTRACT.md)
 - [CYLINDER_RULES.md](/Users/aries/Dve/workspace/docs/reference/CYLINDER_RULES.md)
 - [LOCK_FORK_RULES.md](/Users/aries/Dve/workspace/docs/reference/LOCK_FORK_RULES.md)
+- [api.md](/Users/aries/Dve/workspace/docs/reference/api.md)
+- [formula-management-refactor.md](/Users/aries/Dve/workspace/docs/reference/formula-management-refactor.md)
+
+## issues
+
+已记录的问题分析、缺陷背景与排查说明。
+
+- [FIX_CYLINDER_DATA_ISSUES.md](/Users/aries/Dve/workspace/docs/issues/FIX_CYLINDER_DATA_ISSUES.md)
+- [采购订单管理-布局样式问题分析.md](/Users/aries/Dve/workspace/docs/issues/采购订单管理-布局样式问题分析.md)
 
 ## archive
 
@@ -47,7 +63,12 @@
 - [VITE_REFACTOR_PLAN.md](/Users/aries/Dve/workspace/docs/archive/VITE_REFACTOR_PLAN.md)
 - [DEVELOPMENT_PLAN.md](/Users/aries/Dve/workspace/docs/archive/DEVELOPMENT_PLAN.md)
 - [troubleshooting.md](/Users/aries/Dve/workspace/docs/archive/troubleshooting.md)
+- [LEGACY_PUBLIC_JS_CLEANUP_PLAN.md](/Users/aries/Dve/workspace/docs/archive/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md)
+- [VITE_SHADCN_REFACTOR_PLAN.md](/Users/aries/Dve/workspace/docs/archive/VITE_SHADCN_REFACTOR_PLAN.md)
+- [implementation_plan_c.md](/Users/aries/Dve/workspace/docs/archive/implementation_plan_c.md)
+- [refactoring-materials-tab.md](/Users/aries/Dve/workspace/docs/archive/refactoring-materials-tab.md)
+- [store-materials-implementation.md](/Users/aries/Dve/workspace/docs/archive/store-materials-implementation.md)
 
 ## other docs
 
-其余仍位于 `docs/` 根目录或子目录下的文件，暂时保留原位，后续按主题逐步归档，不在本次整理中一次性迁移。
+其余仍位于 `docs/` 其他子目录下的文件，后续按主题逐步整理；根目录现在只保留索引入口。
