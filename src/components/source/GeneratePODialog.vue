@@ -24,9 +24,9 @@ const props = defineProps<{
 
 const open = ref(false);
 const mergeConfirmOpen = ref(false);
-const generator = new POGenerator();
 const procurementStore = useProcurementStore();
 const sourceStore = useSourceStore();
+const generator = new POGenerator({ sourceStore });
 const router = useRouter();
 
 const proposals = ref<any[]>([]);

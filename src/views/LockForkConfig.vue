@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { createRowId, decodeIssuePathKey, scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
-import { configLoader } from '@/services/configLoader';
+import { refreshLockForkRuntime } from '@/services/configRuntime';
 import { adaptLockForkMapping, validateLockForkMapping } from '@/services/mappings';
 import type {
   LockForkBaseDimensionRule,
@@ -506,7 +506,7 @@ const editor = useMappingConfigEditor<LockForkMappingConfig>({
   validatePayload: validateLockForkMapping,
   adaptPayload: (value) => adaptLockForkMapping(value),
   resetWithPayload,
-  refreshRuntime: () => configLoader.refreshLockForkMapping(),
+  refreshRuntime: refreshLockForkRuntime,
   scrollToFirstIssue
 });
 

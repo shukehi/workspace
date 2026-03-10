@@ -1,6 +1,5 @@
 
 import { DataNormalizer } from '@/lib/erp-engine/dataNormalizer';
-import { api } from '@/lib/api';
 import {
     adaptCylinderMapping,
     adaptHandleMapping,
@@ -11,6 +10,12 @@ import {
     EMPTY_LOCK_FORK_MAPPING,
     EMPTY_PACKAGING_MAPPING,
 } from '@/services/mappings';
+import {
+    createDefaultConfigRepository,
+    type ConfigRepository,
+    type ConfigSource,
+    type MappingKind,
+} from '@/services/configRepository';
 import type { CylinderMappingConfig, HandleMappingConfig, LockForkMappingConfig, PackagingMappingConfig } from '@/types/mapping';
 
 // Types for our configuration data
@@ -22,11 +27,28 @@ export interface ColorFormulas {
     [key: string]: any;
 }
 
+export interface ConfigLoadSources {
+    materials: ConfigSource;
+    formulas: ConfigSource;
+    cylinder: ConfigSource;
+    lockFork: ConfigSource;
+    packaging: ConfigSource;
+    handle: ConfigSource;
+}
+
 export class ConfigLoaderService {
     private componentsMap: Record<string, any> = {};
     private materialCatalog: MaterialCatalog = {};
     private colorFormulas: ColorFormulas = {};
     private isLoaded = false;
+    private loadSources: ConfigLoadSources = {
+        materials: 'empty',
+        formulas: 'empty',
+        cylinder: 'empty',
+        lockFork: 'empty',
+        packaging: 'empty',
+        handle: 'empty',
+    };
 
 
     // New Configs
@@ -34,6 +56,8 @@ export class ConfigLoaderService {
     private lockForkMapping: LockForkMappingConfig = EMPTY_LOCK_FORK_MAPPING;
     private packagingMapping: PackagingMappingConfig = EMPTY_PACKAGING_MAPPING;
     private handleMapping: HandleMappingConfig = EMPTY_HANDLE_MAPPING;
+
+    constructor(private readonly repository: ConfigRepository = createDefaultConfigRepository()) {}
 
     async loadAll() {
         if (this.isLoaded) return;
@@ -60,44 +84,19 @@ export class ConfigLoaderService {
     }
 
     async loadMaterials() {
-        const apiPayload = await this.fetchJson('/api/config/materials');
-        if (apiPayload !== null) {
-            this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(apiPayload);
-            return;
-        }
-
-        const raw = await this.fetchJson('/data/materials-catalog.json');
-        if (raw === null) throw new Error('Failed to load materials catalog');
-        this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(raw);
+        const result = await this.repository.readMaterials();
+        this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(result.payload as MaterialCatalog);
+        this.loadSources.materials = result.source;
     }
 
-    async loadFormulasFromApi() {
-        const formulas = await api.get<Record<string, any>>('/config/formulas/published-map');
-        this.colorFormulas = formulas && typeof formulas === 'object' ? formulas : {};
+    async loadFormulasFromRepository() {
+        const result = await this.repository.readFormulas();
+        this.colorFormulas = result.payload && typeof result.payload === 'object' ? result.payload : {};
+        this.loadSources.formulas = result.source;
     }
 
     async loadFormulas() {
-        await this.loadFormulasFromApi();
-    }
-
-    async refreshFormulas() {
-        try {
-            await this.loadFormulasFromApi();
-        } catch (e) {
-            // Keep existing in-memory formulas as fallback.
-            console.warn('⚠️ refreshFormulas failed, continue with cached formulas', e);
-        }
-    }
-
-    private async fetchJson(url: string) {
-        try {
-            const res = await fetch(url);
-            if (!res.ok) return null;
-            return await res.json();
-        } catch (error) {
-            console.warn(`⚠️ fetchJson failed for ${url}`, error);
-            return null;
-        }
+        await this.loadFormulasFromRepository();
     }
 
     private applyRuntimeMapping(kind: 'packaging' | 'cylinder' | 'lockFork' | 'handle', payload: unknown) {
@@ -116,59 +115,40 @@ export class ConfigLoaderService {
         this.lockForkMapping = adaptLockForkMapping(payload);
     }
 
-    private async loadStaticRuntimeMapping(kind: 'cylinder' | 'lockFork' | 'handle', url: string, warningMessage: string) {
-        const payload = await this.fetchJson(url);
-        if (payload === null) {
-            console.warn(warningMessage);
+    private async loadMapping(kind: MappingKind) {
+        const result = await this.repository.readMapping(kind);
+        this.loadSources[kind] = result.source;
+        if (result.payload === null) {
+            console.warn(`⚠️ load${kind}Mapping failed`);
             return;
         }
-        this.applyRuntimeMapping(kind, payload);
+        this.applyRuntimeMapping(kind, result.payload);
     }
 
     async loadCylinderMapping() {
-        const apiPayload = await this.fetchJson('/api/config/cylinder');
-        if (apiPayload !== null) {
-            this.applyRuntimeMapping('cylinder', apiPayload);
-            return;
-        }
-
-        await this.loadStaticRuntimeMapping('cylinder', '/data/cylinder-mapping.json', '⚠️ loadCylinderMapping failed');
+        await this.loadMapping('cylinder');
     }
 
     async loadLockForkMapping() {
-        const apiPayload = await this.fetchJson('/api/config/lock-fork');
-        if (apiPayload !== null) {
-            this.applyRuntimeMapping('lockFork', apiPayload);
-            return;
-        }
-
-        await this.loadStaticRuntimeMapping('lockFork', '/data/lock-fork-mapping.json', '⚠️ loadLockForkMapping failed');
+        await this.loadMapping('lockFork');
     }
 
     async loadPackagingMapping() {
-        const apiPayload = await this.fetchJson('/api/config/packaging');
-        if (apiPayload !== null) {
-            this.applyRuntimeMapping('packaging', apiPayload);
-            return;
-        }
-
-        // One-time fallback to static file for environments where config API is unavailable.
-        const staticPayload = await this.fetchJson('/data/packaging-mapping.json');
-        if (staticPayload === null) {
-            console.warn('⚠️ loadPackagingMapping failed');
-            return;
-        }
-        this.applyRuntimeMapping('packaging', staticPayload);
+        await this.loadMapping('packaging');
     }
 
     async loadHandleMapping() {
-        const apiPayload = await this.fetchJson('/api/config/handle');
-        if (apiPayload !== null) {
-            this.applyRuntimeMapping('handle', apiPayload);
-            return;
-        }
+        await this.loadMapping('handle');
+    }
 
-        await this.loadStaticRuntimeMapping('handle', '/data/handle-mapping.json', '⚠️ loadHandleMapping failed');
+    async refreshFormulas() {
+        try {
+            await this.loadFormulasFromRepository();
+        } catch (e) {
+            // Keep existing in-memory formulas as fallback.
+            this.loadSources.formulas = 'memory';
+            console.warn('⚠️ refreshFormulas failed, continue with cached formulas', e);
+        }
     }
 
     async refreshPackagingMapping() {
@@ -193,6 +173,7 @@ export class ConfigLoaderService {
     getLockForkMapping() { return this.lockForkMapping; }
     getPackagingMapping() { return this.packagingMapping; }
     getHandleMapping() { return this.handleMapping; }
+    getLoadSources() { return { ...this.loadSources }; }
 }
 
 export const configLoader = new ConfigLoaderService();

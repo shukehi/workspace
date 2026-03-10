@@ -40,7 +40,7 @@ function createDeps(): RuleContext {
         },
       },
     },
-    configLoader: {
+    packagingConfig: {
       getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: { 包装A: '外协包装A' } }),
     },
     packagingMatcher: {

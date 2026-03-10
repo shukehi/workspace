@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import type { Order, OrderItem } from '@/types/order';
 import { packagingMatcher } from '@/lib/packagingMatcher';
-import { configLoader } from '@/services/configLoader';
+import { getPackagingMapping } from '@/services/packagingConfig';
 import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
@@ -137,6 +137,7 @@ function createEmptyItem(category: PrintCategory): OrderItem {
 
 function createEmptyOrderDraft(categoryRaw = '包装'): Order {
   const category = normalizePrintCategory(categoryRaw);
+  const packagingMapping = getPackagingMapping();
   const categoryMap: Record<PrintCategory, string> = {
     packaging: '包装',
     cylinder: '锁芯',
@@ -148,7 +149,7 @@ function createEmptyOrderDraft(categoryRaw = '包装'): Order {
   const draft: Order = {
     id: 0,
     order_no: buildManualOrderNo(),
-    supplier: category === 'packaging' ? (configLoader.getPackagingMapping()?.supplierName || '') : '',
+    supplier: category === 'packaging' ? (packagingMapping?.supplierName || '') : '',
     category: categoryMap[category],
     items: [createEmptyItem(category)],
     total_amount: 0,
@@ -165,7 +166,7 @@ function createEmptyOrderDraft(categoryRaw = '包装'): Order {
   };
 
   if (category === 'packaging') {
-    const names = resolvePackagingHeaderNames(draft, configLoader.getPackagingMapping(), packagingMatcher);
+    const names = resolvePackagingHeaderNames(draft, packagingMapping, packagingMatcher);
     draft.metadata!.internal_name = names.internalName;
     draft.metadata!.external_name = names.externalName;
   }
@@ -177,18 +178,18 @@ function applyPackagingHeaderNames(target: Order) {
   const isPackagingOrder = target.category && String(target.category).includes('包装');
   if (!isPackagingOrder) return;
   if (!target.metadata) target.metadata = {};
+  const packagingMapping = getPackagingMapping();
 
   const names = resolvePackagingHeaderNames(
     target,
-    configLoader.getPackagingMapping(),
+    packagingMapping,
     packagingMatcher
   );
   target.metadata.internal_name = names.internalName;
   target.metadata.external_name = names.externalName;
 
   if (!target.supplier) {
-    const packagingConfig = configLoader.getPackagingMapping();
-    target.supplier = packagingConfig?.supplierName || '默认供应商';
+    target.supplier = packagingMapping?.supplierName || '默认供应商';
   }
 }
 

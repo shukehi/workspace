@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { createRowId, scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
-import { configLoader } from '@/services/configLoader';
+import { refreshHandleRuntime } from '@/services/configRuntime';
 import { adaptHandleMapping, validateHandleMapping } from '@/services/mappings';
 import type { HandleMappingConfig } from '@/types/mapping';
 
@@ -194,7 +194,7 @@ const editor = useMappingConfigEditor<HandleMappingConfig>({
   validatePayload: validateHandleMapping,
   adaptPayload: (value) => adaptHandleMapping(value),
   resetWithPayload,
-  refreshRuntime: () => configLoader.refreshHandleMapping(),
+  refreshRuntime: refreshHandleRuntime,
   scrollToFirstIssue
 });
 

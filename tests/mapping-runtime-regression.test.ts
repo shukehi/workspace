@@ -104,7 +104,7 @@ test('mapping runtime regression: real order sample 202408120023 keeps current e
         materialRequirements: null,
         hardwareRequirements,
       },
-      configLoader: {
+      packagingConfig: {
         getPackagingMapping: () => packagingMapping,
       },
       packagingMatcher: {

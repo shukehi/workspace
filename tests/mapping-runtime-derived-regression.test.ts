@@ -111,7 +111,7 @@ test('mapping runtime regression: derived edge cases from real order keep curren
           materialRequirements: null,
           hardwareRequirements,
         },
-        configLoader: {
+        packagingConfig: {
           getPackagingMapping: () => packagingMapping,
         },
         packagingMatcher: {

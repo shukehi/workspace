@@ -10,7 +10,7 @@ function createCtx(overrides: Partial<RuleContext> = {}): RuleContext {
       materialRequirements: null,
       hardwareRequirements: null,
     },
-    configLoader: {
+    packagingConfig: {
       getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: {} }),
     },
     packagingMatcher: {
@@ -43,7 +43,7 @@ test('packaging rule: merge=true builds rows from aggregated packaging requireme
         },
       },
     },
-    configLoader: {
+    packagingConfig: {
       getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: { '3层黄卡美+C单瓦纸箱': '美+C单瓦' } }),
     },
   });
@@ -107,7 +107,7 @@ test('packaging rule: merge=false maps qty pair and falls back to matcher', () =
       materialRequirements: null,
       hardwareRequirements: null,
     },
-    configLoader: {
+    packagingConfig: {
       getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: {} }),
     },
     packagingMatcher: {

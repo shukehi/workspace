@@ -38,7 +38,7 @@ function resolvePackagingNames(
 export function buildPackagingGroups(ctx: RuleContext, options?: BuildOptions): SupplierGroup[] {
   const mergeSameSpec = options?.mergeSameSpec ?? true;
   const groups: Record<string, SupplierGroup> = {};
-  const packagingMapping = adaptPackagingMapping(ctx.configLoader.getPackagingMapping());
+  const packagingMapping = adaptPackagingMapping(ctx.packagingConfig.getPackagingMapping());
   const mappings = packagingMapping.mappings;
   const fallbackSupplier = packagingMapping.supplierName || '方亮包装';
 
