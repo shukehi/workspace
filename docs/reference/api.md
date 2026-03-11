@@ -46,6 +46,7 @@ http://47.98.198.45:8802/getOutContractDetail
 
 - 自动生成采购单在 `POST /api/orders` 时会做数据库级幂等防重
 - 防重依据是 `source_contract_code + category + supplier + normalized items`
+- 历史自动生成单会在后续 `PUT /api/orders/:id` 更新时回填幂等 key，之后同样受数据库级防重约束
 - 自动单改为 `cancelled` 时会释放幂等 key，因此允许重新生成
 - 若取消单恢复到有效状态时幂等 key 已被其他有效单占用，`PUT /api/orders/:id` 也会返回 `409`
 - `409` 响应会包含 `existingOrder`，用于前端提示用户查看已存在采购单
@@ -108,6 +109,7 @@ http://47.98.198.45:8802/getOutContractDetail
 7. 锁具配置页（`/config/lock`）保存时应走 workflow `lock` profile；`/api/config/lock` 仅作为 legacy 兼容桥接
 8. 采购管理页前端筛选按归一化类别工作，`配件 / 五金 / hardware` 会统一归类为五金配件；不要求历史订单的 `category` 存储值完全一致
 9. 采购管理页还提供纯前端风险筛选：`风险订单` 会命中待人工处理和待确认单据，`待人工处理` 只命中高风险单据；该筛选不依赖后端新增接口
+10. 采购管理页摘要卡片里的 `待处理单` 会筛选 `draft / submitted / processing`，`今日新增` 会按 `created_at` 日期筛选
 
 ## 4. 关联文档
 

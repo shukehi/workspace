@@ -182,6 +182,26 @@ class OrderService {
         );
     }
 
+    async syncActiveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }, transaction) {
+        if (!sourceContractCode || !dedupeKey || !orderId) return 0;
+        const [updated] = await OrderIdempotencyKey.update(
+            {
+                source_contract_code: sourceContractCode,
+                dedupe_key: dedupeKey,
+                active: true
+            },
+            {
+                where: { order_id: orderId, scope: 'auto_po' },
+                transaction
+            }
+        );
+
+        if (updated > 0) return updated;
+
+        await this.reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }, transaction);
+        return 1;
+    }
+
     async getAllOrders(category) {
         const where = {};
         if (typeof category === 'string' && category.trim()) {
@@ -400,17 +420,11 @@ class OrderService {
                 if (nextStatus === 'cancelled') {
                     await this.releaseIdempotencyKeys(id, transaction);
                 } else if (statusTransition !== 'cancelled->draft' && statusTransition !== 'cancelled->submitted' && statusTransition !== 'cancelled->processing' && statusTransition !== 'cancelled->completed') {
-                    await OrderIdempotencyKey.update(
-                        {
-                            source_contract_code: nextSourceContractCode,
-                            dedupe_key: nextDedupeKey,
-                            active: true
-                        },
-                        {
-                            where: { order_id: id, scope: 'auto_po' },
-                            transaction
-                        }
-                    );
+                    await this.syncActiveIdempotencyKey({
+                        sourceContractCode: nextSourceContractCode,
+                        dedupeKey: nextDedupeKey,
+                        orderId: id
+                    }, transaction);
                 }
             }
 

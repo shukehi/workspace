@@ -15,7 +15,7 @@ type ProcurementStoreLike = {
   sortedOrders: Order[];
 };
 
-type StatusFilter = 'ALL' | Order['status'];
+type StatusFilter = 'ALL' | 'PENDING' | Order['status'];
 
 const STATUS_OPTIONS: Array<{ id: StatusFilter; label: string }> = [
   { id: 'ALL', label: '全部订单' },
@@ -30,6 +30,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   const activeStatus = ref<StatusFilter>('ALL');
   const activeCategory = ref<'ALL' | PrintCategory>('ALL');
   const activeRiskFilter = ref<OrderRiskFilter>('ALL');
+  const activeCreatedDate = ref('');
   const searchQuery = ref('');
   const debouncedSearchQuery = refDebounced(searchQuery, 300);
   const selectedRows = ref<Order[]>([]);
@@ -87,13 +88,20 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   const filteredOrders = computed(() => {
     let list = store.sortedOrders;
     if (activeStatus.value !== 'ALL') {
-      list = list.filter((order) => order.status === activeStatus.value);
+      if (activeStatus.value === 'PENDING') {
+        list = list.filter((order) => ['draft', 'submitted', 'processing'].includes(order.status));
+      } else {
+        list = list.filter((order) => order.status === activeStatus.value);
+      }
     }
     if (activeCategory.value !== 'ALL') {
       list = list.filter((order) => normalizePrintCategory(order.category) === activeCategory.value);
     }
     if (activeRiskFilter.value !== 'ALL') {
       list = list.filter((order) => matchesOrderRiskFilter(order, activeRiskFilter.value));
+    }
+    if (activeCreatedDate.value) {
+      list = list.filter((order) => String(order.created_at || '').startsWith(activeCreatedDate.value));
     }
     if (debouncedSearchQuery.value) {
       const query = debouncedSearchQuery.value.toLowerCase();
@@ -118,6 +126,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     return activeStatus.value !== 'ALL'
       || activeCategory.value !== 'ALL'
       || activeRiskFilter.value !== 'ALL'
+      || activeCreatedDate.value.length > 0
       || searchQuery.value.trim().length > 0;
   });
 
@@ -125,6 +134,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     activeStatus.value = 'ALL';
     activeCategory.value = 'ALL';
     activeRiskFilter.value = 'ALL';
+    activeCreatedDate.value = '';
     searchQuery.value = '';
   }
 
@@ -132,11 +142,13 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     status?: StatusFilter;
     category?: 'ALL' | PrintCategory;
     risk?: OrderRiskFilter;
+    createdDate?: string;
     search?: string;
   }) {
     if (preset.status !== undefined) activeStatus.value = preset.status;
     if (preset.category !== undefined) activeCategory.value = preset.category;
     if (preset.risk !== undefined) activeRiskFilter.value = preset.risk;
+    if (preset.createdDate !== undefined) activeCreatedDate.value = preset.createdDate;
     if (preset.search !== undefined) searchQuery.value = preset.search;
   }
 
@@ -152,6 +164,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     activeStatus,
     activeCategory,
     activeRiskFilter,
+    activeCreatedDate,
     searchQuery,
     selectedRows,
     summaryStats,

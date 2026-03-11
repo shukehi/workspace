@@ -287,6 +287,42 @@ test('OrderService persists source_contract_code from metadata and ignores clien
   assert.equal(updated.remark, '重新备注');
 });
 
+test('OrderService backfills idempotency key for legacy auto orders on update', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await Order.create({
+    order_no: uniqueOrderNo('LEGACY-AUTO'),
+    supplier: '汇成',
+    source_contract_code: 'CT-LEGACY-001',
+    dedupe_key: 'legacy-key-1',
+    category: '锁具',
+    status: 'draft',
+    remark: '',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-LEGACY-001',
+    },
+    created_at: '2026-03-11T13:00:00.000Z',
+  });
+  await OrderItem.create({
+    order_id: created.id,
+    supplier: '汇成',
+    name: '智能锁体A',
+    type: '智能锁体A',
+    model: '主锁',
+    spec: '主锁',
+    quantity: 2,
+    unit: '把',
+  });
+
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id } }), 0);
+
+  const updated = await orderService.updateOrder(created.id, { remark: '补建幂等键' });
+  assert.equal(updated.remark, '补建幂等键');
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id, active: true } }), 1);
+});
+
 test('OrderService does not dedupe manual orders without source contract code', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });

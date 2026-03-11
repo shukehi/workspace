@@ -57,15 +57,12 @@ const {
 const handleSummaryFilter = (type: 'pending' | 'today' | 'completed' | 'total') => {
   resetFilters();
   if (type === 'pending') {
-    // Note: We don't have a single status for 'pending', so we might just reset to ALL
-    // or we could add a special filter for 'pending'.
-    // For now, let's keep it simple and just show how it would work.
-    // In a real scenario, we might set activeStatus to something if it was a single status.
+    setFilterPreset({ status: 'PENDING' });
   } else if (type === 'completed') {
     setFilterPreset({ status: 'completed' });
   } else if (type === 'today') {
     const today = new Date().toISOString().split('T')[0];
-    setFilterPreset({ search: today }); // Rough way to filter by today if search includes date
+    setFilterPreset({ createdDate: today });
   }
 };
 

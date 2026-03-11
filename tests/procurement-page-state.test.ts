@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { useProcurementPageState } from '../src/features/procurement/useProcurementPageState';
 import type { Order } from '../src/types/order';
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function createOrder(overrides: Partial<Order>): Order {
   return {
     id: 1,
@@ -26,7 +30,7 @@ function createOrder(overrides: Partial<Order>): Order {
   };
 }
 
-test('useProcurementPageState computes summary, filters, and empty text', () => {
+test('useProcurementPageState computes summary, filters, and empty text', async () => {
   const orders = [
     createOrder({ id: 1, order_no: 'PO-PKG-001', category: '包装', status: 'draft', total_amount: 120 }),
     createOrder({
@@ -98,6 +102,22 @@ test('useProcurementPageState computes summary, filters, and empty text', () => 
   assert.equal(state.filteredOrders.value[0].order_no, 'PO-CAN-005');
 
   state.resetFilters();
+  state.setFilterPreset({ status: 'PENDING' });
+  assert.equal(state.filteredOrders.value.length, 3);
+  assert.deepEqual(
+    state.filteredOrders.value.map((order) => order.order_no),
+    ['PO-PKG-001', 'PO-CYL-003', 'PO-HW-004']
+  );
+
+  state.resetFilters();
+  state.setFilterPreset({ createdDate: '2026-03-09' });
+  assert.equal(state.filteredOrders.value.length, 5);
+
+  state.resetFilters();
+  state.setFilterPreset({ createdDate: '2026-03-10' });
+  assert.equal(state.filteredOrders.value.length, 0);
+
+  state.resetFilters();
   state.activeCategory.value = 'lock';
   assert.equal(state.filteredOrders.value.length, 1);
   assert.equal(state.filteredOrders.value[0].order_no, 'PO-LOCK-002');
@@ -119,15 +139,19 @@ test('useProcurementPageState computes summary, filters, and empty text', () => 
 
   state.activeRiskFilter.value = 'ALL';
   state.searchQuery.value = '锁芯厂';
+  await sleep(350);
   assert.equal(state.filteredOrders.value.length, 1);
   state.searchQuery.value = '不存在的供应商';
+  await sleep(350);
   assert.equal(state.filteredOrders.value.length, 0);
   assert.equal(state.tableEmptyText.value, '没有匹配到订单');
 
   state.resetFilters();
+  await sleep(350);
   assert.equal(state.activeStatus.value, 'ALL');
   assert.equal(state.activeCategory.value, 'ALL');
   assert.equal(state.activeRiskFilter.value, 'ALL');
+  assert.equal(state.activeCreatedDate.value, '');
   assert.equal(state.searchQuery.value, '');
   assert.equal(state.filteredOrders.value.length, 5);
 });
