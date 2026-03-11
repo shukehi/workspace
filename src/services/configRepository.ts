@@ -1,5 +1,5 @@
 export type ConfigSource = 'api' | 'static' | 'memory' | 'empty';
-export type MappingKind = 'packaging' | 'cylinder' | 'lockFork' | 'handle';
+export type MappingKind = 'packaging' | 'cylinder' | 'lockFork' | 'handle' | 'lock';
 
 export interface ConfigReadResult<T> {
     payload: T;
@@ -27,6 +27,7 @@ async function defaultFetchJson(url: string) {
 
 const STATIC_MAPPING_PATHS: Record<Exclude<MappingKind, 'packaging'>, string> = {
     cylinder: '/data/cylinder-mapping.json',
+    lock: '/data/lock-mapping.json',
     lockFork: '/data/lock-fork-mapping.json',
     handle: '/data/handle-mapping.json',
 };

@@ -22,6 +22,7 @@ const CONFIG_FILES = {
     colorFormulas: path.join(CONFIG_DIR, 'color-formulas.json'),
     packagingMapping: path.join(CONFIG_DIR, 'packaging-mapping.json'),
     cylinderMapping: path.join(CONFIG_DIR, 'cylinder-mapping.json'),
+    lockMapping: path.join(CONFIG_DIR, 'lock-mapping.json'),
     lockForkMapping: path.join(CONFIG_DIR, 'lock-fork-mapping.json'),
     handleMapping: path.join(CONFIG_DIR, 'handle-mapping.json'),
     procurementSettings: path.join(CONFIG_DIR, 'procurement-settings.json'),

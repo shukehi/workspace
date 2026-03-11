@@ -18,9 +18,13 @@ const { initDB, sequelize, Material } = require('../server/models');
 let server;
 let baseUrl;
 const materialsFile = CONFIG_FILES.materialsCatalog;
+const lockFile = CONFIG_FILES.lockMapping;
 const handleFile = CONFIG_FILES.handleMapping;
 const originalMaterialsFile = fs.existsSync(materialsFile)
   ? fs.readFileSync(materialsFile, 'utf8')
+  : null;
+const originalLockFile = fs.existsSync(lockFile)
+  ? fs.readFileSync(lockFile, 'utf8')
   : null;
 const originalHandleFile = fs.existsSync(handleFile)
   ? fs.readFileSync(handleFile, 'utf8')
@@ -211,6 +215,60 @@ test('legacy handle mapping endpoints seed and publish workflow revisions', asyn
   assert.deepEqual(syncedLegacyFile, putBody.data);
 });
 
+test('legacy lock mapping endpoints seed and publish workflow revisions', async () => {
+  fs.writeFileSync(lockFile, JSON.stringify({
+    defaultUnit: '套',
+    primaryLabel: '主锁',
+    secondaryLabel: '副锁',
+    mappings: {
+      'SD-9030（6607大锁）': {
+        supplier: '旧锁具供应商',
+        vendorName: '旧锁具外协名',
+        primarySpec: '主锁体'
+      },
+    },
+  }, null, 2));
+
+  const getRes = await fetch(`${baseUrl}/api/config/lock`);
+  assert.equal(getRes.status, 200);
+  const getBody = await getRes.json();
+  assert.equal(getBody.defaultUnit, '套');
+  assert.equal(getBody.mappings['SD-9030（6607大锁）'].vendorName, '旧锁具外协名');
+
+  const workflowDetail = await MappingService.getMappingDetail('lock');
+  assert.equal(workflowDetail.ok, true);
+  assert.equal(workflowDetail.mapping.publishedRevision.revision, 2);
+  assert.deepEqual(workflowDetail.mapping.publishedPayload, getBody);
+
+  const putRes = await fetch(`${baseUrl}/api/config/lock`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      defaultUnit: '套',
+      primaryLabel: '主锁',
+      secondaryLabel: '副锁',
+      mappings: {
+        'SD-9030（6607大锁）': {
+          supplier: '新锁具供应商',
+          vendorName: '新锁具外协名',
+          primarySpec: '主锁体'
+        },
+      },
+    }),
+  });
+  assert.equal(putRes.status, 200);
+  const putBody = await putRes.json();
+  assert.equal(putBody.ok, true);
+  assert.equal(putBody.revision.state, 'published');
+
+  const workflowAfterPut = await MappingService.getMappingDetail('lock');
+  assert.equal(workflowAfterPut.ok, true);
+  assert.deepEqual(workflowAfterPut.mapping.publishedPayload, putBody.data);
+
+  const syncedLegacyFile = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+  assert.deepEqual(syncedLegacyFile, putBody.data);
+});
+
 test('materials routes: legacy endpoint and workflow endpoints expose published catalog consistently', async () => {
   fs.writeFileSync(materialsFile, JSON.stringify({
     LEGACY001: {
@@ -378,6 +436,13 @@ test.after(async () => {
     }
   } else {
     fs.writeFileSync(materialsFile, originalMaterialsFile);
+  }
+  if (originalLockFile === null) {
+    if (fs.existsSync(lockFile)) {
+      fs.unlinkSync(lockFile);
+    }
+  } else {
+    fs.writeFileSync(lockFile, originalLockFile);
   }
   if (originalHandleFile === null) {
     if (fs.existsSync(handleFile)) {

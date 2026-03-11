@@ -4,7 +4,7 @@ import sharedSchema from '../src/features/procurement/procurement-schema.shared.
 import { CATEGORY_CONFIGS } from '../src/features/procurement/docModel';
 import { CATEGORY_SCHEMAS } from '../src/features/procurement/order-sheet.schema';
 
-const categories = ['packaging', 'cylinder', 'handle', 'lock', 'hardware'] as const;
+const categories = ['packaging', 'cylinder', 'handle', 'lockset', 'lock', 'hardware'] as const;
 
 test('shared procurement schema: categories and semantic widths are complete', () => {
   categories.forEach((category) => {

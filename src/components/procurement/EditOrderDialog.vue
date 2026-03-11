@@ -55,6 +55,7 @@ const currentDefaultWidths = computed(() => getDefaultWidths(currentCategory.val
 const categoryOptions: Array<{ value: string; label: string }> = [
   { value: '包装', label: '包装' },
   { value: '锁芯', label: '锁芯' },
+  { value: '锁具', label: '锁具' },
   { value: '拉手', label: '拉手' },
   { value: '锁叉', label: '锁叉' },
   { value: '配件', label: '五金/配件' },

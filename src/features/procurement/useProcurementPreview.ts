@@ -22,6 +22,7 @@ export function resolveOrderCategoryLabel(order: Order | null): string {
   const raw = String(order.category).toLowerCase();
   if (raw.includes('包装') || raw === 'packaging') return '包装';
   if (raw.includes('锁芯') || raw === 'cylinder') return '锁芯';
+  if (raw.includes('锁具') || raw === 'lockset') return '锁具';
   if (raw.includes('拉手') || raw === 'handle') return '拉手';
   if (raw.includes('锁叉') || raw === 'lock') return '锁叉';
   if (raw.includes('五金') || raw.includes('配件') || raw === 'hardware') return '五金';

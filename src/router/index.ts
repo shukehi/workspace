@@ -64,6 +64,11 @@ const router = createRouter({
                     component: () => import('@/views/CylinderConfig.vue')
                 },
                 {
+                    path: '/config/lock',
+                    name: 'config-lock',
+                    component: () => import('@/views/LockConfig.vue')
+                },
+                {
                     path: '/config/handle',
                     name: 'config-handle',
                     component: () => import('@/views/HandleConfig.vue')

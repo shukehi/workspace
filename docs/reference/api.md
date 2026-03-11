@@ -40,6 +40,14 @@ http://47.98.198.45:8802/getOutContractDetail
 
 ### Workflow 主接口
 
+当前 mapping workflow `:type` 支持：
+
+- `packaging`
+- `cylinder`
+- `lock`
+- `lock_fork`
+- `handle`
+
 - `GET /api/config/formulas`
 - `GET /api/config/formulas/published-map`
 - `GET /api/config/mappings/:type/detail`
@@ -65,6 +73,8 @@ http://47.98.198.45:8802/getOutContractDetail
 - `POST /api/config/packaging`
 - `GET /api/config/cylinder`
 - `POST /api/config/cylinder`
+- `GET /api/config/lock`
+- `PUT /api/config/lock`
 - `GET /api/config/lock-fork`
 - `POST /api/config/lock-fork`
 - `GET /api/config/handle`
@@ -78,6 +88,7 @@ http://47.98.198.45:8802/getOutContractDetail
 4. 数据库配置入口位于 `server/config/database.js`
 5. Mapping 与 materials 的前端主读取链路应优先使用 workflow `published` 接口
 6. Legacy `/api/config/*` 接口只用于兼容桥接，不应作为新功能真源
+7. 锁具配置页（`/config/lock`）保存时应走 workflow `lock` profile；`/api/config/lock` 仅作为 legacy 兼容桥接
 
 ## 4. 关联文档
 

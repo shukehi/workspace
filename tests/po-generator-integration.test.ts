@@ -23,6 +23,7 @@ function createDeps(): RuleContext {
       },
       hardwareRequirements: {
         cylinders: [{ supplier: '忠恒', type: '锁芯A', eccentricity: '34.5*55.5', quantity: 10 }],
+        locks: [{ supplier: '汇成', type: '智能锁体A', spec: '主锁', unit: '把', quantityLeft: 3, quantityRight: 5, quantity: 8, remark: '单活' }],
         handles: [{ supplier: '供应商X', type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantityLeft: 2, quantityRight: 4, quantity: 6 }],
         lockForks: [{ supplier: '应志友', type: '锁叉A', spec: '570*301 = 871', quantity: 12 }],
         packaging: {
@@ -60,6 +61,7 @@ test('po generator integration: compose groups and create selected category orde
   assert.deepEqual(proposalKeys, [
     '包装_方亮包装',
     '拉手_供应商X',
+    '锁具_汇成',
     '锁叉_应志友',
     '锁芯_忠恒',
     '颜色_原料供应商',
@@ -68,9 +70,10 @@ test('po generator integration: compose groups and create selected category orde
   const orders = generator.createOrders([
     { category: '包装', supplier: '方亮包装' },
     { category: '锁芯', supplier: '忠恒' },
+    { category: '锁具', supplier: '汇成' },
   ], { mergeSameSpec: true });
 
-  assert.equal(orders.length, 2);
+  assert.equal(orders.length, 3);
   orders.forEach((order) => {
     assert.equal(order.order_no, 'PO-CT-001');
     assert.equal(order.metadata?.customer_name, '客户A');
@@ -83,4 +86,12 @@ test('po generator integration: compose groups and create selected category orde
   assert.equal(packagingOrder!.items[0].remark, '');
   assert.equal(packagingOrder!.items[0].quantity_left, 2);
   assert.equal(packagingOrder!.items[0].quantity_right, 2);
+
+  const lockOrder = orders.find((o) => o.category === '锁具');
+  assert.ok(lockOrder);
+  assert.equal(lockOrder!.items[0].unit, '把');
+  assert.equal(lockOrder!.items[0].spec, '主锁');
+  assert.equal(lockOrder!.items[0].remark, '单活');
+  assert.equal(lockOrder!.items[0].quantity_left, 3);
+  assert.equal(lockOrder!.items[0].quantity_right, 5);
 });

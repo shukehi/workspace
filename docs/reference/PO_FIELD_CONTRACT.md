@@ -11,7 +11,7 @@
 - `spec`：规格尺寸
 - `mb`：门边
 - `eccentricity`：偏心（锁芯专用）
-- `quantity_left` / `quantity_right`：左右数量（包装专用）
+- `quantity_left` / `quantity_right`：左右数量（包装 / 拉手 / 锁具）
 - `quantity`：总数量
 
 禁止用 `remark` 承担结构化字段语义（仅允许人工备注和调试信息）。
@@ -100,6 +100,77 @@ ERP 输入：
 - 数量：`quantity`
 - 备注：`remark`
 
+### 2.4 锁具（category = `锁具`）
+
+提取层输入（extractLockData）：
+
+- `type`（产品名称）
+- `spec`（主锁/副锁规格）
+- `quantity_left`
+- `quantity_right`
+- `quantity`
+- `supplier`
+- `remark`
+
+订单项输出（OrderItem）：
+
+- `supplier`
+- `type`
+- `spec`
+- `name` = `type`
+- `model` = `spec`
+- `quantity_left`
+- `quantity_right`
+- `quantity`
+- `remark`
+
+打印预览读取：
+
+- 产品名称：`type`
+- 规格：`spec`
+- 左右数量：`quantity_left/quantity_right`
+- 备注：`remark`
+
+规则说明：
+
+- 锁具来源字段：ERP `sj / fssj`
+- 数量来源：ERP `qty`
+- 当 `spec` 第 3 段包含 `内开` 时，左右数量互换
+- `unit` 来自 `lock-mapping.json.defaultUnit`
+- `remark` 仅使用 `lock-mapping.json.mappings[*].remark`
+- 未命中型号映射时，`supplier` 固定标记为 `待人工处理`
+
+### 2.5 拉手（category = `拉手`）
+
+提取层输入（extractHandleData）：
+
+- `type`（产品名称）
+- `spec`（规格）
+- `quantity_left`
+- `quantity_right`
+- `quantity`
+- `supplier`
+- `remark`
+
+订单项输出（OrderItem）：
+
+- `supplier`
+- `type`
+- `spec`
+- `name` = `type`
+- `model` = `spec`
+- `quantity_left`
+- `quantity_right`
+- `quantity`
+- `remark`
+
+打印预览读取：
+
+- 产品名称：`type`
+- 规格：`spec`
+- 左右数量：`quantity_left/quantity_right`
+- 备注：`remark`
+
 ## 3. Validation Requirement
 
 生成订单时必须通过两层校验：
@@ -135,6 +206,9 @@ ERP 输入：
 
 - 把包装映射 `mappings[bz]` 当供应商使用（错误）
 - 锁芯/锁叉只写 `name/model` 不写 `type/spec/eccentricity`
+- 锁具已拆左右数量，却仍按单数量列读取或打印
+- 锁具左右互换规则不区分 `spec` 第 3 段，直接全文搜索“内开”
+- 锁具备注自动拼接 `主锁/副锁`、`spec` 或 `customerName`
 - 预览层通过 `remark` 反解析结构化数据
 - 把打印/PDF 的客户名称脱敏规则错误应用到预览或编辑模式
 - Mock 返回结构和真实后端不一致

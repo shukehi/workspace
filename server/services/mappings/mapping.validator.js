@@ -1,8 +1,10 @@
 const {
     adaptCylinderMapping,
     adaptHandleMapping,
+    adaptLockMapping,
     adaptLockForkMapping,
-    adaptPackagingMapping
+    adaptPackagingMapping,
+    normalizeLockMappingKey
 } = require('./mapping.adapter');
 const { PROFILE_CODE_LIST } = require('./mapping.constants');
 
@@ -53,6 +55,42 @@ function normalizeHandleMappingKey(input) {
         .replace(/[（【［]/g, '(')
         .replace(/[）】］]/g, ')')
         .replace(/\s+/g, '');
+}
+
+function validateLockMapping(value) {
+    const issues = [];
+    const adapted = adaptLockMapping(value);
+
+    if (!isPlainObject(value)) {
+        issues.push(createIssue('$', 'invalid-type', '锁具映射必须是对象'));
+        return issues;
+    }
+
+    if (asRecord(value).mappings !== undefined && !isPlainObject(asRecord(value).mappings)) {
+        issues.push(createIssue('mappings', 'invalid-type', 'mappings 必须是对象'));
+        return issues;
+    }
+
+    const mappingSeen = new Map();
+    Object.entries(adapted.mappings).forEach(([name, mapping]) => {
+        const path = `mappings[${quotePathSegment(name)}]`;
+        const normalized = normalizeLockMappingKey(name);
+        const existing = mappingSeen.get(normalized);
+        if (existing && existing !== name) {
+            issues.push(createIssue(path, 'normalized-conflict', '锁具型号存在 normalize 后冲突'));
+        } else {
+            mappingSeen.set(normalized, name);
+        }
+
+        if (!mapping.supplier) {
+            issues.push(createIssue(`${path}.supplier`, 'required', 'supplier 不能为空'));
+        }
+        if (!mapping.vendorName) {
+            issues.push(createIssue(`${path}.vendorName`, 'required', 'vendorName 不能为空'));
+        }
+    });
+
+    return issues;
 }
 
 function getPackagingMappingSource(value) {
@@ -594,6 +632,9 @@ function validateMappingPayload(profileCode, payload) {
     if (String(profileCode).trim() === 'cylinder') {
         return validateCylinderMapping(payload);
     }
+    if (String(profileCode).trim() === 'lock') {
+        return validateLockMapping(payload);
+    }
     if (String(profileCode).trim() === 'lock_fork') {
         return validateLockForkMapping(payload);
     }
@@ -614,6 +655,7 @@ module.exports = {
     validateMappingPayload,
     validatePackagingMapping,
     validateCylinderMapping,
+    validateLockMapping,
     validateLockForkMapping,
     validateHandleMapping
 };

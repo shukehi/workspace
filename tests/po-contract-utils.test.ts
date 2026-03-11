@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     createPackagingOrderItem,
     createCylinderOrderItem,
+    createLockOrderItem,
     createHandleOrderItem,
     createLockForkOrderItem,
     findMissingCategoryFields,
@@ -75,6 +76,23 @@ test('PO contract utils: cylinder/lock-fork items keep required typed fields', (
     assert.equal(handle.quantity_right, 70);
     assert.equal(handle.unit, '付');
     assert.equal(handle.quantity, 120);
+
+    const lockset = createLockOrderItem({
+        supplier: '汇成',
+        type: '6607大锁',
+        spec: '主锁体',
+        unit: '把',
+        qtyLeft: 20,
+        qtyRight: 15,
+        quantity: 35
+    });
+    assert.equal(lockset.supplier, '汇成');
+    assert.equal(lockset.type, '6607大锁');
+    assert.equal(lockset.spec, '主锁体');
+    assert.equal(lockset.quantity_left, 20);
+    assert.equal(lockset.quantity_right, 15);
+    assert.equal(lockset.unit, '把');
+    assert.equal(lockset.quantity, 35);
 });
 
 test('PO contract utils: validators detect missing category/common fields', () => {
@@ -106,6 +124,21 @@ test('PO contract utils: validators detect missing category/common fields', () =
     assert.ok(handleMissing[0].missing.includes('spec'));
     assert.ok(handleMissing[0].missing.includes('quantity_left'));
     assert.ok(handleMissing[0].missing.includes('quantity_right'));
+
+    const locksetMissing = findMissingCategoryFields('锁具', [{
+        id: 0,
+        material_id: 'l1',
+        supplier: '汇成',
+        name: '6607大锁',
+        model: '主锁体',
+        quantity: 1,
+        unit: '套'
+    } as any]);
+    assert.equal(locksetMissing.length, 1);
+    assert.ok(locksetMissing[0].missing.includes('type'));
+    assert.ok(locksetMissing[0].missing.includes('spec'));
+    assert.ok(locksetMissing[0].missing.includes('quantity_left'));
+    assert.ok(locksetMissing[0].missing.includes('quantity_right'));
 
     const commonMissing = findMissingCommonFields([
         { id: 0, material_id: 'm1', name: '', model: 'm', quantity: 1, unit: '个' } as any

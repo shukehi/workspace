@@ -4,12 +4,14 @@ const assert = require('node:assert/strict');
 const {
   adaptPackagingMapping,
   adaptCylinderMapping,
+  adaptLockMapping,
   adaptHandleMapping,
   adaptLockForkMapping,
 } = require('../server/services/mappings/mapping.adapter');
 const {
   validatePackagingMapping,
   validateCylinderMapping,
+  validateLockMapping,
   validateHandleMapping,
   validateLockForkMapping,
 } = require('../server/services/mappings/mapping.validator');
@@ -113,4 +115,27 @@ test('server mapping adapter/validator: handle defaults and required fields', ()
   assert.ok(issues.some((item) => item.path === 'unmatchedSupplier'));
   assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
   assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorName'));
+});
+
+test('server mapping adapter/validator: lock defaults and normalized conflicts', () => {
+  const lock = adaptLockMapping({
+    mappings: {
+      'SD-9030（6607大锁）': {
+        supplier: '汇成',
+        vendorName: '6607大锁'
+      }
+    }
+  });
+  assert.equal(lock.defaultUnit, '套');
+
+  const issues = validateLockMapping({
+    mappings: {
+      'SD-9030（6607大锁）': { supplier: '汇成', vendorName: '6607大锁' },
+      'SD-9030 ( 6607大锁 )': { supplier: '汇成', vendorName: '重复锁具' },
+      'F02-A副锁': { supplier: '', vendorName: '', primarySpec: '副锁体' },
+    },
+  });
+
+  assert.ok(issues.some((item) => item.path === 'mappings["SD-9030 ( 6607大锁 )"]' && item.code === 'normalized-conflict'));
+  assert.ok(issues.some((item) => item.path === 'mappings["F02-A副锁"].supplier'));
 });

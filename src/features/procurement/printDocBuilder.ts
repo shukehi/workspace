@@ -308,7 +308,7 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
     };
   }
 
-  if (category === 'lock' || category === 'handle') {
+  if (category === 'lock' || category === 'lockset' || category === 'handle') {
     const qty = resolveLeftRightQty(item);
     return {
       supplier: String(item?.supplier || source.supplier || '未分类'),
@@ -319,10 +319,12 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
       spec: String(item?.spec || item?.model || '-'),
       mb: String(item?.mb || item?.orientation || '-'),
       eccentricity: String(item?.eccentricity || '-'),
-      qtyLeft: category === 'handle' ? Number(qty.left || 0) : 0,
-      qtyRight: category === 'handle' ? Number(qty.right || 0) : 0,
-      quantity: category === 'handle' ? Number(qty.left || 0) + Number(qty.right || 0) : Number(item?.quantity || 0),
-      unit: String(item?.unit || (category === 'handle' ? '付' : '个')),
+      qtyLeft: category === 'handle' || category === 'lockset' ? Number(qty.left || 0) : 0,
+      qtyRight: category === 'handle' || category === 'lockset' ? Number(qty.right || 0) : 0,
+      quantity: category === 'handle' || category === 'lockset'
+        ? Number(qty.left || 0) + Number(qty.right || 0)
+        : Number(item?.quantity || 0),
+      unit: String(item?.unit || (category === 'handle' ? '付' : (category === 'lockset' ? '套' : '个'))),
       remark: String(item?.remark || ''),
     };
   }
@@ -399,7 +401,7 @@ function getCellValue(item: NormalizedItem, field: string, rowNumber: number, ca
 }
 
 function buildTotalRow(category: PrintCategory, fields: string[], items: NormalizedItem[]): ProcurementDocRow {
-  if (category === 'packaging' || category === 'handle') {
+  if (category === 'packaging' || category === 'handle' || category === 'lockset') {
     const totalLeft = items.reduce((sum, item) => sum + Number(item.qtyLeft || 0), 0);
     const totalRight = items.reduce((sum, item) => sum + Number(item.qtyRight || 0), 0);
     const labelColspan = category === 'packaging' ? 4 : 3;

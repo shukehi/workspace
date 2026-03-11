@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import {
   adaptCylinderMapping,
   adaptHandleMapping,
+  adaptLockMapping,
   adaptLockForkMapping,
+  validateLockMapping,
   adaptPackagingMapping,
   validateCylinderMapping,
   validateHandleMapping,
@@ -44,4 +46,13 @@ test('mapping adapter baseline: current handle mapping adapts and validates clea
 
   assert.equal(validateHandleMapping(payload).length, 0);
   assert.equal(payload.thicknessAccessoryPacks['10'], '10公分配件包');
+});
+
+test('mapping adapter baseline: current lock mapping adapts and validates cleanly', () => {
+  const raw = readJson('data/config/lock-mapping.json');
+  const payload = adaptLockMapping(raw);
+
+  assert.equal(validateLockMapping(payload).length, 0);
+  assert.equal(payload.defaultUnit, raw.defaultUnit);
+  assert.equal(payload.mappings['SD-9030（6607大锁）']?.vendorName, '6607大锁');
 });

@@ -38,6 +38,10 @@ test('config source guard: legacy config endpoints stay isolated to repository a
     ['tests/config-endpoint-source-guard.test.js', 'tests/config-loader-mapping.test.ts', 'tests/config-routes.test.js'],
   );
   assert.deepEqual(
+    rgFiles('/api/config/lock', ['src', 'tests']).sort(),
+    ['tests/config-endpoint-source-guard.test.js', 'tests/config-routes.test.js'],
+  );
+  assert.deepEqual(
     rgFiles('/api/config/handle', ['src', 'tests']).sort(),
     ['tests/config-endpoint-source-guard.test.js', 'tests/config-loader-mapping.test.ts', 'tests/config-routes.test.js'],
   );
@@ -46,6 +50,7 @@ test('config source guard: legacy config endpoints stay isolated to repository a
 test('config source guard: static JSON fallback reads stay inside configRepository', () => {
   assert.deepEqual(rgFiles('/data/packaging-mapping\\.json'), ['src/services/configRepository.ts']);
   assert.deepEqual(rgFiles('/data/cylinder-mapping\\.json'), ['src/services/configRepository.ts']);
+  assert.deepEqual(rgFiles('/data/lock-mapping\\.json'), ['src/services/configRepository.ts']);
   assert.deepEqual(rgFiles('/data/lock-fork-mapping\\.json'), ['src/services/configRepository.ts']);
   assert.deepEqual(rgFiles('/data/handle-mapping\\.json'), ['src/services/configRepository.ts']);
   assert.deepEqual(rgFiles('/data/materials-catalog\\.json'), ['src/services/configRepository.ts']);
@@ -55,6 +60,7 @@ test('config source guard: src must not add new direct dependencies on legacy co
   assert.deepEqual(rgFiles('/api/config/materials', ['src']).sort(), ['src/services/configRepository.ts']);
   assert.deepEqual(rgFiles('/api/config/packaging', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/cylinder', ['src']).sort(), []);
+  assert.deepEqual(rgFiles('/api/config/lock', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/lock-fork', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/handle', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/packaging-mapping', ['src']).sort(), []);

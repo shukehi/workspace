@@ -35,6 +35,17 @@ test('computeItemQuantitySummary: handle uses left/right and total', () => {
   assert.equal(summary.total, 10);
 });
 
+test('computeItemQuantitySummary: lockset uses left/right and total', () => {
+  const summary = computeItemQuantitySummary('lockset', [
+    { quantity_left: 6, quantity_right: 2 } as any,
+    { quantity_left: 1, quantity_right: 5 } as any,
+  ]);
+
+  assert.equal(summary.leftTotal, 7);
+  assert.equal(summary.rightTotal, 7);
+  assert.equal(summary.total, 14);
+});
+
 test('computeDocPageQuantitySummary: packaging row summary', () => {
   const summary = computeDocPageQuantitySummary({
     pageKey: 'p1',

@@ -67,6 +67,17 @@ export function createEmptyItem(category: PrintCategory): OrderItem {
     };
   }
 
+  if (category === 'lockset') {
+    return {
+      ...base,
+      type: '',
+      spec: '',
+      quantity_left: 0,
+      quantity_right: 0,
+      unit: '套',
+    };
+  }
+
   if (category === 'handle') {
     return {
       ...base,
@@ -106,6 +117,7 @@ export function createEmptyOrderDraft(categoryRaw = '包装'): Order {
     packaging: '包装',
     cylinder: '锁芯',
     handle: '拉手',
+    lockset: '锁具',
     lock: '锁叉',
     hardware: '配件',
   };

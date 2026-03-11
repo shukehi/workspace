@@ -11,12 +11,14 @@ const MappingService = require('../services/mappings');
 const {
     adaptPackagingMapping,
     adaptCylinderMapping,
+    adaptLockMapping,
     adaptLockForkMapping,
     adaptHandleMapping
 } = require('../services/mappings/mapping.adapter');
 const {
     validatePackagingMapping,
     validateCylinderMapping,
+    validateLockMapping,
     validateLockForkMapping,
     validateHandleMapping
 } = require('../services/mappings/mapping.validator');
@@ -28,6 +30,7 @@ const {
 const MATERIALS_FILE = CONFIG_FILES.materialsCatalog;
 const PACKAGING_RUNTIME_FILE = CONFIG_FILES.packagingMapping;
 const CYLINDER_RUNTIME_FILE = CONFIG_FILES.cylinderMapping;
+const LOCK_RUNTIME_FILE = CONFIG_FILES.lockMapping;
 const LOCK_FORK_RUNTIME_FILE = CONFIG_FILES.lockForkMapping;
 const HANDLE_RUNTIME_FILE = CONFIG_FILES.handleMapping;
 
@@ -185,6 +188,16 @@ registerLegacyCompatibleMappingRoute({
     validate: validateCylinderMapping,
     readErrorMessage: 'Failed to read cylinder mapping',
     saveErrorMessage: 'Failed to save cylinder mapping'
+});
+
+registerLegacyCompatibleMappingRoute({
+    profileName: 'lock',
+    endpoint: '/lock',
+    runtimeFile: LOCK_RUNTIME_FILE,
+    adapt: adaptLockMapping,
+    validate: validateLockMapping,
+    readErrorMessage: 'Failed to read lock mapping',
+    saveErrorMessage: 'Failed to save lock mapping'
 });
 
 registerLegacyCompatibleMappingRoute({

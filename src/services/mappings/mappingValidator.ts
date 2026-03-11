@@ -1,13 +1,16 @@
 import {
   adaptCylinderMapping,
   adaptHandleMapping,
+  adaptLockMapping,
   adaptLockForkMapping,
   adaptPackagingMapping,
+  normalizeLockMappingKey,
   normalizePackagingMappingKey,
 } from '@/services/mappings/mappingAdapter';
 import type {
   CylinderMappingConfig,
   HandleMappingConfig,
+  LockMappingConfig,
   LockForkBaseDimensionRule,
   LockForkMappingConfig,
   MappingValidationIssue,
@@ -584,6 +587,37 @@ export function validateHandleMapping(value: unknown): MappingValidationIssue[] 
   return issues;
 }
 
+export function validateLockMapping(value: unknown): MappingValidationIssue[] {
+  const issues: MappingValidationIssue[] = [];
+  const adapted = adaptLockMapping(value);
+
+  if (!isPlainObject(value)) {
+    issues.push(createIssue('$', 'invalid-type', '锁具映射必须是对象'));
+    return issues;
+  }
+
+  const mappingSeen = new Map<string, string>();
+  Object.entries(adapted.mappings).forEach(([name, mapping]) => {
+    const path = `mappings[${quotePathSegment(name)}]`;
+    const normalized = normalizeLockMappingKey(name);
+    const existing = mappingSeen.get(normalized);
+    if (existing && existing !== name) {
+      issues.push(createIssue(path, 'normalized-conflict', '锁具型号存在 normalize 后冲突'));
+    } else {
+      mappingSeen.set(normalized, name);
+    }
+
+    if (!mapping.supplier) {
+      issues.push(createIssue(`${path}.supplier`, 'required', 'supplier 不能为空'));
+    }
+    if (!mapping.vendorName) {
+      issues.push(createIssue(`${path}.vendorName`, 'required', 'vendorName 不能为空'));
+    }
+  });
+
+  return issues;
+}
+
 export function validateRuntimeMapping(
   kind: 'packaging',
   value: unknown,
@@ -597,12 +631,17 @@ export function validateRuntimeMapping(
   value: unknown,
 ): MappingValidationIssue[];
 export function validateRuntimeMapping(
+  kind: 'lock',
+  value: unknown,
+): MappingValidationIssue[];
+export function validateRuntimeMapping(
   kind: 'handle',
   value: unknown,
 ): MappingValidationIssue[];
-export function validateRuntimeMapping(kind: 'packaging' | 'cylinder' | 'lockFork' | 'handle', value: unknown) {
+export function validateRuntimeMapping(kind: 'packaging' | 'cylinder' | 'lockFork' | 'handle' | 'lock', value: unknown) {
   if (kind === 'packaging') return validatePackagingMapping(value);
   if (kind === 'cylinder') return validateCylinderMapping(value);
+  if (kind === 'lock') return validateLockMapping(value);
   if (kind === 'handle') return validateHandleMapping(value);
   return validateLockForkMapping(value);
 }
@@ -621,4 +660,8 @@ export function isValidLockForkMapping(value: unknown): value is LockForkMapping
 
 export function isValidHandleMapping(value: unknown): value is HandleMappingConfig {
   return validateHandleMapping(value).length === 0;
+}
+
+export function isValidLockMapping(value: unknown): value is LockMappingConfig {
+  return validateLockMapping(value).length === 0;
 }

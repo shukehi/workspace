@@ -49,3 +49,15 @@ export function parseHeight(spec: string | null | undefined): number {
     const match = spec.match(/\d+\*(\d+)/);
     return match ? parseInt(match[1], 10) : 2050;
 }
+
+/**
+ * 解析规格字符串中的开向描述
+ * @param {string} spec - 规格字符串，如 "960*2050/10/内开外包"
+ * @returns {string} 开向段原文，缺失时返回空字符串
+ */
+export function parseOpenDirectionSegment(spec: string | null | undefined): string {
+    if (!spec) return '';
+    const parts = String(spec).split('/');
+    if (parts.length < 3) return '';
+    return String(parts[2] || '').trim();
+}

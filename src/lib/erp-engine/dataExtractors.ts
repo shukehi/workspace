@@ -5,8 +5,9 @@
 
 
 
-import { parseQuantityPair, parseHeight } from './parsers';
+import { parseOpenDirectionSegment, parseQuantityPair, parseHeight } from './parsers';
 import { aggregatePackaging } from './packagingTable';
+import { normalizeLockMappingKey } from '@/services/mappings';
 
 type OrderItem = Record<string, any>;
 type GenericMap = Record<string, any>;
@@ -15,6 +16,16 @@ type CylinderResultRow = {
     type: string;
     eccentricity: string;
     remark: string;
+    quantity: number;
+};
+type LockResultRow = {
+    supplier: string;
+    type: string;
+    spec: string;
+    remark: string;
+    unit: string;
+    quantityLeft: number;
+    quantityRight: number;
     quantity: number;
 };
 type LockForkResultRow = {
@@ -243,6 +254,96 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
     }
 
     return Object.values(cylinderMap);
+}
+
+/**
+ * 提取锁具采购数据
+ * 规则：
+ * - 主锁读取 `sj`，副锁读取 `fssj`
+ * - 最小可用版本按 `供应商 + 型号 + 主/副锁 + 备注` 聚合
+ */
+export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = {}, LOCK_MAPPING: GenericMap = {}): LockResultRow[] {
+    const lockMap: Record<string, LockResultRow> = {};
+    const unmatchedSupplier = '待人工处理';
+    const defaultUnit = String(LOCK_MAPPING?.defaultUnit || '套').trim() || '套';
+    const primaryLabel = String(LOCK_MAPPING?.primaryLabel || '主锁').trim();
+    const secondaryLabel = String(LOCK_MAPPING?.secondaryLabel || '副锁').trim();
+    const rawMappings = LOCK_MAPPING?.mappings && typeof LOCK_MAPPING.mappings === 'object'
+        ? LOCK_MAPPING.mappings
+        : {};
+    const normalizedMappings = Object.entries(rawMappings).reduce<Record<string, any>>((acc, [rawKey, value]) => {
+        const normalizedKey = normalizeLockMappingKey(rawKey);
+        if (normalizedKey) {
+            acc[normalizedKey] = value;
+        }
+        return acc;
+    }, {});
+
+    const normalizeLockName = (value: unknown) => String(value || '').trim();
+    const isEmptyLock = (value: unknown) => {
+        const raw = normalizeLockName(value);
+        return !raw || raw === '-' || raw === '无';
+    };
+
+    const buildRemark = (extraRemark = '') => String(extraRemark || '').trim();
+
+    const resolveLockQtyPair = (item: OrderItem) => {
+        const qtyPair = parseQuantityPair(item.qty);
+        const openDirection = parseOpenDirectionSegment(item?.spec);
+        if (!openDirection.includes('内开')) {
+            return qtyPair;
+        }
+        return {
+            left: qtyPair.right,
+            right: qtyPair.left,
+        };
+    };
+
+    orderList.forEach((item) => {
+        const qtyPair = resolveLockQtyPair(item);
+        const totalQty = qtyPair.left + qtyPair.right;
+        if (totalQty <= 0) return;
+
+        const candidates: Array<{ rawName: unknown; modeLabel: string; mode: 'primary' | 'secondary' }> = [
+            { rawName: item.sj, modeLabel: primaryLabel, mode: 'primary' },
+            { rawName: item.fssj, modeLabel: secondaryLabel, mode: 'secondary' },
+        ];
+
+        candidates.forEach(({ rawName, modeLabel, mode }) => {
+            if (isEmptyLock(rawName)) return;
+
+            const rawType = normalizeLockName(rawName);
+            const mapping = normalizedMappings[normalizeLockMappingKey(rawType)] || null;
+            const supplier = String(mapping?.supplier || unmatchedSupplier).trim();
+            const type = String(mapping?.vendorName || rawType).trim();
+            const spec = String(
+                mode === 'primary'
+                    ? (mapping?.primarySpec || modeLabel)
+                    : (mapping?.secondarySpec || modeLabel)
+            ).trim();
+            const remark = buildRemark(String(mapping?.remark || '').trim());
+            const key = `${supplier}|${type}|${spec}|${remark}`;
+
+            if (lockMap[key]) {
+                lockMap[key].quantityLeft += qtyPair.left;
+                lockMap[key].quantityRight += qtyPair.right;
+                lockMap[key].quantity += totalQty;
+            } else {
+                lockMap[key] = {
+                    supplier,
+                    type,
+                    spec,
+                    remark,
+                    unit: defaultUnit,
+                    quantityLeft: qtyPair.left,
+                    quantityRight: qtyPair.right,
+                    quantity: totalQty,
+                };
+            }
+        });
+    });
+
+    return Object.values(lockMap);
 }
 
 /**

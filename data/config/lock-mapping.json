@@ -1,0 +1,18 @@
+{
+  "defaultUnit": "套",
+    "primaryLabel": "主锁",
+    "secondaryLabel": "副锁",
+    "mappings": {
+        "SD-9030（6607大锁）": {
+            "supplier": "汇成",
+            "vendorName": "6607大锁",
+            "primarySpec": "主锁体",
+            "remark": "标准锁具"
+        },
+        "F02-A副锁": {
+            "supplier": "汇成",
+            "vendorName": "F02-A副锁",
+            "secondarySpec": "副锁体"
+        }
+    }
+}

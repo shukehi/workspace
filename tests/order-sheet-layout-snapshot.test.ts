@@ -12,6 +12,10 @@ const expected = {
     columns: ['no', 'type', 'eccentricity', 'quantity', 'unit', 'remark'],
     widths: { no: 44, type: 240, eccentricity: 160, quantity: 72, unit: 58, remark: 230 }
   },
+  lockset: {
+    columns: ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark'],
+    widths: { no: 44, type: 240, spec: 160, qtyLeft: 72, qtyRight: 72, unit: 58, remark: 160 }
+  },
   lock: {
     columns: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
     widths: { no: 44, type: 240, spec: 160, quantity: 72, unit: 58, remark: 190 }
@@ -31,6 +35,10 @@ test('layout snapshot: category schemas and default widths stay in sync with bas
     cylinder: {
       columns: CATEGORY_SCHEMAS.cylinder.columns.map((c) => c.key),
       widths: CATEGORY_DEFAULT_WIDTHS.cylinder
+    },
+    lockset: {
+      columns: CATEGORY_SCHEMAS.lockset.columns.map((c) => c.key),
+      widths: CATEGORY_DEFAULT_WIDTHS.lockset
     },
     lock: {
       columns: CATEGORY_SCHEMAS.lock.columns.map((c) => c.key),

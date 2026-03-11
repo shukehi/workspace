@@ -85,6 +85,7 @@ export const createColumns = (actions: {
             const categoryClassMap: Record<string, string> = {
                 包装: 'bg-emerald-50 text-emerald-700 border-emerald-200',
                 锁芯: 'bg-sky-50 text-sky-700 border-sky-200',
+                锁具: 'bg-cyan-50 text-cyan-700 border-cyan-200',
                 拉手: 'bg-violet-50 text-violet-700 border-violet-200',
                 锁叉: 'bg-amber-50 text-amber-700 border-amber-200',
                 配件: 'bg-slate-100 text-slate-700 border-slate-300',

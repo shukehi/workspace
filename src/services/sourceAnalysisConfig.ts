@@ -10,6 +10,7 @@ export async function loadSourceAnalysisConfig(): Promise<SourceAnalysisConfig> 
         formulas: configLoader.getFormulas(),
         materials: configLoader.getMaterials(),
         cylinderMapping: configLoader.getCylinderMapping(),
+        lockMapping: configLoader.getLockMapping(),
         handleMapping: configLoader.getHandleMapping(),
         lockForkMapping: configLoader.getLockForkMapping(),
         packagingMapping: configLoader.getPackagingMapping(),

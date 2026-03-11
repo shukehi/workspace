@@ -16,7 +16,7 @@ const EMPTY_SUMMARY: QuantitySummary = {
 export function computeItemQuantitySummary(category: PrintCategory, items: Partial<OrderItem>[]): QuantitySummary {
   if (!Array.isArray(items) || items.length === 0) return { ...EMPTY_SUMMARY };
 
-  if (category === 'packaging' || category === 'handle') {
+  if (category === 'packaging' || category === 'handle' || category === 'lockset') {
     const leftTotal = items.reduce((sum, item) => sum + Number(item.quantity_left || 0), 0);
     const rightTotal = items.reduce((sum, item) => sum + Number(item.quantity_right || 0), 0);
     return {
@@ -38,7 +38,7 @@ export function computeDocPageQuantitySummary(page: ProcurementDocPage): Quantit
   if (!page?.rows || page.rows.length === 0) return { ...EMPTY_SUMMARY };
 
   const itemRows = page.rows.filter((row) => row.rowType === 'item');
-  if (page.category === 'packaging' || page.category === 'handle') {
+  if (page.category === 'packaging' || page.category === 'handle' || page.category === 'lockset') {
     const leftTotal = itemRows.reduce((sum, row) => sum + Number(row.values.qtyLeft || 0), 0);
     const rightTotal = itemRows.reduce((sum, row) => sum + Number(row.values.qtyRight || 0), 0);
     return {
