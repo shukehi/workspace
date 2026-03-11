@@ -39,6 +39,7 @@
 - [PO_FIELD_CONTRACT.md](/Users/aries/Dve/workspace/docs/reference/PO_FIELD_CONTRACT.md)
 - [CYLINDER_RULES.md](/Users/aries/Dve/workspace/docs/reference/CYLINDER_RULES.md)
 - [LOCK_FORK_RULES.md](/Users/aries/Dve/workspace/docs/reference/LOCK_FORK_RULES.md)
+- [LAN_SHARING.md](/Users/aries/Dve/workspace/docs/reference/LAN_SHARING.md)
 - [api.md](/Users/aries/Dve/workspace/docs/reference/api.md)
 - [formula-management-refactor.md](/Users/aries/Dve/workspace/docs/reference/formula-management-refactor.md)
 

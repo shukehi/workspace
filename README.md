@@ -101,6 +101,21 @@ cp .env.example .env
 npm run dev
 ```
 
+局域网共享开发（同一 Wi-Fi 给同事访问）：
+
+```bash
+npm run server:lan
+npm run dev:lan
+```
+
+详细说明见 [docs/reference/LAN_SHARING.md](/Users/aries/Dve/workspace/docs/reference/LAN_SHARING.md)。
+
+说明：
+
+- 同事可通过 `http://你的局域网IP:5173` 访问前端，例如 `http://172.16.0.10:5173`
+- 前端的 `/api/*`、`/data/*` 请求会继续由 Vite 代理到你本机的 `3000` 端口
+- 如无法访问，优先检查操作系统防火墙和公司 Wi-Fi 是否限制终端互访
+
 说明：
 
 - 前端对 `/api/*` 和 `/data/*` 的请求依赖后端服务；本地联调时需要同时启动 `npm run server:dev`。
@@ -117,6 +132,17 @@ npm run server:dev
 npm run build
 npm start
 ```
+
+局域网共享已构建版本：
+
+```bash
+npm run share:prod
+```
+
+说明：
+
+- 同事可通过 `http://你的局域网IP:3000` 访问
+- 如需本地预览构建结果并开放局域网访问，也可以执行 `npm run preview:lan`
 
 生产环境示例（推荐）：
 
