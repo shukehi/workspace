@@ -19,7 +19,10 @@ test('layout guard: edit and preview shells should share OrderSheet renderer', (
   assert.match(printDocument, /<OrderSheetView/);
   assert.match(printDocument, /mode=\"preview\"/);
   assert.doesNotMatch(previewModal, /customer-name-display=/);
-  assert.match(printDocument, /customer-name-display=\"salesDepartment\"/);
+  assert.match(printDocument, /route\.query\.pdf === '1' \? 'salesDepartment' : 'full'/);
+  assert.match(printDocument, /:customer-name-display=\"customerNameDisplay\"/);
+  assert.match(printDocument, /addEventListener\('afterprint', closeAutoPrintWindow\)/);
+  assert.match(printDocument, /window\.close\(\)/);
   assert.match(printDocument, /print-document\.css/);
 
   assert.equal(editDialog.includes('<table'), false);

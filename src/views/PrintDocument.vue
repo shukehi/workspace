@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '@/lib/api';
 import { normalizePrintMode, type PrintMode } from '@/features/procurement/docModel';
@@ -25,10 +25,19 @@ const printMode = ref<PrintMode>('signature');
 const source = ref<PrintSourcePayload | null>(null);
 
 const embedded = computed(() => route.query.embedded === '1' || window.self !== window.top);
+const autoPrintRequested = computed(() => route.query.autoPrint === '1');
+const customerNameDisplay = computed(() => route.query.pdf === '1' ? 'salesDepartment' : 'full');
 const modeLabels: Record<PrintMode, string> = {
   signature: '签字版',
   compact: '简洁版',
 };
+
+function closeAutoPrintWindow() {
+  if (!autoPrintRequested.value) return;
+  if (window.opener || window.history.length <= 1) {
+    window.close();
+  }
+}
 
 function hasValidDeliveryDate(order: any) {
   if (!order?.delivery_date && !order?.deliveryDate) return false;
@@ -117,7 +126,7 @@ async function loadSource() {
     printMode.value = normalizePrintMode(String(route.query.printMode || activeSource.printMode || 'signature'));
     document.title = activeSource.order?.order_no ? `${activeSource.order.order_no} - 采购订单` : '采购订单';
 
-    if (route.query.autoPrint === '1') {
+    if (autoPrintRequested.value) {
       setTimeout(() => window.print(), 350);
     }
   } catch (e: any) {
@@ -195,7 +204,12 @@ watch(
 );
 
 onMounted(() => {
+  window.addEventListener('afterprint', closeAutoPrintWindow);
   loadSource();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('afterprint', closeAutoPrintWindow);
 });
 </script>
 
@@ -237,7 +251,7 @@ onMounted(() => {
         v-if="source?.order"
         :order="source.order"
         mode="preview"
-        customer-name-display="salesDepartment"
+        :customer-name-display="customerNameDisplay"
         :column-widths="printColumnWidths"
         :default-widths="previewDefaultWidths"
       />
