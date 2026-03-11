@@ -40,6 +40,16 @@ const availableCategories = computed(() => {
 });
 
 const selectedCategories = ref<string[]>([]);
+const hasSelection = computed(() => selectedCategories.value.length > 0);
+const allSelected = computed(() => (
+    availableCategories.value.length > 0
+    && selectedCategories.value.length === availableCategories.value.length
+));
+const selectAllState = computed<boolean | 'indeterminate'>(() => {
+    if (allSelected.value) return true;
+    if (hasSelection.value) return 'indeterminate';
+    return false;
+});
 const selectedGroups = computed<{supplier: string; category: string}[]>(() => {
     return proposals.value
         .filter(p => selectedCategories.value.includes(p.category))
@@ -80,9 +90,20 @@ const toggleCategory = (cat: string, checked: boolean | 'indeterminate') => {
     }
 };
 
-const handleCategoryClick = (cat: string) => {
-    const isCurrentlyChecked = selectedCategories.value.includes(cat);
-    toggleCategory(cat, !isCurrentlyChecked);
+const selectAllCategories = () => {
+    selectedCategories.value = [...availableCategories.value];
+};
+
+const clearAllCategories = () => {
+    selectedCategories.value = [];
+};
+
+const toggleAllCategories = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
+        selectAllCategories();
+        return;
+    }
+    clearAllCategories();
 };
 
 // Load proposals when dialog opens
@@ -206,22 +227,50 @@ const handleConfirm = () => {
         </div>
 
         <div v-else class="space-y-4">
+            <div class="flex items-center justify-between gap-3">
+                <div class="text-sm text-muted-foreground">
+                    已选 {{ selectedCategories.length }} / {{ availableCategories.length }} 类
+                </div>
+                <div class="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :disabled="availableCategories.length === 0 || allSelected"
+                        @click="selectAllCategories"
+                    >
+                        全选
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        :disabled="!hasSelection"
+                        @click="clearAllCategories"
+                    >
+                        取消全选
+                    </Button>
+                </div>
+            </div>
             <!-- Categorized Table -->
             <div class="border rounded-md">
                 <div class="grid grid-cols-12 gap-4 p-3 bg-muted/50 font-medium text-sm border-b">
-                    <div class="col-span-2 text-center">选择</div>
+                    <div class="col-span-2 flex justify-center">
+                        <Checkbox
+                            :model-value="selectAllState"
+                            @update:model-value="toggleAllCategories"
+                        />
+                    </div>
                     <div class="col-span-4">资源类别</div>
                     <div class="col-span-3 text-right">生成订单数</div>
                     <div class="col-span-3 text-right">包含物料项数</div>
                 </div>
                 
                 <div v-for="cat in availableCategories" :key="cat" 
-                     class="grid grid-cols-12 gap-4 p-3 items-center hover:bg-muted/10 transition-colors border-b last:border-0"
+                    class="grid grid-cols-12 gap-4 p-3 items-center hover:bg-muted/10 transition-colors border-b last:border-0"
                 >
                     <div class="col-span-2 flex justify-center">
                         <Checkbox 
-                            :checked="selectedCategories.includes(cat)"
-                            @click="handleCategoryClick(cat)"
+                            :model-value="selectedCategories.includes(cat)"
+                            @update:model-value="(value: boolean | 'indeterminate') => toggleCategory(cat, value)"
                         />
                     </div>
                     <div class="col-span-4 font-medium text-foreground">
