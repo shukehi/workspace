@@ -16,7 +16,7 @@ const CATEGORY_CASES = [
   { key: 'packaging', filterLabel: '包装材料', category: '包装' },
   { key: 'cylinder', filterLabel: '锁芯', category: '锁芯' },
   { key: 'lock', filterLabel: '锁叉', category: '锁叉' },
-  { key: 'hardware', filterLabel: '其他配件', category: '配件' }
+  { key: 'hardware', filterLabel: '五金/配件', category: '配件' }
 ];
 
 function ensureDirs() {

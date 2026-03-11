@@ -1,7 +1,11 @@
 import { packagingMatcher } from '@/lib/packagingMatcher';
 import { getPackagingMapping } from '@/services/packagingConfig';
 import { normalizeOrderDraft } from '@/features/procurement/orderDraft';
-import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import {
+  normalizePrintCategory,
+  resolveProcurementOrderCategory,
+  type PrintCategory
+} from '@/features/procurement/docModel';
 import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import { getDefaultWidths, resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
@@ -113,20 +117,12 @@ export function applyPackagingHeaderNames(target: Order) {
 export function createEmptyOrderDraft(categoryRaw = '包装'): Order {
   const category = normalizePrintCategory(categoryRaw);
   const packagingMapping = getPackagingMapping();
-  const categoryMap: Record<PrintCategory, string> = {
-    packaging: '包装',
-    cylinder: '锁芯',
-    handle: '拉手',
-    lockset: '锁具',
-    lock: '锁叉',
-    hardware: '配件',
-  };
 
   const draft: Order = {
     id: 0,
     order_no: buildManualOrderNo(),
     supplier: category === 'packaging' ? (packagingMapping?.supplierName || '') : '',
-    category: categoryMap[category],
+    category: resolveProcurementOrderCategory(category),
     items: [createEmptyItem(category)],
     total_amount: 0,
     created_at: nowStamp(),

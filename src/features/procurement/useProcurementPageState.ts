@@ -1,5 +1,12 @@
 import { computed, ref } from 'vue';
 import type { Order } from '@/types/order';
+import {
+  PROCUREMENT_CATEGORY_ORDER,
+  resolveProcurementCategoryFilterLabel,
+  normalizePrintCategory,
+  type PrintCategory
+} from '@/features/procurement/docModel';
+import { matchesOrderRiskFilter, resolveOrderRisk, type OrderRiskFilter } from '@/features/procurement/orderRisk';
 
 type ProcurementStoreLike = {
   loading: boolean;
@@ -7,18 +14,21 @@ type ProcurementStoreLike = {
   sortedOrders: Order[];
 };
 
-const categories = [
+type StatusFilter = 'ALL' | Order['status'];
+
+const STATUS_OPTIONS: Array<{ id: StatusFilter; label: string }> = [
   { id: 'ALL', label: '全部订单' },
-  { id: '颜色', label: '颜色配方' },
-  { id: '锁芯', label: '锁芯' },
-  { id: '锁具', label: '锁具' },
-  { id: '锁叉', label: '锁叉' },
-  { id: '包装', label: '包装材料' },
-  { id: '配件', label: '其他配件' }
+  { id: 'draft', label: '草稿' },
+  { id: 'submitted', label: '已提交' },
+  { id: 'processing', label: '处理中' },
+  { id: 'completed', label: '已完成' },
+  { id: 'cancelled', label: '已取消' },
 ];
 
 export function useProcurementPageState(store: ProcurementStoreLike) {
-  const activeCategory = ref('ALL');
+  const activeStatus = ref<StatusFilter>('ALL');
+  const activeCategory = ref<'ALL' | PrintCategory>('ALL');
+  const activeRiskFilter = ref<OrderRiskFilter>('ALL');
   const searchQuery = ref('');
   const selectedRows = ref<Order[]>([]);
 
@@ -32,11 +42,31 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     return { totalAmount, pendingCount, completedCount, todayCount };
   });
 
+  const statusOptions = computed(() => {
+    return STATUS_OPTIONS.map((status) => ({
+      ...status,
+      count: status.id === 'ALL'
+        ? store.sortedOrders.length
+        : store.sortedOrders.filter((order) => order.status === status.id).length
+    }));
+  });
+
   const categoryOptions = computed(() => {
-    return categories.map((category) => {
+    return [
+      {
+        id: 'ALL' as const,
+        label: '全部类别',
+        count: store.sortedOrders.length
+      },
+      ...PROCUREMENT_CATEGORY_ORDER.map((category) => ({
+        id: category,
+        label: resolveProcurementCategoryFilterLabel(category),
+        count: store.sortedOrders.filter((order) => normalizePrintCategory(order.category) === category).length
+      }))
+    ].map((category) => {
       const count = category.id === 'ALL'
         ? store.sortedOrders.length
-        : store.sortedOrders.filter((order) => order.category === category.id).length;
+        : store.sortedOrders.filter((order) => normalizePrintCategory(order.category) === category.id).length;
 
       return {
         ...category,
@@ -45,10 +75,28 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     });
   });
 
+  const riskOptions = computed(() => {
+    const allOrders = store.sortedOrders;
+    const riskOrders = allOrders.filter((order) => resolveOrderRisk(order).level !== null);
+    const manualOrders = allOrders.filter((order) => resolveOrderRisk(order).level === 'high');
+
+    return [
+      { id: 'ALL' as const, label: '全部', count: allOrders.length },
+      { id: 'RISK' as const, label: '风险订单', count: riskOrders.length },
+      { id: 'MANUAL' as const, label: '待人工处理', count: manualOrders.length },
+    ];
+  });
+
   const filteredOrders = computed(() => {
     let list = store.sortedOrders;
+    if (activeStatus.value !== 'ALL') {
+      list = list.filter((order) => order.status === activeStatus.value);
+    }
     if (activeCategory.value !== 'ALL') {
-      list = list.filter((order) => order.category === activeCategory.value);
+      list = list.filter((order) => normalizePrintCategory(order.category) === activeCategory.value);
+    }
+    if (activeRiskFilter.value !== 'ALL') {
+      list = list.filter((order) => matchesOrderRiskFilter(order, activeRiskFilter.value));
     }
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
@@ -70,11 +118,16 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   });
 
   const hasActiveFilters = computed(() => {
-    return activeCategory.value !== 'ALL' || searchQuery.value.trim().length > 0;
+    return activeStatus.value !== 'ALL'
+      || activeCategory.value !== 'ALL'
+      || activeRiskFilter.value !== 'ALL'
+      || searchQuery.value.trim().length > 0;
   });
 
   function resetFilters() {
+    activeStatus.value = 'ALL';
     activeCategory.value = 'ALL';
+    activeRiskFilter.value = 'ALL';
     searchQuery.value = '';
   }
 
@@ -87,11 +140,15 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   }
 
   return {
+    activeStatus,
     activeCategory,
+    activeRiskFilter,
     searchQuery,
     selectedRows,
     summaryStats,
+    statusOptions,
     categoryOptions,
+    riskOptions,
     filteredOrders,
     visibleOrderCount,
     tableEmptyText,

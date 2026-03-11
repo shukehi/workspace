@@ -43,6 +43,7 @@ function createOrder(overrides: Partial<Order> = {}): Order {
 test('preview helpers resolve category, status, and delivery date validity', () => {
   assert.equal(resolveOrderCategoryLabel(createOrder({ category: '锁芯' })), '锁芯');
   assert.equal(resolveOrderCategoryLabel(createOrder({ category: 'lockset' })), '锁具');
+  assert.equal(resolveOrderCategoryLabel(createOrder({ category: '配件' })), '五金');
   assert.equal(resolveOrderStatusLabel(createOrder({ status: 'completed' })), '已完成');
   assert.equal(hasValidDeliveryDate(createOrder()), true);
   assert.equal(hasValidDeliveryDate(createOrder({ delivery_date: '' })), false);

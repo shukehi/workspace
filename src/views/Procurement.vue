@@ -35,11 +35,15 @@ const statusLabels: Record<Order['status'], string> = {
 };
 
 const {
+  activeStatus,
   activeCategory,
+  activeRiskFilter,
   searchQuery,
   selectedRows,
   summaryStats,
+  statusOptions,
   categoryOptions,
+  riskOptions,
   filteredOrders,
   visibleOrderCount,
   tableEmptyText,
@@ -181,9 +185,13 @@ onMounted(() => {
     />
 
     <ProcurementFilterBar
+      v-model:active-status="activeStatus"
       v-model:active-category="activeCategory"
+      v-model:active-risk-filter="activeRiskFilter"
       v-model:search-query="searchQuery"
+      :status-options="statusOptions"
       :category-options="categoryOptions"
+      :risk-options="riskOptions"
       :visible-order-count="visibleOrderCount"
       :total-order-count="store.sortedOrders.length"
       :has-active-filters="hasActiveFilters"

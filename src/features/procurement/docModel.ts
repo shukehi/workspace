@@ -50,6 +50,14 @@ export type CategoryConfig = {
   groupBy: string;
 };
 
+export type ProcurementCategoryMeta = {
+  key: PrintCategory;
+  orderCategory: string;
+  shortLabel: string;
+  filterLabel: string;
+  badgeClass: string;
+};
+
 type SharedColumn = {
   key: string;
   label: string;
@@ -108,6 +116,60 @@ export const CATEGORY_CONFIGS: Record<PrintCategory, CategoryConfig> = {
   }
 };
 
+export const PROCUREMENT_CATEGORY_META: Record<PrintCategory, ProcurementCategoryMeta> = {
+  packaging: {
+    key: 'packaging',
+    orderCategory: '包装',
+    shortLabel: '包装',
+    filterLabel: '包装材料',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  },
+  cylinder: {
+    key: 'cylinder',
+    orderCategory: '锁芯',
+    shortLabel: '锁芯',
+    filterLabel: '锁芯',
+    badgeClass: 'bg-sky-50 text-sky-700 border-sky-200'
+  },
+  lockset: {
+    key: 'lockset',
+    orderCategory: '锁具',
+    shortLabel: '锁具',
+    filterLabel: '锁具',
+    badgeClass: 'bg-cyan-50 text-cyan-700 border-cyan-200'
+  },
+  handle: {
+    key: 'handle',
+    orderCategory: '拉手',
+    shortLabel: '拉手',
+    filterLabel: '拉手',
+    badgeClass: 'bg-violet-50 text-violet-700 border-violet-200'
+  },
+  lock: {
+    key: 'lock',
+    orderCategory: '锁叉',
+    shortLabel: '锁叉',
+    filterLabel: '锁叉',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200'
+  },
+  hardware: {
+    key: 'hardware',
+    orderCategory: '配件',
+    shortLabel: '五金',
+    filterLabel: '五金/配件',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-300'
+  }
+};
+
+export const PROCUREMENT_CATEGORY_ORDER: PrintCategory[] = [
+  'packaging',
+  'cylinder',
+  'lockset',
+  'handle',
+  'lock',
+  'hardware'
+];
+
 export function isNumericField(field: string) {
   return field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity';
 }
@@ -121,6 +183,24 @@ export function normalizePrintCategory(category: string | undefined): PrintCateg
   if (raw === 'lock' || raw.includes('锁叉')) return 'lock';
   if (raw === 'hardware' || raw.includes('五金') || raw.includes('配件')) return 'hardware';
   return 'packaging';
+}
+
+export function resolveProcurementCategoryLabel(category: string | undefined): string {
+  if (!category) return '未分类';
+  return PROCUREMENT_CATEGORY_META[normalizePrintCategory(category)].shortLabel;
+}
+
+export function resolveProcurementCategoryFilterLabel(category: PrintCategory): string {
+  return PROCUREMENT_CATEGORY_META[category].filterLabel;
+}
+
+export function resolveProcurementOrderCategory(category: PrintCategory): string {
+  return PROCUREMENT_CATEGORY_META[category].orderCategory;
+}
+
+export function resolveProcurementCategoryBadgeClass(category: string | undefined): string {
+  if (!category) return 'bg-muted/40 text-muted-foreground border-border';
+  return PROCUREMENT_CATEGORY_META[normalizePrintCategory(category)].badgeClass;
 }
 
 export function normalizePrintMode(mode: string | undefined): PrintMode {

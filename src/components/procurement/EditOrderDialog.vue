@@ -11,7 +11,12 @@ import { Button } from '@/components/ui/button';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import type { Order } from '@/types/order';
 import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
-import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import {
+  normalizePrintCategory,
+  PROCUREMENT_CATEGORY_ORDER,
+  PROCUREMENT_CATEGORY_META,
+  type PrintCategory
+} from '@/features/procurement/docModel';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   getDefaultWidths,
@@ -52,14 +57,10 @@ const isCreateMode = computed(() => props.mode === 'create');
 const currentCategory = computed<PrintCategory>(() => normalizePrintCategory(form.value.category));
 const currentDefaultWidths = computed(() => getDefaultWidths(currentCategory.value));
 
-const categoryOptions: Array<{ value: string; label: string }> = [
-  { value: '包装', label: '包装' },
-  { value: '锁芯', label: '锁芯' },
-  { value: '锁具', label: '锁具' },
-  { value: '拉手', label: '拉手' },
-  { value: '锁叉', label: '锁叉' },
-  { value: '配件', label: '五金/配件' },
-];
+const categoryOptions: Array<{ value: string; label: string }> = PROCUREMENT_CATEGORY_ORDER.map((category) => ({
+  value: PROCUREMENT_CATEGORY_META[category].orderCategory,
+  label: PROCUREMENT_CATEGORY_META[category].filterLabel,
+}));
 
 watch(columnWidths, (next) => {
   const category = currentCategory.value;

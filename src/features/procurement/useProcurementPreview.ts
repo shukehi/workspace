@@ -1,7 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue';
 import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
-import { type PrintMode } from '@/features/procurement/docModel';
+import { resolveProcurementCategoryLabel, type PrintMode } from '@/features/procurement/docModel';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
 type ToastFn = (payload: {
@@ -18,15 +18,7 @@ type ApiLike = {
 type WindowLike = Pick<Window, 'confirm' | 'open'>;
 
 export function resolveOrderCategoryLabel(order: Order | null): string {
-  if (!order?.category) return '未分类';
-  const raw = String(order.category).toLowerCase();
-  if (raw.includes('包装') || raw === 'packaging') return '包装';
-  if (raw.includes('锁芯') || raw === 'cylinder') return '锁芯';
-  if (raw.includes('锁具') || raw === 'lockset') return '锁具';
-  if (raw.includes('拉手') || raw === 'handle') return '拉手';
-  if (raw.includes('锁叉') || raw === 'lock') return '锁叉';
-  if (raw.includes('五金') || raw.includes('配件') || raw === 'hardware') return '五金';
-  return order.category;
+  return resolveProcurementCategoryLabel(order?.category);
 }
 
 export function resolveOrderStatusLabel(order: Order | null): string {
