@@ -34,6 +34,23 @@ http://47.98.198.45:8802/getOutContractDetail
 - 支持跨域访问（CORS）
 - 响应数据包含订单概览、商品明细、包装信息等
 
+## 1.1 采购单 API
+
+- `GET /api/orders`
+- `GET /api/orders/:id`
+- `POST /api/orders`
+- `PUT /api/orders/:id`
+- `DELETE /api/orders/:id`
+
+说明：
+
+- 自动生成采购单在 `POST /api/orders` 时会做数据库级幂等防重
+- 防重依据是 `source_contract_code + category + supplier + normalized items`
+- 自动单改为 `cancelled` 时会释放幂等 key，因此允许重新生成
+- 若取消单恢复到有效状态时幂等 key 已被其他有效单占用，`PUT /api/orders/:id` 也会返回 `409`
+- `409` 响应会包含 `existingOrder`，用于前端提示用户查看已存在采购单
+- 手动录入且未携带 `source_contract_code` 的采购单不参与该防重
+
 ## 2. 配置域 API
 
 当前配置域已拆成 workflow 主接口与 legacy 兼容接口两类。

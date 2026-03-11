@@ -15,6 +15,14 @@ const Order = sequelize.define('Order', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    source_contract_code: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    dedupe_key: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     category: {
         type: DataTypes.STRING,
         allowNull: true

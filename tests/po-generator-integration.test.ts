@@ -76,7 +76,10 @@ test('po generator integration: compose groups and create selected category orde
   assert.equal(orders.length, 3);
   orders.forEach((order) => {
     assert.equal(order.order_no, 'PO-CT-001');
+    assert.equal(order.source_contract_code, 'CT-001');
     assert.equal(order.metadata?.customer_name, '客户A');
+    assert.equal(order.metadata?.order_source, 'auto');
+    assert.equal(order.metadata?.source_contract_code, 'CT-001');
     assert.equal(order.status, 'draft');
   });
 

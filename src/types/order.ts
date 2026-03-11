@@ -25,6 +25,8 @@ export interface Order {
     id: number;
     order_no: string;
     supplier: string;
+    source_contract_code?: string;
+    dedupe_key?: string;
     items: OrderItem[];
     total_amount: number;
     created_at: string;
@@ -36,6 +38,8 @@ export interface Order {
         customer_name?: string;
         internal_name?: string;
         external_name?: string;
+        order_source?: 'auto' | 'manual';
+        source_contract_code?: string;
         [key: string]: any;
     };
 }

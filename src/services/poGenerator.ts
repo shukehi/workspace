@@ -105,6 +105,7 @@ export class POGenerator {
         id: 0,
         order_no: `PO-${contractCode}`,
         supplier: group.supplierName,
+        source_contract_code: contractCode,
         category: group.category,
         items: group.items,
         total_amount: 0,
@@ -112,6 +113,8 @@ export class POGenerator {
         status: 'draft',
         remark: '',
         metadata: {
+          order_source: 'auto',
+          source_contract_code: contractCode,
           customer_name: customerName,
         },
       });

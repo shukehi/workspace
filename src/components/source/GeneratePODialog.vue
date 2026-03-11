@@ -17,6 +17,7 @@ import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useRouter } from 'vue-router';
 import { useSourceStore } from '@/stores/useSourceStore';
 import { parseQuantityPair } from '@/lib/erp-engine/parsers';
+import { useToastStore } from '@/stores/useToastStore';
 
 const props = defineProps<{
   disabled?: boolean;
@@ -28,6 +29,7 @@ const procurementStore = useProcurementStore();
 const sourceStore = useSourceStore();
 const generator = new POGenerator({ sourceStore });
 const router = useRouter();
+const { toast } = useToastStore();
 
 const proposals = ref<any[]>([]);
 const pendingGroups = ref<{supplier: string; category: string}[]>([]);
@@ -100,6 +102,8 @@ const generateWithOption = async (mergeSameSpec: boolean) => {
     isGenerating.value = true;
     try {
         const orders = generator.createOrders(pendingGroups.value, { mergeSameSpec });
+        const createdOrders: any[] = [];
+        const duplicateOrders: Array<{ order_no: string; category: string; supplier: string; status: string }> = [];
         if (mergeSameSpec) {
             const mergedPackagingOrders = orders.filter((order: any) => order.category === '包装');
             console.log('[Merged Packaging Orders]', mergedPackagingOrders);
@@ -107,18 +111,61 @@ const generateWithOption = async (mergeSameSpec: boolean) => {
 
         // Add to store sequentially to avoid SQLite write lock under concurrent POSTs
         for (const order of orders) {
-            await procurementStore.addOrder(order);
+            try {
+                const created = await procurementStore.addOrder(order);
+                createdOrders.push(created);
+            } catch (e: any) {
+                const status = e?.response?.status;
+                if (status === 409) {
+                    const existingOrder = e?.response?.data?.existingOrder;
+                    duplicateOrders.push({
+                        order_no: String(existingOrder?.order_no || order.order_no || '-'),
+                        category: String(existingOrder?.category || order.category || '-'),
+                        supplier: String(existingOrder?.supplier || order.supplier || '-'),
+                        status: String(existingOrder?.status || '-'),
+                    });
+                    continue;
+                }
+                throw e;
+            }
         }
 
         mergeConfirmOpen.value = false;
         open.value = false;
         pendingGroups.value = [];
 
+        if (createdOrders.length > 0) {
+            toast({
+                title: duplicateOrders.length > 0 ? '采购单部分生成完成' : '采购单生成完成',
+                description: duplicateOrders.length > 0
+                    ? `成功生成 ${createdOrders.length} 张，跳过重复 ${duplicateOrders.length} 张`
+                    : `成功生成 ${createdOrders.length} 张采购单`,
+                variant: 'success'
+            });
+        }
+
+        if (duplicateOrders.length > 0) {
+            const summary = duplicateOrders
+                .map((item) => `${item.category} / ${item.supplier} / ${item.order_no} / ${item.status}`)
+                .join('\n');
+            alert(`本次生成跳过了 ${duplicateOrders.length} 张重复采购单：\n${summary}`);
+        } else if (createdOrders.length === 0) {
+            toast({
+                title: '未生成新采购单',
+                description: '所选采购单均已存在',
+                variant: 'default'
+            });
+        }
+
         // Navigate to Procurement
         await router.push('/procurement');
     } catch (e) {
         console.error(e);
-        alert('Failed to generate orders');
+        toast({
+            title: '生成失败',
+            description: '采购单生成失败，请稍后重试',
+            variant: 'destructive'
+        });
     } finally {
         isGenerating.value = false;
     }

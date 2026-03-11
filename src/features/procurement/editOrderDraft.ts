@@ -133,6 +133,7 @@ export function createEmptyOrderDraft(categoryRaw = '包装'): Order {
       customer_name: '',
       internal_name: '',
       external_name: '',
+      order_source: 'manual',
       printColumnWidths: { ...getDefaultWidths(category) },
     },
   };

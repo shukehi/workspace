@@ -6,7 +6,7 @@ const path = require('node:path');
 const TEST_DB = path.join('/tmp', 'order-search-order-service.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Order, OrderItem } = require('../server/models');
+const { sequelize, Order, OrderItem, OrderIdempotencyKey } = require('../server/models');
 const orderService = require('../server/services/OrderService');
 
 const createdOrderIds = [];
@@ -131,6 +131,195 @@ test('OrderService createOrder falls back to plain payload when immediate refetc
   } finally {
     orderService.getOrderById = originalGetOrderById;
   }
+});
+
+test('OrderService prevents duplicate auto-generated orders and allows regeneration after cancellation', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const payload = {
+    order_no: uniqueOrderNo('AUTO-PO'),
+    supplier: '汇成',
+    source_contract_code: 'CT-AUTO-001',
+    category: '锁具',
+    status: 'draft',
+    remark: '',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-001',
+      customer_name: '客户A',
+    },
+    created_at: '2026-03-11T09:00:00.000Z',
+    items: [
+      {
+        supplier: '汇成',
+        type: '智能锁体A',
+        name: '智能锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 8,
+        quantity_left: 3,
+        quantity_right: 5,
+        unit: '把',
+        remark: '单活'
+      }
+    ]
+  };
+
+  const created = await orderService.createOrder(payload);
+  assert.equal(created.source_contract_code, 'CT-AUTO-001');
+  assert.equal(typeof created.dedupe_key, 'string');
+  assert.equal(created.dedupe_key.length > 0, true);
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id, active: true } }), 1);
+
+  await assert.rejects(
+    () => orderService.createOrder({ ...payload, order_no: uniqueOrderNo('AUTO-PO') }),
+    (error) => {
+      assert.equal(error.code, 'DUPLICATE_ORDER');
+      assert.equal(error.existingOrder.order_no, created.order_no);
+      assert.equal(error.existingOrder.status, 'draft');
+      return true;
+    }
+  );
+
+  const cancelled = await orderService.updateOrder(created.id, { status: 'cancelled' });
+  assert.equal(cancelled.status, 'cancelled');
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id, active: true } }), 0);
+
+  const regenerated = await orderService.createOrder({ ...payload, order_no: uniqueOrderNo('AUTO-PO') });
+  assert.equal(regenerated.id !== created.id, true);
+  assert.equal(regenerated.source_contract_code, 'CT-AUTO-001');
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: regenerated.id, active: true } }), 1);
+});
+
+test('OrderService can restore a cancelled auto order only when idempotency key is available', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const payload = {
+    order_no: uniqueOrderNo('AUTO-RESTORE'),
+    supplier: '应志友',
+    source_contract_code: 'CT-AUTO-RESTORE-001',
+    category: '锁叉',
+    status: 'draft',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-RESTORE-001',
+    },
+    created_at: '2026-03-11T12:00:00.000Z',
+    items: [
+      {
+        supplier: '应志友',
+        name: '锁叉A',
+        type: '锁叉A',
+        model: '570*301 = 871',
+        spec: '570*301 = 871',
+        quantity: 6,
+        unit: '个',
+      }
+    ]
+  };
+
+  const created = await orderService.createOrder(payload);
+  await orderService.updateOrder(created.id, { status: 'cancelled' });
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id, active: true } }), 0);
+
+  const restored = await orderService.updateOrder(created.id, { status: 'draft' });
+  assert.equal(restored.status, 'draft');
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id, active: true } }), 1);
+
+  await orderService.updateOrder(created.id, { status: 'cancelled' });
+  const other = await orderService.createOrder({
+    ...payload,
+    order_no: uniqueOrderNo('AUTO-RESTORE'),
+  });
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: other.id, active: true } }), 1);
+
+  await assert.rejects(
+    () => orderService.updateOrder(created.id, { status: 'draft' }),
+    (error) => {
+      assert.equal(error.code, 'DUPLICATE_ORDER');
+      return true;
+    }
+  );
+});
+
+test('OrderService persists source_contract_code from metadata and ignores client-supplied dedupe_key on update', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('AUTO-META'),
+    supplier: '忠恒',
+    category: '锁芯',
+    status: 'draft',
+    dedupe_key: 'client-forged-key',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-META-001',
+      customer_name: '客户C',
+    },
+    created_at: '2026-03-11T11:00:00.000Z',
+    items: [
+      {
+        supplier: '忠恒',
+        type: '锁芯A',
+        name: '锁芯A',
+        model: '34.5*55.5',
+        eccentricity: '34.5*55.5',
+        quantity: 2,
+        unit: '套',
+      }
+    ]
+  });
+
+  assert.equal(created.source_contract_code, 'CT-AUTO-META-001');
+  assert.notEqual(created.dedupe_key, 'client-forged-key');
+
+  const originalDedupeKey = created.dedupe_key;
+  const updated = await orderService.updateOrder(created.id, {
+    dedupe_key: 'tampered-key',
+    remark: '重新备注'
+  });
+
+  assert.equal(updated.source_contract_code, 'CT-AUTO-META-001');
+  assert.equal(updated.dedupe_key, originalDedupeKey);
+  assert.equal(updated.remark, '重新备注');
+});
+
+test('OrderService does not dedupe manual orders without source contract code', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const payload = {
+    order_no: uniqueOrderNo('MANUAL-PO'),
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    remark: '',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户B',
+    },
+    created_at: '2026-03-11T10:00:00.000Z',
+    items: [
+      {
+        supplier: '测试供应商',
+        name: '包装箱',
+        model: 'PK-1',
+        spec: '900*2050',
+        quantity: 2,
+        unit: '套',
+      }
+    ]
+  };
+
+  const first = await orderService.createOrder(payload);
+  const second = await orderService.createOrder({ ...payload, order_no: uniqueOrderNo('MANUAL-PO') });
+
+  assert.equal(first.id !== second.id, true);
+  assert.equal(first.source_contract_code ?? null, null);
+  assert.equal(second.source_contract_code ?? null, null);
 });
 
 test.after(async () => {

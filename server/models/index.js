@@ -1,6 +1,7 @@
 const sequelize = require('../config/database');
 const Order = require('./Order');
 const OrderItem = require('./OrderItem');
+const OrderIdempotencyKey = require('./OrderIdempotencyKey');
 const Material = require('./Material');
 const MaterialCatalogProfile = require('./MaterialCatalogProfile');
 const MaterialCatalogRevision = require('./MaterialCatalogRevision');
@@ -17,6 +18,8 @@ const MappingUnmatchedEvent = require('./MappingUnmatchedEvent');
 // Define Relationships
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
+Order.hasMany(OrderIdempotencyKey, { foreignKey: 'order_id', as: 'idempotencyKeys', onDelete: 'CASCADE' });
+OrderIdempotencyKey.belongsTo(Order, { foreignKey: 'order_id' });
 FormulaDefinition.hasMany(FormulaRevision, { foreignKey: 'formula_id', as: 'revisions', onDelete: 'CASCADE' });
 FormulaRevision.belongsTo(FormulaDefinition, { foreignKey: 'formula_id' });
 FormulaDefinition.hasMany(FormulaAuditLog, { foreignKey: 'formula_id', as: 'auditLogs', onDelete: 'CASCADE' });
@@ -65,7 +68,7 @@ async function ensureOrderColumns() {
     const table = 'orders';
     const existing = await queryInterface.describeTable(table);
 
-    const targetColumns = ['remark'];
+    const targetColumns = ['remark', 'source_contract_code', 'dedupe_key'];
 
     for (const col of targetColumns) {
         if (existing[col]) continue;
@@ -105,6 +108,31 @@ async function ensureMaterialColumns() {
     }
 }
 
+async function ensureOrderIdempotencyIndexes() {
+    const queryInterface = sequelize.getQueryInterface();
+    const table = 'order_idempotency_keys';
+    const existing = await queryInterface.describeTable(table);
+
+    const targetColumns = ['scope', 'source_contract_code', 'dedupe_key', 'order_id', 'active'];
+    for (const col of targetColumns) {
+        if (existing[col]) continue;
+        const attr = OrderIdempotencyKey.rawAttributes[col];
+        if (!attr) continue;
+        await queryInterface.addColumn(table, col, {
+            type: attr.type,
+            allowNull: attr.allowNull,
+            defaultValue: attr.defaultValue
+        });
+        console.log(`✅ Added column ${table}.${col}`);
+    }
+
+    await sequelize.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_order_idempotency_active
+        ON order_idempotency_keys(scope, dedupe_key)
+        WHERE active = 1
+    `);
+}
+
 // Function to sync database
 const initDB = async () => {
     try {
@@ -118,6 +146,7 @@ const initDB = async () => {
         await ensureOrderColumns();
         await ensureOrderItemColumns();
         await ensureMaterialColumns();
+        await ensureOrderIdempotencyIndexes();
         console.log('✅ Database synchronized');
     } catch (error) {
         console.error('❌ Unable to connect to the database:', error);
@@ -130,6 +159,7 @@ module.exports = {
     initDB,
     Order,
     OrderItem,
+    OrderIdempotencyKey,
     Material,
     MaterialCatalogProfile,
     MaterialCatalogRevision,

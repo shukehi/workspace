@@ -31,6 +31,12 @@ router.post('/', async (req, res) => {
         res.json(order);
     } catch (e) {
         console.error('Create order failed', e);
+        if (e?.code === 'DUPLICATE_ORDER') {
+            return res.status(409).json({
+                error: 'DUPLICATE_ORDER',
+                existingOrder: orderService.toDuplicateOrderSummary(e.existingOrder)
+            });
+        }
         res.status(500).json({ error: e.message });
     }
 });
@@ -42,6 +48,12 @@ router.put('/:id', async (req, res) => {
         res.json(order);
     } catch (e) {
         console.error('Update order failed', e);
+        if (e?.code === 'DUPLICATE_ORDER') {
+            return res.status(409).json({
+                error: 'DUPLICATE_ORDER',
+                existingOrder: orderService.toDuplicateOrderSummary(e.existingOrder)
+            });
+        }
         res.status(500).json({ error: e.message });
     }
 });
