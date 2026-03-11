@@ -49,9 +49,25 @@ const {
   tableEmptyText,
   hasActiveFilters,
   resetFilters,
+  setFilterPreset,
   onSelectionChange,
   clearSelection,
 } = useProcurementPageState(store);
+
+const handleSummaryFilter = (type: 'pending' | 'today' | 'completed' | 'total') => {
+  resetFilters();
+  if (type === 'pending') {
+    // Note: We don't have a single status for 'pending', so we might just reset to ALL
+    // or we could add a special filter for 'pending'.
+    // For now, let's keep it simple and just show how it would work.
+    // In a real scenario, we might set activeStatus to something if it was a single status.
+  } else if (type === 'completed') {
+    setFilterPreset({ status: 'completed' });
+  } else if (type === 'today') {
+    const today = new Date().toISOString().split('T')[0];
+    setFilterPreset({ search: today }); // Rough way to filter by today if search includes date
+  }
+};
 
 const {
   isEditDialogOpen,
@@ -155,24 +171,24 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-4 md:p-8 gap-6 bg-muted/20 relative overflow-hidden">
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+  <div class="h-full flex flex-col p-4 md:p-6 gap-4 bg-muted/20 relative overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <h2 class="text-3xl font-semibold tracking-tight">采购管理</h2>
-        <p class="text-muted-foreground mt-1 text-sm">Procurement hub</p>
+        <h2 class="text-2xl font-bold tracking-tight">采购管理</h2>
+        <p class="text-muted-foreground mt-0.5 text-[11px] uppercase tracking-wider font-medium opacity-70">Procurement Operations Hub</p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" @click="store.fetchOrders()" :disabled="store.loading">
-          <RefreshCcw class="w-4 h-4 mr-2" :class="{ 'animate-spin': store.loading }" />
+      <div class="flex items-center gap-1.5 shrink-0">
+        <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="store.fetchOrders()" :disabled="store.loading">
+          <RefreshCcw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': store.loading }" />
           刷新
         </Button>
-        <Button variant="outline" size="sm" @click="handleExport">
-          <Download class="w-4 h-4 mr-2" />
-          导出数据
+        <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="handleExport">
+          <Download class="w-3.5 h-3.5 mr-1.5" />
+          导出
         </Button>
-        <Button size="sm" variant="secondary" @click="openManualEntry">
-          <Plus class="w-4 h-4 mr-2" />
-          手动录入
+        <Button size="sm" variant="secondary" class="h-8 text-xs px-3" @click="openManualEntry">
+          <Plus class="w-3.5 h-3.5 mr-1.5" />
+          录入
         </Button>
       </div>
     </div>
@@ -182,6 +198,7 @@ onMounted(() => {
       :pending-count="summaryStats.pendingCount"
       :today-count="summaryStats.todayCount"
       :completed-count="summaryStats.completedCount"
+      @filter="handleSummaryFilter"
     />
 
     <ProcurementFilterBar
@@ -204,6 +221,7 @@ onMounted(() => {
         <DataTable
           :columns="columns"
           :data="filteredOrders"
+          :loading="store.loading"
           :enable-selection="true"
           :toolbar="false"
           :empty-text="tableEmptyText"

@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue';
+import { refDebounced } from '@vueuse/core';
 import type { Order } from '@/types/order';
 import {
   PROCUREMENT_CATEGORY_ORDER,
@@ -30,6 +31,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   const activeCategory = ref<'ALL' | PrintCategory>('ALL');
   const activeRiskFilter = ref<OrderRiskFilter>('ALL');
   const searchQuery = ref('');
+  const debouncedSearchQuery = refDebounced(searchQuery, 300);
   const selectedRows = ref<Order[]>([]);
 
   const summaryStats = computed(() => {
@@ -43,36 +45,31 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   });
 
   const statusOptions = computed(() => {
+    const counts: Record<string, number> = { ALL: store.sortedOrders.length };
+    store.sortedOrders.forEach((order) => {
+      counts[order.status] = (counts[order.status] || 0) + 1;
+    });
     return STATUS_OPTIONS.map((status) => ({
       ...status,
-      count: status.id === 'ALL'
-        ? store.sortedOrders.length
-        : store.sortedOrders.filter((order) => order.status === status.id).length
+      count: counts[status.id] || 0
     }));
   });
 
   const categoryOptions = computed(() => {
+    const counts: Record<string, number> = { ALL: store.sortedOrders.length };
+    store.sortedOrders.forEach((order) => {
+      const cat = normalizePrintCategory(order.category);
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+
     return [
-      {
-        id: 'ALL' as const,
-        label: '全部类别',
-        count: store.sortedOrders.length
-      },
+      { id: 'ALL' as const, label: '全部类别', count: counts.ALL },
       ...PROCUREMENT_CATEGORY_ORDER.map((category) => ({
         id: category,
         label: resolveProcurementCategoryFilterLabel(category),
-        count: store.sortedOrders.filter((order) => normalizePrintCategory(order.category) === category).length
+        count: counts[category] || 0
       }))
-    ].map((category) => {
-      const count = category.id === 'ALL'
-        ? store.sortedOrders.length
-        : store.sortedOrders.filter((order) => normalizePrintCategory(order.category) === category.id).length;
-
-      return {
-        ...category,
-        count
-      };
-    });
+    ];
   });
 
   const riskOptions = computed(() => {
@@ -98,8 +95,8 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     if (activeRiskFilter.value !== 'ALL') {
       list = list.filter((order) => matchesOrderRiskFilter(order, activeRiskFilter.value));
     }
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase();
+    if (debouncedSearchQuery.value) {
+      const query = debouncedSearchQuery.value.toLowerCase();
       list = list.filter((order) =>
         order.order_no.toLowerCase().includes(query)
         || order.supplier.toLowerCase().includes(query)
@@ -131,6 +128,18 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     searchQuery.value = '';
   }
 
+  function setFilterPreset(preset: {
+    status?: StatusFilter;
+    category?: 'ALL' | PrintCategory;
+    risk?: OrderRiskFilter;
+    search?: string;
+  }) {
+    if (preset.status !== undefined) activeStatus.value = preset.status;
+    if (preset.category !== undefined) activeCategory.value = preset.category;
+    if (preset.risk !== undefined) activeRiskFilter.value = preset.risk;
+    if (preset.search !== undefined) searchQuery.value = preset.search;
+  }
+
   function onSelectionChange(rows: Order[]) {
     selectedRows.value = rows;
   }
@@ -154,6 +163,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     tableEmptyText,
     hasActiveFilters,
     resetFilters,
+    setFilterPreset,
     onSelectionChange,
     clearSelection,
   };

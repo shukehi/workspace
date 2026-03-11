@@ -32,6 +32,7 @@ const props = withDefaults(defineProps<{
   toolbar?: boolean
   useColumnSize?: boolean
   emptyText?: string
+  loading?: boolean
   prevLabel?: string
   nextLabel?: string
   pageLabelPrefix?: string
@@ -44,6 +45,7 @@ const props = withDefaults(defineProps<{
   toolbar: true,
   useColumnSize: false,
   emptyText: '暂无数据',
+  loading: false,
   prevLabel: '上一页',
   nextLabel: '下一页',
   pageLabelPrefix: '第',
@@ -148,7 +150,13 @@ defineExpose({
       </div>
     </div>
 
-    <div class="flex-1 overflow-auto rounded-lg border bg-card">
+    <div class="flex-1 overflow-auto rounded-lg border bg-card relative min-h-[120px]">
+      <div v-if="loading" class="absolute inset-0 z-20 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
+        <div class="flex flex-col items-center gap-2">
+          <div class="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span class="text-xs text-muted-foreground animate-pulse">正在加载数据...</span>
+        </div>
+      </div>
       <Table :style="props.tableMinWidth > 0 ? { minWidth: `${props.tableMinWidth}px` } : undefined">
         <TableHeader class="sticky top-0 z-10 bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/20">
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">

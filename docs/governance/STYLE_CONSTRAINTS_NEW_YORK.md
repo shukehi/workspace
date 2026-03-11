@@ -19,6 +19,14 @@
 - `text-slate-*` -> `text-foreground` / `text-muted-foreground`
 - `bg-slate-*` -> `bg-background` / `bg-muted`
 
+## 紧凑模式 (Compact Mode)
+对于数据密集型后台页（如采购管理、库存管理），允许使用紧凑模式以提升操作效率：
+- **Padding:** 容器内边距可从 `p-8` 降至 `p-4` 或 `p-6`。
+- **Gaps:** 组件间距可从 `gap-8/6` 降至 `gap-4`。
+- **Card Padding:** `CardContent` 内边距可使用 `p-2.5` 或 `p-3`。
+- **Typography:** 辅助性标签允许使用 `text-[10px]` 或 `text-[11px]`。
+- **Filtering:** 优先采用内联标签布局 (Inline Label Layout) 以节省垂直空间。
+
 ## 组件边界
 - 页面层负责布局与组合。
 - primitives (`src/components/ui/*`) 负责视觉规范。

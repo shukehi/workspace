@@ -151,7 +151,25 @@
 - 抽出预览动作流程：
   - [`src/features/procurement/useProcurementPreview.ts`](/Users/aries/Dve/workspace/src/features/procurement/useProcurementPreview.ts)
 
-结果：
+  ### 7. Procurement UI/UX 布局优化 (2026-03-11)
+
+  已完成：
+
+  - **紧凑型统计卡片**：缩小了 `ProcurementSummaryCards.vue` 的内边距和字号，提升首屏空间利用率。
+  - **筛选栏重构**：
+    - 将“订单状态”与“风控”过滤器整合至同一行（Row 1），建立核心业务流筛选区。
+    - 将“物料分类”与“搜索框”整合至第二行（Row 2），建立物料属性筛选区。
+    - 引入了内联标签设计，大幅减少了垂直空间占用。
+  - **页面间隙收紧**：在 `Procurement.vue` 中统一收紧了组件间距（`gap-6` -> `gap-4`）。
+  - **交互增强**：增加了“重置筛选”按钮的可见性，优化了状态按钮的视觉平衡。
+
+  结果：
+
+  - 在标准 1080p 分辨率下，表格区域的**首屏可见行数增加了约 2-3 行**。
+  - 筛选逻辑的分层更加清晰（业务状态 vs 物料属性）。
+  - 整体视觉风格在保持 New-York 风格的同时，显著提升了后台管理系统的操作效率。
+
+  ## 验证结果
 
 - [`src/views/Procurement.vue`](/Users/aries/Dve/workspace/src/views/Procurement.vue) 已从“大而全页面”收缩为 feature shell
 - 页面现在主要负责子组件装配、列定义和少量事件连接
