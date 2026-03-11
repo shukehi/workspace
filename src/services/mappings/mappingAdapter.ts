@@ -6,6 +6,8 @@ import type {
   CylinderSpecialRule,
   HandleMappingConfig,
   HandleMappingEntry,
+  LockMappingConfig,
+  LockMappingEntry,
   LockForkBaseDimensionRule,
   LockForkDimensionGroup,
   LockForkDimensionPair,
@@ -29,6 +31,9 @@ const DEFAULT_HANDLE_EXPORT_CUSTOMER_KEYWORDS = ['三部'];
 const DEFAULT_HANDLE_EXPORT_ACTIVITY: 'double' = 'double';
 const DEFAULT_HANDLE_PLACEHOLDER_KEYWORDS = ['冲整体拉手孔', '拉手孔', '开拉手孔', '开孔', '打孔'];
 const DEFAULT_HANDLE_FALLBACK_SOURCES: Array<'remark' | 'xsbz'> = ['remark', 'xsbz'];
+const DEFAULT_LOCK_UNIT = '套';
+const DEFAULT_LOCK_PRIMARY_LABEL = '主锁';
+const DEFAULT_LOCK_SECONDARY_LABEL = '副锁';
 const DEFAULT_HANDLE_THICKNESS_PACKS: Record<string, string> = {
   '5': '5公分配件包',
   '7': '7公分配件包',
@@ -59,6 +64,15 @@ function hasCanonicalPackagingShape(value: Record<string, unknown>) {
 }
 
 export function normalizePackagingMappingKey(input: string): string {
+  return String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[（【［]/g, '(')
+    .replace(/[）】］]/g, ')')
+    .replace(/\s+/g, '');
+}
+
+export function normalizeLockMappingKey(input: string): string {
   return String(input || '')
     .trim()
     .toLowerCase()
@@ -105,6 +119,13 @@ export const EMPTY_HANDLE_MAPPING: HandleMappingConfig = {
   placeholderKeywords: [...DEFAULT_HANDLE_PLACEHOLDER_KEYWORDS],
   fallbackModelSources: [...DEFAULT_HANDLE_FALLBACK_SOURCES],
   thicknessAccessoryPacks: { ...DEFAULT_HANDLE_THICKNESS_PACKS },
+  mappings: {},
+};
+
+export const EMPTY_LOCK_MAPPING: LockMappingConfig = {
+  defaultUnit: DEFAULT_LOCK_UNIT,
+  primaryLabel: DEFAULT_LOCK_PRIMARY_LABEL,
+  secondaryLabel: DEFAULT_LOCK_SECONDARY_LABEL,
   mappings: {},
 };
 
@@ -246,6 +267,39 @@ function adaptHandleMappings(value: unknown): Record<string, HandleMappingEntry>
   Object.entries(record).forEach(([rawKey, rawValue]) => {
     const key = toTrimmedString(rawKey);
     const mapping = adaptHandleMappingEntry(rawValue);
+    if (!key || !mapping) return;
+    mappings[key] = mapping;
+  });
+
+  return mappings;
+}
+
+function adaptLockMappingEntry(value: unknown): LockMappingEntry | null {
+  const record = asRecord(value);
+  const supplier = toTrimmedString(record.supplier);
+  const vendorName = toTrimmedString(record.vendorName) || toTrimmedString(record.name);
+  const primarySpec = toTrimmedString(record.primarySpec);
+  const secondarySpec = toTrimmedString(record.secondarySpec);
+  const remark = toTrimmedString(record.remark);
+
+  if (!supplier && !vendorName && !primarySpec && !secondarySpec && !remark) return null;
+
+  return {
+    supplier,
+    vendorName,
+    ...(primarySpec ? { primarySpec } : {}),
+    ...(secondarySpec ? { secondarySpec } : {}),
+    ...(remark ? { remark } : {}),
+  };
+}
+
+function adaptLockMappings(value: unknown): Record<string, LockMappingEntry> {
+  const record = asRecord(value);
+  const mappings: Record<string, LockMappingEntry> = {};
+
+  Object.entries(record).forEach(([rawKey, rawValue]) => {
+    const key = toTrimmedString(rawKey);
+    const mapping = adaptLockMappingEntry(rawValue);
     if (!key || !mapping) return;
     mappings[key] = mapping;
   });
@@ -471,5 +525,16 @@ export function adaptHandleMapping(value: unknown): HandleMappingConfig {
       : [...DEFAULT_HANDLE_FALLBACK_SOURCES],
     thicknessAccessoryPacks: { ...DEFAULT_HANDLE_THICKNESS_PACKS, ...packs },
     mappings: adaptHandleMappings(record.mappings),
+  };
+}
+
+export function adaptLockMapping(value: unknown): LockMappingConfig {
+  const record = asRecord(value);
+
+  return {
+    defaultUnit: toTrimmedString(record.defaultUnit) || DEFAULT_LOCK_UNIT,
+    primaryLabel: toTrimmedString(record.primaryLabel) || DEFAULT_LOCK_PRIMARY_LABEL,
+    secondaryLabel: toTrimmedString(record.secondaryLabel) || DEFAULT_LOCK_SECONDARY_LABEL,
+    mappings: adaptLockMappings(record.mappings),
   };
 }

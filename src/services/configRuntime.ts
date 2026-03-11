@@ -16,6 +16,10 @@ export async function refreshCylinderRuntime() {
     await configLoader.refreshCylinderMapping();
 }
 
+export async function refreshLockRuntime() {
+    await configLoader.refreshLockMapping();
+}
+
 export async function refreshLockForkRuntime() {
     await configLoader.refreshLockForkMapping();
 }

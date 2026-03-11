@@ -57,6 +57,7 @@ export const useSourceStore = defineStore('source', () => {
     // Flattened Data for Views
     const flatMaterials = computed(() => analysisResult.value?.flatMaterials || []);
     const flatCylinders = computed(() => analysisResult.value?.flatCylinders || []);
+    const flatLocks = computed(() => analysisResult.value?.flatLocks || []);
     const flatHandles = computed(() => analysisResult.value?.flatHandles || []);
     const flatForks = computed(() => analysisResult.value?.flatForks || []);
     const flatPackaging = computed(() => analysisResult.value?.flatPackaging || []);
@@ -197,6 +198,7 @@ export const useSourceStore = defineStore('source', () => {
         orderItems,
         flatMaterials,
         flatCylinders,
+        flatLocks,
         flatHandles,
         flatForks,
         flatPackaging,

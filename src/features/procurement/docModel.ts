@@ -1,6 +1,6 @@
 import sharedSchema from '@/features/procurement/procurement-schema.shared.json';
 
-export type PrintCategory = 'packaging' | 'cylinder' | 'hardware' | 'lock' | 'handle';
+export type PrintCategory = 'packaging' | 'cylinder' | 'hardware' | 'lock' | 'lockset' | 'handle';
 export type PrintMode = 'signature' | 'compact';
 
 export type DocValue = string | number;
@@ -88,6 +88,12 @@ export const CATEGORY_CONFIGS: Record<PrintCategory, CategoryConfig> = {
     headers: rawCategories.handle.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
     groupBy: rawCategories.handle.groupBy
   },
+  lockset: {
+    title: rawCategories.lockset.title,
+    fields: rawCategories.lockset.columns.map((column) => column.key),
+    headers: rawCategories.lockset.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
+    groupBy: rawCategories.lockset.groupBy
+  },
   hardware: {
     title: rawCategories.hardware.title,
     fields: rawCategories.hardware.columns.map((column) => column.key),
@@ -110,6 +116,7 @@ export function normalizePrintCategory(category: string | undefined): PrintCateg
   const raw = (category || '').toLowerCase();
   if (raw === 'packaging' || raw.includes('包装')) return 'packaging';
   if (raw === 'cylinder' || raw.includes('锁芯')) return 'cylinder';
+  if (raw === 'lockset' || raw.includes('锁具')) return 'lockset';
   if (raw === 'handle' || raw.includes('拉手')) return 'handle';
   if (raw === 'lock' || raw.includes('锁叉')) return 'lock';
   if (raw === 'hardware' || raw.includes('五金') || raw.includes('配件')) return 'hardware';

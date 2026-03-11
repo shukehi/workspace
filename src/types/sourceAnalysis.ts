@@ -4,6 +4,7 @@ export interface SourceAnalysisConfig {
     formulas: GenericMap;
     materials: GenericMap;
     cylinderMapping: GenericMap;
+    lockMapping: GenericMap;
     handleMapping: GenericMap;
     lockForkMapping: GenericMap;
     packagingMapping: GenericMap;
@@ -11,6 +12,7 @@ export interface SourceAnalysisConfig {
 
 export interface HardwareRequirements {
     cylinders: any[];
+    locks: any[];
     handles: any[];
     lockForks: any[];
     packaging: GenericMap;
@@ -27,6 +29,7 @@ export interface SourceAnalysisResult {
     hardwareRequirements: HardwareRequirements;
     flatMaterials: any[];
     flatCylinders: any[];
+    flatLocks: any[];
     flatHandles: any[];
     flatForks: any[];
     flatPackaging: any[];

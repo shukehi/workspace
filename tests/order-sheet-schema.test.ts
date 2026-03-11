@@ -19,8 +19,13 @@ test('schema: handle columns include left/right quantity before unit', () => {
   assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark']);
 });
 
+test('schema: lockset columns align with single-quantity procurement sheet', () => {
+  const schema = getSheetSchema('lockset');
+  assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark']);
+});
+
 test('schema: all spec-like fields use 规格 label across categories', () => {
-  const categories = ['packaging', 'cylinder', 'handle', 'lock', 'hardware'] as const;
+  const categories = ['packaging', 'cylinder', 'handle', 'lockset', 'lock', 'hardware'] as const;
   categories.forEach((category) => {
     const schema = getSheetSchema(category);
     schema.columns

@@ -9,6 +9,7 @@ export type NavIconKey =
     | 'formula'
     | 'packaging-config'
     | 'cylinder-config'
+    | 'lock-config'
     | 'handle-config'
     | 'lock-fork-config'
     | 'statistics'
@@ -47,6 +48,7 @@ export const mainNavGroups: NavGroup[] = [
             { title: '配方配置', href: '/formula', icon: 'formula' },
             { title: '包装配置', href: '/config/packaging', icon: 'packaging-config' },
             { title: '锁芯配置', href: '/config/cylinder', icon: 'cylinder-config' },
+            { title: '锁具配置', href: '/config/lock', icon: 'lock-config' },
             { title: '拉手配置', href: '/config/handle', icon: 'handle-config' },
             { title: '锁叉配置', href: '/config/lock-fork', icon: 'lock-fork-config' }
         ]

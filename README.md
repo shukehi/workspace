@@ -16,7 +16,14 @@
 - 采购订单管理（含分类）
 - 库存管理与预警
 - 统计看板
-- 配置管理（配方、材料目录）
+- 配置管理（配方、材料目录、包装、锁芯、锁具、拉手、锁叉）
+
+说明：
+
+- 锁具采购单支持左右数量拆分
+- 当 `spec` 第 3 段包含 `内开` 时，锁具左右数量会互换
+- 锁具单位来自锁具配置中的 `defaultUnit`
+- 锁具备注只使用命中映射的 `remark`
 
 ## 技术栈
 
@@ -192,6 +199,8 @@ node --test tests/repository-structure-guard.test.js
 - `PUT /api/inventory/:id`：更新库存
 - `GET /api/config/materials`：读取材料目录
 - `POST /api/config/materials`：保存材料目录
+- `GET /api/config/lock`：读取锁具映射
+- `PUT /api/config/lock`：保存锁具映射
 - `GET /api/config/formulas`：配方列表（分页/筛选）
 - `GET /api/config/formulas/published-map`：已发布配方映射（物料计算链路）
 - `GET /api/config/formulas/:formulaKey`：配方详情（草稿/发布信息）
@@ -226,6 +235,7 @@ npm run db:export:formulas
 - [优化计划（阶段跟踪）](docs/OPTIMIZATION_PLAN_2026-03-03.md)
 - [legacy 清理计划](docs/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md)
 - [PO 字段契约](docs/PO_FIELD_CONTRACT.md)
+- [锁具规则说明](docs/reference/LOCK_RULES.md)
 
 ## 说明
 

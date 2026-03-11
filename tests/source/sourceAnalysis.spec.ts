@@ -9,6 +9,7 @@ test('source analysis: empty order returns empty analysis result', () => {
             formulas: {},
             materials: {},
             cylinderMapping: {},
+            lockMapping: {},
             handleMapping: {},
             lockForkMapping: {},
             packagingMapping: {},
@@ -18,11 +19,13 @@ test('source analysis: empty order returns empty analysis result', () => {
     assert.equal(result.materialRequirements, null);
     assert.deepEqual(result.hardwareRequirements, {
         cylinders: [],
+        locks: [],
         handles: [],
         lockForks: [],
         packaging: {},
     });
     assert.deepEqual(result.flatMaterials, []);
+    assert.deepEqual(result.flatLocks, []);
     assert.deepEqual(result.flatPackaging, []);
 });
 
@@ -68,6 +71,7 @@ test('source analysis: computes material and hardware flat views from config sna
                 },
             },
             cylinderMapping: {},
+            lockMapping: {},
             handleMapping: {},
             lockForkMapping: {},
             packagingMapping: {},
@@ -79,6 +83,7 @@ test('source analysis: computes material and hardware flat views from config sna
     assert.equal(result.flatMaterials[0].supplierName, '供应商A');
     assert.equal(result.flatMaterials[0].totalUsage, 2);
     assert.deepEqual(result.flatCylinders, []);
+    assert.deepEqual(result.flatLocks, []);
     assert.deepEqual(result.flatHandles, []);
     assert.deepEqual(result.flatForks, []);
     assert.equal(result.flatPackaging.length, 1);

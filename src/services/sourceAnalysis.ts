@@ -1,6 +1,7 @@
 import { calculateMaterialRequirements } from '@/lib/erp-engine/materialDecomposer';
 import {
     extractCylinderData,
+    extractLockData,
     extractHandleData,
     extractLockForkData,
     extractPackagingData,
@@ -34,6 +35,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
     if (!order || !Array.isArray(targetItems) || targetItems.length === 0) {
         const hardwareRequirements: HardwareRequirements = {
             cylinders: [],
+            locks: [],
             handles: [],
             lockForks: [],
             packaging: {},
@@ -44,6 +46,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
             hardwareRequirements,
             flatMaterials: [],
             flatCylinders: [],
+            flatLocks: [],
             flatHandles: [],
             flatForks: [],
             flatPackaging: [],
@@ -64,6 +67,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
 
     const hardwareRequirements: HardwareRequirements = {
         cylinders: extractCylinderData(targetItems, order, config.cylinderMapping),
+        locks: extractLockData(targetItems, order, config.lockMapping),
         handles: extractHandleData(targetItems, order, config.handleMapping),
         lockForks: extractLockForkData(targetItems, order, config.lockForkMapping),
         packaging: extractPackagingData(targetItems, config.packagingMapping),
@@ -74,6 +78,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
         hardwareRequirements,
         flatMaterials: buildFlatMaterials(materialRequirements),
         flatCylinders: hardwareRequirements.cylinders,
+        flatLocks: hardwareRequirements.locks,
         flatHandles: hardwareRequirements.handles,
         flatForks: hardwareRequirements.lockForks,
         flatPackaging: buildFlatPackaging(hardwareRequirements),

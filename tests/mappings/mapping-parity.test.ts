@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import {
   adaptPackagingMapping as adaptPackagingMappingFront,
   adaptCylinderMapping as adaptCylinderMappingFront,
+  adaptLockMapping as adaptLockMappingFront,
   adaptLockForkMapping as adaptLockForkMappingFront
 } from '../../src/services/mappings/mappingAdapter';
 import {
   validatePackagingMapping as validatePackagingMappingFront,
   validateCylinderMapping as validateCylinderMappingFront,
+  validateLockMapping as validateLockMappingFront,
   validateLockForkMapping as validateLockForkMappingFront
 } from '../../src/services/mappings/mappingValidator';
 
@@ -15,12 +17,14 @@ import {
 const {
   adaptPackagingMapping: adaptPackagingMappingBack,
   adaptCylinderMapping: adaptCylinderMappingBack,
+  adaptLockMapping: adaptLockMappingBack,
   adaptLockForkMapping: adaptLockForkMappingBack
 } = require('../../server/services/mappings/mapping.adapter');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const {
   validatePackagingMapping: validatePackagingMappingBack,
   validateCylinderMapping: validateCylinderMappingBack,
+  validateLockMapping: validateLockMappingBack,
   validateLockForkMapping: validateLockForkMappingBack
 } = require('../../server/services/mappings/mapping.validator');
 
@@ -119,6 +123,23 @@ const lockForkSamples: unknown[] = [
   }
 ];
 
+const lockSamples: unknown[] = [
+  {
+    defaultUnit: '套',
+    primaryLabel: '主锁',
+    secondaryLabel: '副锁',
+    mappings: {
+      'SD-9030（6607大锁）': { supplier: '汇成', vendorName: '6607大锁', primarySpec: '主锁体' }
+    }
+  },
+  {
+    mappings: {
+      'SD-9030（6607大锁）': { supplier: '汇成', vendorName: '6607大锁' },
+      'SD-9030 ( 6607大锁 )': { supplier: '汇成', vendorName: '重复锁具' }
+    }
+  }
+];
+
 function assertParity(
   sample: unknown,
   adaptFront: (value: unknown) => unknown,
@@ -150,6 +171,18 @@ test('cylinder adapter/validator parity between frontend and backend', () => {
       adaptCylinderMappingBack,
       validateCylinderMappingFront,
       validateCylinderMappingBack
+    );
+  });
+});
+
+test('lock adapter/validator parity between frontend and backend', () => {
+  lockSamples.forEach((sample) => {
+    assertParity(
+      sample,
+      adaptLockMappingFront,
+      adaptLockMappingBack,
+      validateLockMappingFront,
+      validateLockMappingBack
     );
   });
 });

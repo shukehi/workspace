@@ -94,6 +94,32 @@ export function createLockForkOrderItem(params: {
     };
 }
 
+export function createLockOrderItem(params: {
+    supplier: string;
+    type: string;
+    spec: string;
+    unit?: string;
+    qtyLeft: number;
+    qtyRight: number;
+    quantity: number;
+    remark?: string;
+}): OrderItem {
+    return {
+        id: 0,
+        material_id: params.type,
+        supplier: params.supplier,
+        name: params.type || '锁具',
+        model: params.spec || '-',
+        type: params.type || '锁具',
+        spec: params.spec || '-',
+        quantity_left: params.qtyLeft,
+        quantity_right: params.qtyRight,
+        quantity: params.quantity,
+        unit: params.unit || '套',
+        remark: params.remark || ''
+    };
+}
+
 export function createHandleOrderItem(params: {
     supplier: string;
     type: string;
@@ -123,6 +149,7 @@ export function findMissingCategoryFields(category: string, items: OrderItem[]) 
     const requiredByCategory: Record<string, string[]> = {
         '包装': ['supplier', 'internal_name', 'external_name', 'spec', 'mb', 'quantity'],
         '锁芯': ['supplier', 'type', 'eccentricity', 'quantity'],
+        '锁具': ['supplier', 'type', 'spec', 'quantity_left', 'quantity_right', 'quantity'],
         '锁叉': ['supplier', 'type', 'spec', 'quantity'],
         '拉手': ['supplier', 'type', 'spec', 'quantity_left', 'quantity_right', 'quantity']
     };

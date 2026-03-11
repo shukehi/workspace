@@ -31,6 +31,7 @@ export const CATEGORY_DEFAULT_WIDTHS: Record<PrintCategory, Record<string, numbe
   packaging: buildCategoryDefaultWidths('packaging'),
   cylinder: buildCategoryDefaultWidths('cylinder'),
   handle: buildCategoryDefaultWidths('handle'),
+  lockset: buildCategoryDefaultWidths('lockset'),
   lock: buildCategoryDefaultWidths('lock'),
   hardware: buildCategoryDefaultWidths('hardware')
 };

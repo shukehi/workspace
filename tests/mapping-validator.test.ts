@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   validateCylinderMapping,
   validateHandleMapping,
+  validateLockMapping,
   validateLockForkMapping,
   validatePackagingMapping,
 } from '../src/services/mappings';
@@ -96,4 +97,18 @@ test('frontend mapping validator: handle validator validates keywords/thickness/
   assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
   assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].supplier'));
   assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorName'));
+});
+
+test('frontend mapping validator: lock validator detects normalized conflicts and missing fields', () => {
+  const issues = validateLockMapping({
+    mappings: {
+      'SD-9030（6607大锁）': { supplier: '汇成', vendorName: '6607大锁' },
+      'SD-9030 ( 6607大锁 )': { supplier: '汇成', vendorName: '6607大锁-重复' },
+      'F02-A副锁': { supplier: '', vendorName: '', primarySpec: '副锁体' },
+    },
+  });
+
+  assert.ok(issues.some((item) => item.path === 'mappings["SD-9030 ( 6607大锁 )"]' && item.code === 'normalized-conflict'));
+  assert.ok(issues.some((item) => item.path === 'mappings["F02-A副锁"].supplier'));
+  assert.ok(issues.some((item) => item.path === 'mappings["F02-A副锁"].vendorName'));
 });

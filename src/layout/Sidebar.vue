@@ -36,6 +36,7 @@ const iconMap: Record<NavIconKey, Component> = {
   formula: FlaskConical,
   'packaging-config': Package,
   'cylinder-config': Key,
+  'lock-config': Key,
   'handle-config': Wrench,
   'lock-fork-config': Wrench,
   statistics: BarChart3,

@@ -53,6 +53,7 @@ export const CATEGORY_SCHEMAS: Record<PrintCategory, SheetSchema> = {
   packaging: toSheetSchema(sharedCategories.packaging),
   cylinder: toSheetSchema(sharedCategories.cylinder),
   handle: toSheetSchema(sharedCategories.handle),
+  lockset: toSheetSchema(sharedCategories.lockset),
   lock: toSheetSchema(sharedCategories.lock),
   hardware: toSheetSchema(sharedCategories.hardware)
 };

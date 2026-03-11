@@ -155,6 +155,36 @@ test('configLoader: cylinder and lock-fork loaders normalize static payloads thr
   assert.equal(loader.getLoadSources().lockFork, 'static');
 });
 
+test('configLoader: lock loader normalizes payloads through adapter', async () => {
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+
+    if (url === '/data/lock-mapping.json') {
+      return createResponse(true, {
+        primaryLabel: '主锁',
+        secondaryLabel: '副锁',
+        mappings: {
+          'SD-9030（6607大锁）': {
+            supplier: '汇成',
+            vendorName: '6607大锁',
+            primarySpec: '主锁体',
+          },
+        },
+      }) as unknown as Response;
+    }
+
+    return createResponse(false, null) as unknown as Response;
+  }) as typeof fetch;
+
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
+  await loader.loadLockMapping();
+
+  assert.equal(loader.getLockMapping().primaryLabel, '主锁');
+  assert.equal(loader.getLockMapping().mappings['SD-9030（6607大锁）']?.vendorName, '6607大锁');
+  assert.equal(loader.getLockMapping().mappings['SD-9030（6607大锁）']?.primarySpec, '主锁体');
+  assert.equal(loader.getLoadSources().lock, 'static');
+});
+
 test('configLoader: handle loader normalizes payloads through adapter', async () => {
   globalThis.fetch = (async (input: string | URL | Request) => {
     const url = String(input);
