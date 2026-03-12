@@ -202,7 +202,21 @@ ERP 输入：
 - 打印/PDF 部门提取：`/src/features/procurement/customerName.ts`
 - 打印页入口：`/src/views/PrintDocument.vue`
 
-## 5. Known Anti-Patterns
+## 5. Date Display Contract
+
+订单日期字段在采购管理列表、预览、打印/PDF 中都必须按同一“业务日期”口径展示：
+
+- `created_at` / `delivery_date` 的展示值统一使用 `YYYY-MM-DD`
+- 展示时优先保留源值中的日期部分，不允许因为浏览器本地时区转换出现前后一天偏移
+- 采购管理列表与预览模式必须显示一致的 `交货日期`
+
+当前实现位置：
+
+- 采购管理列表：`/src/components/procurement/ProcurementColumns.ts`
+- 预览/编辑展示：`/src/components/procurement/OrderSheetView.vue`
+- 日期归一化：`/src/features/procurement/docModel.ts`
+
+## 6. Known Anti-Patterns
 
 - 把包装映射 `mappings[bz]` 当供应商使用（错误）
 - 锁芯/锁叉只写 `name/model` 不写 `type/spec/eccentricity`
@@ -211,9 +225,10 @@ ERP 输入：
 - 锁具备注自动拼接 `主锁/副锁`、`spec` 或 `customerName`
 - 预览层通过 `remark` 反解析结构化数据
 - 把打印/PDF 的客户名称脱敏规则错误应用到预览或编辑模式
+- 列表页使用浏览器本地时区格式化日期，导致与预览/PDF 差一天
 - Mock 返回结构和真实后端不一致
 
-## 6. Change Checklist
+## 7. Change Checklist
 
 修改任何 PO 字段前，必须同时检查：
 
