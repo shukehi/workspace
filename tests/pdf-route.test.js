@@ -72,6 +72,7 @@ test('POST /api/pdf/generate returns binary PDF with Content-Disposition header'
       poNumber: 'PO-TEST-001',
       category: '包装',
       order: {
+        supplier: '测试供应商',
         customerName: '测试客户',
         code: 'PO-TEST-001',
         list: [{ name: '测试明细', quantity: 1 }]
@@ -83,7 +84,7 @@ test('POST /api/pdf/generate returns binary PDF with Content-Disposition header'
   assert.equal(res.headers.get('content-type'), 'application/pdf');
   assert.equal(
     res.headers.get('content-disposition'),
-    'attachment; filename="PO-TEST-001.pdf"'
+    'attachment; filename="%E6%B5%8B%E8%AF%95%E4%BE%9B%E5%BA%94%E5%95%86%20%E5%8C%85%E8%A3%85%20PO-TEST-001%20%E9%A2%90%E5%AE%B6%E9%87%87%E8%B4%AD%E8%AE%A2%E5%8D%95.pdf"'
   );
 
   const content = Buffer.from(await res.arrayBuffer()).toString('utf8');

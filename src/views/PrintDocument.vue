@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '@/lib/api';
 import { normalizePrintMode, type PrintMode } from '@/features/procurement/docModel';
+import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
@@ -176,7 +177,7 @@ async function exportPdf() {
     await api.downloadPDF(
       '/pdf/generate',
       payload,
-      `${source.value.order?.order_no || source.value.poNumber || 'order'}.pdf`
+      buildPurchaseOrderPdfFilename(source.value.order)
     );
   } catch (e) {
     console.error('Export PDF failed', e);

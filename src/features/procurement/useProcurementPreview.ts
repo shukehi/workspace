@@ -2,6 +2,7 @@ import { computed, ref, watch, type Ref } from 'vue';
 import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
 import { resolveProcurementCategoryLabel, type PrintMode } from '@/features/procurement/docModel';
+import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
 type ToastFn = (payload: {
@@ -137,16 +138,17 @@ export function createProcurementPreview(options: {
 
     exportingPdf.value = true;
     try {
+      const filename = buildPurchaseOrderPdfFilename(options.order.value);
       const id = await ensureSnapshot();
       await apiClient.downloadPDF('/pdf/generate', {
         poNumber: options.order.value.order_no,
         snapshotId: id,
         printMode: printMode.value,
-      }, `${options.order.value.order_no}.pdf`);
+      }, filename);
 
       options.toast({
         title: '导出成功',
-        description: `已导出 ${options.order.value.order_no}.pdf`,
+        description: `已导出 ${filename}`,
         variant: 'success'
       });
     } catch (error) {

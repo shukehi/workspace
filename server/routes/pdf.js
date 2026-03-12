@@ -9,6 +9,35 @@ const snapshotStore = require('../services/printSnapshotStore');
 const { resolveRenderBaseUrl } = require('../services/renderBaseUrl');
 
 const router = express.Router();
+const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
+const SPACE_PATTERN = /\s+/g;
+
+function normalizeCategoryLabel(category) {
+    const raw = String(category || '').toLowerCase();
+    if (!raw) return '未分类';
+    if (raw === 'packaging' || raw.includes('包装')) return '包装';
+    if (raw === 'cylinder' || raw.includes('锁芯')) return '锁芯';
+    if (raw === 'lockset' || raw.includes('锁具')) return '锁具';
+    if (raw === 'handle' || raw.includes('拉手')) return '拉手';
+    if (raw === 'lock' || raw.includes('锁叉')) return '锁叉';
+    if (raw === 'hardware' || raw.includes('五金') || raw.includes('配件')) return '五金';
+    return '未分类';
+}
+
+function cleanFilenamePart(value, fallback) {
+    const normalized = String(value || '')
+        .replace(INVALID_FILENAME_CHARS, ' ')
+        .replace(SPACE_PATTERN, ' ')
+        .trim();
+    return normalized || fallback;
+}
+
+function buildPdfFilename({ supplier, category, poNumber }) {
+    const safeSupplier = cleanFilenamePart(supplier, '未知供应商');
+    const safeCategory = cleanFilenamePart(normalizeCategoryLabel(category), '未分类');
+    const safePoNumber = cleanFilenamePart(poNumber, 'order');
+    return `${safeSupplier} ${safeCategory} ${safePoNumber} 颐家采购订单.pdf`;
+}
 
 function createSnapshotFromOrder({ poNumber, category, printMode, order }) {
     if (!order || typeof order !== 'object') return null;
@@ -102,6 +131,24 @@ router.post('/generate', async (req, res) => {
             || order?.code
             || 'order'
         ).trim() || 'order';
+        const resolvedCategory = String(
+            category
+            || snapshotPayload?.category
+            || order?.category
+            || ''
+        ).trim();
+        const resolvedSupplier = String(
+            order?.supplier
+            || snapshotPayload?.order?.supplier
+            || order?.metadata?.supplier
+            || order?.items?.[0]?.supplier
+            || ''
+        ).trim();
+        const filename = buildPdfFilename({
+            supplier: resolvedSupplier,
+            category: resolvedCategory,
+            poNumber: resolvedPoNumber,
+        });
 
         const mode = String(printMode || snapshotPayload?.printMode || 'signature').trim() || 'signature';
         const baseUrl = resolveRenderBaseUrl(req);
@@ -128,7 +175,7 @@ router.post('/generate', async (req, res) => {
         });
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(resolvedPoNumber)}.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
         res.setHeader('Content-Length', pdfBuffer.length);
         res.end(pdfBuffer, 'binary');
 

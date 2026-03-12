@@ -84,6 +84,6 @@ test('createProcurementPreview creates snapshot, prints, and exports pdf', async
   await preview.handleExportPdf();
   assert.equal(downloads.length, 1);
   assert.equal(downloads[0].url, '/pdf/generate');
-  assert.equal(downloads[0].filename, 'PO-31.pdf');
+  assert.equal(downloads[0].filename, '测试供应商 包装 PO-31 颐家采购订单.pdf');
   assert.equal(toasts.at(-1)?.title, '导出成功');
 });
