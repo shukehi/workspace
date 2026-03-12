@@ -32,6 +32,8 @@
 3. 破坏性接口变更必须保持向后兼容窗口，或同步迁移前端并在 PR 标注影响面。
 4. 删除类操作默认按幂等设计（重复删除不应导致系统异常）。
 5. 涉及多表写入必须放事务。
+6. 涉及跨模块状态流转时，必须先定义状态语义与允许流转，再开始编码。
+7. 涉及库存数量变更时，禁止只改汇总字段，必须同时写业务流水或留痕记录。
 
 ## 5. 数据库与迁移规范
 
@@ -79,8 +81,14 @@ npm test
 
 1. 影响开发流程的改动，必须同步更新本规范文档。
 2. 影响运行或排障的改动，必须同步更新 `README.md`、相关现行文档，必要时再补充 `docs/archive/troubleshooting.md` 的历史说明。
+3. 涉及采购、库存、财务等跨模块边界调整时，必须先补专题方案文档，再进入实现阶段。
 
-## 10. 目录与文件放置规则
+## 10. 业务语义一致性规范
+
+1. 前端按钮文案、后端状态语义、统计口径必须一致，禁止同一状态在不同模块表示不同业务含义。
+2. 如果状态名不变但业务语义发生变化，必须同步更新现行参考文档与测试断言。
+
+## 11. 目录与文件放置规则
 
 1. `data/config/` 是映射、材料目录、采购设置等配置数据的唯一来源，禁止新增 `public/data/` 业务配置依赖。
 2. `data/runtime/` 仅允许放运行期数据库、备份和导出文件，禁止入库。
@@ -89,10 +97,11 @@ npm test
 5. 说明性文档统一放 `docs/` 子目录，截图或示意图统一放 `docs/assets/`。
 6. 禁止跟踪 `dist/`、`node_modules/`、`temp/`、`database.sqlite` 及 `data/runtime/**`。
 
-## 11. 关联文档
+## 12. 关联文档
 
 1. CSS 治理清单：`docs/governance/CSS_GOVERNANCE_CHECKLIST.md`
 2. Legacy 清理计划（历史归档）：`docs/archive/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md`
 3. 模板迁移计划：`docs/roadmaps/CSS_TEMPLATE_MIGRATION_PLAN.md`
 4. 功能开发与配置接入规范：`docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md`
 5. Legacy 配置接口退场策略：`docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md`
+6. 采购与库存边界改造计划：`docs/roadmaps/PROCUREMENT_INVENTORY_BOUNDARY_PLAN_2026-03-12.md`
