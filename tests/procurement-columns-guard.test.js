@@ -14,6 +14,7 @@ test('procurement columns guard: detail table shows customer name instead of amo
   const categoryIndex = content.indexOf("header: '类别'");
 
   assert.match(content, /header:\s*'制单日期'/);
+  assert.match(content, /header:\s*'交货日期'/);
   assert.doesNotMatch(content, /header:\s*'下单日期'/);
   assert.match(content, /header:\s*'客户名称'/);
   assert.doesNotMatch(content, /header:\s*'金额'/);

@@ -222,7 +222,7 @@ onMounted(() => {
           :enable-selection="true"
           :toolbar="false"
           :empty-text="tableEmptyText"
-          :table-min-width="900"
+          :table-min-width="1020"
           density="compact"
           @selection-change="onSelectionChange"
         />

@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw } from 'lucide-vue-next';
 import {
     resolveProcurementCategoryBadgeClass,
-    resolveProcurementCategoryLabel
+    resolveProcurementCategoryLabel,
+    normalizeDateString
 } from '@/features/procurement/docModel';
 import { resolveOrderRisk } from '@/features/procurement/orderRisk';
 
@@ -77,8 +78,16 @@ export const createColumns = (actions: {
         accessorKey: 'created_at',
         header: '制单日期',
         cell: ({ row }) => {
-            const date = new Date(row.getValue<string>('created_at'));
-            return h('div', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString());
+            const date = normalizeDateString(row.getValue<string>('created_at')) || '-';
+            return h('div', { class: 'text-muted-foreground text-sm' }, date);
+        }
+    },
+    {
+        accessorKey: 'delivery_date',
+        header: '交货日期',
+        cell: ({ row }) => {
+            const date = normalizeDateString(row.getValue<string>('delivery_date')) || '-';
+            return h('div', { class: 'text-muted-foreground text-sm' }, date);
         }
     },
     {

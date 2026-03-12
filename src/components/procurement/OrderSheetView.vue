@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { Order, OrderItem } from '@/types/order';
 import { resolveDisplayCustomerName } from '@/features/procurement/customerName';
-import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import { normalizeDateString, normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import { sortProcurementItems } from '@/features/procurement/itemSort';
 import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
 
@@ -32,7 +33,7 @@ const emit = defineEmits<{
 const isEditMode = computed(() => props.mode === 'edit');
 const category = computed<PrintCategory>(() => normalizePrintCategory(props.order.category));
 const isPackaging = computed(() => category.value === 'packaging');
-const items = computed(() => (props.order.items || []) as OrderItem[]);
+const items = computed(() => sortProcurementItems(category.value, (props.order.items || []) as OrderItem[]));
 const schema = computed(() => {
   const base = getSheetSchema(category.value);
   if (!props.hiddenColumns || props.hiddenColumns.length === 0) return base;
@@ -54,14 +55,14 @@ const displayCustomerName = computed(() => {
 });
 
 const formattedOrderDate = computed({
-  get: () => props.order.created_at ? new Date(props.order.created_at).toISOString().split('T')[0] : '',
+  get: () => normalizeDateString(props.order.created_at),
   set: (val) => {
     if (val) props.order.created_at = new Date(val).toISOString();
   }
 });
 
 const formattedDeliveryDate = computed({
-  get: () => props.order.delivery_date ? new Date(props.order.delivery_date).toISOString().split('T')[0] : '',
+  get: () => normalizeDateString(props.order.delivery_date),
   set: (val) => {
     if (val) props.order.delivery_date = new Date(val).toISOString();
   }
