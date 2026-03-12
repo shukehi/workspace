@@ -2,7 +2,7 @@ import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { Order } from '@/types/order';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw } from 'lucide-vue-next';
+import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw, Printer, FileDown } from 'lucide-vue-next';
 import {
     resolveProcurementCategoryBadgeClass,
     resolveProcurementCategoryLabel,
@@ -14,6 +14,8 @@ export const createColumns = (actions: {
     onEdit: (order: Order) => void;
     onDelete: (order: Order) => void;
     onPreview: (order: Order) => void;
+    onPrint: (order: Order) => void;
+    onExportPdf: (order: Order) => void;
     onStatusUpdate: (order: Order, status: Order['status']) => void;
 }): ColumnDef<Order>[] => [
     {
@@ -146,6 +148,20 @@ export const createColumns = (actions: {
                 // Spacer
                 h('div', { class: 'w-[1px] h-4 bg-slate-200 mx-1' }),
 
+                h(Button, {
+                    variant: 'ghost',
+                    size: 'icon',
+                    class: 'h-8 w-8 text-muted-foreground hover:text-emerald-600',
+                    title: '直接打印',
+                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onPrint(order); }
+                }, () => h(Printer, { class: 'h-4 w-4' })),
+                h(Button, {
+                    variant: 'ghost',
+                    size: 'icon',
+                    class: 'h-8 w-8 text-muted-foreground hover:text-violet-600',
+                    title: '导出 PDF',
+                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onExportPdf(order); }
+                }, () => h(FileDown, { class: 'h-4 w-4' })),
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',

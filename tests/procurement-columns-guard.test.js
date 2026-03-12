@@ -23,6 +23,10 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.ok(customerIndex > -1);
   assert.ok(categoryIndex > -1);
   assert.ok(customerIndex < categoryIndex);
+  assert.match(content, /title:\s*'直接打印'/);
+  assert.match(content, /actions\.onPrint\(order\)/);
+  assert.match(content, /title:\s*'导出 PDF'/);
+  assert.match(content, /actions\.onExportPdf\(order\)/);
   assert.match(content, /title:\s*'恢复草稿'/);
   assert.match(content, /actions\.onStatusUpdate\(order,\s*'draft'\)/);
 });

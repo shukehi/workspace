@@ -22,6 +22,10 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import type { Order } from '@/types/order';
 import { useProcurementDialogs } from '@/features/procurement/useProcurementDialogs';
 import { useProcurementPageState } from '@/features/procurement/useProcurementPageState';
+import { api } from '@/lib/api';
+import { hasValidDeliveryDate } from '@/features/procurement/useProcurementPreview';
+import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
+import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
@@ -103,6 +107,71 @@ const handleBulkDelete = () => {
   requestBulkDelete(selectedRows.value, clearSelection);
 };
 
+const handlePrintOrder = async (order: Order) => {
+  const printableOrder = prepareOrderDraft(order);
+  if (!hasValidDeliveryDate(printableOrder)) {
+    const confirmed = window.confirm('当前订单未设置交货日期，是否继续打印/导出 PDF？');
+    if (!confirmed) return;
+  }
+
+  try {
+    const payload = {
+      poNumber: printableOrder.order_no,
+      category: printableOrder.category || '',
+      printMode: 'signature',
+      order: printableOrder,
+    };
+    const result = await api.post<{ snapshotId?: string }>('/print/snapshots', payload);
+    const snapshotId = String(result?.snapshotId || '').trim();
+    if (!snapshotId) {
+      throw new Error('快照创建失败');
+    }
+
+    window.open(
+      `/print-document?snapshotId=${encodeURIComponent(snapshotId)}&printMode=signature&autoPrint=1&t=${Date.now()}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  } catch (error) {
+    console.error('Open print window failed', error);
+    toast({
+      title: '打印失败',
+      description: '无法生成打印预览',
+      variant: 'destructive'
+    });
+  }
+};
+
+const handleExportPdfOrder = async (order: Order) => {
+  const exportableOrder = prepareOrderDraft(order);
+  if (!hasValidDeliveryDate(exportableOrder)) {
+    const confirmed = window.confirm('当前订单未设置交货日期，是否继续打印/导出 PDF？');
+    if (!confirmed) return;
+  }
+
+  try {
+    await api.downloadPDF('/pdf/generate', {
+      poNumber: exportableOrder.order_no,
+      category: exportableOrder.category || '',
+      printMode: 'signature',
+      order: exportableOrder,
+    }, buildPurchaseOrderPdfFilename(exportableOrder));
+
+    toast({
+      title: '导出成功',
+      description: `已导出 ${buildPurchaseOrderPdfFilename(exportableOrder)}`,
+      variant: 'success'
+    });
+  } catch (error) {
+    console.error('Export PDF failed', error);
+    toast({
+      title: '导出失败',
+      description: '请稍后重试',
+      variant: 'destructive'
+    });
+  }
+};
+
 const handleExport = () => {
   const dataToExport = selectedRows.value.length > 0 ? selectedRows.value : filteredOrders.value;
   store.exportToCSV(dataToExport);
@@ -159,6 +228,8 @@ const columns = createColumns({
   onEdit: openEdit,
   onDelete: requestDelete,
   onPreview: openPreview,
+  onPrint: handlePrintOrder,
+  onExportPdf: handleExportPdfOrder,
   onStatusUpdate: handleStatusUpdate
 });
 
