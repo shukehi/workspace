@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
@@ -10,6 +10,7 @@ import ProcurementFilterBar from '@/components/procurement/ProcurementFilterBar.
 import ProcurementBulkActionBar from '@/components/procurement/ProcurementBulkActionBar.vue';
 import EditOrderDialog from '@/components/procurement/EditOrderDialog.vue';
 import ProcurementPreviewModal from '@/components/procurement/ProcurementPreviewModal.vue';
+import ProcurementStockInDialog from '@/components/procurement/ProcurementStockInDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -32,6 +33,9 @@ const store = useProcurementStore();
 const { toast } = useToastStore();
 const route = useRoute();
 const router = useRouter();
+const stockInOrder = ref<Order | null>(null);
+const stockInDialogOpen = ref(false);
+const stockInSaving = ref(false);
 
 const statusLabels: Record<Order['status'], string> = {
   draft: '草稿',
@@ -219,14 +223,31 @@ const handleViewReceipts = async (order: Order) => {
   });
 };
 
-const handleStockInOrder = async (order: Order) => {
+const openStockInDialog = (order: Order) => {
+  stockInOrder.value = order;
+  stockInDialogOpen.value = true;
+};
+
+const handleStockInOrder = async (payload?: {
+  stocked_in_at?: string;
+  operator?: string;
+  remark?: string;
+  items?: { order_item_id: number; item_key: string; quantity: number }[];
+}) => {
+  if (!stockInOrder.value) return;
+  stockInSaving.value = true;
   try {
-    await store.stockInOrder(order.id, {
+    const updated = await store.stockInOrder(stockInOrder.value.id, payload || {
       stocked_in_at: new Date().toISOString(),
     });
+    stockInDialogOpen.value = false;
+    stockInOrder.value = null;
+    const isCompleted = updated.status === 'completed';
     toast({
-      title: '入库成功',
-      description: `订单 ${order.order_no} 已设为 ${statusLabels.completed}`,
+      title: isCompleted ? '入库完成' : '部分入库成功',
+      description: isCompleted
+        ? `订单 ${updated.order_no} 已设为 ${statusLabels.completed}`
+        : `订单 ${updated.order_no} 仍有明细待入库`,
       variant: 'success'
     });
   } catch (error: any) {
@@ -239,7 +260,25 @@ const handleStockInOrder = async (order: Order) => {
       });
       return;
     }
+    if (errorCode === 'ORDER_ITEMS_REQUIRED') {
+      toast({
+        title: '入库失败',
+        description: '请至少填写一条本次入库明细',
+        variant: 'destructive'
+      });
+      return;
+    }
+    if (errorCode === 'RECEIVED_QUANTITY_EXCEEDED') {
+      toast({
+        title: '入库失败',
+        description: '本次入库数量超过剩余待入库数量',
+        variant: 'destructive'
+      });
+      return;
+    }
     toast({ title: '入库失败', variant: 'destructive' });
+  } finally {
+    stockInSaving.value = false;
   }
 };
 
@@ -258,10 +297,7 @@ const canBulkArrive = computed(() => (
   && selectedRows.value.every((order) => order.status === 'processing')
 ));
 
-const canBulkStockIn = computed(() => (
-  selectedRows.value.length > 0
-  && selectedRows.value.every((order) => order.status === 'arrived')
-));
+const canBulkStockIn = computed(() => false);
 
 const canBulkRestoreDraft = computed(() => (
   selectedRows.value.length > 0
@@ -332,51 +368,13 @@ const handleBulkArrive = async () => {
 };
 
 const handleBulkStockIn = async () => {
-  const orders = [...selectedRows.value];
-  const count = orders.length;
   if (!canBulkStockIn.value) {
     toast({
-      title: '状态流转不允许',
-      description: '当前所选订单不能批量执行入库',
+      title: '暂不支持批量入库',
+      description: '请逐单打开入库弹窗，确认每条明细的本次入库数量',
       variant: 'destructive',
     });
     return;
-  }
-
-  try {
-    const results = await Promise.allSettled(
-      orders.map((order) => store.stockInOrder(order.id, { stocked_in_at: new Date().toISOString() }))
-    );
-    const successCount = results.filter((result) => result.status === 'fulfilled').length;
-    const failedCount = results.length - successCount;
-
-    if (failedCount === 0) {
-      clearSelection();
-      toast({ title: '批量入库成功', description: `${count} 张订单已设为 ${statusLabels.completed}`, variant: 'success' });
-      return;
-    }
-
-    const firstRejected = results.find((result) => result.status === 'rejected');
-    const errorCode = String((firstRejected as PromiseRejectedResult | undefined)?.reason?.response?.data?.error || '');
-    const materialId = (firstRejected as PromiseRejectedResult | undefined)?.reason?.response?.data?.materialId;
-
-    clearSelection();
-    if (errorCode === 'MATERIAL_NOT_FOUND') {
-      toast({
-        title: '批量入库部分完成',
-        description: `${successCount} 张成功，${failedCount} 张失败。未匹配库存物料：${materialId || '-'}`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    toast({
-      title: '批量入库部分完成',
-      description: `${successCount} 张成功，${failedCount} 张失败，请刷新后重试失败订单`,
-      variant: 'destructive',
-    });
-  } catch {
-    toast({ title: '操作失败', variant: 'destructive' });
   }
 };
 
@@ -388,7 +386,7 @@ const columns = createColumns({
   onExportPdf: handleExportPdfOrder,
   onViewReceipts: handleViewReceipts,
   onMarkArrived: handleMarkArrived,
-  onStockIn: handleStockInOrder,
+  onStockIn: openStockInDialog,
   onStatusUpdate: handleStatusUpdate
 });
 
@@ -496,6 +494,12 @@ watch(() => route.query.orderNo, () => {
       :order="previewOrder"
       :can-edit="canEditOrder(previewOrder)"
       @edit="editFromPreview"
+    />
+    <ProcurementStockInDialog
+      v-model:open="stockInDialogOpen"
+      :order="stockInOrder"
+      :saving="stockInSaving"
+      @submit="handleStockInOrder"
     />
 
     <ConfirmDialog

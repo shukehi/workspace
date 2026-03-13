@@ -59,9 +59,9 @@ test('procurement bulk action guard: supports restoring selected orders to draft
   assert.match(page, /canBulkRestoreDraft/);
   assert.match(page, /当前所选订单不能批量设为/);
   assert.match(page, /当前所选订单不能批量登记到货/);
-  assert.match(page, /当前所选订单不能批量执行入库/);
   assert.match(page, /批量到货部分完成/);
-  assert.match(page, /批量入库部分完成/);
+  assert.match(page, /暂不支持批量入库/);
+  assert.match(page, /请逐单打开入库弹窗/);
 });
 
 test('procurement filter guard: supports risk and manual-review filters', () => {
@@ -107,4 +107,23 @@ test('procurement preview guard: arrived and completed orders cannot edit from p
   assert.match(editDialog, /delivery_date: draft\.delivery_date/);
   assert.match(orderSheet, /restrictDetailEditing\?: boolean/);
   assert.match(orderSheet, /isRestrictedEditMode/);
+});
+
+test('procurement stock-in guard: arrived orders use detail stock-in dialog', () => {
+  const page = read('src/views/Procurement.vue');
+  const dialog = read('src/components/procurement/ProcurementStockInDialog.vue');
+
+  assert.match(page, /import ProcurementStockInDialog/);
+  assert.match(page, /const stockInOrder = ref<Order \| null>\(null\)/);
+  assert.match(page, /const stockInDialogOpen = ref\(false\)/);
+  assert.match(page, /const stockInSaving = ref\(false\)/);
+  assert.match(page, /const openStockInDialog = \(order: Order\)/);
+  assert.match(page, /onStockIn: openStockInDialog/);
+  assert.match(page, /<ProcurementStockInDialog/);
+  assert.match(page, /title: isCompleted \? '入库完成' : '部分入库成功'/);
+  assert.match(dialog, /订单级“入库日期”只会在全部明细完成入库后写入/);
+  assert.match(dialog, /item_key/);
+  assert.match(dialog, /remaining/);
+  assert.match(dialog, /全入/);
+  assert.match(dialog, /quantity: ''/);
 });
