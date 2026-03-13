@@ -9,9 +9,13 @@ import { createInventoryColumns } from '@/components/inventory/InventoryColumns'
 import { createInventoryReceiptColumns } from '@/components/inventory/InventoryReceiptColumns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { RefreshCcw, Search, AlertCircle, Package, ScrollText, Download } from 'lucide-vue-next';
 import type { InventoryItem, InventoryReceipt } from '@/types/inventory';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+
+const PROCUREMENT_REFRESH_SIGNAL_KEY = 'procurement-orders-refresh-signal';
 
 const store = useInventoryStore();
 const { toast } = useToastStore();
@@ -23,6 +27,18 @@ const searchQuery = ref('');
 const receiptSearchQuery = ref('');
 const receiptOrderFilter = ref(String(route.query.orderNo || '').trim());
 const debouncedReceiptOrderFilter = refDebounced(receiptOrderFilter, 300);
+const reverseDialogOpen = ref(false);
+const reverseReceiptTarget = ref<InventoryReceipt | null>(null);
+const reverseReason = ref('entry_error');
+const reverseRemark = ref('');
+const reversing = ref(false);
+
+const reverseReasonOptions = [
+  { value: 'entry_error', label: '录入错误' },
+  { value: 'duplicate_receipt', label: '重复入库' },
+  { value: 'return_to_vendor', label: '到货退回' },
+  { value: 'other', label: '其他' },
+];
 
 const categories = [
   { id: 'ALL', label: '全部库存' },
@@ -67,6 +83,12 @@ const filteredReceipts = computed(() => {
   });
 });
 
+const reversedSourceReceiptIds = computed(() => new Set(
+  store.sortedReceipts
+    .filter((receipt) => receipt.direction === 'reversal' && receipt.source_receipt_id)
+    .map((receipt) => Number(receipt.source_receipt_id))
+));
+
 const receiptSummary = computed(() => {
   const list = filteredReceipts.value;
   const uniqueOrders = new Set(list.map((receipt) => receipt.order_no)).size;
@@ -89,6 +111,10 @@ const handleEdit = (item: InventoryItem) => {
 };
 
 const columns = createInventoryColumns({ onEdit: handleEdit });
+function isReceiptReversible(receipt: InventoryReceipt) {
+  return receipt.direction !== 'reversal' && !reversedSourceReceiptIds.value.has(Number(receipt.id));
+}
+
 const receiptColumns = createInventoryReceiptColumns({
   onJumpToOrder: (receipt: InventoryReceipt) => {
     router.push({
@@ -97,8 +123,51 @@ const receiptColumns = createInventoryReceiptColumns({
         orderNo: receipt.order_no
       }
     }).catch(() => undefined);
-  }
+  },
+  onReverse: async (receipt: InventoryReceipt) => {
+    reverseReceiptTarget.value = receipt;
+    reverseReason.value = 'entry_error';
+    reverseRemark.value = '';
+    reverseDialogOpen.value = true;
+  },
+  isReceiptReversible
 });
+
+async function confirmReverseReceipt() {
+  if (!reverseReceiptTarget.value) return;
+  if (!reverseReason.value) return;
+  reversing.value = true;
+  try {
+    await store.reverseReceipt(reverseReceiptTarget.value.id, {
+      reversed_at: new Date().toISOString(),
+      reverse_reason: reverseReason.value,
+      remark: reverseRemark.value.trim() || undefined,
+    });
+    await loadReceipts(String(route.query.orderNo || '').trim());
+    toast({
+      title: '撤销成功',
+      description: `已撤销 ${reverseReceiptTarget.value.order_no} 的入库记录`,
+      variant: 'success'
+    });
+    window.localStorage.setItem(PROCUREMENT_REFRESH_SIGNAL_KEY, String(Date.now()));
+    reverseDialogOpen.value = false;
+    reverseReceiptTarget.value = null;
+    reverseRemark.value = '';
+  } catch (error: any) {
+    const errorCode = String(error?.response?.data?.error || '');
+    toast({
+      title: '撤销失败',
+      description: errorCode === 'RECEIPT_ALREADY_REVERSED'
+        ? '该入库记录已经撤销过'
+        : errorCode === 'REVERSE_REASON_REQUIRED'
+          ? '请选择撤销原因'
+          : '请稍后重试',
+      variant: 'destructive'
+    });
+  } finally {
+    reversing.value = false;
+  }
+}
 
 function syncReceiptOrderFilterFromRoute() {
   receiptOrderFilter.value = String(route.query.orderNo || '').trim();
@@ -329,5 +398,35 @@ watch(debouncedReceiptOrderFilter, (value) => {
         />
       </CardContent>
     </Card>
+    <ConfirmDialog
+      v-model:open="reverseDialogOpen"
+      title="确认撤销入库"
+      confirm-text="确认撤销"
+      cancel-text="取消"
+      variant="warning"
+      :loading="reversing"
+      @confirm="confirmReverseReceipt"
+    >
+      <div class="space-y-3">
+        <p class="text-sm text-muted-foreground">
+          <span v-if="reverseReceiptTarget">
+            订单 <span class="font-medium text-foreground">{{ reverseReceiptTarget.order_no }}</span>
+            的这条入库记录将被撤销。
+          </span>
+        </p>
+        <label class="block space-y-1 text-sm">
+          <span class="text-foreground">撤销原因</span>
+          <select v-model="reverseReason" class="w-full rounded-md border bg-background px-3 py-2 text-sm">
+            <option v-for="option in reverseReasonOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label class="block space-y-1 text-sm">
+          <span class="text-foreground">补充说明</span>
+          <Textarea v-model="reverseRemark" rows="3" placeholder="例如：录入数量错误，重新按实际到货数量登记" />
+        </label>
+      </div>
+    </ConfirmDialog>
   </div>
 </template>

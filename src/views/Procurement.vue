@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
@@ -28,6 +28,8 @@ import { api } from '@/lib/api';
 import { hasValidDeliveryDate } from '@/features/procurement/useProcurementPreview';
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
+
+const PROCUREMENT_REFRESH_SIGNAL_KEY = 'procurement-orders-refresh-signal';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
@@ -393,11 +395,21 @@ const columns = createColumns({
 onMounted(() => {
   store.fetchOrders();
   syncSearchQueryFromRoute();
+  window.addEventListener('storage', handleProcurementRefreshSignal);
 });
 
 watch(() => route.query.orderNo, () => {
   syncSearchQueryFromRoute();
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('storage', handleProcurementRefreshSignal);
+});
+
+function handleProcurementRefreshSignal(event: StorageEvent) {
+  if (event.key !== PROCUREMENT_REFRESH_SIGNAL_KEY || !event.newValue) return;
+  store.fetchOrders();
+}
 </script>
 
 <template>

@@ -1,11 +1,13 @@
-const { InventoryReceipt, Material } = require('../models');
+const { InventoryReceipt, Material, Order, OrderItem, sequelize } = require('../models');
 const { buildOrderItemKey } = require('./orderItemKey');
 
 function normalizeReceiptDate(value) {
     if (!value) return new Date().toISOString();
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
-        throw new Error('INVALID_RECEIPT_DATE');
+        const error = new Error('INVALID_RECEIPT_DATE');
+        error.code = 'INVALID_RECEIPT_DATE';
+        throw error;
     }
     return parsed.toISOString();
 }
@@ -45,14 +47,25 @@ async function findMaterialForItem(item, transaction) {
     return material;
 }
 
-function normalizeReceiptQuantity(value, fallback = 0) {
-    const quantity = value === undefined ? fallback : Number(value);
+function normalizeReceiptQuantity(value) {
+    const quantity = Number(value);
     if (!Number.isFinite(quantity) || quantity <= 0) {
         const error = new Error('INVALID_RECEIPT_QUANTITY');
         error.code = 'INVALID_RECEIPT_QUANTITY';
         throw error;
     }
     return quantity;
+}
+
+function toPlainReceipt(receipt) {
+    const plain = typeof receipt.get === 'function' ? receipt.get({ plain: true }) : { ...receipt };
+    return {
+        ...plain,
+        quantity: Number(plain.quantity || 0),
+        receipt_date: plain.receipt_date ? new Date(plain.receipt_date).toISOString() : null,
+        created_at: plain.created_at ? new Date(plain.created_at).toISOString() : null,
+        updated_at: plain.updated_at ? new Date(plain.updated_at).toISOString() : null,
+    };
 }
 
 function resolveReceiptOrderItems(order, payload = {}) {
@@ -136,6 +149,22 @@ function resolveReceiptOrderItems(order, payload = {}) {
     });
 }
 
+class ReceiptReverseNotAllowedError extends Error {
+    constructor(receiptId) {
+        super('RECEIPT_REVERSE_NOT_ALLOWED');
+        this.code = 'RECEIPT_REVERSE_NOT_ALLOWED';
+        this.receiptId = receiptId;
+    }
+}
+
+class ReceiptAlreadyReversedError extends Error {
+    constructor(receiptId) {
+        super('RECEIPT_ALREADY_REVERSED');
+        this.code = 'RECEIPT_ALREADY_REVERSED';
+        this.receiptId = receiptId;
+    }
+}
+
 class InventoryReceiptService {
     async createFromOrder(order, payload = {}, transaction) {
         const receiptDate = normalizeReceiptDate(payload.stocked_in_at || payload.receipt_date);
@@ -162,6 +191,8 @@ class InventoryReceiptService {
                 order_id: order.id,
                 order_no: order.order_no,
                 order_item_id: item.id || null,
+                direction: 'in',
+                source_receipt_id: null,
                 material_id: String(item.material_id || material.code || material.id),
                 item_name: item.name || item.type || item.model || '-',
                 supplier: item.supplier || order.supplier || '',
@@ -181,6 +212,109 @@ class InventoryReceiptService {
         };
     }
 
+    async reverseReceipt(receiptId, payload = {}) {
+        const transaction = await sequelize.transaction();
+        try {
+            const receipt = await InventoryReceipt.findByPk(receiptId, { transaction });
+            if (!receipt) {
+                const error = new Error('RECEIPT_NOT_FOUND');
+                error.code = 'RECEIPT_NOT_FOUND';
+                throw error;
+            }
+            if (receipt.direction !== 'in') {
+                throw new ReceiptReverseNotAllowedError(receipt.id);
+            }
+
+            const existingReversal = await InventoryReceipt.findOne({
+                where: { source_receipt_id: receipt.id, direction: 'reversal' },
+                transaction
+            });
+            if (existingReversal) {
+                throw new ReceiptAlreadyReversedError(receipt.id);
+            }
+
+            const order = await Order.findByPk(receipt.order_id, {
+                include: [{ model: OrderItem, as: 'items' }],
+                transaction
+            });
+            if (!order) {
+                const error = new Error('ORDER_NOT_FOUND');
+                error.code = 'ORDER_NOT_FOUND';
+                throw error;
+            }
+
+            const orderItem = (order.items || []).find((item) => Number(item.id) === Number(receipt.order_item_id));
+            if (!orderItem) {
+                const error = new Error('ORDER_ITEM_NOT_FOUND');
+                error.code = 'ORDER_ITEM_NOT_FOUND';
+                error.orderItemId = receipt.order_item_id;
+                throw error;
+            }
+
+            const material = await findMaterialForItem({ material_id: receipt.material_id }, transaction);
+            const quantity = Number(receipt.quantity || 0);
+            if (quantity <= 0) {
+                const error = new Error('INVALID_RECEIPT_QUANTITY');
+                error.code = 'INVALID_RECEIPT_QUANTITY';
+                throw error;
+            }
+
+            const reversalDate = normalizeReceiptDate(payload.reversed_at || payload.receipt_date);
+            const reverseReason = payload.reverse_reason ? String(payload.reverse_reason).trim() : '';
+            if (!reverseReason) {
+                const error = new Error('REVERSE_REASON_REQUIRED');
+                error.code = 'REVERSE_REASON_REQUIRED';
+                throw error;
+            }
+
+            await material.update({
+                stock_quantity: Number(material.stock_quantity || 0) - quantity
+            }, { transaction });
+
+            const nextReceived = Number(orderItem.received_quantity || 0) - quantity;
+            await orderItem.update({
+                received_quantity: Math.max(nextReceived, 0)
+            }, { transaction });
+
+            const reversal = await InventoryReceipt.create({
+                order_id: receipt.order_id,
+                order_no: receipt.order_no,
+                order_item_id: receipt.order_item_id,
+                direction: 'reversal',
+                source_receipt_id: receipt.id,
+                reverse_reason: reverseReason,
+                material_id: receipt.material_id,
+                item_name: receipt.item_name,
+                supplier: receipt.supplier || order.supplier || '',
+                quantity: -quantity,
+                unit: receipt.unit || material.unit || '',
+                receipt_date: reversalDate,
+                operator: payload.operator ? String(payload.operator).trim() : null,
+                remark: payload.remark ? String(payload.remark) : ''
+            }, { transaction });
+
+            const refreshedItems = order.items || [];
+            const allReceived = refreshedItems.every((item) => {
+                const ordered = Number(item.ordered_quantity ?? item.quantity ?? 0);
+                const received = Number(item.id === orderItem.id ? Math.max(nextReceived, 0) : item.received_quantity || 0);
+                return ordered > 0 && received >= ordered;
+            });
+
+            await order.update({
+                status: allReceived ? 'completed' : 'arrived',
+                stocked_in_at: allReceived ? order.stocked_in_at : null,
+                stocked_in_by: allReceived ? order.stocked_in_by : null,
+                stocked_in_remark: allReceived ? order.stocked_in_remark : ''
+            }, { transaction });
+
+            await transaction.commit();
+            return toPlainReceipt(reversal);
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
+
     async list(query = {}) {
         const where = {};
         if (query.orderId) where.order_id = Number(query.orderId);
@@ -191,17 +325,12 @@ class InventoryReceiptService {
             order: [['receipt_date', 'DESC'], ['created_at', 'DESC']]
         });
 
-        return receipts.map((receipt) => {
-            const plain = typeof receipt.get === 'function' ? receipt.get({ plain: true }) : { ...receipt };
-            return {
-                ...plain,
-                quantity: Number(plain.quantity || 0),
-                receipt_date: plain.receipt_date ? new Date(plain.receipt_date).toISOString() : null,
-                created_at: plain.created_at ? new Date(plain.created_at).toISOString() : null,
-                updated_at: plain.updated_at ? new Date(plain.updated_at).toISOString() : null,
-            };
-        });
+        return receipts.map(toPlainReceipt);
     }
 }
 
-module.exports = new InventoryReceiptService();
+const service = new InventoryReceiptService();
+service.ReceiptReverseNotAllowedError = ReceiptReverseNotAllowedError;
+service.ReceiptAlreadyReversedError = ReceiptAlreadyReversedError;
+
+module.exports = service;

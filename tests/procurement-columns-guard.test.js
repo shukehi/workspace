@@ -73,6 +73,10 @@ test('procurement filter guard: supports risk and manual-review filters', () => 
   assert.match(page, /v-model:active-status/);
   assert.match(page, /route\.query\.orderNo/);
   assert.match(page, /syncSearchQueryFromRoute/);
+  assert.match(page, /PROCUREMENT_REFRESH_SIGNAL_KEY/);
+  assert.match(page, /window\.addEventListener\('storage', handleProcurementRefreshSignal\)/);
+  assert.match(page, /window\.removeEventListener\('storage', handleProcurementRefreshSignal\)/);
+  assert.match(page, /function handleProcurementRefreshSignal/);
   assert.match(page, /当前按订单号/);
   assert.match(state, /activeStatus/);
   assert.match(state, /全部订单/);
