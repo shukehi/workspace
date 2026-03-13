@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { InventoryReceipt, Material, Order, OrderItem, sequelize } = require('../models');
 const { buildOrderItemKey } = require('./orderItemKey');
 
@@ -367,24 +368,57 @@ class InventoryReceiptService {
         const where = {};
         if (query.orderId) where.order_id = Number(query.orderId);
         if (query.orderNo) where.order_no = String(query.orderNo).trim();
+        if (query.direction && ['in', 'reversal'].includes(String(query.direction))) {
+            where.direction = String(query.direction);
+        }
+        if (query.reverseReason) {
+            where.reverse_reason = String(query.reverseReason).trim();
+        }
+        const keyword = String(query.keyword || '').trim();
+        if (keyword) {
+            where[Op.or] = [
+                { order_no: { [Op.like]: `%${keyword}%` } },
+                { supplier: { [Op.like]: `%${keyword}%` } },
+                { item_name: { [Op.like]: `%${keyword}%` } },
+                { operator: { [Op.like]: `%${keyword}%` } },
+                { material_id: { [Op.like]: `%${keyword}%` } }
+            ];
+        }
+        const page = Math.max(1, Number(query.page) || 1);
+        const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || 50));
+        const offset = (page - 1) * pageSize;
 
-        const receipts = await InventoryReceipt.findAll({
+        const result = await InventoryReceipt.findAndCountAll({
             where,
-            order: [['receipt_date', 'DESC'], ['created_at', 'DESC']]
+            order: [['receipt_date', 'DESC'], ['created_at', 'DESC']],
+            offset,
+            limit: pageSize
         });
 
-        const plainReceipts = receipts.map(toPlainReceipt);
+        const plainReceipts = result.rows.map(toPlainReceipt);
+        const originalIds = plainReceipts
+            .filter((receipt) => receipt.direction !== 'reversal')
+            .map((receipt) => Number(receipt.id))
+            .filter((id) => Number.isInteger(id) && id > 0);
         const reversalGroups = new Map();
 
-        for (const receipt of plainReceipts) {
-            if (receipt.direction !== 'reversal' || !receipt.source_receipt_id) continue;
-            const key = Number(receipt.source_receipt_id);
-            const current = reversalGroups.get(key) || [];
-            current.push(receipt);
-            reversalGroups.set(key, current);
+        if (originalIds.length > 0) {
+            const relatedReversals = await InventoryReceipt.findAll({
+                where: {
+                    direction: 'reversal',
+                    source_receipt_id: { [Op.in]: originalIds }
+                }
+            });
+
+            for (const reversal of relatedReversals.map(toPlainReceipt)) {
+                const key = Number(reversal.source_receipt_id);
+                const current = reversalGroups.get(key) || [];
+                current.push(reversal);
+                reversalGroups.set(key, current);
+            }
         }
 
-        return plainReceipts.map((receipt) => {
+        const rows = plainReceipts.map((receipt) => {
             if (receipt.direction === 'reversal') {
                 return {
                     ...receipt,
@@ -400,6 +434,13 @@ class InventoryReceiptService {
                 reversible_quantity: reversibleQuantity
             };
         });
+
+        return {
+            rows,
+            total: Number(result.count || 0),
+            page,
+            pageSize
+        };
     }
 }
 

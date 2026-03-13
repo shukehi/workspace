@@ -25,11 +25,13 @@ const router = useRouter();
 
 const activeCategory = ref('ALL');
 const searchQuery = ref('');
-const receiptSearchQuery = ref('');
+const receiptSearchQuery = ref(String(route.query.keyword || '').trim());
 const receiptOrderFilter = ref(String(route.query.orderNo || '').trim());
-const receiptDirectionFilter = ref<'ALL' | 'in' | 'reversal'>('ALL');
-const reverseReasonFilter = ref('ALL');
+const receiptDirectionFilter = ref<'ALL' | 'in' | 'reversal'>(String(route.query.direction || 'ALL') as 'ALL' | 'in' | 'reversal');
+const reverseReasonFilter = ref(String(route.query.reverseReason || 'ALL'));
+const receiptPage = ref(Math.max(1, Number(route.query.page) || 1));
 const debouncedReceiptOrderFilter = refDebounced(receiptOrderFilter, 300);
+const debouncedReceiptSearchQuery = refDebounced(receiptSearchQuery, 300);
 const reverseDialogOpen = ref(false);
 const reverseReceiptTarget = ref<InventoryReceipt | null>(null);
 const auditReceiptId = ref<number | null>(null);
@@ -72,24 +74,7 @@ const filteredItems = computed(() => {
 });
 
 const filteredReceipts = computed(() => {
-  const query = receiptSearchQuery.value.trim().toLowerCase();
-  const orderNo = receiptOrderFilter.value.trim().toLowerCase();
-  const directionFilter = receiptDirectionFilter.value;
-  const reasonFilter = reverseReasonFilter.value;
-
-  return store.sortedReceipts.filter((receipt) => {
-    const matchesOrderNo = !orderNo || receipt.order_no.toLowerCase().includes(orderNo);
-    if (!matchesOrderNo) return false;
-    if (directionFilter !== 'ALL' && receipt.direction !== directionFilter) return false;
-    if (reasonFilter !== 'ALL' && String(receipt.reverse_reason || '') !== reasonFilter) return false;
-    if (!query) return true;
-
-    return receipt.order_no.toLowerCase().includes(query)
-      || String(receipt.supplier || '').toLowerCase().includes(query)
-      || String(receipt.item_name || '').toLowerCase().includes(query)
-      || String(receipt.operator || '').toLowerCase().includes(query)
-      || String(receipt.material_id || '').toLowerCase().includes(query);
-  });
+  return store.sortedReceipts;
 });
 
 const receiptSummary = computed(() => {
@@ -110,22 +95,12 @@ const receiptSummary = computed(() => {
   };
 });
 
-const availableReverseReasonOptions = computed(() => {
-  const reasons = new Set(
-    store.receipts
-      .map((receipt) => String(receipt.reverse_reason || '').trim())
-      .filter(Boolean)
-  );
+const receiptTotalPages = computed(() => Math.max(1, Math.ceil((store.receiptsTotal || 0) / (store.receiptsPageSize || 50))));
 
+const availableReverseReasonOptions = computed(() => {
   return [
     { value: 'ALL', label: '全部原因' },
-    ...Array.from(reasons).sort().map((value) => {
-      const match = reverseReasonOptions.find((option) => option.value === value);
-      return {
-        value,
-        label: match?.label || value
-      };
-    })
+    ...reverseReasonOptions
   ];
 });
 
@@ -234,20 +209,37 @@ async function confirmReverseReceipt() {
 }
 
 function syncReceiptOrderFilterFromRoute() {
+  receiptSearchQuery.value = String(route.query.keyword || '').trim();
   receiptOrderFilter.value = String(route.query.orderNo || '').trim();
+  receiptDirectionFilter.value = String(route.query.direction || 'ALL') as 'ALL' | 'in' | 'reversal';
+  reverseReasonFilter.value = String(route.query.reverseReason || 'ALL');
+  receiptPage.value = Math.max(1, Number(route.query.page) || 1);
 }
 
-function updateInventoryRouteQuery(orderNo: string) {
+function updateInventoryRouteQuery(orderNo: string, keyword: string, direction: string, reverseReason: string, page: number) {
   const nextQuery = { ...route.query };
-  const trimmed = orderNo.trim();
-  if (trimmed) nextQuery.orderNo = trimmed;
+  const trimmedOrderNo = orderNo.trim();
+  const trimmedKeyword = keyword.trim();
+  if (trimmedOrderNo) nextQuery.orderNo = trimmedOrderNo;
   else delete nextQuery.orderNo;
+  if (trimmedKeyword) nextQuery.keyword = trimmedKeyword;
+  else delete nextQuery.keyword;
+  if (direction && direction !== 'ALL') nextQuery.direction = direction;
+  else delete nextQuery.direction;
+  if (reverseReason && reverseReason !== 'ALL') nextQuery.reverseReason = reverseReason;
+  else delete nextQuery.reverseReason;
+  if (page > 1) nextQuery.page = String(page);
+  else delete nextQuery.page;
   router.replace({ query: nextQuery }).catch(() => undefined);
 }
 
 function clearReceiptOrderFilter() {
+  receiptSearchQuery.value = '';
   receiptOrderFilter.value = '';
-  updateInventoryRouteQuery('');
+  receiptDirectionFilter.value = 'ALL';
+  reverseReasonFilter.value = 'ALL';
+  receiptPage.value = 1;
+  updateInventoryRouteQuery('', '', 'ALL', 'ALL', 1);
 }
 
 function handleExportReceipts() {
@@ -276,7 +268,14 @@ async function loadInventoryData() {
 
 async function loadReceipts(orderNo = '') {
   try {
-    await store.fetchInventoryReceipts(orderNo ? { orderNo } : {});
+    await store.fetchInventoryReceipts({
+      ...(orderNo ? { orderNo } : {}),
+      ...(receiptSearchQuery.value.trim() ? { keyword: receiptSearchQuery.value.trim() } : {}),
+      ...(receiptDirectionFilter.value !== 'ALL' ? { direction: receiptDirectionFilter.value } : {}),
+      ...(reverseReasonFilter.value !== 'ALL' ? { reverseReason: reverseReasonFilter.value } : {}),
+      page: receiptPage.value,
+      pageSize: store.receiptsPageSize
+    });
     if (auditReceiptId.value && !selectedReceiptAudit.value) {
       auditReceiptId.value = null;
     }
@@ -289,17 +288,35 @@ async function loadReceipts(orderNo = '') {
   }
 }
 
+function nextReceiptPage() {
+  if (receiptPage.value >= receiptTotalPages.value) return;
+  receiptPage.value += 1;
+}
+
+function prevReceiptPage() {
+  if (receiptPage.value <= 1) return;
+  receiptPage.value -= 1;
+}
+
 onMounted(() => {
   loadInventoryData().catch(() => undefined);
 });
 
-watch(() => route.query.orderNo, () => {
+watch(() => [route.query.orderNo, route.query.keyword, route.query.direction, route.query.reverseReason, route.query.page], () => {
   syncReceiptOrderFilterFromRoute();
   loadReceipts(String(route.query.orderNo || '').trim()).catch(() => undefined);
 });
 
-watch(debouncedReceiptOrderFilter, (value) => {
-  updateInventoryRouteQuery(value);
+watch(
+  [debouncedReceiptOrderFilter, debouncedReceiptSearchQuery, receiptDirectionFilter, reverseReasonFilter],
+  ([orderNo, keyword, direction, reverseReason]) => {
+    receiptPage.value = 1;
+    updateInventoryRouteQuery(orderNo, keyword, direction, reverseReason, 1);
+  }
+);
+
+watch(receiptPage, (page) => {
+  updateInventoryRouteQuery(receiptOrderFilter.value, receiptSearchQuery.value, receiptDirectionFilter.value, reverseReasonFilter.value, page);
 });
 </script>
 
@@ -488,6 +505,19 @@ watch(debouncedReceiptOrderFilter, (value) => {
           density="compact"
           empty-text="暂无采购入库记录"
         />
+        <div class="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+          <div>
+            页码 {{ store.receiptsPage }} / {{ receiptTotalPages }}，共 {{ store.receiptsTotal }} 条
+          </div>
+          <div class="flex items-center gap-2">
+            <Button variant="outline" size="sm" :disabled="store.receiptsPage <= 1 || store.receiptsLoading" @click="prevReceiptPage">
+              上一页
+            </Button>
+            <Button variant="outline" size="sm" :disabled="store.receiptsPage >= receiptTotalPages || store.receiptsLoading" @click="nextReceiptPage">
+              下一页
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
     <Sheet :open="Boolean(selectedReceiptAudit)" @update:open="(open) => { if (!open) auditReceiptId = null; }">

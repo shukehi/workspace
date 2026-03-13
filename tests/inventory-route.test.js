@@ -114,11 +114,13 @@ test('GET /api/inventory-receipts returns stock-in records', async () => {
 
   const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
   assert.equal(listRes.status, 200);
-  const list = await listRes.json();
-  assert.equal(list.length, 1);
-  assert.equal(list[0].order_id, order.id);
-  assert.equal(list[0].material_id, material.code);
-  assert.equal(list[0].operator, '仓管A');
+  const payload = await listRes.json();
+  assert.equal(payload.total, 1);
+  assert.equal(payload.page, 1);
+  assert.equal(payload.rows.length, 1);
+  assert.equal(payload.rows[0].order_id, order.id);
+  assert.equal(payload.rows[0].material_id, material.code);
+  assert.equal(payload.rows[0].operator, '仓管A');
 
   const refreshed = await orderService.getOrderById(order.id);
   assert.equal(refreshed.items[0].ordered_quantity, 2);
@@ -162,8 +164,8 @@ test('POST /api/inventory-receipts/:id/reverse reverts stock and order status', 
   });
 
   const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  const list = await listRes.json();
-  const originalReceipt = list.find((item) => item.direction !== 'reversal');
+  const payload = await listRes.json();
+  const originalReceipt = payload.rows.find((item) => item.direction !== 'reversal');
   assert.ok(originalReceipt);
 
   const reverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
@@ -228,8 +230,8 @@ test('POST /api/inventory-receipts/:id/reverse supports partial reversal and blo
   });
 
   let listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  let list = await listRes.json();
-  const originalReceipt = list.find((item) => item.direction !== 'reversal');
+  let payload = await listRes.json();
+  const originalReceipt = payload.rows.find((item) => item.direction !== 'reversal');
   assert.equal(originalReceipt.reversible_quantity, 4);
 
   const firstReverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
@@ -246,8 +248,8 @@ test('POST /api/inventory-receipts/:id/reverse supports partial reversal and blo
   assert.equal(firstReversal.quantity, -1);
 
   listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  list = await listRes.json();
-  const refreshedOriginal = list.find((item) => item.id === originalReceipt.id);
+  payload = await listRes.json();
+  const refreshedOriginal = payload.rows.find((item) => item.id === originalReceipt.id);
   assert.equal(refreshedOriginal.reversed_quantity, 1);
   assert.equal(refreshedOriginal.reversible_quantity, 3);
 
@@ -303,8 +305,8 @@ test('POST /api/inventory-receipts/:id/reverse requires reverse reason', async (
   });
 
   const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  const list = await listRes.json();
-  const originalReceipt = list.find((item) => item.direction !== 'reversal');
+  const payload = await listRes.json();
+  const originalReceipt = payload.rows.find((item) => item.direction !== 'reversal');
 
   const reverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
     method: 'POST',
@@ -317,6 +319,66 @@ test('POST /api/inventory-receipts/:id/reverse requires reverse reason', async (
   assert.equal(reverseRes.status, 400);
   const body = await reverseRes.json();
   assert.equal(body.error, 'REVERSE_REASON_REQUIRED');
+});
+
+test('GET /api/inventory-receipts keeps reversal stats correct under pagination and filters', async () => {
+  const material = await Material.create({
+    code: `TEST-MAT-PAGED-REV-${Date.now()}`,
+    name: 'Paged Reverse Material',
+    model: 'PAGED-REV',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 8,
+    min_stock: 1
+  });
+
+  const order = await orderService.createOrder({
+    order_no: `PAGED-REV-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Paged Reverse Material',
+        model: 'PAGED-REV',
+        spec: 'PAGED-REV',
+        quantity: 4,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-12T14:00:00.000Z',
+    operator: '仓管A'
+  });
+
+  const initialListRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}&direction=in&page=1&pageSize=1`);
+  const initialPayload = await initialListRes.json();
+  const originalReceipt = initialPayload.rows[0];
+  assert.equal(originalReceipt.reversible_quantity, 4);
+
+  const reverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reversed_at: '2026-03-12T14:10:00.000Z',
+      reverse_reason: 'duplicate_receipt',
+      quantity: 1
+    })
+  });
+  assert.equal(reverseRes.status, 200);
+
+  const pagedRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}&direction=in&page=1&pageSize=1`);
+  assert.equal(pagedRes.status, 200);
+  const pagedPayload = await pagedRes.json();
+  assert.equal(pagedPayload.total, 1);
+  assert.equal(pagedPayload.rows.length, 1);
+  assert.equal(pagedPayload.rows[0].reversed_quantity, 1);
+  assert.equal(pagedPayload.rows[0].reversible_quantity, 3);
 });
 
 test.after(async () => {

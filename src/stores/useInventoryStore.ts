@@ -9,6 +9,9 @@ export const useInventoryStore = defineStore('inventory', () => {
     const receipts = ref<InventoryReceipt[]>([]);
     const loading = ref(false);
     const receiptsLoading = ref(false);
+    const receiptsTotal = ref(0);
+    const receiptsPage = ref(1);
+    const receiptsPageSize = ref(50);
 
     // Getters
     const sortedItems = computed(() => {
@@ -54,7 +57,15 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
-    async function fetchInventoryReceipts(params: { orderNo?: string; orderId?: number | string } = {}) {
+    async function fetchInventoryReceipts(params: {
+        orderNo?: string;
+        orderId?: number | string;
+        keyword?: string;
+        direction?: 'in' | 'reversal';
+        reverseReason?: string;
+        page?: number;
+        pageSize?: number;
+    } = {}) {
         receiptsLoading.value = true;
         try {
             const query = new URLSearchParams();
@@ -62,11 +73,20 @@ export const useInventoryStore = defineStore('inventory', () => {
             if (params.orderId !== undefined && params.orderId !== null && String(params.orderId).trim()) {
                 query.set('orderId', String(params.orderId).trim());
             }
+            if (params.keyword) query.set('keyword', String(params.keyword).trim());
+            if (params.direction) query.set('direction', String(params.direction));
+            if (params.reverseReason) query.set('reverseReason', String(params.reverseReason).trim());
+            if (params.page) query.set('page', String(params.page));
+            if (params.pageSize) query.set('pageSize', String(params.pageSize));
             const suffix = query.toString() ? `?${query.toString()}` : '';
-            const res = await api.get<InventoryReceipt[]>(`/inventory-receipts${suffix}`);
-            receipts.value = Array.isArray(res) ? res : [];
+            const res = await api.get<{ rows?: InventoryReceipt[]; total?: number; page?: number; pageSize?: number }>(`/inventory-receipts${suffix}`);
+            receipts.value = Array.isArray(res?.rows) ? res.rows : [];
+            receiptsTotal.value = Number(res?.total || 0);
+            receiptsPage.value = Number(res?.page || params.page || 1);
+            receiptsPageSize.value = Number(res?.pageSize || params.pageSize || 50);
         } catch (e) {
             receipts.value = [];
+            receiptsTotal.value = 0;
             console.error('Failed to fetch inventory receipts', e);
             throw e;
         } finally {
@@ -127,6 +147,9 @@ export const useInventoryStore = defineStore('inventory', () => {
     return { 
         items, 
         receipts,
+        receiptsTotal,
+        receiptsPage,
+        receiptsPageSize,
         loading, 
         receiptsLoading,
         sortedItems, 
