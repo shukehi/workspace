@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { RefreshCcw, Search, AlertCircle, Package, ScrollText, Download } from 'lucide-vue-next';
 import type { InventoryItem, InventoryReceipt } from '@/types/inventory';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -489,60 +490,76 @@ watch(debouncedReceiptOrderFilter, (value) => {
         />
       </CardContent>
     </Card>
-    <Card v-if="selectedReceiptAudit">
-      <CardHeader class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-        <div>
-          <CardTitle>入库撤销轨迹</CardTitle>
-          <p class="text-sm text-muted-foreground mt-1">
+    <Sheet :open="Boolean(selectedReceiptAudit)" @update:open="(open) => { if (!open) auditReceiptId = null; }">
+      <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>入库撤销轨迹</SheetTitle>
+          <SheetDescription>
             查看原始入库记录与后续撤销流水，便于核对净入库结果。
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" @click="auditReceiptId = null">关闭</Button>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="grid gap-3 md:grid-cols-4">
-          <div class="rounded-md border bg-muted/30 p-3">
-            <div class="text-xs text-muted-foreground">原始订单</div>
-            <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.order_no }}</div>
-          </div>
-          <div class="rounded-md border bg-muted/30 p-3">
-            <div class="text-xs text-muted-foreground">原始入库数量</div>
-            <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.quantity }} {{ selectedReceiptAudit.original.unit || '' }}</div>
-          </div>
-          <div class="rounded-md border bg-muted/30 p-3">
-            <div class="text-xs text-muted-foreground">已撤销量</div>
-            <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.reversed_quantity || 0 }} {{ selectedReceiptAudit.original.unit || '' }}</div>
-          </div>
-          <div class="rounded-md border bg-muted/30 p-3">
-            <div class="text-xs text-muted-foreground">净入库数量</div>
-            <div class="mt-1 font-medium">{{ selectedReceiptAudit.netQuantity }} {{ selectedReceiptAudit.original.unit || '' }}</div>
-          </div>
-        </div>
-        <div class="rounded-md border">
-          <div class="grid gap-3 border-b bg-muted/20 px-4 py-3 text-xs font-medium text-muted-foreground md:grid-cols-[160px_120px_140px_1fr]">
-            <div>撤销日期</div>
-            <div>撤销量</div>
-            <div>撤销原因</div>
-            <div>说明</div>
-          </div>
-          <div v-if="selectedReceiptAudit.reversals.length === 0" class="px-4 py-6 text-sm text-muted-foreground">
-            该入库记录尚无撤销流水。
-          </div>
-          <div v-else class="divide-y">
-            <div
-              v-for="receipt in selectedReceiptAudit.reversals"
-              :key="receipt.id"
-              class="grid gap-3 px-4 py-3 text-sm md:grid-cols-[160px_120px_140px_1fr]"
+          </SheetDescription>
+        </SheetHeader>
+        <div v-if="selectedReceiptAudit" class="mt-6 space-y-4">
+          <div class="flex items-center justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              @click="router.push({ name: 'procurement', query: { orderNo: selectedReceiptAudit.original.order_no } }).catch(() => undefined)"
             >
-              <div>{{ String(receipt.receipt_date || receipt.created_at || '-').slice(0, 10) }}</div>
-              <div class="font-medium text-rose-600">{{ receipt.quantity }} {{ receipt.unit || '' }}</div>
-              <div>{{ receipt.reverse_reason || '-' }}</div>
-              <div class="text-muted-foreground">{{ receipt.remark || '-' }}</div>
+              跳转采购单
+            </Button>
+          </div>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">原始订单</div>
+              <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.order_no }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">物料</div>
+              <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.item_name }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">原始入库数量</div>
+              <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.quantity }} {{ selectedReceiptAudit.original.unit || '' }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">剩余可撤销</div>
+              <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.reversible_quantity || 0 }} {{ selectedReceiptAudit.original.unit || '' }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">已撤销量</div>
+              <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.reversed_quantity || 0 }} {{ selectedReceiptAudit.original.unit || '' }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">净入库数量</div>
+              <div class="mt-1 font-medium">{{ selectedReceiptAudit.netQuantity }} {{ selectedReceiptAudit.original.unit || '' }}</div>
+            </div>
+          </div>
+          <div class="rounded-md border">
+            <div class="grid gap-3 border-b bg-muted/20 px-4 py-3 text-xs font-medium text-muted-foreground md:grid-cols-[140px_100px_120px_1fr]">
+              <div>撤销日期</div>
+              <div>撤销量</div>
+              <div>撤销原因</div>
+              <div>说明</div>
+            </div>
+            <div v-if="selectedReceiptAudit.reversals.length === 0" class="px-4 py-6 text-sm text-muted-foreground">
+              该入库记录尚无撤销流水。
+            </div>
+            <div v-else class="divide-y">
+              <div
+                v-for="receipt in selectedReceiptAudit.reversals"
+                :key="receipt.id"
+                class="grid gap-3 px-4 py-3 text-sm md:grid-cols-[140px_100px_120px_1fr]"
+              >
+                <div>{{ String(receipt.receipt_date || receipt.created_at || '-').slice(0, 10) }}</div>
+                <div class="font-medium text-rose-600">{{ receipt.quantity }} {{ receipt.unit || '' }}</div>
+                <div>{{ receipt.reverse_reason || '-' }}</div>
+                <div class="text-muted-foreground">{{ receipt.remark || '-' }}</div>
+              </div>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </SheetContent>
+    </Sheet>
     <ConfirmDialog
       v-model:open="reverseDialogOpen"
       title="确认撤销入库"

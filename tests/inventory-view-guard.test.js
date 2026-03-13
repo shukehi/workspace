@@ -39,6 +39,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /isReceiptReversible/);
   assert.match(view, /selectedReceiptAudit/);
   assert.match(view, /auditReceiptId/);
+  assert.match(view, /SheetContent/);
+  assert.match(view, /SheetTitle/);
+  assert.match(view, /SheetDescription/);
   assert.match(view, /store\.reverseReceipt/);
   assert.match(view, /PROCUREMENT_REFRESH_SIGNAL_KEY/);
   assert.match(view, /window\.localStorage\.setItem/);
@@ -54,6 +57,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /入库撤销轨迹/);
   assert.match(view, /净入库数量/);
   assert.match(view, /尚无撤销流水/);
+  assert.match(view, /跳转采购单/);
   assert.match(view, /撤销成功/);
   assert.match(store, /const receipts = ref/);
   assert.match(store, /const sortedReceipts = computed/);
