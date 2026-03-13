@@ -10,7 +10,7 @@ import { createInventoryReceiptColumns } from '@/components/inventory/InventoryR
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { RefreshCcw, Search, AlertCircle, Package, ScrollText } from 'lucide-vue-next';
+import { RefreshCcw, Search, AlertCircle, Package, ScrollText, Download } from 'lucide-vue-next';
 import type { InventoryItem, InventoryReceipt } from '@/types/inventory';
 
 const store = useInventoryStore();
@@ -67,6 +67,20 @@ const filteredReceipts = computed(() => {
   });
 });
 
+const receiptSummary = computed(() => {
+  const list = filteredReceipts.value;
+  const uniqueOrders = new Set(list.map((receipt) => receipt.order_no)).size;
+  const totalQuantity = list.reduce((sum, receipt) => sum + Number(receipt.quantity || 0), 0);
+  const latestReceiptDate = list[0]?.receipt_date || list[0]?.created_at || '';
+
+  return {
+    count: list.length,
+    uniqueOrders,
+    totalQuantity,
+    latestReceiptDate: latestReceiptDate ? String(latestReceiptDate).slice(0, 10) : '-'
+  };
+});
+
 const handleEdit = (item: InventoryItem) => {
   const newQty = prompt(`修改库存: ${item.model}\n当前数量: ${item.stock_quantity}`, item.stock_quantity.toString());
   if (newQty !== null && !isNaN(parseFloat(newQty))) {
@@ -101,6 +115,23 @@ function updateInventoryRouteQuery(orderNo: string) {
 function clearReceiptOrderFilter() {
   receiptOrderFilter.value = '';
   updateInventoryRouteQuery('');
+}
+
+function handleExportReceipts() {
+  if (filteredReceipts.value.length === 0) {
+    toast({
+      title: '暂无可导出的入库记录',
+      variant: 'destructive'
+    });
+    return;
+  }
+
+  store.exportReceiptsToCSV(filteredReceipts.value);
+  toast({
+    title: '导出成功',
+    description: `已导出 ${filteredReceipts.value.length} 条采购入库记录`,
+    variant: 'success'
+  });
 }
 
 async function loadInventoryData() {
@@ -180,8 +211,41 @@ watch(debouncedReceiptOrderFilter, (value) => {
           <ScrollText class="h-4 w-4 text-cyan-600" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-semibold">{{ store.receipts.length }}</div>
-          <p class="text-xs text-muted-foreground mt-1">采购入库流水总数</p>
+          <div class="text-2xl font-semibold">{{ receiptSummary.count }}</div>
+          <p class="text-xs text-muted-foreground mt-1">当前筛选下的采购入库记录</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-xs text-muted-foreground">涉及订单数</CardTitle>
+          <Package class="h-4 w-4 text-emerald-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ receiptSummary.uniqueOrders }}</div>
+          <p class="text-xs text-muted-foreground mt-1">当前记录覆盖的采购订单</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-xs text-muted-foreground">累计入库数量</CardTitle>
+          <Package class="h-4 w-4 text-blue-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ receiptSummary.totalQuantity }}</div>
+          <p class="text-xs text-muted-foreground mt-1">当前筛选结果数量总和</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-xs text-muted-foreground">最近入库日期</CardTitle>
+          <ScrollText class="h-4 w-4 text-amber-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ receiptSummary.latestReceiptDate }}</div>
+          <p class="text-xs text-muted-foreground mt-1">按当前筛选结果计算</p>
         </CardContent>
       </Card>
     </div>
@@ -242,6 +306,10 @@ watch(debouncedReceiptOrderFilter, (value) => {
               placeholder="按订单号筛选"
               class="w-full md:w-56"
             />
+            <Button variant="outline" @click="handleExportReceipts">
+              <Download class="w-4 h-4 mr-2" />
+              导出
+            </Button>
             <Button variant="outline" @click="clearReceiptOrderFilter" :disabled="!receiptOrderFilter">
               清空
             </Button>

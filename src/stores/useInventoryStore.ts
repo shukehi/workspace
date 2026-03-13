@@ -74,6 +74,46 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
+    function exportReceiptsToCSV(data: InventoryReceipt[]) {
+        if (!Array.isArray(data) || data.length === 0) return;
+
+        const escapeCell = (value: unknown) => {
+            const text = String(value ?? '');
+            if (/[",\n]/.test(text)) {
+                return `"${text.replace(/"/g, '""')}"`;
+            }
+            return text;
+        };
+
+        const headers = ['入库日期', '订单号', '供应商', '物料', '数量', '单位', '操作人', '备注'];
+        const rows = data.map((receipt) => [
+            receipt.receipt_date || '',
+            receipt.order_no,
+            receipt.supplier || '',
+            receipt.item_name,
+            Number(receipt.quantity || 0),
+            receipt.unit || '',
+            receipt.operator || '',
+            receipt.remark || '',
+        ]);
+
+        const csvContent = [
+            headers.map(escapeCell).join(','),
+            ...rows.map((row) => row.map(escapeCell).join(','))
+        ].join('\n');
+
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `采购入库记录_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
     return { 
         items, 
         receipts,
@@ -84,6 +124,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         sortedReceipts,
         fetchInventory, 
         fetchInventoryReceipts,
-        updateStock 
+        updateStock,
+        exportReceiptsToCSV
     };
 });
