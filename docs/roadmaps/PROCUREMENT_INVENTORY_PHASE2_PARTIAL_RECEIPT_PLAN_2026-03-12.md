@@ -38,8 +38,9 @@ Phase 2 的目标不是继续扩状态，而是在现有状态模型之上支持
 2. “是否已全部入库”由明细层累计结果判定，而不是继续扩主状态数量
 3. 入库流水必须支持正负方向，撤销入库不能直接删除历史记录
 4. 库存汇总值永远由流水动作驱动，不允许单独改状态来补库存
-5. 单条明细的累计已入库数量不能依赖 `OrderItem.id` 稳定性，必须冗余业务键
-6. 在 Phase 2 落地前，必须先冻结“已到货/已入库订单的明细编辑策略”，否则明细级累计入库数据会失真
+5. `ordered_quantity / received_quantity` 属于服务端控制字段，普通建单/改单请求不允许直接提交入库进度
+6. 单条明细的累计已入库数量不能依赖 `OrderItem.id` 稳定性，必须冗余业务键
+7. 在 Phase 2 落地前，必须先冻结“已到货/已入库订单的明细编辑策略”，否则明细级累计入库数据会失真
 
 ## 4. 推荐数据模型扩展
 
@@ -57,8 +58,9 @@ Phase 2 的目标不是继续扩状态，而是在现有状态模型之上支持
 3. 创建订单时：
    - `ordered_quantity = quantity`
    - `received_quantity = 0`
-4. 每次正向入库时增加 `received_quantity`
-5. 每次撤销入库时减少 `received_quantity`
+4. 普通 `create / update order` 路径必须忽略客户端传入的 `ordered_quantity / received_quantity`
+5. 每次正向入库时增加 `received_quantity`
+6. 每次撤销入库时减少 `received_quantity`
 
 说明：
 
@@ -141,7 +143,7 @@ POST /api/orders/:id/stock-in
 1. 校验订单状态必须为 `arrived`
 2. 校验每条明细入库数量 `> 0`
 3. 请求不能只依赖 `order_item_id`，必须同时带稳定业务键，或先为订单明细引入专用稳定键
-4. 校验累计入库数量不能超过采购数量
+4. 校验累计入库数量不能超过采购数量，超量请求必须直接拒绝，不能部分写入
 5. 写入多条 `InventoryReceipt`
 6. 更新每条明细 `received_quantity`
 7. 如果所有明细都已收满，则订单置为 `completed`

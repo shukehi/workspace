@@ -135,6 +135,32 @@ test('OrderService createOrder falls back to plain payload when immediate refetc
   }
 });
 
+test('OrderService ignores client supplied ordered and received quantities on create', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('QTY-GUARD'),
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    items: [
+      {
+        name: '包装A',
+        model: 'M-1',
+        quantity: 5,
+        ordered_quantity: 99,
+        received_quantity: 88,
+        unit: '套',
+      }
+    ]
+  });
+
+  assert.equal(created.items[0].quantity, 5);
+  assert.equal(created.items[0].ordered_quantity, 5);
+  assert.equal(created.items[0].received_quantity, 0);
+});
+
 test('OrderService prevents duplicate auto-generated orders and allows regeneration after cancellation', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });
@@ -445,6 +471,57 @@ test('OrderService stockInOrder rejects orders without items', async () => {
   const refreshed = await orderService.getOrderById(created.id);
   assert.equal(refreshed.status, 'arrived');
   assert.equal(await InventoryReceipt.count({ where: { order_id: created.id } }), 0);
+});
+
+test('OrderService stockInOrder rejects received quantity overflow', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const material = await Material.create({
+    code: 'MAT-OVERFLOW-001',
+    name: '锁体A',
+    model: '主锁',
+    supplier: '汇成',
+    stock_quantity: 1,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-OVERFLOW'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: '汇成',
+        name: '锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 2,
+        unit: '把',
+      }
+    ]
+  });
+
+  await OrderItem.update(
+    { ordered_quantity: 2, received_quantity: 2 },
+    { where: { order_id: created.id } }
+  );
+
+  await assert.rejects(
+    () => orderService.stockInOrder(created.id, {
+      stocked_in_at: '2026-03-12T11:00:00.000Z',
+      operator: '仓管D',
+    }),
+    (error) => {
+      assert.equal(error.code, 'RECEIVED_QUANTITY_EXCEEDED');
+      assert.equal(error.orderedQuantity, 2);
+      assert.equal(error.nextReceivedQuantity, 4);
+      return true;
+    }
+  );
 });
 
 test('OrderService rejects detail edits for arrived orders', async () => {

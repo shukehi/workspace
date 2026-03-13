@@ -116,6 +116,14 @@ router.post('/:id/stock-in', async (req, res) => {
                 materialId: e.materialId
             });
         }
+        if (e?.code === 'RECEIVED_QUANTITY_EXCEEDED') {
+            return res.status(400).json({
+                error: 'RECEIVED_QUANTITY_EXCEEDED',
+                orderItemId: e.orderItemId,
+                orderedQuantity: e.orderedQuantity,
+                nextReceivedQuantity: e.nextReceivedQuantity
+            });
+        }
         if (e?.code === 'MATERIAL_ID_REQUIRED' || e?.code === 'INVALID_RECEIPT_QUANTITY' || e?.code === 'ORDER_ITEMS_REQUIRED') {
             return res.status(400).json({ error: e.code });
         }

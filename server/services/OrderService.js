@@ -117,6 +117,17 @@ class OrderEditLockedError extends Error {
     }
 }
 
+class ReceivedQuantityExceededError extends Error {
+    constructor(orderItemId, orderedQuantity, nextReceivedQuantity) {
+        super('RECEIVED_QUANTITY_EXCEEDED');
+        this.name = 'ReceivedQuantityExceededError';
+        this.code = 'RECEIVED_QUANTITY_EXCEEDED';
+        this.orderItemId = orderItemId;
+        this.orderedQuantity = orderedQuantity;
+        this.nextReceivedQuantity = nextReceivedQuantity;
+    }
+}
+
 const ORDER_STATUSES = ['draft', 'submitted', 'processing', 'arrived', 'completed', 'cancelled'];
 const ALLOWED_STATUS_TRANSITIONS = {
     draft: new Set(['draft', 'submitted', 'cancelled']),
@@ -206,12 +217,9 @@ function normalizeOrderItemForPersistence(item = {}) {
     return {
         ...item,
         quantity,
-        ordered_quantity: item.ordered_quantity === undefined
-            ? quantity
-            : Number(item.ordered_quantity || 0),
-        received_quantity: item.received_quantity === undefined
-            ? 0
-            : Number(item.received_quantity || 0)
+        // Client payload must not set receipt progress directly.
+        ordered_quantity: quantity,
+        received_quantity: 0
     };
 }
 
@@ -645,6 +653,9 @@ class OrderService {
             for (const item of order.items || []) {
                 const nextReceived = Number(item.received_quantity || 0) + Number(item.quantity || 0);
                 const nextOrdered = Number(item.ordered_quantity ?? item.quantity ?? 0);
+                if (nextReceived > nextOrdered) {
+                    throw new ReceivedQuantityExceededError(item.id, nextOrdered, nextReceived);
+                }
                 await item.update({
                     ordered_quantity: nextOrdered,
                     received_quantity: nextReceived
@@ -672,6 +683,7 @@ orderService.DuplicateOrderError = DuplicateOrderError;
 orderService.InvalidStatusTransitionError = InvalidStatusTransitionError;
 orderService.MissingMaterialError = MissingMaterialError;
 orderService.OrderEditLockedError = OrderEditLockedError;
+orderService.ReceivedQuantityExceededError = ReceivedQuantityExceededError;
 orderService.buildOrderDedupeKey = buildOrderDedupeKey;
 orderService.toDuplicateOrderSummary = toDuplicateOrderSummary;
 

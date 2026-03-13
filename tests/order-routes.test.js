@@ -76,6 +76,34 @@ test('POST /api/orders returns normalized plain order payload with created_at an
   assert.equal(body.items[0].received_quantity, 0);
 });
 
+test('POST /api/orders ignores client supplied receipt progress fields', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-QTY-GUARD-001',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      items: [
+        {
+          name: '包装A',
+          model: 'M-1',
+          quantity: 3,
+          ordered_quantity: 99,
+          received_quantity: 77,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.items[0].ordered_quantity, 3);
+  assert.equal(body.items[0].received_quantity, 0);
+});
+
 test('PUT /api/orders/:id keeps normalized order payload shape', async () => {
   const createRes = await fetch(`${baseUrl}/api/orders`, {
     method: 'POST',
@@ -329,6 +357,61 @@ test('POST /api/orders/:id/stock-in rejects arrived orders without items', async
   assert.equal(stockInRes.status, 400);
   const body = await stockInRes.json();
   assert.equal(body.error, 'ORDER_ITEMS_REQUIRED');
+});
+
+test('POST /api/orders/:id/stock-in rejects received quantity overflow', async () => {
+  const material = await Material.create({
+    code: 'ROUTE-MAT-OVERFLOW-001',
+    name: 'Overflow Material',
+    model: 'OM-1',
+    supplier: '汇成',
+    stock_quantity: 1,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-STOCKIN-OVERFLOW-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      items: [
+        {
+          material_id: material.code,
+          name: 'Overflow Material',
+          model: 'OM-1',
+          spec: 'OM-1',
+          supplier: '汇成',
+          quantity: 2,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  await sequelize.models.OrderItem.update(
+    { ordered_quantity: 2, received_quantity: 2 },
+    { where: { order_id: created.id } }
+  );
+
+  const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stocked_in_at: '2026-03-12T08:21:00.000Z',
+      operator: '仓管C',
+    }),
+  });
+
+  assert.equal(stockInRes.status, 400);
+  const body = await stockInRes.json();
+  assert.equal(body.error, 'RECEIVED_QUANTITY_EXCEEDED');
+  assert.equal(body.orderedQuantity, 2);
+  assert.equal(body.nextReceivedQuantity, 4);
 });
 
 test.after(async () => {

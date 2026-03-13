@@ -2,7 +2,7 @@
 
 ## 本轮完成内容
 
-本轮已完成采购与库存边界改造第一阶段的核心落地，覆盖后端状态流转、库存流水、采购页动作、统计口径以及库存页入库记录展示。
+本轮已完成采购与库存边界改造第一阶段的核心落地，并补上了 Phase 2 前置约束，覆盖后端状态流转、库存流水、采购页动作、统计口径以及库存页入库记录展示。
 
 已完成项：
 
@@ -22,7 +22,10 @@
    - 采购入库记录表格
    - 按订单号定位查看
    - 从入库记录跳回采购页定位订单
+   - 入库记录摘要指标与 CSV 导出
 8. 统计页与摘要卡片已同步 `arrived / 已入库` 口径
+9. 已冻结 `completed` 订单编辑，并将 `arrived` 订单收敛为“仅可修改交货日期/备注”的受限编辑
+10. `OrderItem` 已补充 `ordered_quantity / received_quantity` 基础字段，为 Phase 2 部分入库做准备
 
 ## 本轮修复项
 
@@ -34,6 +37,8 @@
 4. 修复库存页订单号筛选只做前端过滤、不走服务端查询
 5. 修复库存记录跳回采购页后不能按订单号定位
 6. 修复入库记录请求失败时静默保留旧数据
+7. 修复普通建单/改单路径可伪造 `ordered_quantity / received_quantity`
+8. 修复整单 `stock-in` 缺少超量入库拦截
 
 ## 关键文件
 
@@ -41,6 +46,7 @@
 - [`/Users/aries/Dve/workspace/server/services/InventoryReceiptService.js`](/Users/aries/Dve/workspace/server/services/InventoryReceiptService.js)
 - [`/Users/aries/Dve/workspace/server/routes/order.js`](/Users/aries/Dve/workspace/server/routes/order.js)
 - [`/Users/aries/Dve/workspace/server/routes/inventoryReceipts.js`](/Users/aries/Dve/workspace/server/routes/inventoryReceipts.js)
+- [`/Users/aries/Dve/workspace/server/models/OrderItem.js`](/Users/aries/Dve/workspace/server/models/OrderItem.js)
 - [`/Users/aries/Dve/workspace/src/views/Procurement.vue`](/Users/aries/Dve/workspace/src/views/Procurement.vue)
 - [`/Users/aries/Dve/workspace/src/views/Inventory.vue`](/Users/aries/Dve/workspace/src/views/Inventory.vue)
 - [`/Users/aries/Dve/workspace/src/stores/useInventoryStore.ts`](/Users/aries/Dve/workspace/src/stores/useInventoryStore.ts)
@@ -61,7 +67,8 @@
 
 1. 还没有入库记录详情页
 2. 还不支持部分入库、多次入库、撤销入库
-3. 库存页入库记录尚未做分页、导出、汇总统计
+3. 库存页入库记录尚未做分页
+4. `stock-in` 仍是整单入库，尚未切换到按明细显式入库
 
 ## 下一步建议
 
