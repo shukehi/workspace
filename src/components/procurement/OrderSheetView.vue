@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Order, OrderItem } from '@/types/order';
 import { resolveDisplayCustomerName } from '@/features/procurement/customerName';
 import { normalizeDateString, normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
 import { sortProcurementItems } from '@/features/procurement/itemSort';
 import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
@@ -146,7 +147,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="order-sheet bg-card border rounded-lg p-6 max-w-[210mm] mx-auto min-h-[500px]">
     <div class="mb-6 border rounded-lg p-4">
-      <h1 class="text-xl font-semibold text-center mb-5">采购订单</h1>
+      <h1 class="text-xl font-semibold text-center mb-5">{{ PROCUREMENT_DOCUMENT_TITLE }}</h1>
 
       <div
         class="grid grid-cols-1 gap-5 text-sm order-sheet-info-grid"

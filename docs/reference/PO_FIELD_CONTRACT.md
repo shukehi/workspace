@@ -218,7 +218,25 @@ ERP 输入：
 - 预览/编辑展示：`/src/components/procurement/OrderSheetView.vue`
 - 日期归一化：`/src/features/procurement/docModel.ts`
 
-## 6. Known Anti-Patterns
+## 6. Title Display Contract
+
+采购订单相关页面的主标题必须统一使用：
+
+- `颐家工贸 (  总厂  ) 采购订单`
+
+适用范围：
+
+- 预览/编辑主视图：`/src/components/procurement/OrderSheetView.vue`
+- 预览弹窗标题：`/src/components/procurement/ProcurementPreviewModal.vue`
+- 编辑/手动录入弹窗标题：`/src/components/procurement/EditOrderDialog.vue`
+- 打印页与浏览器标题：`/src/views/PrintDocument.vue`
+
+说明：
+
+- 不允许按物料类别显示不同的“包装采购订单 / 锁芯采购订单 / 锁具采购订单”等主标题
+- 分类信息应继续通过类别徽标、字段内容或文件名表达，不再混入主标题
+
+## 7. Known Anti-Patterns
 
 - 把包装映射 `mappings[bz]` 当供应商使用（错误）
 - 锁芯/锁叉只写 `name/model` 不写 `type/spec/eccentricity`
@@ -230,7 +248,7 @@ ERP 输入：
 - 列表页使用浏览器本地时区格式化日期，导致与预览/PDF 差一天
 - Mock 返回结构和真实后端不一致
 
-## 7. Change Checklist
+## 8. Change Checklist
 
 修改任何 PO 字段前，必须同时检查：
 

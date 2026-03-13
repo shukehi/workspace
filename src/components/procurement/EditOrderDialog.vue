@@ -19,6 +19,10 @@ import {
 } from '@/features/procurement/docModel';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
+  PROCUREMENT_DOCUMENT_CREATE_TITLE,
+  PROCUREMENT_DOCUMENT_EDIT_TITLE,
+} from '@/features/procurement/documentTitles';
+import {
   getDefaultWidths,
   persistLocalCategoryWidths,
 } from '@/features/procurement/sheetWidthResolver';
@@ -257,12 +261,12 @@ const handleCategoryChange = (event: Event) => {
   <Dialog :open="open" @update:open="handleDialogOpenChange">
     <DialogContent class="max-w-[1100px] max-h-[90vh] flex flex-col p-0 gap-0 bg-background">
       <DialogHeader class="sr-only">
-        <DialogTitle>{{ isCreateMode ? '手动录入采购单' : '编辑采购单' }}</DialogTitle>
-        <DialogDescription>编辑采购单基础信息和明细项数据。</DialogDescription>
+        <DialogTitle>{{ isCreateMode ? PROCUREMENT_DOCUMENT_CREATE_TITLE : PROCUREMENT_DOCUMENT_EDIT_TITLE }}</DialogTitle>
+        <DialogDescription>{{ isCreateMode ? PROCUREMENT_DOCUMENT_CREATE_TITLE : PROCUREMENT_DOCUMENT_EDIT_TITLE }}基础信息和明细项数据。</DialogDescription>
       </DialogHeader>
 
       <div class="px-6 py-4 bg-background border-b flex justify-between items-center sticky top-0 z-10 gap-2">
-        <DialogTitle class="text-lg font-semibold">{{ isCreateMode ? '手动录入采购单' : '编辑采购单' }}</DialogTitle>
+        <DialogTitle class="text-lg font-semibold">{{ isCreateMode ? PROCUREMENT_DOCUMENT_CREATE_TITLE : PROCUREMENT_DOCUMENT_EDIT_TITLE }}</DialogTitle>
         <div class="flex gap-2 items-center">
           <select
             v-if="isCreateMode"

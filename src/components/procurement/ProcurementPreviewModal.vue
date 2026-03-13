@@ -13,6 +13,7 @@ import type { Order } from '@/types/order';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import { toRef } from 'vue';
 import { createProcurementPreview } from '@/features/procurement/useProcurementPreview';
+import { PROCUREMENT_DOCUMENT_PREVIEW_TITLE, PROCUREMENT_DOCUMENT_VIEW_TITLE } from '@/features/procurement/documentTitles';
 const props = defineProps<{
   open: boolean;
   order: Order | null;
@@ -57,13 +58,13 @@ const handleEdit = () => {
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-[1100px] max-h-[90vh] flex flex-col p-0 gap-0 bg-background">
       <DialogHeader class="sr-only">
-        <DialogTitle>查看采购单</DialogTitle>
-        <DialogDescription>采购单预览窗口，可直接打印当前订单。</DialogDescription>
+        <DialogTitle>{{ PROCUREMENT_DOCUMENT_VIEW_TITLE }}</DialogTitle>
+        <DialogDescription>{{ PROCUREMENT_DOCUMENT_PREVIEW_TITLE }}窗口，可直接打印当前订单。</DialogDescription>
       </DialogHeader>
 
       <div class="px-6 py-4 bg-background/95 backdrop-blur border-b flex justify-between items-center sticky top-0 z-10 gap-3">
         <div class="min-w-0">
-          <DialogTitle class="text-lg font-semibold">采购订单预览</DialogTitle>
+          <DialogTitle class="text-lg font-semibold">{{ PROCUREMENT_DOCUMENT_PREVIEW_TITLE }}</DialogTitle>
           <p class="text-xs text-muted-foreground truncate" v-if="order">
             {{ order.order_no }}
           </p>

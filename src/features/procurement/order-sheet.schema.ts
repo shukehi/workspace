@@ -1,5 +1,6 @@
 import type { OrderItem } from '@/types/order';
 import type { PrintCategory } from '@/features/procurement/docModel';
+import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
 import sharedSchema from '@/features/procurement/procurement-schema.shared.json';
 
 export type SheetColumnAlign = 'left' | 'center' | 'right';
@@ -39,7 +40,7 @@ function resolveLabelBySemantic(semantic: SheetColumnSemantic, fallbackLabel: st
 
 function toSheetSchema(category: SharedCategory): SheetSchema {
   return {
-    title: category.title,
+    title: PROCUREMENT_DOCUMENT_TITLE,
     columns: category.columns.map((column) => ({
       ...column,
       label: resolveLabelBySemantic(column.semantic, column.label)

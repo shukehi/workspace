@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '@/lib/api';
 import { normalizePrintMode, type PrintMode } from '@/features/procurement/docModel';
+import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
 import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
@@ -125,7 +126,9 @@ async function loadSource() {
     }
 
     printMode.value = normalizePrintMode(String(route.query.printMode || activeSource.printMode || 'signature'));
-    document.title = activeSource.order?.order_no ? `${activeSource.order.order_no} - 采购订单` : '采购订单';
+    document.title = activeSource.order?.order_no
+      ? `${activeSource.order.order_no} - ${PROCUREMENT_DOCUMENT_TITLE}`
+      : PROCUREMENT_DOCUMENT_TITLE;
 
     if (autoPrintRequested.value) {
       setTimeout(() => window.print(), 350);
@@ -218,7 +221,7 @@ onBeforeUnmount(() => {
   <div :class="['print-document-shell', embedded ? 'is-embedded' : '']">
     <div v-if="!embedded" class="controls-bar">
       <div class="controls-title">
-        <h2>采购订单</h2>
+        <h2>{{ PROCUREMENT_DOCUMENT_TITLE }}</h2>
         <p v-if="source?.order?.order_no" class="controls-subtitle">订单号：{{ source.order.order_no }}</p>
       </div>
       <div class="controls-actions">

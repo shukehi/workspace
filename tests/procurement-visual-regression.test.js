@@ -133,7 +133,7 @@ async function openCategoryAndShoot(page, filterLabel, shotKey) {
   const previewBtn = await page.$('button[title="查看/打印"]');
   assert.ok(previewBtn, `missing preview button for ${shotKey}`);
   await previewBtn.click();
-  await page.waitForSelector('text=采购订单预览');
+  await page.waitForSelector('text=颐家工贸 (  总厂  ) 采购订单预览');
   await stabilizeForShot(page);
 
   const previewPath = path.join(SHOTS_DIR, `${shotKey}-preview.png`);
@@ -147,7 +147,7 @@ async function openCategoryAndShoot(page, filterLabel, shotKey) {
   const editBtn = await page.$('button[title="编辑订单"]');
   assert.ok(editBtn, `missing edit button for ${shotKey}`);
   await editBtn.click();
-  await page.waitForSelector('text=编辑采购单');
+  await page.waitForSelector('text=编辑颐家工贸 (  总厂  ) 采购订单');
   await stabilizeForShot(page);
 
   const editPath = path.join(SHOTS_DIR, `${shotKey}-edit.png`);

@@ -1,4 +1,5 @@
 import sharedSchema from '@/features/procurement/procurement-schema.shared.json';
+import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
 
 export type PrintCategory = 'packaging' | 'cylinder' | 'hardware' | 'lock' | 'lockset' | 'handle';
 export type PrintMode = 'signature' | 'compact';
@@ -79,37 +80,37 @@ const rawCategories = sharedSchema.categories as Record<PrintCategory, SharedCat
 
 export const CATEGORY_CONFIGS: Record<PrintCategory, CategoryConfig> = {
   packaging: {
-    title: rawCategories.packaging.title,
+    title: PROCUREMENT_DOCUMENT_TITLE,
     fields: rawCategories.packaging.columns.map((column) => column.key),
     headers: rawCategories.packaging.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
     groupBy: rawCategories.packaging.groupBy
   },
   cylinder: {
-    title: rawCategories.cylinder.title,
+    title: PROCUREMENT_DOCUMENT_TITLE,
     fields: rawCategories.cylinder.columns.map((column) => column.key),
     headers: rawCategories.cylinder.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
     groupBy: rawCategories.cylinder.groupBy
   },
   handle: {
-    title: rawCategories.handle.title,
+    title: PROCUREMENT_DOCUMENT_TITLE,
     fields: rawCategories.handle.columns.map((column) => column.key),
     headers: rawCategories.handle.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
     groupBy: rawCategories.handle.groupBy
   },
   lockset: {
-    title: rawCategories.lockset.title,
+    title: PROCUREMENT_DOCUMENT_TITLE,
     fields: rawCategories.lockset.columns.map((column) => column.key),
     headers: rawCategories.lockset.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
     groupBy: rawCategories.lockset.groupBy
   },
   hardware: {
-    title: rawCategories.hardware.title,
+    title: PROCUREMENT_DOCUMENT_TITLE,
     fields: rawCategories.hardware.columns.map((column) => column.key),
     headers: rawCategories.hardware.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
     groupBy: rawCategories.hardware.groupBy
   },
   lock: {
-    title: rawCategories.lock.title,
+    title: PROCUREMENT_DOCUMENT_TITLE,
     fields: rawCategories.lock.columns.map((column) => column.key),
     headers: rawCategories.lock.columns.map((column) => resolveLabelBySemantic(column.semantic, column.label)),
     groupBy: rawCategories.lock.groupBy
