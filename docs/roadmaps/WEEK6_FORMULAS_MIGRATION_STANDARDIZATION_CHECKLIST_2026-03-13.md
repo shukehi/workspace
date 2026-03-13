@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：在订单、inventory、mappings 的结构化模式逐步稳定后，优先收敛 `useFormulaManager.ts` 的前端工作流边界，并正式建立数据库 migration 规范，开始替代启动时补列策略。
 
 ## 1. 第六周范围
@@ -34,7 +34,7 @@
 ```text
 Week 6
 - Owner: TBD
-- Status: pending
+- Status: in_progress
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -46,6 +46,13 @@ Week 6
 - Blocking:
 - PR / Issue:
 - Notes:
+  - `useFormulaManager.ts` 的 BOM normalize、本地校验、server error 映射、local draft key 规则已下沉到 `src/features/formulas/model/formulaDraft.ts`
+  - `useFormulaManager.ts` 的列表/分页加载已下沉到 `src/features/formulas/composables/useFormulaList.ts`
+  - `useFormulaManager.ts` 的 detail/revision 远端读取已下沉到 `src/features/formulas/composables/useFormulaDetail.ts`
+  - 已补 `tests/formula-draft-model.test.ts`
+  - 已补 `tests/formula-list-composable.test.ts`
+  - 已补 `tests/formula-detail-composable.test.ts`
+  - 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`
 ```
 
 ## 4. 本周退出标准
@@ -153,9 +160,9 @@ server/db/
 
 建议动作：
 
-- [ ] 识别 editor 状态职责
-- [ ] 识别本地草稿职责
-- [ ] 识别发布/归档/回滚职责
+- [x] 识别 editor 状态职责
+- [x] 识别本地草稿职责
+- [x] 识别发布/归档/回滚职责
 - [ ] 识别 server workflow / validator / repository 的边界
 
 验收：
@@ -175,10 +182,10 @@ server/db/
 
 建议迁移内容：
 
-- [ ] 列表加载与分页职责
-- [ ] 明细加载与 revision 状态职责
+- [x] 列表加载与分页职责
+- [x] 明细加载与 revision 状态职责
 - [ ] 本地草稿与 dirty 状态职责
-- [ ] BOM normalize 与本地校验辅助
+- [x] BOM normalize 与本地校验辅助
 
 验收：
 

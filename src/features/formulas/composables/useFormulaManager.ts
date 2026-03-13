@@ -1,5 +1,5 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { formulaApi, type MutationError } from '@/services/formulaApi';
+import { formulaApi } from '@/services/formulaApi';
 import type {
   FormulaBOMItem,
   FormulaDetail,
@@ -8,66 +8,22 @@ import type {
 } from '@/types/formula';
 import { useToastStore } from '@/stores/useToastStore';
 import { BOM_MATERIAL_CATEGORIES, type FormulaValidationErrors } from '@/features/formulas/types';
-
-const LOCAL_DRAFT_KEY_PREFIX = '__local_draft__:';
-
-function normalizeModelFromMaterialCode(materialId: string, supplier: string): string {
-  const normalizedMaterialId = String(materialId || '').trim();
-  const normalizedSupplier = String(supplier || '').trim();
-  if (!normalizedMaterialId || !normalizedSupplier) return normalizedMaterialId;
-  if (normalizedMaterialId.startsWith(normalizedSupplier) && normalizedMaterialId.length > normalizedSupplier.length) {
-    return normalizedMaterialId.slice(normalizedSupplier.length);
-  }
-  return normalizedMaterialId;
-}
-
-function normalizeBomRow(row?: Partial<FormulaBOMItem>): FormulaBOMItem {
-  const supplier = String(row?.supplier || '').trim();
-  return {
-    materialId: normalizeModelFromMaterialCode(String(row?.materialId || '').trim(), supplier),
-    position: String(row?.position || '').trim(),
-    materialCategory: (row?.materialCategory as any) || '',
-    supplier,
-    usage: {
-      single: Number(row?.usage?.single ?? 0),
-      double: Number(row?.usage?.double ?? 0),
-      paired: Number(row?.usage?.paired ?? 0),
-    }
-  };
-}
-
-function normalizeServerErrors(errors: MutationError[] | undefined): FormulaValidationErrors {
-  const mapped: FormulaValidationErrors = {};
-  for (const error of errors || []) {
-    const key = error.field
-      .replace(/^bom\[(\d+)\]$/, 'bom.$1')
-      .replace(/^bom\[(\d+)\]\./, 'bom.$1.');
-    mapped[key] = error.message;
-  }
-  return mapped;
-}
-
-function isLocalFormulaKey(formulaKey: string): boolean {
-  return formulaKey.startsWith(LOCAL_DRAFT_KEY_PREFIX);
-}
-
-function isMeaningfulBomRow(row: FormulaBOMItem): boolean {
-  const hasUsage = Number(row.usage.single || 0) > 0
-    || Number(row.usage.double || 0) > 0
-    || Number(row.usage.paired || 0) > 0;
-  return Boolean(row.materialId || row.position || row.materialCategory || row.supplier || hasUsage);
-}
+import { useFormulaList } from '@/features/formulas/composables/useFormulaList';
+import { useFormulaDetail } from '@/features/formulas/composables/useFormulaDetail';
+import {
+  LOCAL_DRAFT_KEY_PREFIX,
+  isLocalFormulaKey,
+  isMeaningfulBomRow,
+  normalizeBomRow,
+  normalizeServerErrors,
+  validateFormulaDraft,
+} from '@/features/formulas/model/formulaDraft';
 
 export function useFormulaManager() {
   const { toast } = useToastStore();
 
-  const loading = ref(false);
-  const loadingMore = ref(false);
   const saving = ref(false);
   const publishing = ref(false);
-
-  const list = ref<FormulaSummary[]>([]);
-  const total = ref(0);
 
   const selectedKey = ref('');
   const detail = ref<FormulaDetail | null>(null);
@@ -76,22 +32,9 @@ export function useFormulaManager() {
   const revisions = ref<FormulaRevisionMeta[]>([]);
   const historyOpen = ref(false);
 
-  const keyword = ref('');
-  const statusFilter = ref('');
-  const page = ref(1);
-  const pageSize = ref(20);
   const localDraftSummary = ref<FormulaSummary | null>(null);
   const localDraftDetail = ref<FormulaDetail | null>(null);
-  const displayTotal = computed(() => total.value + (localDraftSummary.value ? 1 : 0));
-  const hasMore = computed(() => {
-    const localCount = localDraftSummary.value ? 1 : 0;
-    const remoteLoadedCount = Math.max(list.value.length - localCount, 0);
-    return remoteLoadedCount < total.value;
-  });
   const isLocalDraftSelected = computed(() => isLocalFormulaKey(selectedKey.value));
-  const listFetchVersion = ref(0);
-  const pendingListLoads = ref(0);
-  const pendingAppendLoads = ref(0);
   const initialized = ref(false);
   const stopHandles: Array<() => void> = [];
 
@@ -133,117 +76,33 @@ export function useFormulaManager() {
   }
 
   function localValidate(options: { allowEmptyBom?: boolean; allowEmptyFormulaKey?: boolean } = {}): boolean {
-    const { allowEmptyBom = false, allowEmptyFormulaKey = false } = options;
-    const errors: FormulaValidationErrors = {};
-    if (!allowEmptyFormulaKey && !detail.value?.formulaKey) errors.formulaKey = '配方编码不能为空';
-    if (!detail.value?.displayName) errors.displayName = '配方名称不能为空';
-    if (!allowEmptyBom && bomDraft.value.length === 0) errors.bom = 'BOM 不能为空';
-
-    const seen = new Set<string>();
-    bomDraft.value.forEach((row, idx) => {
-      if (allowEmptyBom && !isMeaningfulBomRow(row)) return;
-      if (!row.materialId) errors[`bom.${idx}.materialId`] = '型号不能为空';
-      if (!row.position) errors[`bom.${idx}.position`] = '位置不能为空';
-      if (!row.materialCategory) errors[`bom.${idx}.materialCategory`] = '请选择类别';
-      if (!row.supplier) errors[`bom.${idx}.supplier`] = '供应商不能为空';
-      ['single', 'double', 'paired'].forEach((key) => {
-        const val = Number((row.usage as Record<string, unknown>)[key]);
-        if (Number.isNaN(val) || val < 0) {
-          errors[`bom.${idx}.usage.${key}`] = '用量必须为非负数';
-        }
-      });
-      const dup = `${row.materialId}::${row.position}`;
-      if (seen.has(dup)) errors[`bom.${idx}.dup`] = '存在重复物料+位置';
-      seen.add(dup);
-    });
-
-    validationErrors.value = errors;
-    return Object.keys(errors).length === 0;
-  }
-
-  function prependLocalDraft(listItems: FormulaSummary[]): FormulaSummary[] {
-    if (!localDraftSummary.value) return listItems;
-    const withoutLocal = listItems.filter((item) => item.formulaKey !== localDraftSummary.value?.formulaKey);
-    return [localDraftSummary.value, ...withoutLocal];
+    validationErrors.value = validateFormulaDraft(detail.value, bomDraft.value, options);
+    return Object.keys(validationErrors.value).length === 0;
   }
 
   function clearLocalDraft() {
     if (localDraftSummary.value) {
       const localKey = localDraftSummary.value.formulaKey;
-      list.value = list.value.filter((item) => item.formulaKey !== localKey);
+      removeListItem(localKey);
     }
     localDraftSummary.value = null;
     localDraftDetail.value = null;
   }
 
-  async function loadList(options: { append?: boolean } = {}) {
-    const append = Boolean(options.append);
-    const requestVersion = ++listFetchVersion.value;
-    if (append) {
-      pendingAppendLoads.value += 1;
-      loadingMore.value = true;
-    } else {
-      pendingListLoads.value += 1;
-      loading.value = true;
-    }
-
-    try {
-      const result = await formulaApi.list({
-        keyword: keyword.value || undefined,
-        status: statusFilter.value || undefined,
-        page: page.value,
-        pageSize: pageSize.value
-      });
-
-      if (requestVersion !== listFetchVersion.value) return;
-
-      const incoming = result.items || [];
-      total.value = Number(result.total || 0);
-      if (append) {
-        const remoteList = list.value.filter((item) => !isLocalFormulaKey(item.formulaKey));
-        const seen = new Set(remoteList.map((item) => item.formulaKey));
-        const merged = incoming.filter((item) => !seen.has(item.formulaKey));
-        list.value = prependLocalDraft([...remoteList, ...merged]);
-      } else {
-        list.value = prependLocalDraft(incoming);
-      }
-
-      const selectedExists = list.value.some((item) => item.formulaKey === selectedKey.value);
-      if (!selectedExists) {
-        if (list.value.length > 0) {
-          await loadDetail(list.value[0].formulaKey, true);
-        } else {
-          clearSelection();
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      toast({ title: '加载配方列表失败', variant: 'destructive' });
-    } finally {
-      if (append) {
-        pendingAppendLoads.value = Math.max(0, pendingAppendLoads.value - 1);
-        loadingMore.value = pendingAppendLoads.value > 0;
-      } else {
-        pendingListLoads.value = Math.max(0, pendingListLoads.value - 1);
-        loading.value = pendingListLoads.value > 0;
-      }
-    }
-  }
-
-  async function loadNextPage() {
-    if (loading.value || loadingMore.value || !hasMore.value) return;
-    page.value += 1;
-    await loadList({ append: true });
-  }
-
-  async function loadRevisions(formulaKey: string) {
-    try {
-      const data = await formulaApi.revisions(formulaKey);
-      revisions.value = data.items || [];
-    } catch {
-      revisions.value = [];
-    }
-  }
+  const {
+    loadRemoteDetail,
+    applyLocalDraftDetail,
+  } = useFormulaDetail({
+    selectedKey,
+    detail,
+    draftRevision,
+    publishedRevision,
+    revisions,
+    bomDraft,
+    validationErrors,
+    resetDraftWithDetail,
+    onLoadError: () => toast({ title: '加载配方详情失败', variant: 'destructive' }),
+  });
 
   async function loadDetail(formulaKey: string, silent = false) {
     if (!silent && isDirty.value) {
@@ -253,33 +112,39 @@ export function useFormulaManager() {
 
     if (isLocalFormulaKey(formulaKey)) {
       if (!localDraftDetail.value) return;
-      selectedKey.value = formulaKey;
-      detail.value = {
+      applyLocalDraftDetail(formulaKey, {
         ...localDraftDetail.value,
         bom: localDraftDetail.value.bom.map((item) => normalizeBomRow(item))
-      };
-      draftRevision.value = null;
-      publishedRevision.value = null;
-      revisions.value = [];
-      bomDraft.value = localDraftDetail.value.bom.map((item) => normalizeBomRow(item));
-      validationErrors.value = {};
+      }, localDraftDetail.value.bom.map((item) => normalizeBomRow(item)));
       isDirty.value = true;
       return;
     }
 
-    try {
-      const data = await formulaApi.detail(formulaKey);
-      selectedKey.value = formulaKey;
-      detail.value = data.formula;
-      draftRevision.value = data.draftRevision;
-      publishedRevision.value = data.publishedRevision;
-      resetDraftWithDetail();
-      await loadRevisions(formulaKey);
-    } catch (error) {
-      console.error(error);
-      toast({ title: '加载配方详情失败', variant: 'destructive' });
-    }
+    await loadRemoteDetail(formulaKey);
   }
+
+  const {
+    loading,
+    loadingMore,
+    list,
+    total,
+    keyword,
+    statusFilter,
+    page,
+    pageSize,
+    displayTotal,
+    hasMore,
+    loadList,
+    loadNextPage,
+    removeListItem,
+  } = useFormulaList({
+    selectedKey,
+    localDraftSummary,
+    isLocalFormulaKey,
+    loadDetail,
+    clearSelection,
+    onLoadError: () => toast({ title: '加载配方列表失败', variant: 'destructive' }),
+  });
 
   function addBomRow() {
     bomDraft.value.push(normalizeBomRow());
