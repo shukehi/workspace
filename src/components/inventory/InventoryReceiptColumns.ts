@@ -8,6 +8,7 @@ import { RotateCcw } from 'lucide-vue-next';
 export const createInventoryReceiptColumns = (actions: {
     onJumpToOrder?: (receipt: InventoryReceipt) => void;
     onReverse?: (receipt: InventoryReceipt) => void;
+    onInspect?: (receipt: InventoryReceipt) => void;
     isReceiptReversible?: (receipt: InventoryReceipt) => boolean;
 } = {}): ColumnDef<InventoryReceipt>[] => [
     {
@@ -82,23 +83,53 @@ export const createInventoryReceiptColumns = (actions: {
         }
     },
     {
+        accessorKey: 'reversible_quantity',
+        header: '剩余可撤销',
+        cell: ({ row }) => {
+            const receipt = row.original;
+            if (receipt.direction === 'reversal') {
+                return h('div', { class: 'text-muted-foreground text-xs' }, '-');
+            }
+            return h('div', { class: 'text-muted-foreground text-xs' }, `${Number(receipt.reversible_quantity || 0)} ${receipt.unit || ''}`.trim());
+        }
+    },
+    {
         id: 'actions',
         header: '操作',
         cell: ({ row }) => {
             const receipt = row.original;
             const reversible = actions.isReceiptReversible?.(receipt);
-            if (!reversible || !actions.onReverse) {
+            const actionNodes = [];
+
+            if (actions.onInspect) {
+                actionNodes.push(h(Button, {
+                    variant: 'ghost',
+                    size: 'sm',
+                    class: 'h-8 px-2 text-muted-foreground hover:text-cyan-700',
+                    onClick: (e: MouseEvent) => {
+                        e.stopPropagation();
+                        actions.onInspect?.(receipt);
+                    }
+                }, () => '轨迹'));
+            }
+
+            if (reversible && actions.onReverse) {
+                actionNodes.push(h(Button, {
+                    variant: 'ghost',
+                    size: 'sm',
+                    class: 'h-8 px-2 text-muted-foreground hover:text-rose-600',
+                    onClick: (e: MouseEvent) => {
+                        e.stopPropagation();
+                        actions.onReverse?.(receipt);
+                    }
+                }, () => [h(RotateCcw, { class: 'h-4 w-4 mr-1' }), '撤销']));
+            }
+
+            if (actionNodes.length === 0) {
                 return h('div', { class: 'text-xs text-muted-foreground' }, '-');
             }
-            return h(Button, {
-                variant: 'ghost',
-                size: 'sm',
-                class: 'h-8 px-2 text-muted-foreground hover:text-rose-600',
-                onClick: (e: MouseEvent) => {
-                    e.stopPropagation();
-                    actions.onReverse?.(receipt);
-                }
-            }, () => [h(RotateCcw, { class: 'h-4 w-4 mr-1' }), '撤销']);
+
+            return h('div', { class: 'flex items-center gap-1' }, actionNodes);
         }
     },
     {

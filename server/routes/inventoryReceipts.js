@@ -25,12 +25,18 @@ router.post('/:id/reverse', async (req, res) => {
             e?.code === 'RECEIPT_NOT_FOUND'
             || e?.code === 'RECEIPT_REVERSE_NOT_ALLOWED'
             || e?.code === 'RECEIPT_ALREADY_REVERSED'
+            || e?.code === 'RECEIPT_ALREADY_FULLY_REVERSED'
             || e?.code === 'ORDER_ITEM_NOT_FOUND'
             || e?.code === 'ORDER_NOT_FOUND'
             || e?.code === 'REVERSE_REASON_REQUIRED'
+            || e?.code === 'REVERSE_QUANTITY_EXCEEDED'
             || e?.code === 'INVALID_RECEIPT_DATE'
         ) {
-            return res.status(400).json({ error: e.code });
+            return res.status(400).json({
+                error: e.code,
+                reversibleQuantity: e?.reversibleQuantity,
+                requestedQuantity: e?.requestedQuantity
+            });
         }
         res.status(500).json({ error: e.message });
     }

@@ -74,7 +74,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
-    async function reverseReceipt(id: number, payload: { operator?: string; remark?: string; reversed_at?: string; reverse_reason?: string } = {}) {
+    async function reverseReceipt(id: number, payload: { operator?: string; remark?: string; reversed_at?: string; reverse_reason?: string; quantity?: number } = {}) {
         const receipt = await api.post<InventoryReceipt>(`/inventory-receipts/${id}/reverse`, payload);
         await fetchInventoryReceipts();
         await fetchInventory();
@@ -92,14 +92,17 @@ export const useInventoryStore = defineStore('inventory', () => {
             return text;
         };
 
-        const headers = ['入库日期', '订单号', '供应商', '物料', '数量', '单位', '操作人', '备注'];
+        const headers = ['入库日期', '订单号', '供应商', '物料', '方向', '数量', '单位', '撤销原因', '剩余可撤销', '操作人', '备注'];
         const rows = data.map((receipt) => [
             receipt.receipt_date || '',
             receipt.order_no,
             receipt.supplier || '',
             receipt.item_name,
+            receipt.direction === 'reversal' ? '撤销' : '入库',
             Number(receipt.quantity || 0),
             receipt.unit || '',
+            receipt.reverse_reason || '',
+            receipt.direction === 'reversal' ? '' : Number(receipt.reversible_quantity || 0),
             receipt.operator || '',
             receipt.remark || '',
         ]);

@@ -192,6 +192,81 @@ test('POST /api/inventory-receipts/:id/reverse reverts stock and order status', 
   assert.equal(refreshedOrder.items[0].received_quantity, 0);
 });
 
+test('POST /api/inventory-receipts/:id/reverse supports partial reversal and blocks overflow', async () => {
+  const material = await Material.create({
+    code: `TEST-MAT-PARTIAL-REV-${Date.now()}`,
+    name: 'Partial Reverse Material',
+    model: 'PRM',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 10,
+    min_stock: 1
+  });
+
+  const order = await orderService.createOrder({
+    order_no: `PARTIAL-REV-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Partial Reverse Material',
+        model: 'PRM',
+        spec: 'PRM',
+        quantity: 4,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-12T13:00:00.000Z',
+    operator: '仓管A'
+  });
+
+  let listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
+  let list = await listRes.json();
+  const originalReceipt = list.find((item) => item.direction !== 'reversal');
+  assert.equal(originalReceipt.reversible_quantity, 4);
+
+  const firstReverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reversed_at: '2026-03-12T13:10:00.000Z',
+      reverse_reason: 'entry_error',
+      quantity: 1
+    })
+  });
+  assert.equal(firstReverseRes.status, 200);
+  const firstReversal = await firstReverseRes.json();
+  assert.equal(firstReversal.quantity, -1);
+
+  listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
+  list = await listRes.json();
+  const refreshedOriginal = list.find((item) => item.id === originalReceipt.id);
+  assert.equal(refreshedOriginal.reversed_quantity, 1);
+  assert.equal(refreshedOriginal.reversible_quantity, 3);
+
+  const overflowRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reversed_at: '2026-03-12T13:20:00.000Z',
+      reverse_reason: 'entry_error',
+      quantity: 5
+    })
+  });
+  assert.equal(overflowRes.status, 400);
+  const overflowBody = await overflowRes.json();
+  assert.equal(overflowBody.error, 'REVERSE_QUANTITY_EXCEEDED');
+  assert.equal(overflowBody.reversibleQuantity, 3);
+  assert.equal(overflowBody.requestedQuantity, 5);
+});
+
 test('POST /api/inventory-receipts/:id/reverse requires reverse reason', async () => {
   const material = await Material.create({
     code: `TEST-MAT-REVERSE-REQ-${Date.now()}`,

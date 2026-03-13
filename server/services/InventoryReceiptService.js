@@ -57,6 +57,11 @@ function normalizeReceiptQuantity(value) {
     return quantity;
 }
 
+function normalizeReverseQuantity(value) {
+    if (value === undefined || value === null || value === '') return null;
+    return normalizeReceiptQuantity(value);
+}
+
 function toPlainReceipt(receipt) {
     const plain = typeof receipt.get === 'function' ? receipt.get({ plain: true }) : { ...receipt };
     return {
@@ -165,6 +170,47 @@ class ReceiptAlreadyReversedError extends Error {
     }
 }
 
+class ReceiptAlreadyFullyReversedError extends Error {
+    constructor(receiptId) {
+        super('RECEIPT_ALREADY_FULLY_REVERSED');
+        this.code = 'RECEIPT_ALREADY_FULLY_REVERSED';
+        this.receiptId = receiptId;
+    }
+}
+
+class ReverseQuantityExceededError extends Error {
+    constructor(receiptId, reversibleQuantity, requestedQuantity) {
+        super('REVERSE_QUANTITY_EXCEEDED');
+        this.code = 'REVERSE_QUANTITY_EXCEEDED';
+        this.receiptId = receiptId;
+        this.reversibleQuantity = reversibleQuantity;
+        this.requestedQuantity = requestedQuantity;
+    }
+}
+
+async function listReversalReceipts(sourceReceiptId, transaction) {
+    return await InventoryReceipt.findAll({
+        where: {
+            source_receipt_id: sourceReceiptId,
+            direction: 'reversal'
+        },
+        transaction
+    });
+}
+
+function computeReversalStats(receipt, reversalReceipts) {
+    const originalQuantity = Math.max(Number(receipt.quantity || 0), 0);
+    const reversedQuantity = reversalReceipts.reduce(
+        (sum, reversal) => sum + Math.abs(Number(reversal.quantity || 0)),
+        0
+    );
+    return {
+        originalQuantity,
+        reversedQuantity,
+        reversibleQuantity: Math.max(originalQuantity - reversedQuantity, 0)
+    };
+}
+
 class InventoryReceiptService {
     async createFromOrder(order, payload = {}, transaction) {
         const receiptDate = normalizeReceiptDate(payload.stocked_in_at || payload.receipt_date);
@@ -225,12 +271,10 @@ class InventoryReceiptService {
                 throw new ReceiptReverseNotAllowedError(receipt.id);
             }
 
-            const existingReversal = await InventoryReceipt.findOne({
-                where: { source_receipt_id: receipt.id, direction: 'reversal' },
-                transaction
-            });
-            if (existingReversal) {
-                throw new ReceiptAlreadyReversedError(receipt.id);
+            const reversalReceipts = await listReversalReceipts(receipt.id, transaction);
+            const { reversibleQuantity } = computeReversalStats(receipt, reversalReceipts);
+            if (reversibleQuantity <= 0) {
+                throw new ReceiptAlreadyFullyReversedError(receipt.id);
             }
 
             const order = await Order.findByPk(receipt.order_id, {
@@ -266,12 +310,16 @@ class InventoryReceiptService {
                 error.code = 'REVERSE_REASON_REQUIRED';
                 throw error;
             }
+            const requestedQuantity = normalizeReverseQuantity(payload.quantity) ?? reversibleQuantity;
+            if (requestedQuantity > reversibleQuantity) {
+                throw new ReverseQuantityExceededError(receipt.id, reversibleQuantity, requestedQuantity);
+            }
 
             await material.update({
-                stock_quantity: Number(material.stock_quantity || 0) - quantity
+                stock_quantity: Number(material.stock_quantity || 0) - requestedQuantity
             }, { transaction });
 
-            const nextReceived = Number(orderItem.received_quantity || 0) - quantity;
+            const nextReceived = Number(orderItem.received_quantity || 0) - requestedQuantity;
             await orderItem.update({
                 received_quantity: Math.max(nextReceived, 0)
             }, { transaction });
@@ -286,7 +334,7 @@ class InventoryReceiptService {
                 material_id: receipt.material_id,
                 item_name: receipt.item_name,
                 supplier: receipt.supplier || order.supplier || '',
-                quantity: -quantity,
+                quantity: -requestedQuantity,
                 unit: receipt.unit || material.unit || '',
                 receipt_date: reversalDate,
                 operator: payload.operator ? String(payload.operator).trim() : null,
@@ -325,12 +373,40 @@ class InventoryReceiptService {
             order: [['receipt_date', 'DESC'], ['created_at', 'DESC']]
         });
 
-        return receipts.map(toPlainReceipt);
+        const plainReceipts = receipts.map(toPlainReceipt);
+        const reversalGroups = new Map();
+
+        for (const receipt of plainReceipts) {
+            if (receipt.direction !== 'reversal' || !receipt.source_receipt_id) continue;
+            const key = Number(receipt.source_receipt_id);
+            const current = reversalGroups.get(key) || [];
+            current.push(receipt);
+            reversalGroups.set(key, current);
+        }
+
+        return plainReceipts.map((receipt) => {
+            if (receipt.direction === 'reversal') {
+                return {
+                    ...receipt,
+                    reversed_quantity: null,
+                    reversible_quantity: null
+                };
+            }
+            const reversals = reversalGroups.get(Number(receipt.id)) || [];
+            const { reversedQuantity, reversibleQuantity } = computeReversalStats(receipt, reversals);
+            return {
+                ...receipt,
+                reversed_quantity: reversedQuantity,
+                reversible_quantity: reversibleQuantity
+            };
+        });
     }
 }
 
 const service = new InventoryReceiptService();
 service.ReceiptReverseNotAllowedError = ReceiptReverseNotAllowedError;
 service.ReceiptAlreadyReversedError = ReceiptAlreadyReversedError;
+service.ReceiptAlreadyFullyReversedError = ReceiptAlreadyFullyReversedError;
+service.ReverseQuantityExceededError = ReverseQuantityExceededError;
 
 module.exports = service;

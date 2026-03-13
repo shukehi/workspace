@@ -26,11 +26,15 @@ const activeCategory = ref('ALL');
 const searchQuery = ref('');
 const receiptSearchQuery = ref('');
 const receiptOrderFilter = ref(String(route.query.orderNo || '').trim());
+const receiptDirectionFilter = ref<'ALL' | 'in' | 'reversal'>('ALL');
+const reverseReasonFilter = ref('ALL');
 const debouncedReceiptOrderFilter = refDebounced(receiptOrderFilter, 300);
 const reverseDialogOpen = ref(false);
 const reverseReceiptTarget = ref<InventoryReceipt | null>(null);
+const auditReceiptId = ref<number | null>(null);
 const reverseReason = ref('entry_error');
 const reverseRemark = ref('');
+const reverseQuantity = ref('');
 const reversing = ref(false);
 
 const reverseReasonOptions = [
@@ -69,10 +73,14 @@ const filteredItems = computed(() => {
 const filteredReceipts = computed(() => {
   const query = receiptSearchQuery.value.trim().toLowerCase();
   const orderNo = receiptOrderFilter.value.trim().toLowerCase();
+  const directionFilter = receiptDirectionFilter.value;
+  const reasonFilter = reverseReasonFilter.value;
 
   return store.sortedReceipts.filter((receipt) => {
     const matchesOrderNo = !orderNo || receipt.order_no.toLowerCase().includes(orderNo);
     if (!matchesOrderNo) return false;
+    if (directionFilter !== 'ALL' && receipt.direction !== directionFilter) return false;
+    if (reasonFilter !== 'ALL' && String(receipt.reverse_reason || '') !== reasonFilter) return false;
     if (!query) return true;
 
     return receipt.order_no.toLowerCase().includes(query)
@@ -83,23 +91,65 @@ const filteredReceipts = computed(() => {
   });
 });
 
-const reversedSourceReceiptIds = computed(() => new Set(
-  store.sortedReceipts
-    .filter((receipt) => receipt.direction === 'reversal' && receipt.source_receipt_id)
-    .map((receipt) => Number(receipt.source_receipt_id))
-));
-
 const receiptSummary = computed(() => {
   const list = filteredReceipts.value;
   const uniqueOrders = new Set(list.map((receipt) => receipt.order_no)).size;
-  const totalQuantity = list.reduce((sum, receipt) => sum + Number(receipt.quantity || 0), 0);
+  const totalQuantity = list
+    .filter((receipt) => receipt.direction !== 'reversal')
+    .reduce((sum, receipt) => sum + Number(receipt.quantity || 0), 0);
+  const netQuantity = list.reduce((sum, receipt) => sum + Number(receipt.quantity || 0), 0);
   const latestReceiptDate = list[0]?.receipt_date || list[0]?.created_at || '';
 
   return {
     count: list.length,
     uniqueOrders,
     totalQuantity,
+    netQuantity,
     latestReceiptDate: latestReceiptDate ? String(latestReceiptDate).slice(0, 10) : '-'
+  };
+});
+
+const availableReverseReasonOptions = computed(() => {
+  const reasons = new Set(
+    store.receipts
+      .map((receipt) => String(receipt.reverse_reason || '').trim())
+      .filter(Boolean)
+  );
+
+  return [
+    { value: 'ALL', label: '全部原因' },
+    ...Array.from(reasons).sort().map((value) => {
+      const match = reverseReasonOptions.find((option) => option.value === value);
+      return {
+        value,
+        label: match?.label || value
+      };
+    })
+  ];
+});
+
+const selectedReceiptAudit = computed(() => {
+  if (!auditReceiptId.value) return null;
+
+  const matched = store.receipts.find((receipt) => Number(receipt.id) === Number(auditReceiptId.value))
+    || store.receipts.find((receipt) => Number(receipt.source_receipt_id || 0) === Number(auditReceiptId.value));
+
+  if (!matched) return null;
+
+  const originalId = matched.direction === 'reversal'
+    ? Number(matched.source_receipt_id || 0)
+    : Number(matched.id);
+
+  const original = store.receipts.find((receipt) => Number(receipt.id) === originalId && receipt.direction !== 'reversal');
+  if (!original) return null;
+
+  const reversals = store.sortedReceipts.filter((receipt) => Number(receipt.source_receipt_id || 0) === originalId);
+  const netQuantity = Number(original.quantity || 0) - reversals.reduce((sum, receipt) => sum + Math.abs(Number(receipt.quantity || 0)), 0);
+
+  return {
+    original,
+    reversals,
+    netQuantity
   };
 });
 
@@ -112,7 +162,7 @@ const handleEdit = (item: InventoryItem) => {
 
 const columns = createInventoryColumns({ onEdit: handleEdit });
 function isReceiptReversible(receipt: InventoryReceipt) {
-  return receipt.direction !== 'reversal' && !reversedSourceReceiptIds.value.has(Number(receipt.id));
+  return receipt.direction !== 'reversal' && Number(receipt.reversible_quantity || 0) > 0;
 }
 
 const receiptColumns = createInventoryReceiptColumns({
@@ -128,7 +178,13 @@ const receiptColumns = createInventoryReceiptColumns({
     reverseReceiptTarget.value = receipt;
     reverseReason.value = 'entry_error';
     reverseRemark.value = '';
+    reverseQuantity.value = '';
     reverseDialogOpen.value = true;
+  },
+  onInspect: (receipt: InventoryReceipt) => {
+    auditReceiptId.value = receipt.direction === 'reversal'
+      ? Number(receipt.source_receipt_id || 0)
+      : Number(receipt.id);
   },
   isReceiptReversible
 });
@@ -137,11 +193,13 @@ async function confirmReverseReceipt() {
   if (!reverseReceiptTarget.value) return;
   if (!reverseReason.value) return;
   reversing.value = true;
+  const quantityValue = reverseQuantity.value.trim();
   try {
     await store.reverseReceipt(reverseReceiptTarget.value.id, {
       reversed_at: new Date().toISOString(),
       reverse_reason: reverseReason.value,
       remark: reverseRemark.value.trim() || undefined,
+      quantity: quantityValue ? Number(quantityValue) : undefined,
     });
     await loadReceipts(String(route.query.orderNo || '').trim());
     toast({
@@ -153,12 +211,17 @@ async function confirmReverseReceipt() {
     reverseDialogOpen.value = false;
     reverseReceiptTarget.value = null;
     reverseRemark.value = '';
+    reverseQuantity.value = '';
   } catch (error: any) {
     const errorCode = String(error?.response?.data?.error || '');
     toast({
       title: '撤销失败',
       description: errorCode === 'RECEIPT_ALREADY_REVERSED'
         ? '该入库记录已经撤销过'
+        : errorCode === 'RECEIPT_ALREADY_FULLY_REVERSED'
+          ? '该入库记录已经全部撤销'
+          : errorCode === 'REVERSE_QUANTITY_EXCEEDED'
+            ? '本次撤销数量超过剩余可撤销量'
         : errorCode === 'REVERSE_REASON_REQUIRED'
           ? '请选择撤销原因'
           : '请稍后重试',
@@ -213,6 +276,9 @@ async function loadInventoryData() {
 async function loadReceipts(orderNo = '') {
   try {
     await store.fetchInventoryReceipts(orderNo ? { orderNo } : {});
+    if (auditReceiptId.value && !selectedReceiptAudit.value) {
+      auditReceiptId.value = null;
+    }
   } catch {
     toast({
       title: '入库记录加载失败',
@@ -309,6 +375,17 @@ watch(debouncedReceiptOrderFilter, (value) => {
 
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-xs text-muted-foreground">净入库数量</CardTitle>
+          <Package class="h-4 w-4 text-sky-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ receiptSummary.netQuantity }}</div>
+          <p class="text-xs text-muted-foreground mt-1">已扣除撤销记录后的净值</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-xs text-muted-foreground">最近入库日期</CardTitle>
           <ScrollText class="h-4 w-4 text-amber-500" />
         </CardHeader>
@@ -375,6 +452,20 @@ watch(debouncedReceiptOrderFilter, (value) => {
               placeholder="按订单号筛选"
               class="w-full md:w-56"
             />
+            <select v-model="receiptDirectionFilter" class="rounded-md border bg-background px-3 py-2 text-sm">
+              <option value="ALL">全部方向</option>
+              <option value="in">仅入库</option>
+              <option value="reversal">仅撤销</option>
+            </select>
+            <select v-model="reverseReasonFilter" class="rounded-md border bg-background px-3 py-2 text-sm">
+              <option
+                v-for="option in availableReverseReasonOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
             <Button variant="outline" @click="handleExportReceipts">
               <Download class="w-4 h-4 mr-2" />
               导出
@@ -398,6 +489,60 @@ watch(debouncedReceiptOrderFilter, (value) => {
         />
       </CardContent>
     </Card>
+    <Card v-if="selectedReceiptAudit">
+      <CardHeader class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <CardTitle>入库撤销轨迹</CardTitle>
+          <p class="text-sm text-muted-foreground mt-1">
+            查看原始入库记录与后续撤销流水，便于核对净入库结果。
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" @click="auditReceiptId = null">关闭</Button>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div class="grid gap-3 md:grid-cols-4">
+          <div class="rounded-md border bg-muted/30 p-3">
+            <div class="text-xs text-muted-foreground">原始订单</div>
+            <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.order_no }}</div>
+          </div>
+          <div class="rounded-md border bg-muted/30 p-3">
+            <div class="text-xs text-muted-foreground">原始入库数量</div>
+            <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.quantity }} {{ selectedReceiptAudit.original.unit || '' }}</div>
+          </div>
+          <div class="rounded-md border bg-muted/30 p-3">
+            <div class="text-xs text-muted-foreground">已撤销量</div>
+            <div class="mt-1 font-medium">{{ selectedReceiptAudit.original.reversed_quantity || 0 }} {{ selectedReceiptAudit.original.unit || '' }}</div>
+          </div>
+          <div class="rounded-md border bg-muted/30 p-3">
+            <div class="text-xs text-muted-foreground">净入库数量</div>
+            <div class="mt-1 font-medium">{{ selectedReceiptAudit.netQuantity }} {{ selectedReceiptAudit.original.unit || '' }}</div>
+          </div>
+        </div>
+        <div class="rounded-md border">
+          <div class="grid gap-3 border-b bg-muted/20 px-4 py-3 text-xs font-medium text-muted-foreground md:grid-cols-[160px_120px_140px_1fr]">
+            <div>撤销日期</div>
+            <div>撤销量</div>
+            <div>撤销原因</div>
+            <div>说明</div>
+          </div>
+          <div v-if="selectedReceiptAudit.reversals.length === 0" class="px-4 py-6 text-sm text-muted-foreground">
+            该入库记录尚无撤销流水。
+          </div>
+          <div v-else class="divide-y">
+            <div
+              v-for="receipt in selectedReceiptAudit.reversals"
+              :key="receipt.id"
+              class="grid gap-3 px-4 py-3 text-sm md:grid-cols-[160px_120px_140px_1fr]"
+            >
+              <div>{{ String(receipt.receipt_date || receipt.created_at || '-').slice(0, 10) }}</div>
+              <div class="font-medium text-rose-600">{{ receipt.quantity }} {{ receipt.unit || '' }}</div>
+              <div>{{ receipt.reverse_reason || '-' }}</div>
+              <div class="text-muted-foreground">{{ receipt.remark || '-' }}</div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
     <ConfirmDialog
       v-model:open="reverseDialogOpen"
       title="确认撤销入库"
@@ -414,6 +559,23 @@ watch(debouncedReceiptOrderFilter, (value) => {
             的这条入库记录将被撤销。
           </span>
         </p>
+        <div
+          v-if="reverseReceiptTarget"
+          class="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm md:grid-cols-3"
+        >
+          <div>
+            <div class="text-xs text-muted-foreground">原始数量</div>
+            <div class="font-medium">{{ reverseReceiptTarget.quantity }} {{ reverseReceiptTarget.unit || '' }}</div>
+          </div>
+          <div>
+            <div class="text-xs text-muted-foreground">已撤销量</div>
+            <div class="font-medium">{{ reverseReceiptTarget.reversed_quantity || 0 }} {{ reverseReceiptTarget.unit || '' }}</div>
+          </div>
+          <div>
+            <div class="text-xs text-muted-foreground">剩余可撤销</div>
+            <div class="font-medium">{{ reverseReceiptTarget.reversible_quantity || 0 }} {{ reverseReceiptTarget.unit || '' }}</div>
+          </div>
+        </div>
         <label class="block space-y-1 text-sm">
           <span class="text-foreground">撤销原因</span>
           <select v-model="reverseReason" class="w-full rounded-md border bg-background px-3 py-2 text-sm">
@@ -421,6 +583,26 @@ watch(debouncedReceiptOrderFilter, (value) => {
               {{ option.label }}
             </option>
           </select>
+        </label>
+        <label class="block space-y-1 text-sm">
+          <span class="text-foreground">本次撤销数量</span>
+          <div class="flex items-center gap-2">
+            <Input
+              v-model="reverseQuantity"
+              type="number"
+              min="0"
+              :max="String(reverseReceiptTarget?.reversible_quantity || 0)"
+              step="0.01"
+              placeholder="留空则撤销全部剩余量"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              @click="reverseQuantity = String(reverseReceiptTarget?.reversible_quantity || '')"
+            >
+              全部撤销
+            </Button>
+          </div>
         </label>
         <label class="block space-y-1 text-sm">
           <span class="text-foreground">补充说明</span>
