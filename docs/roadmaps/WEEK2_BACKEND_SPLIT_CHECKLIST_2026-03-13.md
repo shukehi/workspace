@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：为第二周的后端核心拆分建立可直接执行的文件级计划，重点围绕 `server/services/OrderService.js`。
 
 ## 1. 第二周范围
@@ -30,8 +30,8 @@
 ```text
 Week 2
 - Owner: TBD
-- Status: pending
-- Start Date:
+- Status: in_progress
+- Start Date: 2026-03-13
 - Target Date:
 - Exit Criteria:
   - `OrderService` 已拆分为明确子模块，且主入口兼容现有调用
@@ -41,6 +41,9 @@ Week 2
 - Blocking:
 - PR / Issue:
 - Notes:
+  - 已拆出 `order.errors.js`、`order.policy.js`、`order.query-policy.js`、`order.mapper.js`、`order.repository.js`、`order.dedupe.js`、`order.stockin.js`、`order.service.js`、`orders/index.js`
+  - `server/services/OrderService.js` 已降级为兼容壳，转发到 `server/services/orders/index.js`
+  - 已执行 `node --test tests/order-service.test.js`、`node --test tests/order-routes.test.js`、`node --test tests/inventory-route.test.js`
 ```
 
 ## 4. 本周退出标准
@@ -116,16 +119,29 @@ server/services/orders/
 
 建议动作：
 
-- [ ] 列出查询职责
-- [ ] 列出创建/更新/删除职责
-- [ ] 列出状态流转职责
-- [ ] 列出防重职责
-- [ ] 列出入库职责
-- [ ] 列出序列化与日志辅助职责
+- [x] 列出查询职责
+- [x] 列出创建/更新/删除职责
+- [x] 列出状态流转职责
+- [x] 列出防重职责
+- [x] 列出入库职责
+- [x] 列出序列化与日志辅助职责
 
 建议输出：
 
 1. 在本周进度文档中记录一份“旧函数 -> 新模块”的映射表
+
+当前映射：
+
+| 原职责 | 当前模块 |
+| --- | --- |
+| 状态流转、编辑锁 | `server/services/orders/order.policy.js` |
+| 列表筛选、summary、facets | `server/services/orders/order.query-policy.js` |
+| 序列化、ordered quantity 回退、日志 normalize | `server/services/orders/order.mapper.js` |
+| source contract / metadata / dedupe key | `server/services/orders/order.dedupe.js` |
+| Order / OrderItem / OrderIdempotencyKey 访问 | `server/services/orders/order.repository.js` |
+| stock-in 校验、入库数量同步、完成态更新 | `server/services/orders/order.stockin.js` |
+| 事务编排、create/update/delete/stock-in 主入口 | `server/services/orders/order.service.js` |
+| 兼容转发壳 | `server/services/OrderService.js` / `server/services/orders/index.js` |
 
 验收：
 
@@ -141,21 +157,22 @@ server/services/orders/
 
 建议迁移内容：
 
-- [ ] `DuplicateOrderError`
-- [ ] `InvalidStatusTransitionError`
-- [ ] `MissingMaterialError`
-- [ ] `OrderEditLockedError`
-- [ ] `ReceivedQuantityExceededError`
+- [x] `DuplicateOrderError`
+- [x] `InvalidStatusTransitionError`
+- [x] `MissingMaterialError`
+- [x] `OrderEditLockedError`
+- [x] `ReceivedQuantityExceededError`
 
 建议额外补充：
 
-- [ ] 统一导出错误码常量
-- [ ] 为后续 error middleware 预留 `code` 字段规范
+- [x] 统一导出错误码常量
+- [x] 为后续 error middleware 预留 `code` 字段规范
 
 验收：
 
-1. `OrderService` 不再内嵌大量错误类定义。
+1. `OrderService` 不再内嵌状态相关错误定义。
 2. route 和 service 后续都能复用同一错误来源。
+3. 当前订单域错误已集中到 `server/services/orders/order.errors.js` 与 `order.policy.js`。
 
 ### 任务 3：抽取状态策略层
 
@@ -167,17 +184,17 @@ server/services/orders/
 
 建议迁移内容：
 
-- [ ] `ORDER_STATUSES`
-- [ ] `ALLOWED_STATUS_TRANSITIONS`
-- [ ] `normalizeStatus`
-- [ ] `assertValidStatusTransition`
-- [ ] `ARRIVED_EDITABLE_FIELDS`
-- [ ] `COMPLETED_EDITABLE_FIELDS`
-- [ ] `assertEditableOrderFields`
+- [x] `ORDER_STATUSES`
+- [x] `ALLOWED_STATUS_TRANSITIONS`
+- [x] `normalizeStatus`
+- [x] `assertValidStatusTransition`
+- [x] `ARRIVED_EDITABLE_FIELDS`
+- [x] `COMPLETED_EDITABLE_FIELDS`
+- [x] `assertEditableOrderFields`
 
 建议新增测试：
 
-1. `tests/order-policy.test.js`
+1. `tests/order-policy.test.js`（可选；当前由 `tests/order-service.test.js` 与 `tests/order-routes.test.js` 间接覆盖）
 
 验收：
 
@@ -194,14 +211,14 @@ server/services/orders/
 
 建议迁移内容：
 
-- [ ] `normalizeOrderRemark`（如仍需要）
-- [ ] `resolveSourceContractCode`
-- [ ] `normalizeMetadata`
-- [ ] `normalizeDedupeText`
-- [ ] `normalizeDedupeNumber`
-- [ ] `serializeItemFingerprint`
-- [ ] `buildOrderDedupePayload`
-- [ ] `buildOrderDedupeKey`
+- [ ] `normalizeOrderRemark`（当前仍保留在 `server/services/orders/order.service.js`）
+- [x] `resolveSourceContractCode`
+- [x] `normalizeMetadata`
+- [x] `normalizeDedupeText`
+- [x] `normalizeDedupeNumber`
+- [x] `serializeItemFingerprint`
+- [x] `buildOrderDedupePayload`
+- [x] `buildOrderDedupeKey`
 
 建议检查点：
 
@@ -228,12 +245,12 @@ server/services/orders/
 
 建议迁移内容：
 
-- [ ] `normalizeDateField`
-- [ ] `resolveOrderedQuantity`
-- [ ] `serializeOrderItem`
-- [ ] `serializeOrder`
-- [ ] `normalizeOrderForLog`
-- [ ] 其他日志输出辅助函数
+- [x] `normalizeDateField`
+- [x] `resolveOrderedQuantity`
+- [x] `serializeOrderItem`
+- [x] `serializeOrder`
+- [x] `normalizeOrderForLog`
+- [x] `toDuplicateOrderSummary`
 
 验收：
 
@@ -250,11 +267,11 @@ server/services/orders/
 
 建议迁移内容：
 
-- [ ] order item 入库数量校验
-- [ ] explicit receipt items 校验
-- [ ] ordered/received quantity 回退逻辑
-- [ ] material 校验与缺失错误抛出
-- [ ] 库存联动与 receipt 创建流程中的辅助函数
+- [x] order item 入库数量校验
+- [x] explicit receipt items 校验（通过 `InventoryReceiptService` 包装接入）
+- [x] ordered/received quantity 回退逻辑（已在 `order.mapper.js`）
+- [x] material 校验与缺失错误抛出
+- [x] 库存联动与 receipt 创建流程中的辅助函数
 
 建议注意：
 
@@ -282,17 +299,17 @@ server/services/orders/
 
 建议迁移内容：
 
-- [ ] 按 id 查询订单
+- [x] 按 id 查询订单
 - [ ] 分页查询订单
-- [ ] 获取全部订单
-- [ ] 创建订单及明细
-- [ ] 更新订单及明细
-- [ ] 删除订单
-- [ ] 查询/写入 idempotency key
+- [x] 获取全部订单
+- [x] 创建订单及明细
+- [x] 更新订单及明细
+- [x] 删除订单
+- [x] 查询/写入 idempotency key
 
 建议策略：
 
-- [ ] 第一周式平滑迁移：先抽 query helper，不一次性抽尽所有 DB 操作
+- [x] 第一周式平滑迁移：先抽 query helper，不一次性抽尽所有 DB 操作
 - [ ] 显式标注 transaction 由谁开启、由谁传递
 
 验收：
@@ -311,14 +328,14 @@ server/services/orders/
 
 建议动作：
 
-- [ ] 将原 `OrderService` 对外导出的方法迁到新入口
-- [ ] 在新入口中组合 policy/dedupe/mapper/stockin/repository
-- [ ] 保持原导出方法名不变，降低 route 改造成本
+- [x] 将原 `OrderService` 对外导出的方法迁到新入口
+- [x] 在新入口中组合 policy/dedupe/mapper/stockin/repository
+- [x] 保持原导出方法名不变，降低 route 改造成本
 
 兼容策略：
 
-- [ ] 暂时保留 `server/services/OrderService.js` 作为兼容壳文件
-- [ ] 壳文件仅转发到 `server/services/orders/index.js`
+- [x] 暂时保留 `server/services/OrderService.js` 作为兼容壳文件
+- [x] 壳文件仅转发到 `server/services/orders/index.js`
 
 验收：
 
@@ -335,7 +352,7 @@ server/services/orders/
 
 建议动作：
 
-- [ ] 将对 `OrderService` 的引用切换到新的兼容入口
+- [x] 将对 `OrderService` 的引用切换到新的兼容入口
 - [ ] 保持 HTTP 响应语义不变
 - [ ] 尽量不在本周修改路由层大段错误处理
 
@@ -362,16 +379,16 @@ server/services/orders/
 
 关键回归点：
 
-- [ ] 订单 CRUD
-- [ ] category filter
-- [ ] duplicate auto order 防重
-- [ ] cancelled auto order 恢复
-- [ ] invalid status transition
-- [ ] arrived order 编辑限制
-- [ ] stock-in 正常入库
-- [ ] partial receipt
-- [ ] received quantity overflow
-- [ ] legacy item key 兼容
+- [x] 订单 CRUD
+- [x] category filter
+- [x] duplicate auto order 防重
+- [x] cancelled auto order 恢复
+- [x] invalid status transition
+- [x] arrived order 编辑限制
+- [x] stock-in 正常入库
+- [x] partial receipt
+- [x] received quantity overflow
+- [x] legacy item key 兼容
 
 ## 6. 建议执行顺序
 
@@ -440,9 +457,15 @@ server/services/orders/
 - [ ] 订单相关测试全部通过
 - [ ] 库存联动相关测试通过
 - [ ] 订单接口行为无回归
-- [ ] `server/services/OrderService.js` 显著缩小或仅保留兼容壳
+- [x] `server/services/OrderService.js` 显著缩小或仅保留兼容壳
 - [ ] 新增模块职责清晰且命名稳定
 - [ ] `git status --short` 仅包含预期改动
+
+当前已验证：
+
+- [x] `node --test tests/order-service.test.js`
+- [x] `node --test tests/order-routes.test.js`
+- [x] `node --test tests/inventory-route.test.js`
 
 ## 9. 第二周不做的事
 

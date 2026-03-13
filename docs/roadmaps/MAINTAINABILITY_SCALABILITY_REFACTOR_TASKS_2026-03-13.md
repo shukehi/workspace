@@ -80,23 +80,40 @@
 
 ### 4.1 边界识别
 
-- [ ] 梳理查询、命令、状态策略、防重、入库、序列化职责
+- [x] 梳理查询、命令、状态策略、防重、入库、序列化职责
 - [ ] 明确各子模块输入输出，先冻结对外 service 入口
-- [ ] 先整理主流程最小回归路径：创建、更新、删除、入库、去重
+- [x] 先整理主流程最小回归路径：创建、更新、删除、入库、去重
 
 ### 4.2 子模块拆分
 
-- [ ] 抽出 policy：状态枚举、合法流转、arrived/completed 可编辑规则
-- [ ] 抽出 dedupe：payload 构造、dedupe key、自动单/手动单判定
-- [ ] 抽出 mapper：order item / order 序列化、日志 normalize
+- [x] 抽出 policy：状态枚举、合法流转、arrived/completed 可编辑规则
+- [x] 抽出 dedupe：payload 构造、dedupe key、自动单/手动单判定
+- [x] 抽出 mapper：order item / order 序列化、日志 normalize
 - [ ] 抽出 stock-in：入库数量校验、receipt item 校验、库存联动
-- [ ] 抽出 repository：查询、创建、更新、删除、transaction 边界
+- [x] 抽出 repository：查询、创建、更新、删除、transaction 边界
 
 ### 4.3 本周额外约束
 
-- [ ] 采用“抽纯函数 -> 抽 repository -> 抽 policy”的渐进方式
+- [x] 采用渐进抽离方式，先拆规则和数据访问，再保留主 service 编排不变
 - [ ] 不在同一个 PR 里同时改 service 接口和 route 契约
-- [ ] 保留旧入口适配层，便于高风险回滚
+- [x] 保留旧入口适配层，便于高风险回滚
+
+当前已完成的首批落地：
+
+1. 已新增 `server/services/orders/order.policy.js`，承载状态流转与编辑锁规则。
+2. 已新增 `server/services/orders/order.errors.js`，承载订单域错误定义，并复用 policy 错误类型。
+3. 已新增 `server/services/orders/order.query-policy.js`，承载筛选、summary、facets 规则。
+4. 已新增 `server/services/orders/order.mapper.js`，承载序列化、日志 normalize 和 ordered quantity 回退。
+5. 已新增 `server/services/orders/order.dedupe.js`，承载 source contract / metadata / dedupe key 逻辑。
+6. 已新增 `server/services/orders/order.repository.js`，承载 Order / OrderItem / OrderIdempotencyKey 访问。
+7. 已新增 `server/services/orders/order.stockin.js`，承载入库状态校验、receipt 包装、数量同步和完成态计算。
+8. 已新增 `server/services/orders/order.service.js` 与 `server/services/orders/index.js` 作为新服务入口。
+9. `server/services/OrderService.js` 已降级为兼容壳，继续保持既有引用可用。
+10. 已反复执行 `tests/order-service.test.js`、`tests/order-routes.test.js` 与 `tests/inventory-route.test.js`，当前回归稳定。
+
+当前仍待完成：
+
+1. 仍未完成的是 Week 3 范围内的 controller / middleware / request validation 收口，而不是继续深拆服务内部模块。
 
 建议 PR 拆分：
 

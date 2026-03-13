@@ -1,0 +1,73 @@
+function assertOrderReadyForStockIn(order, normalizeStatus, InvalidStatusTransitionError) {
+    const currentStatus = normalizeStatus(order?.status);
+    if (currentStatus !== 'arrived') {
+        throw new InvalidStatusTransitionError(currentStatus, 'completed');
+    }
+}
+
+async function createReceiptItemsFromOrder(order, data, transaction, deps) {
+    const { inventoryReceiptService, MissingMaterialError } = deps;
+
+    try {
+        const created = await inventoryReceiptService.createFromOrder(order, data, transaction);
+        return Array.isArray(created?.receiptItems) ? created.receiptItems : [];
+    } catch (error) {
+        if (error?.code === 'MATERIAL_NOT_FOUND') {
+            throw new MissingMaterialError(error.materialId);
+        }
+        throw error;
+    }
+}
+
+async function syncStockInReceiptItems(order, receiptItems, transaction, deps) {
+    const { resolveOrderedQuantity, ReceivedQuantityExceededError } = deps;
+    const updatesByOrderItemId = new Map();
+
+    for (const receiptItem of receiptItems) {
+        const item = receiptItem.orderItem;
+        const nextReceived = Number(item.received_quantity || 0) + Number(receiptItem.quantity || 0);
+        const nextOrdered = resolveOrderedQuantity(item.ordered_quantity, item.quantity);
+        if (nextReceived > nextOrdered) {
+            throw new ReceivedQuantityExceededError(item.id, nextOrdered, nextReceived);
+        }
+        const updatedItem = await item.update({
+            ordered_quantity: nextOrdered,
+            received_quantity: nextReceived
+        }, { transaction });
+        updatesByOrderItemId.set(Number(item.id), updatedItem);
+    }
+
+    return updatesByOrderItemId;
+}
+
+function areAllOrderItemsReceived(orderItems, updatesByOrderItemId, resolveOrderedQuantity) {
+    return (orderItems || []).every((item) => {
+        const candidate = updatesByOrderItemId.get(Number(item.id)) || item;
+        const orderedQuantity = resolveOrderedQuantity(candidate.ordered_quantity, candidate.quantity);
+        const receivedQuantity = Number(candidate.received_quantity || 0);
+        return orderedQuantity > 0 && receivedQuantity >= orderedQuantity;
+    });
+}
+
+function buildStockInOrderUpdate(order, data, allReceived, normalizeOrderRemark) {
+    const nextStockedInAt = data.stocked_in_at || new Date().toISOString();
+
+    return {
+        status: allReceived ? 'completed' : 'arrived',
+        stocked_in_at: allReceived ? nextStockedInAt : order.stocked_in_at,
+        stocked_in_by: allReceived
+            ? (data.operator === undefined ? order.stocked_in_by : data.operator)
+            : order.stocked_in_by,
+        stocked_in_remark: allReceived
+            ? (data.remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.remark))
+            : order.stocked_in_remark,
+    };
+}
+
+module.exports = {
+    assertOrderReadyForStockIn,
+    createReceiptItemsFromOrder,
+    syncStockInReceiptItems,
+    areAllOrderItemsReceived,
+    buildStockInOrderUpdate,
+};
