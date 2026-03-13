@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const orderService = require('../services/OrderService');
+const { API_ERROR_CODES, createApiErrorResponse, createApiSuccessResponse } = require('../shared/contracts/api');
 
 // GET /api/orders
 router.get('/', async (req, res) => {
@@ -32,7 +33,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const order = await orderService.getOrderById(req.params.id);
-        if (!order) return res.status(404).json({ error: 'Not found' });
+        if (!order) {
+            return res.status(404).json(createApiErrorResponse(API_ERROR_CODES.NOT_FOUND, { message: 'Not found' }));
+        }
         res.json(order);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -46,9 +49,9 @@ router.post('/', async (req, res) => {
         res.json(order);
     } catch (e) {
         console.error('Create order failed', e);
-        if (e?.code === 'DUPLICATE_ORDER') {
+        if (e?.code === API_ERROR_CODES.DUPLICATE_ORDER) {
             return res.status(409).json({
-                error: 'DUPLICATE_ORDER',
+                ...createApiErrorResponse(API_ERROR_CODES.DUPLICATE_ORDER),
                 existingOrder: orderService.toDuplicateOrderSummary(e.existingOrder)
             });
         }
@@ -63,22 +66,22 @@ router.put('/:id', async (req, res) => {
         res.json(order);
     } catch (e) {
         console.error('Update order failed', e);
-        if (e?.code === 'DUPLICATE_ORDER') {
+        if (e?.code === API_ERROR_CODES.DUPLICATE_ORDER) {
             return res.status(409).json({
-                error: 'DUPLICATE_ORDER',
+                ...createApiErrorResponse(API_ERROR_CODES.DUPLICATE_ORDER),
                 existingOrder: orderService.toDuplicateOrderSummary(e.existingOrder)
             });
         }
-        if (e?.code === 'INVALID_STATUS_TRANSITION') {
+        if (e?.code === API_ERROR_CODES.INVALID_STATUS_TRANSITION) {
             return res.status(400).json({
-                error: 'INVALID_STATUS_TRANSITION',
+                ...createApiErrorResponse(API_ERROR_CODES.INVALID_STATUS_TRANSITION),
                 fromStatus: e.fromStatus,
                 toStatus: e.toStatus
             });
         }
-        if (e?.code === 'ORDER_EDIT_LOCKED') {
+        if (e?.code === API_ERROR_CODES.ORDER_EDIT_LOCKED) {
             return res.status(400).json({
-                error: 'ORDER_EDIT_LOCKED',
+                ...createApiErrorResponse(API_ERROR_CODES.ORDER_EDIT_LOCKED),
                 status: e.status,
                 fields: e.fields
             });
@@ -94,15 +97,15 @@ router.post('/:id/arrive', async (req, res) => {
         res.json(order);
     } catch (e) {
         console.error('Mark order arrived failed', e);
-        if (e?.code === 'DUPLICATE_ORDER') {
+        if (e?.code === API_ERROR_CODES.DUPLICATE_ORDER) {
             return res.status(409).json({
-                error: 'DUPLICATE_ORDER',
+                ...createApiErrorResponse(API_ERROR_CODES.DUPLICATE_ORDER),
                 existingOrder: orderService.toDuplicateOrderSummary(e.existingOrder)
             });
         }
-        if (e?.code === 'INVALID_STATUS_TRANSITION') {
+        if (e?.code === API_ERROR_CODES.INVALID_STATUS_TRANSITION) {
             return res.status(400).json({
-                error: 'INVALID_STATUS_TRANSITION',
+                ...createApiErrorResponse(API_ERROR_CODES.INVALID_STATUS_TRANSITION),
                 fromStatus: e.fromStatus,
                 toStatus: e.toStatus
             });
@@ -118,38 +121,38 @@ router.post('/:id/stock-in', async (req, res) => {
         res.json(order);
     } catch (e) {
         console.error('Stock in order failed', e);
-        if (e?.code === 'INVALID_STATUS_TRANSITION') {
+        if (e?.code === API_ERROR_CODES.INVALID_STATUS_TRANSITION) {
             return res.status(400).json({
-                error: 'INVALID_STATUS_TRANSITION',
+                ...createApiErrorResponse(API_ERROR_CODES.INVALID_STATUS_TRANSITION),
                 fromStatus: e.fromStatus,
                 toStatus: e.toStatus
             });
         }
-        if (e?.code === 'MATERIAL_NOT_FOUND') {
+        if (e?.code === API_ERROR_CODES.MATERIAL_NOT_FOUND) {
             return res.status(400).json({
-                error: 'MATERIAL_NOT_FOUND',
+                ...createApiErrorResponse(API_ERROR_CODES.MATERIAL_NOT_FOUND),
                 materialId: e.materialId
             });
         }
-        if (e?.code === 'RECEIVED_QUANTITY_EXCEEDED') {
+        if (e?.code === API_ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED) {
             return res.status(400).json({
-                error: 'RECEIVED_QUANTITY_EXCEEDED',
+                ...createApiErrorResponse(API_ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED),
                 orderItemId: e.orderItemId,
                 orderedQuantity: e.orderedQuantity,
                 nextReceivedQuantity: e.nextReceivedQuantity
             });
         }
         if (
-            e?.code === 'MATERIAL_ID_REQUIRED'
-            || e?.code === 'INVALID_RECEIPT_QUANTITY'
-            || e?.code === 'ORDER_ITEMS_REQUIRED'
-            || e?.code === 'ORDER_ITEM_ID_REQUIRED'
-            || e?.code === 'RECEIPT_ITEM_KEY_REQUIRED'
-            || e?.code === 'DUPLICATE_RECEIPT_ITEM'
-            || e?.code === 'ORDER_ITEM_NOT_FOUND'
-            || e?.code === 'ORDER_ITEM_KEY_MISMATCH'
+            e?.code === API_ERROR_CODES.MATERIAL_ID_REQUIRED
+            || e?.code === API_ERROR_CODES.INVALID_RECEIPT_QUANTITY
+            || e?.code === API_ERROR_CODES.ORDER_ITEMS_REQUIRED
+            || e?.code === API_ERROR_CODES.ORDER_ITEM_ID_REQUIRED
+            || e?.code === API_ERROR_CODES.RECEIPT_ITEM_KEY_REQUIRED
+            || e?.code === API_ERROR_CODES.DUPLICATE_RECEIPT_ITEM
+            || e?.code === API_ERROR_CODES.ORDER_ITEM_NOT_FOUND
+            || e?.code === API_ERROR_CODES.ORDER_ITEM_KEY_MISMATCH
         ) {
-            return res.status(400).json({ error: e.code });
+            return res.status(400).json(createApiErrorResponse(e.code));
         }
         res.status(500).json({ error: e.message });
     }
@@ -160,9 +163,12 @@ router.delete('/:id', async (req, res) => {
     try {
         const deleted = await orderService.deleteOrder(req.params.id);
         if (!deleted) {
-            return res.status(404).json({ error: 'Order not found', id: req.params.id });
+            return res.status(404).json(createApiErrorResponse(API_ERROR_CODES.NOT_FOUND, {
+                message: 'Order not found',
+                id: req.params.id
+            }));
         }
-        res.json({ success: true, deleted });
+        res.json(createApiSuccessResponse({ deleted }));
     } catch (e) {
         console.error('Delete order failed', {
             id: req.params.id,
@@ -170,7 +176,9 @@ router.delete('/:id', async (req, res) => {
             stack: e.stack
         });
         if (e.message === 'INVALID_ID') {
-            return res.status(400).json({ error: 'Invalid order id' });
+            return res.status(400).json(createApiErrorResponse(API_ERROR_CODES.INVALID_ID, {
+                message: 'Invalid order id'
+            }));
         }
         res.status(500).json({ error: e.message, id: req.params.id });
     }

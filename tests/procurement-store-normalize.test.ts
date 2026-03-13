@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isValidOrder, normalizeOrderPayload } from '../src/stores/useProcurementStore';
+import { isValidOrder, normalizeOrderPayload } from '../src/features/procurement/model/orderNormalizer';
 
 test('normalizeOrderPayload accepts plain order payload and fills stable defaults', () => {
   const normalized = normalizeOrderPayload({

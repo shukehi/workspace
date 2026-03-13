@@ -1,6 +1,7 @@
 import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { Order } from '@/types/order';
+import { ORDER_STATUS_LABELS } from '@/shared/constants/order';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw, Printer, FileDown, Truck, ScrollText } from 'lucide-vue-next';
 import {
@@ -116,14 +117,14 @@ export const createColumns = (actions: {
         accessorKey: 'status',
         header: '状态',
         cell: ({ row }) => {
-            const status = row.getValue<'draft' | 'submitted' | 'processing' | 'arrived' | 'completed' | 'cancelled'>('status');
+            const status = row.getValue<Order['status']>('status');
             const statusMap = {
-                draft: { label: '草稿', class: 'bg-muted/60 text-muted-foreground border-border' },
-                submitted: { label: '已提交', class: 'bg-blue-50 text-blue-600 border-blue-200' },
-                processing: { label: '处理中', class: 'bg-amber-50 text-amber-600 border-amber-200' },
-                arrived: { label: '已到货', class: 'bg-cyan-50 text-cyan-600 border-cyan-200' },
-                completed: { label: '已入库', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-                cancelled: { label: '已取消', class: 'bg-rose-50 text-rose-600 border-rose-200' }
+                draft: { label: ORDER_STATUS_LABELS.draft, class: 'bg-muted/60 text-muted-foreground border-border' },
+                submitted: { label: ORDER_STATUS_LABELS.submitted, class: 'bg-blue-50 text-blue-600 border-blue-200' },
+                processing: { label: ORDER_STATUS_LABELS.processing, class: 'bg-amber-50 text-amber-600 border-amber-200' },
+                arrived: { label: ORDER_STATUS_LABELS.arrived, class: 'bg-cyan-50 text-cyan-600 border-cyan-200' },
+                completed: { label: ORDER_STATUS_LABELS.completed, class: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+                cancelled: { label: ORDER_STATUS_LABELS.cancelled, class: 'bg-rose-50 text-rose-600 border-rose-200' }
             };
             const config = statusMap[status] || statusMap.draft;
             return h('span', {

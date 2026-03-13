@@ -1,6 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue';
 import { api } from '@/lib/api';
 import type { Order } from '@/types/order';
+import { ORDER_STATUS_LABELS } from '@/shared/constants/order';
 import { resolveProcurementCategoryLabel, type PrintMode } from '@/features/procurement/docModel';
 import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
@@ -24,15 +25,7 @@ export function resolveOrderCategoryLabel(order: Order | null): string {
 
 export function resolveOrderStatusLabel(order: Order | null): string {
   if (!order) return '-';
-  const statusLabels: Record<Order['status'], string> = {
-    draft: '草稿',
-    submitted: '已提交',
-    processing: '处理中',
-    arrived: '已到货',
-    completed: '已入库',
-    cancelled: '已取消'
-  };
-  return statusLabels[order.status] || order.status;
+  return ORDER_STATUS_LABELS[order.status] || order.status;
 }
 
 export function hasValidDeliveryDate(order: Order) {

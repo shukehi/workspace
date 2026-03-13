@@ -34,16 +34,16 @@
 
 - [ ] 盘点订单、库存、配方、映射、打印接口当前成功返回形态
 - [ ] 盘点错误返回形态，统一到 `code/message/details` 语义
-- [ ] 明确分页结构与列表 DTO 约定
-- [ ] 抽取共享状态枚举、常见错误码、基础 DTO / schema
-- [ ] 评估 `src/lib/api.ts` 中现有兼容 normalize 分支，标记哪些接口后续可以切回单一消费方式
+- [x] 明确分页结构与列表 DTO 约定
+- [x] 抽取共享状态枚举、常见错误码、基础 DTO / schema
+- [x] 评估 `src/lib/api.ts` 中现有兼容 normalize 分支，并显式抽出兼容 helper
 
 ### 3.2 Procurement 页面拆分
 
 - [ ] 梳理 `src/views/Procurement.vue` 当前职责边界
-- [ ] 抽出 route query 同步逻辑
+- [x] 抽出 route query 同步逻辑
 - [ ] 抽出筛选状态初始化与重置逻辑
-- [ ] 抽出 normalize / summary / facet 纯函数
+- [x] 抽出 normalize / summary / facet 纯函数
 - [ ] 保持页面只负责装配，不继续堆入批量动作、导出细节或入库流程细节
 
 ### 3.3 本周额外约束
@@ -51,6 +51,20 @@
 - [ ] 不在本周直接重写 `OrderService` 主流程
 - [ ] 不新增新的 API payload 形态
 - [ ] 不把下载、打印、`window.confirm`、`window.open` 继续推到 store / helper 深层
+
+当前已完成的首批落地：
+
+1. 已新增 `src/shared/*` 和 `server/shared/*` 首批共享契约落点。
+2. 已新增 `src/features/procurement/composables/useProcurementRouteQuery.ts`。
+3. 已新增 `src/features/procurement/model/orderNormalizer.ts` 与 `orderSummary.ts`。
+4. 已将 `src/stores/useProcurementStore.ts` 接到新的 normalize / summary 纯函数。
+5. 已将 `src/lib/api.ts` 的 envelope/raw payload 兼容逻辑显式化为 helper。
+6. 已补共享契约、API 兼容层、Procurement route/state/summary 的定向测试。
+
+当前仍保留的兼容点：
+
+1. `GET /api/contracts` 继续保留顶层 `rows/total` 形态，未切到统一 `{ success, data }` envelope。
+2. `src/lib/api.ts` 仍兼容 raw payload 与 envelope payload 双形态，待后续接口统一后再收敛。
 
 建议 PR 拆分：
 

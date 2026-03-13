@@ -1,6 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
+import {
+    buildFacetCountsFromOrders,
+    buildSummaryFromOrders,
+} from '@/features/procurement/model/orderSummary';
+import {
+    isNotFoundError,
+    isValidOrder,
+    logInvalidOrders,
+    normalizeOrderListPayload,
+    normalizeOrderPayload,
+} from '@/features/procurement/model/orderNormalizer';
 import type {
     Order,
     StockInOrderItemInput,
@@ -9,123 +20,6 @@ import type {
     ProcurementOrderQuery,
     ProcurementOrderSummary
 } from '@/types/order';
-
-function normalizeDateField(value: any): string | null {
-    if (value === undefined || value === null || value === '') return null;
-    if (value instanceof Date) return value.toISOString();
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toISOString();
-}
-
-export function isValidOrder(order: any): order is Order {
-    return !!order
-        && typeof order === 'object'
-        && typeof order.order_no === 'string'
-        && typeof order.created_at === 'string';
-}
-
-export function normalizeOrderPayload(payload: any): Order | null {
-    let candidate = payload;
-
-    if (candidate && typeof candidate === 'object') {
-        if (candidate.data) candidate = candidate.data;
-        else if (candidate.order) candidate = candidate.order;
-        else if (Array.isArray(candidate.rows) && candidate.rows.length > 0) candidate = candidate.rows[0];
-    }
-
-    if (candidate && typeof candidate === 'object') {
-        const createdAt = normalizeDateField(
-            candidate.created_at ?? candidate.createdAt ?? candidate.updated_at ?? candidate.updatedAt
-        );
-
-        candidate = {
-            ...candidate,
-            created_at: createdAt,
-            total_amount: Number.isFinite(Number(candidate.total_amount)) ? Number(candidate.total_amount) : 0,
-            items: Array.isArray(candidate.items) ? candidate.items : []
-        };
-    }
-
-    return isValidOrder(candidate) ? candidate : null;
-}
-
-function normalizeOrderListPayload(payload: any): ProcurementOrderListResponse | null {
-    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.rows)) return null;
-
-    const rows = payload.rows.filter(isValidOrder);
-    return {
-        rows,
-        total: Math.max(0, Number(payload.total) || 0),
-        page: Math.max(1, Number(payload.page) || 1),
-        pageSize: Math.max(1, Number(payload.pageSize) || 20),
-        summary: {
-            totalAmount: Number(payload.summary?.totalAmount || 0),
-            pendingCount: Number(payload.summary?.pendingCount || 0),
-            completedCount: Number(payload.summary?.completedCount || 0),
-            todayCount: Number(payload.summary?.todayCount || 0),
-        },
-        facets: {
-            statusCounts: payload.facets?.statusCounts && typeof payload.facets.statusCounts === 'object'
-                ? payload.facets.statusCounts
-                : { ALL: rows.length },
-            categoryCounts: payload.facets?.categoryCounts && typeof payload.facets.categoryCounts === 'object'
-                ? payload.facets.categoryCounts
-                : { ALL: rows.length },
-            riskCounts: payload.facets?.riskCounts && typeof payload.facets.riskCounts === 'object'
-                ? payload.facets.riskCounts
-                : { ALL: rows.length, RISK: 0, MANUAL: 0 },
-        }
-    };
-}
-
-function buildSummaryFromOrders(orders: Order[]): ProcurementOrderSummary {
-    const totalAmount = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const pendingCount = orders.filter((order) => ['draft', 'submitted', 'processing', 'arrived'].includes(order.status)).length;
-    const completedCount = orders.filter((order) => order.status === 'completed').length;
-    const today = new Date().toISOString().split('T')[0];
-    const todayCount = orders.filter((order) => String(order.created_at || '').startsWith(today)).length;
-
-    return { totalAmount, pendingCount, completedCount, todayCount };
-}
-
-function buildFacetCountsFromOrders(orders: Order[]): ProcurementOrderFacetCounts {
-    const statusCounts: Record<string, number> = { ALL: orders.length };
-    const categoryCounts: Record<string, number> = { ALL: orders.length };
-    const riskCounts: Record<string, number> = { ALL: orders.length, RISK: 0, MANUAL: 0 };
-
-    orders.forEach((order) => {
-        statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
-        const categoryKey = String(order.category || '');
-        categoryCounts[categoryKey] = (categoryCounts[categoryKey] || 0) + 1;
-    });
-
-    return { statusCounts, categoryCounts, riskCounts };
-}
-
-function isNotFoundError(error: unknown): boolean {
-    const status = (error as any)?.response?.status;
-    return status === 404;
-}
-
-function logInvalidOrders(source: string, orders: any[]) {
-    if (!Array.isArray(orders)) return;
-    const invalid = orders
-        .map((order, index) => ({ order, index }))
-        .filter(({ order }) => !isValidOrder(order))
-        .map(({ order, index }) => ({
-            index,
-            type: order === null ? 'null' : typeof order,
-            id: order?.id,
-            order_no: order?.order_no,
-            created_at: order?.created_at
-        }));
-
-    if (invalid.length > 0) {
-        console.warn(`[ProcurementStore] invalid orders from ${source}:`, invalid);
-    }
-}
 
 export const useProcurementStore = defineStore('procurement', () => {
     // State

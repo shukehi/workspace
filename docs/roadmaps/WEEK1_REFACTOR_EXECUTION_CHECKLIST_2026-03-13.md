@@ -3,7 +3,7 @@
 > 关联文档：
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：把第一周的重构工作进一步细化到文件级，确保可以直接开工。
 
 ## 1. 第一周范围
@@ -29,7 +29,7 @@
 ```text
 Week 1
 - Owner: TBD
-- Status: pending
+- Status: in_progress
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -40,6 +40,11 @@ Week 1
 - Blocking:
 - PR / Issue:
 - Notes:
+  - 已新增 `src/shared/*`、`server/shared/*` 首批共享契约落点
+  - 已新增 `useProcurementRouteQuery.ts`、`orderNormalizer.ts`、`orderSummary.ts`
+  - 已跑 `npm run type-check`
+  - 已跑 Procurement/共享契约/API 兼容性定向测试
+  - 已跑 `tests/order-routes.test.js` 和 `tests/api-contracts-route-shape.test.js`
 ```
 
 ## 4. 本周退出标准
@@ -70,31 +75,32 @@ Week 1
 建议内容：
 
 - `src/shared/constants/order.ts`
-  - [ ] 抽取订单状态列表
-  - [ ] 抽取 pending 状态集合
+  - [x] 抽取订单状态列表
+  - [x] 抽取 pending 状态集合
+  - [x] 补充共享状态标签映射
 
 - `src/shared/constants/api.ts`
-  - [ ] 抽取常见错误码常量
-  - [ ] 抽取通用成功/失败标识约定
+  - [x] 抽取常见错误码常量
+  - [x] 抽取通用成功/失败标识约定
 
 - `src/shared/types/api.ts`
-  - [ ] 定义统一成功返回类型
-  - [ ] 定义统一错误返回类型
-  - [ ] 定义校验错误类型
+  - [x] 定义统一成功返回类型
+  - [x] 定义统一错误返回类型
+  - [x] 定义校验错误类型
 
 - `src/shared/types/pagination.ts`
-  - [ ] 定义分页请求参数类型
-  - [ ] 定义分页响应类型
+  - [x] 定义分页请求参数类型
+  - [x] 定义分页响应类型
 
 - `server/shared/contracts/api.js`
-  - [ ] 定义后端错误码常量导出
-  - [ ] 定义统一错误响应构造函数
+  - [x] 定义后端错误码常量导出
+  - [x] 定义统一错误响应构造函数
 
 - `server/shared/contracts/pagination.js`
-  - [ ] 定义统一分页响应构造函数
+  - [x] 定义统一分页响应构造函数
 
 - `server/shared/constants/order.js`
-  - [ ] 抽取状态枚举与 pending 集合
+  - [x] 抽取状态枚举与 pending 集合
 
 验收：
 
@@ -116,23 +122,25 @@ Week 1
 文件级动作：
 
 - `src/lib/api.ts`
-  - [ ] 标记当前兼容逻辑哪些是临时保留
-  - [ ] 预留统一响应类型接入点
+  - [x] 标记当前兼容逻辑哪些是临时保留
+  - [x] 预留统一响应类型接入点
+  - [x] 抽出 `normalizeApiEnvelope` 与 `resolveApiErrorMessage`
 
 - `src/types/order.ts`
-  - [ ] 检查 `ProcurementOrderListResponse` 是否可迁入共享分页类型
-  - [ ] 标记与共享常量重复的状态定义
+  - [x] 检查 `ProcurementOrderListResponse` 是否可迁入共享分页类型
+  - [x] 标记与共享常量重复的状态定义
 
 - `src/stores/useProcurementStore.ts`
-  - [ ] 标记当前使用的分页结构与错误结构
-  - [ ] 为后续下沉做注释或拆分准备
+  - [x] 标记当前使用的分页结构与错误结构
+  - [x] 为后续下沉做注释或拆分准备
 
 - `server/routes/order.js`
-  - [ ] 标记当前错误输出形态
-  - [ ] 标记哪些错误码后续应统一
+  - [x] 标记当前错误输出形态
+  - [x] 标记哪些错误码后续应统一
 
 - `server/routes/api.js`
-  - [ ] 标记哪些接口可优先切到统一返回风格
+  - [x] 标记哪些接口可优先切到统一返回风格
+  - [x] 保留 `GET /api/contracts` 顶层 `rows/total` 兼容形态
 
 验收：
 
@@ -153,12 +161,12 @@ Week 1
 
 建议迁移内容：
 
-- [ ] `syncSearchQueryFromRoute`
-- [ ] `syncProcurementFiltersFromRoute`
-- [ ] `updateProcurementRouteQuery`
-- [ ] `buildProcurementQuery`
-- [ ] `procurementPage`
-- [ ] `procurementPageSize`
+- [x] `syncSearchQueryFromRoute`
+- [x] `syncProcurementFiltersFromRoute`
+- [x] `updateProcurementRouteQuery`
+- [x] `buildProcurementQuery`
+- [x] `procurementPage`
+- [x] `procurementPageSize`
 
 页面保留内容：
 
@@ -207,12 +215,12 @@ Week 1
 
 建议迁移内容：
 
-- [ ] `normalizeDateField`
-- [ ] `isValidOrder`
-- [ ] `normalizeOrderPayload`
-- [ ] `normalizeOrderListPayload`
-- [ ] `isNotFoundError`
-- [ ] `logInvalidOrders`（可评估是否拆到 debug/logger helper）
+- [x] `normalizeDateField`
+- [x] `isValidOrder`
+- [x] `normalizeOrderPayload`
+- [x] `normalizeOrderListPayload`
+- [x] `isNotFoundError`
+- [x] `logInvalidOrders`（当前先保留在 `orderNormalizer.ts`）
 
 建议保留在 store 的内容：
 
@@ -222,7 +230,7 @@ Week 1
 
 建议关联测试：
 
-1. 新增 `tests/procurement-order-normalizer.test.ts`
+1. `tests/procurement-store-normalize.test.ts`（已改为直接校验 `orderNormalizer.ts`）
 
 验收：
 
@@ -243,8 +251,8 @@ Week 1
 
 建议迁移内容：
 
-- [ ] `buildSummaryFromOrders`
-- [ ] `buildFacetCountsFromOrders`
+- [x] `buildSummaryFromOrders`
+- [x] `buildFacetCountsFromOrders`
 
 建议关联测试：
 
@@ -265,10 +273,10 @@ Week 1
 
 建议动作：
 
-- [ ] 接入 `orderNormalizer.ts`
-- [ ] 接入 `orderSummary.ts`
-- [ ] 保持现有 action 签名不变
-- [ ] 不在本周改动接口路径和业务流程
+- [x] 接入 `orderNormalizer.ts`
+- [x] 接入 `orderSummary.ts`
+- [x] 保持现有 action 签名不变
+- [x] 不在本周改动接口路径和业务流程
 
 验收：
 
@@ -281,18 +289,21 @@ Week 1
 
 建议新增/更新测试：
 
-1. `tests/procurement-order-normalizer.test.ts`
-2. `tests/procurement-order-summary.test.ts`
-3. `tests/procurement-page-state.test.ts`
-4. `tests/procurement-dialogs.test.ts`
-5. `tests/procurement-preview.test.ts`
+1. `tests/api-contract-compat.test.ts`
+2. `tests/shared-contracts.test.ts`
+3. `tests/procurement-store-normalize.test.ts`
+4. `tests/procurement-order-summary.test.ts`
+5. `tests/procurement-route-query.test.ts`
+6. `tests/procurement-page-state.test.ts`
+7. `tests/order-routes.test.js`
+8. `tests/api-contracts-route-shape.test.js`
 
 建议检查：
 
-- [ ] Procurement 页面路由 query 回填
-- [ ] 筛选切换后分页与搜索行为
+- [x] Procurement 页面路由 query 回填
+- [x] 筛选切换后分页与搜索行为
 - [ ] summary card 快捷筛选
-- [ ] 订单列表 normalize 后数据形态
+- [x] 订单列表 normalize 后数据形态
 
 ### 任务 9：文档同步
 
@@ -305,9 +316,30 @@ Week 1
 
 建议动作：
 
-- [ ] 标记第一周已完成子任务
-- [ ] 记录实际落地文件路径
-- [ ] 记录与原计划不一致的调整点
+- [x] 标记第一周已完成子任务
+- [x] 记录实际落地文件路径
+- [x] 记录与原计划不一致的调整点
+
+本轮已实际落地文件：
+
+1. `src/shared/constants/order.ts`
+2. `src/shared/constants/api.ts`
+3. `src/shared/types/api.ts`
+4. `src/shared/types/pagination.ts`
+5. `server/shared/contracts/api.js`
+6. `server/shared/contracts/pagination.js`
+7. `server/shared/constants/order.js`
+8. `src/features/procurement/composables/useProcurementRouteQuery.ts`
+9. `src/features/procurement/model/orderNormalizer.ts`
+10. `src/features/procurement/model/orderSummary.ts`
+11. `src/lib/api.ts`
+12. `src/stores/useProcurementStore.ts`
+13. `src/views/Procurement.vue`
+
+与原计划不一致但已记录的调整：
+
+1. `tests/procurement-store-normalize.test.ts` 直接改为覆盖 `orderNormalizer.ts`，未新建单独 `procurement-order-normalizer.test.ts`
+2. `server/routes/api.js` 中 `GET /api/contracts` 保留旧顶层 `rows/total` 契约，暂不切 `{ success, data }` envelope
 
 ## 4. 推荐执行顺序
 
@@ -360,13 +392,20 @@ Week 1
 
 ## 6. 本周验收清单
 
-- [ ] `npm run type-check`
+- [x] `npm run type-check`
 - [ ] `npm test`
 - [ ] `npm run build`
 - [ ] Procurement 页面手工验证通过
-- [ ] URL query 与筛选行为保持一致
-- [ ] 无新增业务规则变更
+- [x] URL query 与筛选行为保持一致
+- [x] 无新增业务规则变更
 - [ ] `git status --short` 仅包含预期文件
+
+本轮已执行的定向验证：
+
+1. `npm run type-check`
+2. `npx tsx --test tests/api-contract-compat.test.ts tests/shared-contracts.test.ts tests/procurement-store-normalize.test.ts tests/procurement-order-summary.test.ts tests/procurement-route-query.test.ts tests/procurement-page-state.test.ts`
+3. `node --test tests/order-routes.test.js`
+4. `node --test tests/api-contracts-route-shape.test.js`
 
 ## 7. 本周不做的事
 

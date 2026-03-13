@@ -1,3 +1,6 @@
+import type { OrderStatus } from '@/shared/constants/order';
+import type { PaginatedResponse, PaginationQuery } from '@/shared/types/pagination';
+
 export interface OrderItem {
     id: number;
     item_key?: string;
@@ -47,7 +50,7 @@ export interface Order {
     stocked_in_by?: string;
     stocked_in_remark?: string;
     category?: string;
-    status: 'draft' | 'submitted' | 'processing' | 'arrived' | 'completed' | 'cancelled';
+    status: OrderStatus;
     remark?: string;
     metadata?: {
         customer_name?: string;
@@ -72,19 +75,13 @@ export interface ProcurementOrderFacetCounts {
     riskCounts: Record<string, number>;
 }
 
-export interface ProcurementOrderListResponse {
-    rows: Order[];
-    total: number;
-    page: number;
-    pageSize: number;
+export interface ProcurementOrderListResponse extends PaginatedResponse<Order> {
     summary: ProcurementOrderSummary;
     facets: ProcurementOrderFacetCounts;
 }
 
-export interface ProcurementOrderQuery {
-    page?: number;
-    pageSize?: number;
-    status?: 'ALL' | 'PENDING' | Order['status'];
+export interface ProcurementOrderQuery extends PaginationQuery {
+    status?: 'ALL' | 'PENDING' | OrderStatus;
     category?: string;
     risk?: 'ALL' | 'RISK' | 'MANUAL';
     createdDate?: string;

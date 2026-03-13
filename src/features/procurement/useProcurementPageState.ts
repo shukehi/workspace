@@ -8,6 +8,10 @@ import {
   type PrintCategory
 } from '@/features/procurement/docModel';
 import { matchesOrderRiskFilter, resolveOrderRisk, type OrderRiskFilter } from '@/features/procurement/orderRisk';
+import {
+  buildSummaryFromOrders,
+  PROCUREMENT_PENDING_ORDER_STATUSES,
+} from '@/features/procurement/model/orderSummary';
 
 type ProcurementStoreLike = {
   loading: boolean;
@@ -53,13 +57,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     if (store.serverPaginationEnabled && store.summarySnapshot) {
       return store.summarySnapshot;
     }
-    const totalAmount = store.purchaseOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const pendingCount = store.purchaseOrders.filter((order) => ['draft', 'submitted', 'processing', 'arrived'].includes(order.status)).length;
-    const completedCount = store.purchaseOrders.filter((order) => order.status === 'completed').length;
-    const today = new Date().toISOString().split('T')[0];
-    const todayCount = store.purchaseOrders.filter((order) => order.created_at.startsWith(today)).length;
-
-    return { totalAmount, pendingCount, completedCount, todayCount };
+    return buildSummaryFromOrders(store.purchaseOrders);
   });
 
   const statusOptions = computed(() => {
@@ -132,7 +130,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     let list = store.sortedOrders;
     if (activeStatus.value !== 'ALL') {
       if (activeStatus.value === 'PENDING') {
-        list = list.filter((order) => ['draft', 'submitted', 'processing', 'arrived'].includes(order.status));
+        list = list.filter((order) => PROCUREMENT_PENDING_ORDER_STATUSES.includes(order.status));
       } else {
         list = list.filter((order) => order.status === activeStatus.value);
       }

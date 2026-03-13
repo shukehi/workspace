@@ -1,11 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-
-// Generic API Response wrapper to match typical backend structure
-export interface ApiResponse<T = any> {
-    success: boolean;
-    data: T;
-    message?: string;
-}
+import { API_DATA_FIELD, API_SUCCESS_FLAG } from '@/shared/constants/api';
+import type { ApiEnvelope, ApiErrorResponse } from '@/shared/types/api';
 
 const apiBaseUrl =
     ((import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined) || '/api';
@@ -18,28 +13,43 @@ const axiosInstance: AxiosInstance = axios.create({
     },
 });
 
+// Week 1 compatibility boundary:
+// keep supporting both raw payloads and { success, data } envelopes until
+// affected endpoints are migrated to a single contract shape.
+export function normalizeApiEnvelope<T>(payload: ApiEnvelope<T>): T {
+    if (
+        payload &&
+        typeof payload === 'object' &&
+        API_SUCCESS_FLAG in payload &&
+        API_DATA_FIELD in payload
+    ) {
+        return (payload as unknown as Record<string, unknown>)[API_DATA_FIELD] as T;
+    }
+    return payload as T;
+}
+
+export function resolveApiErrorMessage(error: unknown): string {
+    const responseData = (((error as any)?.response?.data) || {}) as ApiErrorResponse;
+    const serverErrors = Array.isArray(responseData?.errors) ? responseData.errors : [];
+    const firstServerError = serverErrors.find(
+        (item: any) => item && typeof item.message === 'string' && item.message.trim().length > 0
+    )?.message;
+    const fallbackMessage = responseData?.message
+        || responseData?.code
+        || responseData?.error
+        || (error as any)?.message
+        || 'Unknown Error';
+    return firstServerError || fallbackMessage;
+}
+
 axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
-        // Normalize both raw payloads and envelope payloads ({ success, data }).
-        const payload = response.data;
-        if (
-            payload &&
-            typeof payload === 'object' &&
-            'success' in payload &&
-            'data' in payload
-        ) {
-            return payload.data;
-        }
-        return payload;
+        return normalizeApiEnvelope(response.data);
     },
     (error) => {
-        const responseData = error?.response?.data;
+        const responseData = (error?.response?.data || {}) as ApiErrorResponse;
         const serverErrors = Array.isArray(responseData?.errors) ? responseData.errors : [];
-        const firstServerError = serverErrors.find(
-            (item: any) => item && typeof item.message === 'string' && item.message.trim().length > 0
-        )?.message;
-        const fallbackMessage = responseData?.message || responseData?.error || error.message || 'Unknown Error';
-        const message = firstServerError || fallbackMessage;
+        const message = resolveApiErrorMessage(error);
         const method = typeof error?.config?.method === 'string'
             ? error.config.method.toUpperCase()
             : undefined;
@@ -54,13 +64,13 @@ axiosInstance.interceptors.response.use(
 // Typed wrapper methods
 export const api = {
     get: <T>(url: string, config?: AxiosRequestConfig) =>
-        axiosInstance.get<T, T>(url, config),
+        axiosInstance.get<ApiEnvelope<T>, T>(url, config),
     post: <T>(url: string, data?: any, config?: AxiosRequestConfig) =>
-        axiosInstance.post<T, T>(url, data, config),
+        axiosInstance.post<ApiEnvelope<T>, T>(url, data, config),
     put: <T>(url: string, data?: any, config?: AxiosRequestConfig) =>
-        axiosInstance.put<T, T>(url, data, config),
+        axiosInstance.put<ApiEnvelope<T>, T>(url, data, config),
     delete: <T>(url: string, config?: AxiosRequestConfig) =>
-        axiosInstance.delete<T, T>(url, config),
+        axiosInstance.delete<ApiEnvelope<T>, T>(url, config),
 
     // Special method for downloading binary files
     downloadPDF: async (url: string, data: any, filename: string) => {
