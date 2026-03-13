@@ -82,6 +82,7 @@ test('procurement filter guard: supports risk and manual-review filters', () => 
   assert.match(page, /route\.query\.orderNo/);
   assert.match(page, /route\.query\.page/);
   assert.match(page, /route\.query\.pageSize/);
+  assert.doesNotMatch(page, /Number\(route\.query\.pageSize\) \|\| store\.ordersPageSize \|\| 20/);
   assert.match(page, /updateProcurementRouteQuery/);
   assert.match(page, /loadProcurementOrders/);
   assert.match(page, /buildProcurementQuery/);

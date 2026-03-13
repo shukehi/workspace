@@ -43,7 +43,7 @@ const stockInSaving = ref(false);
 const stockInQueue = ref<Order[]>([]);
 const stockInQueueIndex = ref(0);
 const procurementPage = ref(Math.max(1, Number(route.query.page) || 1));
-const procurementPageSize = ref(Math.min(200, Math.max(10, Number(route.query.pageSize) || store.ordersPageSize || 20)));
+const procurementPageSize = ref(Math.min(200, Math.max(10, Number(route.query.pageSize) || 20)));
 
 const statusLabels: Record<Order['status'], string> = {
   draft: '草稿',
@@ -92,7 +92,7 @@ function syncProcurementFiltersFromRoute() {
   activeCreatedDate.value = String(route.query.createdDate || '').trim();
   searchQuery.value = String(route.query.search || route.query.orderNo || '').trim();
   procurementPage.value = Math.max(1, Number(route.query.page) || 1);
-  procurementPageSize.value = Math.min(200, Math.max(10, Number(route.query.pageSize) || store.ordersPageSize || 20));
+  procurementPageSize.value = Math.min(200, Math.max(10, Number(route.query.pageSize) || 20));
 }
 
 function updateProcurementRouteQuery() {
