@@ -10,6 +10,7 @@ function read(path) {
 
 test('procurement columns guard: detail table shows customer name instead of amount', () => {
   const content = read('src/components/procurement/ProcurementColumns.ts');
+  const stockInEligibility = read('src/features/procurement/stockInEligibility.ts');
   const customerIndex = content.indexOf("header: '客户名称'");
   const categoryIndex = content.indexOf("header: '类别'");
 
@@ -37,8 +38,12 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.match(content, /actions\.onMarkArrived\(order\)/);
   assert.match(content, /title:\s*'执行入库'/);
   assert.match(content, /actions\.onStockIn\(order\)/);
+  assert.match(content, /const canStockIn = status === 'arrived' && hasRemainingStockInItems\(order\)/);
   assert.match(content, /title:\s*'恢复草稿'/);
   assert.match(content, /actions\.onStatusUpdate\(order,\s*'draft'\)/);
+  assert.match(stockInEligibility, /export function hasRemainingStockInItems/);
+  assert.match(stockInEligibility, /ordered_quantity \?\? item\.quantity/);
+  assert.match(stockInEligibility, /return ordered - received > 0/);
 });
 
 test('procurement bulk action guard: supports restoring selected orders to draft', () => {
@@ -118,10 +123,13 @@ test('procurement stock-in guard: arrived orders use detail stock-in dialog', ()
   const dialog = read('src/components/procurement/ProcurementStockInDialog.vue');
 
   assert.match(page, /import ProcurementStockInDialog/);
+  assert.match(page, /import \{ hasRemainingStockInItems \} from '@\/features\/procurement\/stockInEligibility'/);
   assert.match(page, /const stockInOrder = ref<Order \| null>\(null\)/);
   assert.match(page, /const stockInDialogOpen = ref\(false\)/);
   assert.match(page, /const stockInSaving = ref\(false\)/);
   assert.match(page, /const openStockInDialog = \(order: Order\)/);
+  assert.match(page, /if \(!hasRemainingStockInItems\(order\)\)/);
+  assert.match(page, /当前订单没有可继续入库的明细/);
   assert.match(page, /onStockIn: openStockInDialog/);
   assert.match(page, /<ProcurementStockInDialog/);
   assert.match(page, /title: isCompleted \? '入库完成' : '部分入库成功'/);

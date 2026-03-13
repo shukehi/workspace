@@ -28,6 +28,7 @@ import { api } from '@/lib/api';
 import { hasValidDeliveryDate } from '@/features/procurement/useProcurementPreview';
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
+import { hasRemainingStockInItems } from '@/features/procurement/stockInEligibility';
 
 const PROCUREMENT_REFRESH_SIGNAL_KEY = 'procurement-orders-refresh-signal';
 
@@ -226,6 +227,14 @@ const handleViewReceipts = async (order: Order) => {
 };
 
 const openStockInDialog = (order: Order) => {
+  if (!hasRemainingStockInItems(order)) {
+    toast({
+      title: '当前订单没有可继续入库的明细',
+      description: `订单 ${order.order_no} 的明细已全部完成入库`,
+      variant: 'destructive'
+    });
+    return;
+  }
   stockInOrder.value = order;
   stockInDialogOpen.value = true;
 };

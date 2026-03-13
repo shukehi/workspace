@@ -9,6 +9,7 @@ import {
     normalizeDateString
 } from '@/features/procurement/docModel';
 import { resolveOrderRisk } from '@/features/procurement/orderRisk';
+import { hasRemainingStockInItems } from '@/features/procurement/stockInEligibility';
 
 export const createColumns = (actions: {
     onEdit: (order: Order) => void;
@@ -136,6 +137,7 @@ export const createColumns = (actions: {
         cell: ({ row }) => {
             const order = row.original;
             const status = order.status;
+            const canStockIn = status === 'arrived' && hasRemainingStockInItems(order);
             
             return h('div', { class: 'flex items-center gap-1' }, [
                 // Quick Action: Submit
@@ -166,7 +168,7 @@ export const createColumns = (actions: {
                 }, () => h(Truck, { class: 'h-4 w-4' })) : null,
 
                 // Quick Action: Stock in
-                status === 'arrived' ? h(Button, {
+                canStockIn ? h(Button, {
                     variant: 'ghost',
                     size: 'icon',
                     class: 'h-8 w-8 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50',
