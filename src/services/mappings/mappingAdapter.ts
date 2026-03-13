@@ -1,5 +1,5 @@
-// @ts-expect-error shared CJS adapter core is consumed by both frontend and backend
-import sharedMappingAdapterCore from '../../../shared/mappings/mapping-adapter-core.js';
+// @ts-expect-error shared ESM adapter core is consumed by both frontend and backend
+import * as sharedMappingAdapterCore from '../../../shared/mappings/mapping-adapter-core.mjs';
 import type {
   CylinderMappingConfig,
   HandleMappingConfig,

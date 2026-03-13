@@ -2,7 +2,7 @@ const {
     adaptHandleMapping,
 } = require('./mapping.adapter');
 const { PROFILE_CODE_LIST } = require('./mapping.constants');
-const sharedMappingValidatorCore = require('../../../shared/mappings/mapping-validator-core');
+const sharedMappingValidatorCore = require('../../../shared/mappings/mapping-validator-core.mjs');
 
 const {
     validatePackagingMapping,

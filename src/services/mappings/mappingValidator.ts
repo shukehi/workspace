@@ -6,8 +6,8 @@ import type {
   MappingValidationIssue,
 } from '@/types/mapping';
 
-// @ts-expect-error shared CJS validator core is consumed by both frontend and backend
-import sharedMappingValidatorCore from '../../../shared/mappings/mapping-validator-core.js';
+// @ts-expect-error shared ESM validator core is consumed by both frontend and backend
+import * as sharedMappingValidatorCore from '../../../shared/mappings/mapping-validator-core.mjs';
 
 const {
   validatePackagingMapping: validatePackagingMappingShared,

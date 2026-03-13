@@ -1,4 +1,4 @@
-const sharedMappingAdapterCore = require('../../../shared/mappings/mapping-adapter-core');
+const sharedMappingAdapterCore = require('../../../shared/mappings/mapping-adapter-core.mjs');
 
 const {
     defaults,
