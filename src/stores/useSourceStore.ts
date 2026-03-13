@@ -1,49 +1,22 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api } from '@/lib/api';
-import { analyzeSourceOrder } from '@/services/sourceAnalysis';
-import { loadSourceAnalysisConfig } from '@/services/sourceAnalysisConfig';
+import {
+    cacheErpContractSnapshot,
+    fetchErpContract,
+    fetchHistoryContractByCode,
+} from '@/features/source-analysis/services/sourceContractService';
+import {
+    clearSourceOrderSnapshot,
+    loadSourceOrderSnapshot,
+    persistSourceOrderSnapshot,
+} from '@/features/source-analysis/services/sourceOrderSnapshot';
+import { sourceAnalysisRuntime } from '@/features/source-analysis/services/sourceAnalysisRuntime';
 import type { SourceAnalysisResult } from '@/types/sourceAnalysis';
-
-const ORDER_SNAPSHOT_KEY = 'source_current_order_snapshot';
-
-function loadOrderSnapshot() {
-    if (typeof window === 'undefined') return null;
-    try {
-        const raw = window.localStorage.getItem(ORDER_SNAPSHOT_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || !Array.isArray(parsed.list)) return null;
-        return parsed;
-    } catch {
-        return null;
-    }
-}
-
-function persistOrderSnapshot(orderData: any) {
-    if (typeof window === 'undefined') return;
-    try {
-        if (!orderData || !Array.isArray(orderData.list)) {
-            window.localStorage.removeItem(ORDER_SNAPSHOT_KEY);
-            return;
-        }
-        window.localStorage.setItem(ORDER_SNAPSHOT_KEY, JSON.stringify(orderData));
-    } catch (e) {
-        console.warn('[SourceStore] persist order snapshot failed:', e);
-    }
-}
-
-function clearOrderSnapshot() {
-    if (typeof window === 'undefined') return;
-    try {
-        window.localStorage.removeItem(ORDER_SNAPSHOT_KEY);
-    } catch {}
-}
 
 export const useSourceStore = defineStore('source', () => {
     // State
-    const currentOrder = ref<any>(loadOrderSnapshot()); // Raw ERP Order
+    const currentOrder = ref<any>(loadSourceOrderSnapshot()); // Raw ERP Order
     const materialRequirements = ref<any>(null);
     const hardwareRequirements = ref<any>(null);
     const analysisResult = ref<SourceAnalysisResult | null>(null);
@@ -71,11 +44,11 @@ export const useSourceStore = defineStore('source', () => {
         }
 
         currentOrder.value = orderData;
-        persistOrderSnapshot(orderData);
+        persistSourceOrderSnapshot(orderData);
 
         if (persistCache) {
             try {
-                await api.post('/contracts/cache', orderData);
+                await cacheErpContractSnapshot(orderData);
             } catch (cacheErr) {
                 console.warn('[SourceStore] failed to cache ERP contract snapshot:', cacheErr);
             }
@@ -91,20 +64,7 @@ export const useSourceStore = defineStore('source', () => {
         error.value = null;
 
         try {
-            // 1. Fetch from ERP Proxy
-            // Note: usage of 'any' because strict typing of raw ERP response is complex
-            // Remove /api prefix as it is handled by baseURL
-            // Use 'code' instead of 'contractNo' based on user feedback
-            const res = await api.get<any>(`/getOutContractDetail?code=${contractId}`);
-
-            // Adapter for different response structures
-            // Legacy api often returns { rows: [...] } or direct object
-            let orderData = res;
-            if (res.rows && Array.isArray(res.rows) && res.rows.length > 0) {
-                orderData = res.rows[0];
-            } else if (Array.isArray(res)) {
-                orderData = res[0];
-            }
+            const orderData = await fetchErpContract(contractId);
 
             await applyContractData(orderData, { persistCache: true });
 
@@ -127,8 +87,7 @@ export const useSourceStore = defineStore('source', () => {
         error.value = null;
 
         try {
-            const cached = await api.get<any>(`/contracts/${encodeURIComponent(contractCode)}`);
-            const rawOrder = cached?.raw_json;
+            const rawOrder = await fetchHistoryContractByCode(contractCode);
 
             if (!rawOrder || !Array.isArray(rawOrder.list)) {
                 throw new Error('历史合同数据不完整，无法加载');
@@ -152,11 +111,9 @@ export const useSourceStore = defineStore('source', () => {
         if (!currentOrder.value) return;
 
         try {
-            const config = await loadSourceAnalysisConfig();
-            const result = analyzeSourceOrder({
+            const result = await sourceAnalysisRuntime.analyzeOrder({
                 order: currentOrder.value,
                 items: itemsToProcess,
-                config
             });
 
             analysisResult.value = result;
@@ -177,7 +134,7 @@ export const useSourceStore = defineStore('source', () => {
         materialRequirements.value = null;
         hardwareRequirements.value = null;
         error.value = null;
-        clearOrderSnapshot();
+        clearSourceOrderSnapshot();
     }
 
     // Rehydrate analysis data after browser refresh if an order snapshot exists.

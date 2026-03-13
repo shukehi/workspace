@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：在订单、inventory、mappings、formulas 的结构化模式逐步稳定后，继续收敛 materials 与 source-analysis 域，优先拆解 `useSourceStore -> loadSourceAnalysisConfig -> configLoader` 链路，降低来源解析、物料目录、配置读取与业务规则之间的耦合度。
 
 ## 1. 第七周范围
@@ -35,7 +35,7 @@
 ```text
 Week 7
 - Owner: TBD
-- Status: pending
+- Status: in_progress
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -47,6 +47,13 @@ Week 7
 - Blocking:
 - PR / Issue:
 - Notes:
+  - 已新增 `src/features/source-analysis/services/sourceAnalysisRuntime.ts`
+  - `src/stores/useSourceStore.ts` 已切到 `sourceAnalysisRuntime.analyzeOrder()`，不再直接串 `loadSourceAnalysisConfig + analyzeSourceOrder`
+  - 已新增 `src/features/source-analysis/services/sourceOrderSnapshot.ts` 与 `sourceContractService.ts`
+  - `src/stores/useSourceStore.ts` 已将 `localStorage` 快照和 ERP/历史合同装载下沉到 source-analysis service 层
+  - 已补 `tests/source-analysis-runtime.test.ts`
+  - 已补 `tests/source-contract-service.test.ts` 与 `tests/source-order-snapshot.test.ts`
+  - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
 ```
 
 ## 4. 本周退出标准

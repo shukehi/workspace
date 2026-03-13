@@ -317,6 +317,16 @@
 - [ ] 明确 `sourceAnalysisConfig` 的只读配置组装职责
 - [ ] 让 `useSourceStore` 只保留合同载入、分析触发、页面状态协调
 
+当前已完成的首批落地：
+
+1. 已新增 `src/features/source-analysis/services/sourceAnalysisRuntime.ts`，统一承载“装载配置 + 调用分析器”的 runtime 入口。
+2. `src/stores/useSourceStore.ts` 已改为调用 `sourceAnalysisRuntime.analyzeOrder()`，不再直接串接 `loadSourceAnalysisConfig + analyzeSourceOrder`。
+3. 已新增 `tests/source-analysis-runtime.test.ts`，锁定 runtime 对 config loader 和 analyzer 的调用顺序。
+4. 已新增 `src/features/source-analysis/services/sourceOrderSnapshot.ts` 与 `sourceContractService.ts`，承载 `localStorage` 快照与合同装载。
+5. `src/stores/useSourceStore.ts` 已将快照持久化和 ERP/历史合同读取下沉到 source-analysis service 层。
+6. 已新增 `tests/source-contract-service.test.ts` 与 `tests/source-order-snapshot.test.ts`。
+7. 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`。
+
 ### 9.2 Materials / catalog 边界
 
 - [ ] 区分 materials 数据源、material catalog 工作流和 source-analysis 配置消费
