@@ -113,11 +113,22 @@ cp .env.example .env
 
 ## 本地开发
 
-前端开发（Vite）：
+本地前端开发（Vite）：
 
 ```bash
 npm run dev
 ```
+
+本地后端开发（Express）：
+
+```bash
+npm run server:dev
+```
+
+说明：
+
+- 前端对 `/api/*` 和 `/data/*` 的请求依赖后端服务，本地联调时需要同时启动 `npm run dev` 和 `npm run server:dev`
+- `npm run server:dev` 使用 Node 原生 `--watch`，修改 `server/` 下代码后会自动重启后端
 
 局域网共享开发（同一 Wi-Fi 给同事访问）：
 
@@ -131,20 +142,11 @@ npm run dev:lan
 说明：
 
 - 同事可通过 `http://你的局域网IP:5173` 访问前端，例如 `http://172.16.0.10:5173`
+- `npm run server:lan` 同样使用 Node 原生 `--watch`
 - 前端的 `/api/*`、`/data/*` 请求会继续由 Vite 代理到你本机的 `3000` 端口
 - 如无法访问，优先检查操作系统防火墙和公司 Wi-Fi 是否限制终端互访
 
-说明：
-
-- 前端对 `/api/*` 和 `/data/*` 的请求依赖后端服务；本地联调时需要同时启动 `npm run server:dev`。
-
-后端开发（Express）：
-
-```bash
-npm run server:dev
-```
-
-生产模式启动后端（默认服务 `dist`）：
+构建后本地运行后端（默认服务 `dist`）：
 
 ```bash
 npm run build
