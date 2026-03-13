@@ -27,6 +27,8 @@ const props = defineProps<{
   open: boolean;
   order: Order | null;
   saving?: boolean;
+  queueIndex?: number;
+  queueTotal?: number;
 }>();
 
 const emit = defineEmits<{
@@ -139,13 +141,14 @@ function handleSubmit() {
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-[920px]">
-      <DialogHeader>
-        <DialogTitle>执行入库</DialogTitle>
-        <DialogDescription>
-          <span v-if="order">订单 {{ order.order_no }}</span>
-          <span v-else>按明细填写本次入库数量</span>
-        </DialogDescription>
-      </DialogHeader>
+        <DialogHeader>
+          <DialogTitle>执行入库</DialogTitle>
+          <DialogDescription>
+            <span v-if="(queueTotal || 0) > 1" class="mr-2">批量入库第 {{ queueIndex || 1 }} / {{ queueTotal }} 单</span>
+            <span v-if="order">订单 {{ order.order_no }}</span>
+            <span v-else>按明细填写本次入库数量</span>
+          </DialogDescription>
+        </DialogHeader>
 
       <div class="space-y-4">
         <div class="grid gap-3 md:grid-cols-[180px_1fr]">

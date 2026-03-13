@@ -39,6 +39,8 @@ const router = useRouter();
 const stockInOrder = ref<Order | null>(null);
 const stockInDialogOpen = ref(false);
 const stockInSaving = ref(false);
+const stockInQueue = ref<Order[]>([]);
+const stockInQueueIndex = ref(0);
 
 const statusLabels: Record<Order['status'], string> = {
   draft: '草稿',
@@ -239,6 +241,50 @@ const openStockInDialog = (order: Order) => {
   stockInDialogOpen.value = true;
 };
 
+const openStockInQueue = (orders: Order[]) => {
+  const queue = orders.filter((order) => hasRemainingStockInItems(order));
+  if (queue.length === 0) {
+    toast({
+      title: '当前订单没有可继续入库的明细',
+      description: '所选订单均已无剩余待入库明细',
+      variant: 'destructive'
+    });
+    return;
+  }
+  stockInQueue.value = queue;
+  stockInQueueIndex.value = 0;
+  stockInOrder.value = queue[0];
+  stockInDialogOpen.value = true;
+};
+
+function resetStockInFlow() {
+  stockInDialogOpen.value = false;
+  stockInOrder.value = null;
+  stockInQueue.value = [];
+  stockInQueueIndex.value = 0;
+}
+
+function handleStockInDialogOpenChange(open: boolean) {
+  if (open) {
+    stockInDialogOpen.value = true;
+    return;
+  }
+
+  if (stockInSaving.value) return;
+
+  const remaining = stockInQueue.value.length > 0
+    ? Math.max(stockInQueue.value.length - stockInQueueIndex.value, 0)
+    : 0;
+  if (remaining > 0) {
+    toast({
+      title: '批量入库已中止',
+      description: `仍有 ${remaining} 张订单未处理`,
+      variant: 'destructive'
+    });
+  }
+  resetStockInFlow();
+}
+
 const handleStockInOrder = async (payload?: {
   stocked_in_at?: string;
   operator?: string;
@@ -246,21 +292,41 @@ const handleStockInOrder = async (payload?: {
   items?: { order_item_id: number; item_key: string; quantity: number }[];
 }) => {
   if (!stockInOrder.value) return;
+  const currentOrder = stockInOrder.value;
   stockInSaving.value = true;
   try {
-    const updated = await store.stockInOrder(stockInOrder.value.id, payload || {
+    const updated = await store.stockInOrder(currentOrder.id, payload || {
       stocked_in_at: new Date().toISOString(),
     });
-    stockInDialogOpen.value = false;
-    stockInOrder.value = null;
     const isCompleted = updated.status === 'completed';
+    const queueActive = stockInQueue.value.length > 1;
+    const hasNext = queueActive && stockInQueueIndex.value < stockInQueue.value.length - 1;
+
+    if (hasNext) {
+      stockInQueueIndex.value += 1;
+      stockInOrder.value = stockInQueue.value[stockInQueueIndex.value];
+      toast({
+        title: isCompleted ? '入库完成，进入下一单' : '部分入库成功，进入下一单',
+        description: `已完成 ${stockInQueueIndex.value} / ${stockInQueue.value.length}，当前订单 ${updated.order_no}`,
+        variant: 'success'
+      });
+      return;
+    }
+
+    const finishedCount = queueActive ? stockInQueue.value.length : 1;
+    if (queueActive) {
+      clearSelection();
+    }
     toast({
-      title: isCompleted ? '入库完成' : '部分入库成功',
-      description: isCompleted
-        ? `订单 ${updated.order_no} 已设为 ${statusLabels.completed}`
-        : `订单 ${updated.order_no} 仍有明细待入库`,
+      title: queueActive ? '批量入库已完成' : (isCompleted ? '入库完成' : '部分入库成功'),
+      description: queueActive
+        ? `${finishedCount} 张订单已完成本轮入库处理`
+        : (isCompleted
+          ? `订单 ${updated.order_no} 已设为 ${statusLabels.completed}`
+          : `订单 ${updated.order_no} 仍有明细待入库`),
       variant: 'success'
     });
+    resetStockInFlow();
   } catch (error: any) {
     const errorCode = String(error?.response?.data?.error || '');
     if (errorCode === 'MATERIAL_NOT_FOUND') {
@@ -308,7 +374,10 @@ const canBulkArrive = computed(() => (
   && selectedRows.value.every((order) => order.status === 'processing')
 ));
 
-const canBulkStockIn = computed(() => false);
+const canBulkStockIn = computed(() => (
+  selectedRows.value.length > 0
+  && selectedRows.value.every((order) => order.status === 'arrived' && hasRemainingStockInItems(order))
+));
 
 const canBulkRestoreDraft = computed(() => (
   selectedRows.value.length > 0
@@ -381,12 +450,13 @@ const handleBulkArrive = async () => {
 const handleBulkStockIn = async () => {
   if (!canBulkStockIn.value) {
     toast({
-      title: '暂不支持批量入库',
-      description: '请逐单打开入库弹窗，确认每条明细的本次入库数量',
+      title: '当前所选订单不能批量入库',
+      description: '请确认所选订单均为已到货且仍有剩余待入库明细',
       variant: 'destructive',
     });
     return;
   }
+  openStockInQueue([...selectedRows.value]);
 };
 
 const columns = createColumns({
@@ -517,9 +587,12 @@ function handleProcurementRefreshSignal(event: StorageEvent) {
       @edit="editFromPreview"
     />
     <ProcurementStockInDialog
-      v-model:open="stockInDialogOpen"
+      :open="stockInDialogOpen"
       :order="stockInOrder"
       :saving="stockInSaving"
+      :queue-index="stockInQueueIndex + 1"
+      :queue-total="stockInQueue.length || 1"
+      @update:open="handleStockInDialogOpenChange"
       @submit="handleStockInOrder"
     />
 

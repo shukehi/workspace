@@ -66,8 +66,10 @@ test('procurement bulk action guard: supports restoring selected orders to draft
   assert.match(page, /当前所选订单不能批量设为/);
   assert.match(page, /当前所选订单不能批量登记到货/);
   assert.match(page, /批量到货部分完成/);
-  assert.match(page, /暂不支持批量入库/);
-  assert.match(page, /请逐单打开入库弹窗/);
+  assert.match(page, /hasRemainingStockInItems/);
+  assert.match(page, /order\.status === 'arrived' && hasRemainingStockInItems\(order\)/);
+  assert.match(page, /openStockInQueue/);
+  assert.match(page, /批量入库已中止/);
 });
 
 test('procurement filter guard: supports risk and manual-review filters', () => {
@@ -128,13 +130,21 @@ test('procurement stock-in guard: arrived orders use detail stock-in dialog', ()
   assert.match(page, /const stockInOrder = ref<Order \| null>\(null\)/);
   assert.match(page, /const stockInDialogOpen = ref\(false\)/);
   assert.match(page, /const stockInSaving = ref\(false\)/);
+  assert.match(page, /const stockInQueue = ref<Order\[\]>\(\[\]\)/);
+  assert.match(page, /const stockInQueueIndex = ref\(0\)/);
   assert.match(page, /const openStockInDialog = \(order: Order\)/);
+  assert.match(page, /const openStockInQueue = \(orders: Order\[\]\)/);
+  assert.match(page, /handleStockInDialogOpenChange/);
   assert.match(page, /if \(!hasRemainingStockInItems\(order\)\)/);
   assert.match(page, /当前订单没有可继续入库的明细/);
   assert.match(page, /onStockIn: openStockInDialog/);
   assert.match(page, /<ProcurementStockInDialog/);
-  assert.match(page, /title: isCompleted \? '入库完成' : '部分入库成功'/);
+  assert.match(page, /:queue-index="stockInQueueIndex \+ 1"/);
+  assert.match(page, /:queue-total="stockInQueue.length \|\| 1"/);
+  assert.match(page, /title: isCompleted \? '入库完成，进入下一单' : '部分入库成功，进入下一单'/);
+  assert.match(page, /title: queueActive \? '批量入库已完成' : \(isCompleted \? '入库完成' : '部分入库成功'\)/);
   assert.match(dialog, /订单级“入库日期”只会在全部明细完成入库后写入/);
+  assert.match(dialog, /批量入库第/);
   assert.match(dialog, /item_key/);
   assert.match(dialog, /remaining/);
   assert.match(dialog, /全入/);
