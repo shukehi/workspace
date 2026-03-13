@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { InventoryReceipt, Material, Order, OrderItem, sequelize } = require('../models');
-const { buildOrderItemKey } = require('./orderItemKey');
+const { buildOrderItemKey, buildLegacyOrderItemKey } = require('./orderItemKey');
 
 function normalizeReceiptDate(value) {
     if (!value) return new Date().toISOString();
@@ -151,7 +151,8 @@ function resolveReceiptOrderItems(order, payload = {}) {
         }
 
         const resolvedKey = buildOrderItemKey(orderItem);
-        if (resolvedKey !== itemKey) {
+        const legacyResolvedKey = buildLegacyOrderItemKey(orderItem);
+        if (resolvedKey !== itemKey && legacyResolvedKey !== itemKey) {
             const error = new Error('ORDER_ITEM_KEY_MISMATCH');
             error.code = 'ORDER_ITEM_KEY_MISMATCH';
             error.orderItemId = orderItemId;

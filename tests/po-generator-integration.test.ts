@@ -71,9 +71,12 @@ test('po generator integration: compose groups and create selected category orde
     { category: '包装', supplier: '方亮包装' },
     { category: '锁芯', supplier: '忠恒' },
     { category: '锁具', supplier: '汇成' },
+    { category: '拉手', supplier: '供应商X' },
+    { category: '锁叉', supplier: '应志友' },
+    { category: '颜色', supplier: '原料供应商' },
   ], { mergeSameSpec: true });
 
-  assert.equal(orders.length, 3);
+  assert.equal(orders.length, 6);
   orders.forEach((order) => {
     assert.equal(order.order_no, 'PO-CT-001');
     assert.equal(order.source_contract_code, 'CT-001');
@@ -87,14 +90,32 @@ test('po generator integration: compose groups and create selected category orde
   assert.ok(packagingOrder);
   assert.equal(packagingOrder!.remark, '');
   assert.equal(packagingOrder!.items[0].remark, '');
+  assert.equal(packagingOrder!.items[0].material_id, '900*2050');
   assert.equal(packagingOrder!.items[0].quantity_left, 2);
   assert.equal(packagingOrder!.items[0].quantity_right, 2);
 
+  const cylinderOrder = orders.find((o) => o.category === '锁芯');
+  assert.ok(cylinderOrder);
+  assert.equal(cylinderOrder!.items[0].material_id, '锁芯A');
+
   const lockOrder = orders.find((o) => o.category === '锁具');
   assert.ok(lockOrder);
+  assert.equal(lockOrder!.items[0].material_id, '智能锁体A');
   assert.equal(lockOrder!.items[0].unit, '把');
   assert.equal(lockOrder!.items[0].spec, '主锁');
   assert.equal(lockOrder!.items[0].remark, '单活');
   assert.equal(lockOrder!.items[0].quantity_left, 3);
   assert.equal(lockOrder!.items[0].quantity_right, 5);
+
+  const handleOrder = orders.find((o) => o.category === '拉手');
+  assert.ok(handleOrder);
+  assert.equal(handleOrder!.items[0].material_id, 'DJ-6847双活供应商名');
+
+  const lockForkOrder = orders.find((o) => o.category === '锁叉');
+  assert.ok(lockForkOrder);
+  assert.equal(lockForkOrder!.items[0].material_id, '锁叉A');
+
+  const rawMaterialOrder = orders.find((o) => o.category === '颜色');
+  assert.ok(rawMaterialOrder);
+  assert.equal(rawMaterialOrder!.items[0].material_id, 'RM-001');
 });

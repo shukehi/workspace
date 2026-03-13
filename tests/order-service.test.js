@@ -558,6 +558,54 @@ test('OrderService stockInOrder falls back to quantity when ordered_quantity is 
   assert.equal(stockedIn.items[0].received_quantity, 24);
 });
 
+test('OrderService stockInOrder accepts legacy item key format after material_id backfill', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Material.create({
+    code: 'MAT-LEGACY-KEY-001',
+    name: '旧 key 锁体',
+    model: '主锁',
+    supplier: '汇成',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-LEGACY-KEY'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-LEGACY-KEY-001',
+        supplier: '汇成',
+        name: '旧 key 锁体',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 2,
+        unit: '把',
+      }
+    ]
+  });
+
+  const legacyKey = `|${created.items[0].name}|${created.items[0].spec}`;
+  const stocked = await orderService.stockInOrder(created.id, {
+    stocked_in_at: '2026-03-12T13:30:00.000Z',
+    operator: '仓管Legacy',
+    items: [
+      {
+        order_item_id: created.items[0].id,
+        item_key: legacyKey,
+        quantity: 1
+      }
+    ]
+  });
+
+  assert.equal(stocked.items[0].received_quantity, 1);
+});
+
 test('OrderService stockInOrder rejects explicit empty receipt items', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });

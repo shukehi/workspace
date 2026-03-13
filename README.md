@@ -253,3 +253,14 @@ npm run db:export:formulas
 ## 说明
 
 - `docs/DEVELOPMENT_GUIDE.md` 主要记录历史架构（`public/js` 时代），不再作为主开发入口文档。
+数据修复：
+
+```bash
+npm run db:backfill:order-item-material-ids
+```
+
+说明：
+
+- 用于为历史自动生成采购单回填缺失的 `order_items.material_id`
+- 回填后会同步改变明细 `item_key`；如果采购页或入库弹窗已打开，需要刷新页面后再继续入库
+

@@ -684,6 +684,59 @@ test('POST /api/orders/:id/stock-in rejects explicit item key mismatch', async (
   assert.equal(body.error, 'ORDER_ITEM_KEY_MISMATCH');
 });
 
+test('POST /api/orders/:id/stock-in accepts legacy item key format after material_id backfill', async () => {
+  await Material.create({
+    code: 'ROUTE-MAT-LEGACY-KEY-001',
+    name: 'Route Legacy Key Material',
+    model: 'LK-1',
+    supplier: '汇成',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-STOCKIN-LEGACY-KEY-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      items: [
+        {
+          material_id: 'ROUTE-MAT-LEGACY-KEY-001',
+          name: 'Route Legacy Key Material',
+          model: 'LK-1',
+          spec: 'LK-1',
+          supplier: '汇成',
+          quantity: 1,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items: [
+        {
+          order_item_id: created.items[0].id,
+          item_key: `|${created.items[0].name}|${created.items[0].spec}`,
+          quantity: 1,
+        },
+      ],
+    }),
+  });
+
+  assert.equal(stockInRes.status, 200);
+  const body = await stockInRes.json();
+  assert.equal(body.items[0].received_quantity, 1);
+});
+
 test.after(async () => {
   if (server) {
     await new Promise((resolve) => server.close(resolve));
