@@ -54,6 +54,7 @@ const initialSnapshot = ref('');
 const columnWidths = ref<Record<string, number>>({ ...getDefaultWidths('packaging') });
 
 const isCreateMode = computed(() => props.mode === 'create');
+const isRestrictedDetailEdit = computed(() => !isCreateMode.value && form.value.status === 'arrived');
 const currentCategory = computed<PrintCategory>(() => normalizePrintCategory(form.value.category));
 const currentDefaultWidths = computed(() => getDefaultWidths(currentCategory.value));
 
@@ -180,7 +181,13 @@ const handleSave = async () => {
       await store.addOrder(draft as Order);
     } else {
       if (!draft.id || !props.order) return;
-      await store.updateOrder(draft.id, draft);
+      const payload = isRestrictedDetailEdit.value
+        ? {
+            remark: draft.remark,
+            delivery_date: draft.delivery_date,
+          }
+        : draft;
+      await store.updateOrder(draft.id, payload as Partial<Order>);
     }
 
     initialSnapshot.value = JSON.stringify(draft);
@@ -266,12 +273,16 @@ const handleCategoryChange = (event: Event) => {
             <option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
           <Button v-if="!isCreateMode" variant="outline" size="sm" :disabled="saving" @click="handlePreview">预览</Button>
-          <Button variant="outline" size="sm" :disabled="saving" @click="addItemRow">新增明细</Button>
-          <Button variant="outline" size="sm" :disabled="saving || !form.items || form.items.length <= 1" @click="removeLastItemRow">删除末行</Button>
+          <Button variant="outline" size="sm" :disabled="saving || isRestrictedDetailEdit" @click="addItemRow">新增明细</Button>
+          <Button variant="outline" size="sm" :disabled="saving || isRestrictedDetailEdit || !form.items || form.items.length <= 1" @click="removeLastItemRow">删除末行</Button>
           <Button variant="outline" size="sm" :disabled="saving" @click="resetColumnWidths">重置列宽</Button>
           <Button variant="outline" size="sm" :disabled="saving" @click="requestClose">取消</Button>
           <Button size="sm" :disabled="saving" @click="handleSave">{{ saving ? '保存中...' : (isCreateMode ? '创建采购单' : '保存修改') }}</Button>
         </div>
+      </div>
+
+      <div v-if="isRestrictedDetailEdit" class="px-6 py-3 border-b bg-amber-50 text-amber-800 text-xs">
+        已到货订单仅允许修改交货日期和整单备注，明细内容已冻结。
       </div>
 
       <div class="flex-1 overflow-auto p-6 bg-muted/20">
@@ -279,6 +290,7 @@ const handleCategoryChange = (event: Event) => {
           v-if="form"
           :order="form"
           mode="edit"
+          :restrict-detail-editing="isRestrictedDetailEdit"
           :column-widths="columnWidths"
           :default-widths="currentDefaultWidths"
           :hidden-columns="isCreateMode ? ['mb'] : []"

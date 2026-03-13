@@ -20,10 +20,12 @@ const props = withDefaults(defineProps<{
   defaultWidths: Record<string, number>;
   hiddenColumns?: string[];
   customerNameDisplay?: CustomerNameDisplayMode;
+  restrictDetailEditing?: boolean;
 }>(), {
   mode: 'preview',
   hiddenColumns: () => [],
   customerNameDisplay: 'full',
+  restrictDetailEditing: false,
 });
 
 const emit = defineEmits<{
@@ -31,6 +33,7 @@ const emit = defineEmits<{
 }>();
 
 const isEditMode = computed(() => props.mode === 'edit');
+const isRestrictedEditMode = computed(() => isEditMode.value && props.restrictDetailEditing);
 const category = computed<PrintCategory>(() => normalizePrintCategory(props.order.category));
 const isPackaging = computed(() => category.value === 'packaging');
 const items = computed(() => sortProcurementItems(category.value, (props.order.items || []) as OrderItem[]));
@@ -152,7 +155,7 @@ onBeforeUnmount(() => {
         <div class="space-y-3">
           <div class="flex items-center gap-2">
             <Label class="min-w-16">客户名称:</Label>
-            <Input v-if="isEditMode" v-model="order.metadata!.customer_name" placeholder="内部" class="h-8 text-xs" />
+            <Input v-if="isEditMode && !isRestrictedEditMode" v-model="order.metadata!.customer_name" placeholder="内部" class="h-8 text-xs" />
             <span v-else class="text-xs">{{ displayCustomerName || '-' }}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -164,12 +167,12 @@ onBeforeUnmount(() => {
         <div v-if="isPackaging" class="space-y-3">
           <div class="flex items-center gap-2">
             <Label class="min-w-16">内部名称:</Label>
-            <Input v-if="isEditMode && isPackaging" v-model="order.metadata!.internal_name" class="h-8 text-xs" />
+            <Input v-if="isEditMode && !isRestrictedEditMode && isPackaging" v-model="order.metadata!.internal_name" class="h-8 text-xs" />
             <span v-else class="text-xs">{{ order.metadata?.internal_name || '-' }}</span>
           </div>
           <div class="flex items-center gap-2">
             <Label class="min-w-16">外协名称:</Label>
-            <Input v-if="isEditMode && isPackaging" v-model="order.metadata!.external_name" class="h-8 text-xs" />
+            <Input v-if="isEditMode && !isRestrictedEditMode && isPackaging" v-model="order.metadata!.external_name" class="h-8 text-xs" />
             <span v-else class="text-xs">{{ order.metadata?.external_name || '-' }}</span>
           </div>
         </div>
@@ -177,7 +180,7 @@ onBeforeUnmount(() => {
         <div class="space-y-3">
           <div class="flex items-center gap-2">
             <Label class="min-w-16">制单日期:</Label>
-            <Input v-if="isEditMode" type="date" v-model="formattedOrderDate" class="h-8 text-xs w-36" />
+            <Input v-if="isEditMode && !isRestrictedEditMode" type="date" v-model="formattedOrderDate" class="h-8 text-xs w-36" />
             <span v-else class="text-xs">{{ formattedOrderDate || '-' }}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -191,7 +194,7 @@ onBeforeUnmount(() => {
       <div class="mt-4 pt-4 border-t border-dashed">
         <div class="flex items-center gap-2">
           <Label class="min-w-16">供应商:</Label>
-          <Input v-if="isEditMode" v-model="order.supplier" class="h-8 text-xs w-64" />
+          <Input v-if="isEditMode && !isRestrictedEditMode" v-model="order.supplier" class="h-8 text-xs w-64" />
           <span v-else class="text-xs">{{ order.supplier || '-' }}</span>
         </div>
         <div class="mt-3 flex items-start gap-2">
@@ -245,7 +248,7 @@ onBeforeUnmount(() => {
               <template v-if="column.key === 'no'">
                 <div class="w-full h-full p-2 text-muted-foreground text-center">{{ idx + 1 }}</div>
               </template>
-              <template v-else-if="isEditMode">
+              <template v-else-if="isEditMode && !isRestrictedEditMode">
                 <input
                   :value="getEditableValue(item, column.key)"
                   :type="column.inputType"

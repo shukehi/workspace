@@ -30,7 +30,7 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.match(content, /title:\s*'查看入库记录'/);
   assert.match(content, /actions\.onViewReceipts\(order\)/);
   assert.match(content, /arrived:\s*\{\s*label:\s*'已到货'/);
-  assert.match(content, /!\['arrived', 'completed'\]\.includes\(status\)/);
+  assert.match(content, /status !== 'completed'/);
   assert.match(content, /title:\s*'开始采购'/);
   assert.match(content, /actions\.onStatusUpdate\(order,\s*'processing'\)/);
   assert.match(content, /title:\s*'登记到货'/);
@@ -92,11 +92,19 @@ test('procurement preview guard: arrived and completed orders cannot edit from p
   const modal = read('src/components/procurement/ProcurementPreviewModal.vue');
   const page = read('src/views/Procurement.vue');
   const dialogs = read('src/features/procurement/useProcurementDialogs.ts');
+  const editDialog = read('src/components/procurement/EditOrderDialog.vue');
+  const orderSheet = read('src/components/procurement/OrderSheetView.vue');
 
   assert.match(modal, /canEdit\?: boolean/);
   assert.match(modal, /v-if="canEdit"/);
   assert.match(page, /:can-edit="canEditOrder\(previewOrder\)"/);
   assert.match(dialogs, /function canEditOrder/);
   assert.match(dialogs, /function notifyEditLocked/);
-  assert.match(dialogs, /if \(!canEditOrder\(order\)\)/);
+  assert.match(dialogs, /return !!order && order.status !== 'completed'/);
+  assert.match(editDialog, /isRestrictedDetailEdit/);
+  assert.match(editDialog, /已到货订单仅允许修改交货日期和整单备注/);
+  assert.match(editDialog, /remark: draft\.remark/);
+  assert.match(editDialog, /delivery_date: draft\.delivery_date/);
+  assert.match(orderSheet, /restrictDetailEditing\?: boolean/);
+  assert.match(orderSheet, /isRestrictedEditMode/);
 });

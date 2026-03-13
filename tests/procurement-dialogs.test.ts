@@ -116,7 +116,7 @@ test('useProcurementDialogs builds delete confirmations and clears selection aft
   assert.equal(toasts.at(-1)?.title, '批量删除成功');
 });
 
-test('useProcurementDialogs blocks edit for arrived and completed orders', () => {
+test('useProcurementDialogs allows arrived edit but blocks completed orders', () => {
   const toasts: Array<{ title: string; description?: string; variant?: string }> = [];
   const dialogs = useProcurementDialogs({
     store: {
@@ -129,15 +129,15 @@ test('useProcurementDialogs blocks edit for arrived and completed orders', () =>
   });
 
   dialogs.openEdit(createOrder({ status: 'arrived' }));
-  assert.equal(dialogs.isEditDialogOpen.value, false);
-  assert.equal(toasts.at(-1)?.title, '当前订单不可编辑明细');
+  assert.equal(dialogs.isEditDialogOpen.value, true);
+  assert.equal(toasts.length, 0);
 
   dialogs.openEdit(createOrder({ status: 'completed' }));
-  assert.equal(dialogs.isEditDialogOpen.value, false);
-  assert.equal(toasts.length, 2);
+  assert.equal(toasts.at(-1)?.title, '当前订单不可编辑明细');
+  assert.equal(toasts.length, 1);
 
   dialogs.editFromPreview(createOrder({ status: 'arrived' }));
   assert.equal(dialogs.isPreviewDialogOpen.value, false);
-  assert.equal(dialogs.isEditDialogOpen.value, false);
-  assert.equal(toasts.length, 3);
+  assert.equal(dialogs.isEditDialogOpen.value, true);
+  assert.equal(toasts.length, 1);
 });

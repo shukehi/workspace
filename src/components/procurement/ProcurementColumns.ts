@@ -214,7 +214,7 @@ export const createColumns = (actions: {
                     title: '查看/打印',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onPreview(order); }
                 }, () => h(Eye, { class: 'h-4 w-4' })),
-                !['arrived', 'completed'].includes(status) ? h(Button, {
+                status !== 'completed' ? h(Button, {
                     variant: 'ghost',
                     size: 'icon',
                     class: 'h-8 w-8 text-muted-foreground hover:text-amber-600',

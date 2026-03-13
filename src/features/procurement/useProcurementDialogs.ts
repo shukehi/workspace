@@ -48,15 +48,13 @@ export function useProcurementDialogs(options: {
   }
 
   function canEditOrder(order: Order | null | undefined) {
-    return !!order && order.status !== 'arrived' && order.status !== 'completed';
+    return !!order && order.status !== 'completed';
   }
 
   function notifyEditLocked(order: Order) {
     options.toast({
       title: '当前订单不可编辑明细',
-      description: order.status === 'arrived'
-        ? '已到货订单仅允许更新备注或日期，不支持继续编辑明细'
-        : '已入库订单已冻结明细，不能再编辑采购内容',
+      description: '已入库订单已冻结明细，不能再编辑采购内容',
       variant: 'destructive'
     });
   }
@@ -74,7 +72,7 @@ export function useProcurementDialogs(options: {
   }
 
   function openEditInternal(order: Order) {
-    if (order.status === 'arrived' || order.status === 'completed') {
+    if (!canEditOrder(order)) {
       notifyEditLocked(order);
       return;
     }
