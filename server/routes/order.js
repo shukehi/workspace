@@ -124,7 +124,16 @@ router.post('/:id/stock-in', async (req, res) => {
                 nextReceivedQuantity: e.nextReceivedQuantity
             });
         }
-        if (e?.code === 'MATERIAL_ID_REQUIRED' || e?.code === 'INVALID_RECEIPT_QUANTITY' || e?.code === 'ORDER_ITEMS_REQUIRED') {
+        if (
+            e?.code === 'MATERIAL_ID_REQUIRED'
+            || e?.code === 'INVALID_RECEIPT_QUANTITY'
+            || e?.code === 'ORDER_ITEMS_REQUIRED'
+            || e?.code === 'ORDER_ITEM_ID_REQUIRED'
+            || e?.code === 'RECEIPT_ITEM_KEY_REQUIRED'
+            || e?.code === 'DUPLICATE_RECEIPT_ITEM'
+            || e?.code === 'ORDER_ITEM_NOT_FOUND'
+            || e?.code === 'ORDER_ITEM_KEY_MISMATCH'
+        ) {
             return res.status(400).json({ error: e.code });
         }
         res.status(500).json({ error: e.message });

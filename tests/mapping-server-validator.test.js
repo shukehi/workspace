@@ -76,6 +76,27 @@ test('server mapping validator: cylinder and lock-fork validators expose nested 
   assert.ok(lockForkIssues.some((item) => item.path === 'suppliers["default"]'));
 });
 
+test('server mapping validator: lock-fork high-height rules expose nested paths', () => {
+  const issues = validateLockForkMapping({
+    highHeightRules: {
+      7: {
+        minHeight: 'oops',
+        heightReference: '',
+        standard: {
+          upper: { base1: 570, base2: 'x' },
+          lower: { base1: 'y', base2: 376 },
+        }
+      }
+    },
+    suppliers: { default: '应志友' }
+  });
+
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].minHeight'));
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].heightReference'));
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].standard.upper.base2'));
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].standard.lower.base1'));
+});
+
 test('server mapping adapter: cylinder and lock-fork adapters preserve baseline defaults', () => {
   const cylinder = adaptCylinderMapping({
     dimensions: {
@@ -83,11 +104,22 @@ test('server mapping adapter: cylinder and lock-fork adapters preserve baseline 
     },
   });
   const lockFork = adaptLockForkMapping({
+    highHeightRules: {
+      7: {
+        minHeight: 2200,
+        heightReference: 2200,
+        standard: {
+          upper: { base1: 570, base2: 376 },
+          lower: { base1: 570, base2: 376 }
+        }
+      }
+    },
     suppliers: { default: '应志友' },
   });
 
   assert.equal(cylinder.dimensions['7'].code, '90AB');
   assert.equal(lockFork.hangingFeet.standard, 35);
+  assert.equal(lockFork.highHeightRules['7'].minHeight, 2200);
   assert.deepEqual(lockFork.hangingFeet.keywords, ['吊脚', 'diaojiao']);
 });
 

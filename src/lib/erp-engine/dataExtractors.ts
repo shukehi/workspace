@@ -462,6 +462,42 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         }
     };
 
+    const resolveDimensionRule = (
+        thickness: string,
+        doorHeight: number,
+        useHangingFeetDimensions: boolean,
+    ): { dimensions: GenericMap | null; heightReference: number } => {
+        const highHeightRule = LOCK_FORK_MAPPING.highHeightRules?.[thickness];
+        const defaultHeightReference = Number(LOCK_FORK_MAPPING.heightReference || 2050);
+
+        if (highHeightRule && doorHeight >= Number(highHeightRule.minHeight || 0)) {
+            const highDimensions = useHangingFeetDimensions
+                ? (highHeightRule.withHangingFeet || highHeightRule.standard || null)
+                : (highHeightRule.standard || highHeightRule.withHangingFeet || null);
+            return {
+                dimensions: highDimensions,
+                heightReference: Number(highHeightRule.heightReference || defaultHeightReference),
+            };
+        }
+
+        let baseDimensions = LOCK_FORK_MAPPING.baseDimensions?.[thickness];
+        if (!baseDimensions && thickness === '5') {
+            baseDimensions = LOCK_FORK_MAPPING.baseDimensions?.['7'];
+        }
+        if (!baseDimensions) {
+            return { dimensions: null, heightReference: defaultHeightReference };
+        }
+
+        const dimensions = useHangingFeetDimensions
+            ? (baseDimensions.withHangingFeet || baseDimensions.standard || null)
+            : (baseDimensions.standard || baseDimensions.withHangingFeet || null);
+
+        return {
+            dimensions,
+            heightReference: defaultHeightReference,
+        };
+    };
+
     orderList.forEach((item) => {
         // 跳过没有锁叉的订单
         if (!item.sc || item.sc === '-' || item.sc === '无') return;
@@ -475,8 +511,6 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
 
         // 2. 解析门高
         const doorHeight = parseHeight(item.spec);
-        const heightReference = LOCK_FORK_MAPPING.heightReference || 2050;
-        const heightAdjustment = Math.round((doorHeight - heightReference) / 2);
 
         // 3. 检测平下档和吊脚（互斥）
         const flatBottomRail = detectFlatBottomRail(item.xsbz);
@@ -489,22 +523,16 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             : 0;
 
         // 4. 获取基础尺寸
-        let baseDimensions = LOCK_FORK_MAPPING.baseDimensions?.[thickness];
-        if (!baseDimensions && thickness === '5') {
-            baseDimensions = LOCK_FORK_MAPPING.baseDimensions?.['7'];
-        }
-        if (!baseDimensions) {
+        const { dimensions, heightReference } = resolveDimensionRule(thickness, doorHeight, hasFlatBottomRail || hasHangingFeet);
+        const heightAdjustment = Math.round((doorHeight - heightReference) / 2);
+
+        if (!dimensions) {
             console.warn(`⚠️ 未找到门厚 ${thickness}cm 的锁叉基础尺寸配置`);
             return;
         }
 
-
-        // 平下档或吊脚都使用 withHangingFeet 尺寸（下头 base2 = 313）
-        const dimensionType = (hasFlatBottomRail || hasHangingFeet) ? 'withHangingFeet' : 'standard';
-        const dimensions = baseDimensions[dimensionType];
-
         if (!dimensions) {
-            console.warn(`⚠️ 未找到 ${dimensionType} 类型的尺寸配置`);
+            console.warn(`⚠️ 未找到门厚 ${thickness}cm 对应的锁叉尺寸配置`);
             return;
         }
 

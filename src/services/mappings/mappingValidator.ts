@@ -317,6 +317,16 @@ function validateLockForkDimensionGroup(
   });
 }
 
+function validateLockForkHighHeightRule(path: string, value: LockForkBaseDimensionRule & { minHeight?: number; heightReference?: number }, issues: MappingValidationIssue[]) {
+  if (!Number.isFinite(value.minHeight)) {
+    issues.push(createIssue(`${path}.minHeight`, 'invalid-number', 'minHeight 必须是数字'));
+  }
+  if (!Number.isFinite(value.heightReference)) {
+    issues.push(createIssue(`${path}.heightReference`, 'invalid-number', 'heightReference 必须是数字'));
+  }
+  validateLockForkDimensionGroup(path, value, issues);
+}
+
 function validateRawLockForkBaseDimensions(value: unknown, issues: MappingValidationIssue[]) {
   const baseDimensions = asRecord(asRecord(value).baseDimensions);
 
@@ -330,6 +340,40 @@ function validateRawLockForkBaseDimensions(value: unknown, issues: MappingValida
       (['upper', 'lower'] as const).forEach((section) => {
         const pair = asRecord(group[section]);
         const pairPath = `baseDimensions[${quotePathSegment(thickness)}].${groupKey}.${section}`;
+        if (Object.prototype.hasOwnProperty.call(pair, 'base1') && !Number.isFinite(Number(pair.base1))) {
+          issues.push(createIssue(`${pairPath}.base1`, 'invalid-number', 'base1 必须是数字'));
+        }
+        if (Object.prototype.hasOwnProperty.call(pair, 'base2') && !Number.isFinite(Number(pair.base2))) {
+          issues.push(createIssue(`${pairPath}.base2`, 'invalid-number', 'base2 必须是数字'));
+        }
+      });
+    });
+  });
+}
+
+function validateRawLockForkHighHeightRules(value: unknown, issues: MappingValidationIssue[]) {
+  const rules = asRecord(asRecord(value).highHeightRules);
+
+  Object.entries(rules).forEach(([thickness, rawRule]) => {
+    const rule = asRecord(rawRule);
+    const path = `highHeightRules[${quotePathSegment(thickness)}]`;
+
+    if (Object.prototype.hasOwnProperty.call(rule, 'minHeight')
+      && (!toTrimmedString(rule.minHeight) || !Number.isFinite(Number(rule.minHeight)))) {
+      issues.push(createIssue(`${path}.minHeight`, 'invalid-number', 'minHeight 必须是数字'));
+    }
+    if (Object.prototype.hasOwnProperty.call(rule, 'heightReference')
+      && (!toTrimmedString(rule.heightReference) || !Number.isFinite(Number(rule.heightReference)))) {
+      issues.push(createIssue(`${path}.heightReference`, 'invalid-number', 'heightReference 必须是数字'));
+    }
+
+    (['standard', 'withHangingFeet'] as const).forEach((groupKey) => {
+      const group = asRecord(rule[groupKey]);
+      if (Object.keys(group).length === 0) return;
+
+      (['upper', 'lower'] as const).forEach((section) => {
+        const pair = asRecord(group[section]);
+        const pairPath = `${path}.${groupKey}.${section}`;
         if (Object.prototype.hasOwnProperty.call(pair, 'base1') && !Number.isFinite(Number(pair.base1))) {
           issues.push(createIssue(`${pairPath}.base1`, 'invalid-number', 'base1 必须是数字'));
         }
@@ -362,10 +406,14 @@ export function validateLockForkMapping(value: unknown): MappingValidationIssue[
 
   const adapted = adaptLockForkMapping(value);
   validateRawLockForkBaseDimensions(value, issues);
+  validateRawLockForkHighHeightRules(value, issues);
   validateRawLockForkEdgeTypes(value, issues);
 
   Object.entries(adapted.baseDimensions).forEach(([thickness, dimension]) => {
     validateLockForkDimensionGroup(`baseDimensions[${quotePathSegment(thickness)}]`, dimension, issues);
+  });
+  Object.entries(adapted.highHeightRules).forEach(([thickness, rule]) => {
+    validateLockForkHighHeightRule(`highHeightRules[${quotePathSegment(thickness)}]`, rule, issues);
   });
 
   Object.entries(adapted.lockTypes).forEach(([name, rule]) => {

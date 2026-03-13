@@ -10,7 +10,7 @@ import Toaster from '@/components/ui/Toaster.vue';
     <Toaster />
 
     <!-- Desktop Sidebar -->
-    <Sidebar class="hidden md:block w-72 flex-shrink-0 border-r border-border bg-background z-10" />
+    <Sidebar class="hidden md:block w-36 flex-shrink-0 border-r border-border bg-background z-10" />
 
     <!-- Mobile Header -->
     <div class="md:hidden h-14 border-b border-border flex items-center px-4 justify-between bg-background/95 text-foreground z-20 sticky top-0 backdrop-blur-sm">

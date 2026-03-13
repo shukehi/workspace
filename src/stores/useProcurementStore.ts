@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
-import type { Order } from '@/types/order';
+import type { Order, StockInOrderItemInput } from '@/types/order';
 
 function normalizeDateField(value: any): string | null {
     if (value === undefined || value === null || value === '') return null;
@@ -222,6 +222,7 @@ export const useProcurementStore = defineStore('procurement', () => {
         stocked_in_at?: string;
         operator?: string;
         remark?: string;
+        items?: StockInOrderItemInput[];
     } = {}) {
         try {
             const res = await api.post<Order>(`/orders/${id}/stock-in`, payload);

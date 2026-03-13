@@ -10,6 +10,7 @@ import {
   type ProcurementDocRow,
 } from '@/features/procurement/docModel';
 import { pickSalesDepartmentLabel } from '@/features/procurement/customerName';
+import { sortProcurementItems } from '@/features/procurement/itemSort';
 import { getSheetSchema } from '@/features/procurement/order-sheet.schema';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
@@ -482,7 +483,10 @@ function buildPage(
 export function buildProcurementDocModel(input: PrintDocBuildInput): ProcurementDocModel {
   const source = normalizeSource(input);
   const schema = getSheetSchema(source.category);
-  const normalizedItems = source.items.map((item) => normalizeItem(item, source.category, source));
+  const normalizedItems = sortProcurementItems(
+    source.category,
+    source.items.map((item) => normalizeItem(item, source.category, source))
+  );
   const grouped = groupItems(normalizedItems, source);
 
   const fields = schema.columns.map((column) => column.key);

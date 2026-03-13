@@ -13,6 +13,7 @@ import type {
   LockForkDimensionPair,
   LockForkEdgeTypeConfig,
   LockForkHangingFeetConfig,
+  LockForkHighHeightRule,
   LockForkMappingConfig,
   LockForkTypeConfig,
   PackagingMappingConfig,
@@ -98,6 +99,7 @@ export const EMPTY_CYLINDER_MAPPING: CylinderMappingConfig = {
 
 export const EMPTY_LOCK_FORK_MAPPING: LockForkMappingConfig = {
   baseDimensions: {},
+  highHeightRules: {},
   lockTypes: {},
   edgeTypes: {},
   hangingFeet: {
@@ -376,6 +378,39 @@ function adaptLockForkBaseDimensions(value: unknown): Record<string, LockForkBas
   return baseDimensions;
 }
 
+function adaptLockForkHighHeightRule(value: unknown): LockForkHighHeightRule | null {
+  const record = asRecord(value);
+  const standard = adaptLockForkDimensionGroup(record.standard);
+  const withHangingFeet = adaptLockForkDimensionGroup(record.withHangingFeet);
+  const minHeight = toFiniteNumber(record.minHeight, NaN);
+  const heightReference = toFiniteNumber(record.heightReference, NaN);
+
+  if (!Number.isFinite(minHeight) && !Number.isFinite(heightReference) && !standard && !withHangingFeet) {
+    return null;
+  }
+
+  return {
+    minHeight: Number.isFinite(minHeight) ? minHeight : DEFAULT_LOCK_FORK_HEIGHT_REFERENCE,
+    heightReference: Number.isFinite(heightReference) ? heightReference : DEFAULT_LOCK_FORK_HEIGHT_REFERENCE,
+    ...(standard ? { standard } : {}),
+    ...(withHangingFeet ? { withHangingFeet } : {}),
+  };
+}
+
+function adaptLockForkHighHeightRules(value: unknown): Record<string, LockForkHighHeightRule> {
+  const record = asRecord(value);
+  const rules: Record<string, LockForkHighHeightRule> = {};
+
+  Object.entries(record).forEach(([rawKey, rawValue]) => {
+    const key = toTrimmedString(rawKey);
+    const rule = adaptLockForkHighHeightRule(rawValue);
+    if (!key || !rule) return;
+    rules[key] = rule;
+  });
+
+  return rules;
+}
+
 function adaptLockForkTypeConfig(value: unknown): LockForkTypeConfig | null {
   const record = asRecord(value);
   const category = toTrimmedString(record.category);
@@ -488,6 +523,7 @@ export function adaptLockForkMapping(value: unknown): LockForkMappingConfig {
 
   return {
     baseDimensions: adaptLockForkBaseDimensions(record.baseDimensions),
+    highHeightRules: adaptLockForkHighHeightRules(record.highHeightRules),
     lockTypes: adaptLockForkTypeMap(record.lockTypes, adaptLockForkTypeConfig),
     edgeTypes: adaptLockForkTypeMap(record.edgeTypes, adaptLockForkEdgeTypeConfig),
     hangingFeet: adaptLockForkHangingFeetConfig(record.hangingFeet),

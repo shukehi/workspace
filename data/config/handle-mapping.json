@@ -11,7 +11,6 @@
     "exportCustomerKeywords": [
         "三部"
     ],
-    "defaultActivityForExport": "double",
     "placeholderKeywords": [
         "冲整体拉手孔",
         "拉手孔",
@@ -23,6 +22,7 @@
         "remark",
         "xsbz"
     ],
+    "defaultActivityForExport": "double",
     "thicknessAccessoryPacks": {
         "5": "5公分配件包",
         "7": "7公分配件包",
@@ -57,6 +57,22 @@
         "PS-86-9A": {
             "supplier": "迪江",
             "vendorName": "PS-86-9A"
+        },
+        "86-30B": {
+            "supplier": "迪江",
+            "vendorName": "DJ-86-30B"
+        },
+        "DJ-86-18双活带球": {
+            "supplier": "迪江",
+            "vendorName": "DJ-86-18 - 带球"
+        },
+        "805不分左右双活": {
+            "supplier": "朗国华",
+            "vendorName": "805"
+        },
+        "G-9015拉丝黑双活拉手": {
+            "supplier": "顾万佳",
+            "vendorName": "G-9015 拉丝黑"
         }
     }
 }

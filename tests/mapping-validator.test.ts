@@ -76,6 +76,27 @@ test('frontend mapping validator: lock-fork validator reports structural gaps', 
   assert.ok(issues.some((item) => item.path === 'suppliers["default"]'));
 });
 
+test('frontend mapping validator: lock-fork validator reports high-height rule issues', () => {
+  const issues = validateLockForkMapping({
+    highHeightRules: {
+      7: {
+        minHeight: 'bad',
+        heightReference: '',
+        standard: {
+          upper: { base1: 570, base2: 'x' },
+          lower: { base1: 'y', base2: 376 },
+        },
+      },
+    },
+    suppliers: { default: '应志友' },
+  });
+
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].minHeight'));
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].heightReference'));
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].standard.upper.base2'));
+  assert.ok(issues.some((item) => item.path === 'highHeightRules["7"].standard.lower.base1'));
+});
+
 test('frontend mapping validator: handle validator validates keywords/thickness/mappings', () => {
   const issues = validateHandleMapping({
     defaultSupplier: '',

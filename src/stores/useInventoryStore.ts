@@ -21,7 +21,10 @@ export const useInventoryStore = defineStore('inventory', () => {
     });
 
     const lowStockItems = computed(() => {
-        return items.value.filter(item => item.stock_quantity <= (item.min_stock || 0));
+        return items.value.filter(item => {
+            const minStock = item.min_stock || 0;
+            return minStock > 0 && item.stock_quantity <= minStock;
+        });
     });
 
     const sortedReceipts = computed(() => {

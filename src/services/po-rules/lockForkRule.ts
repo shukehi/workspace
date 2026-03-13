@@ -1,4 +1,5 @@
 import { createLockForkOrderItem } from '@/services/poContractUtils';
+import { sortProcurementItems } from '@/features/procurement/itemSort';
 import type { RuleContext, SupplierGroup } from '@/services/po-rules/types';
 
 export function buildLockForkGroups(ctx: RuleContext): SupplierGroup[] {
@@ -29,5 +30,8 @@ export function buildLockForkGroups(ctx: RuleContext): SupplierGroup[] {
     }));
   });
 
-  return Object.values(groupsBySupplier);
+  return Object.values(groupsBySupplier).map((group) => ({
+    ...group,
+    items: sortProcurementItems(group.category, group.items)
+  }));
 }

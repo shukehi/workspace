@@ -287,6 +287,39 @@ function adaptLockForkBaseDimensions(value) {
     return baseDimensions;
 }
 
+function adaptLockForkHighHeightRule(value) {
+    const record = asRecord(value);
+    const standard = adaptLockForkDimensionGroup(record.standard);
+    const withHangingFeet = adaptLockForkDimensionGroup(record.withHangingFeet);
+    const minHeight = toFiniteNumber(record.minHeight, NaN);
+    const heightReference = toFiniteNumber(record.heightReference, NaN);
+
+    if (!Number.isFinite(minHeight) && !Number.isFinite(heightReference) && !standard && !withHangingFeet) {
+        return null;
+    }
+
+    return {
+        minHeight: Number.isFinite(minHeight) ? minHeight : DEFAULT_LOCK_FORK_HEIGHT_REFERENCE,
+        heightReference: Number.isFinite(heightReference) ? heightReference : DEFAULT_LOCK_FORK_HEIGHT_REFERENCE,
+        ...(standard ? { standard } : {}),
+        ...(withHangingFeet ? { withHangingFeet } : {})
+    };
+}
+
+function adaptLockForkHighHeightRules(value) {
+    const record = asRecord(value);
+    const rules = {};
+
+    Object.entries(record).forEach(([rawKey, rawValue]) => {
+        const key = toTrimmedString(rawKey);
+        const rule = adaptLockForkHighHeightRule(rawValue);
+        if (!key || !rule) return;
+        rules[key] = rule;
+    });
+
+    return rules;
+}
+
 function adaptLockForkTypeConfig(value) {
     const record = asRecord(value);
     const category = toTrimmedString(record.category);
@@ -377,6 +410,7 @@ function adaptLockForkMapping(value) {
     const record = asRecord(value);
     return {
         baseDimensions: adaptLockForkBaseDimensions(record.baseDimensions),
+        highHeightRules: adaptLockForkHighHeightRules(record.highHeightRules),
         lockTypes: adaptLockForkTypeMap(record.lockTypes, adaptLockForkTypeConfig),
         edgeTypes: adaptLockForkTypeMap(record.edgeTypes, adaptLockForkEdgeTypeConfig),
         hangingFeet: {

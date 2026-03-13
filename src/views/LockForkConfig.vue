@@ -62,6 +62,7 @@ const suppliers = ref<SupplierRow[]>([]);
 const hangingFeetStandard = ref('35');
 const hangingFeetKeywords = ref<KeywordRow[]>([]);
 const heightReference = ref('2050');
+const highHeightRules = ref<LockForkMappingConfig['highHeightRules']>({});
 
 function parseNumeric(value: string) {
   return Number(value);
@@ -124,6 +125,7 @@ const payload = computed<LockForkMappingConfig>(() => {
 
   return {
     baseDimensions: baseMap,
+    highHeightRules: highHeightRules.value,
     lockTypes: lockTypeMap,
     edgeTypes: edgeTypeMap,
     hangingFeet: {
@@ -450,6 +452,7 @@ function makeKeywordRow(input?: Partial<KeywordRow>): KeywordRow {
 
 function resetWithPayload(raw: LockForkMappingConfig) {
   const data = adaptLockForkMapping(raw);
+  highHeightRules.value = data.highHeightRules;
   baseDimensions.value = Object.entries(data.baseDimensions).map(([thickness, rule]) => makeBaseDimensionRow({
     thickness,
     standardUpperBase1: String(rule.standard?.upper.base1 ?? ''),

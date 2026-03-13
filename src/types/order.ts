@@ -1,5 +1,6 @@
 export interface OrderItem {
     id: number;
+    item_key?: string;
     material_id: string | number;
     supplier?: string;
     // Unified semantic fields used by print/preview pipeline
@@ -21,6 +22,12 @@ export interface OrderItem {
     price?: number;
     total?: number;
     remark?: string;
+}
+
+export interface StockInOrderItemInput {
+    order_item_id: number;
+    item_key: string;
+    quantity: number;
 }
 
 export interface Order {

@@ -59,6 +59,11 @@ export interface LockForkBaseDimensionRule {
   withHangingFeet?: LockForkDimensionGroup;
 }
 
+export interface LockForkHighHeightRule extends LockForkBaseDimensionRule {
+  minHeight: number;
+  heightReference: number;
+}
+
 export interface LockForkTypeConfig {
   category?: string;
   nameModifier?: string;
@@ -77,6 +82,7 @@ export interface LockForkHangingFeetConfig {
 
 export interface LockForkMappingConfig {
   baseDimensions: Record<string, LockForkBaseDimensionRule>;
+  highHeightRules: Record<string, LockForkHighHeightRule>;
   lockTypes: Record<string, LockForkTypeConfig>;
   edgeTypes: Record<string, LockForkEdgeTypeConfig>;
   hangingFeet: LockForkHangingFeetConfig;

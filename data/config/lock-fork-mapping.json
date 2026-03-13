@@ -43,6 +43,102 @@
                     "base2": 313
                 }
             }
+        },
+        "9": {
+            "standard": {
+                "upper": {
+                    "base1": 524,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 524,
+                    "base2": 301
+                }
+            },
+            "withHangingFeet": {
+                "upper": {
+                    "base1": 524,
+                    "base2": 301
+                },
+                "lower": {
+                    "base1": 524,
+                    "base2": 313
+                }
+            }
+        }
+    },
+    "highHeightRules": {
+        "5": {
+            "minHeight": 2200,
+            "heightReference": 2200,
+            "standard": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 376
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 376
+                }
+            },
+            "withHangingFeet": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 376
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 388
+                }
+            }
+        },
+        "7": {
+            "minHeight": 2200,
+            "heightReference": 2200,
+            "standard": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 376
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 376
+                }
+            },
+            "withHangingFeet": {
+                "upper": {
+                    "base1": 570,
+                    "base2": 376
+                },
+                "lower": {
+                    "base1": 570,
+                    "base2": 388
+                }
+            }
+        },
+        "9": {
+            "minHeight": 2210,
+            "heightReference": 2210,
+            "standard": {
+                "upper": {
+                    "base1": 524,
+                    "base2": 422
+                },
+                "lower": {
+                    "base1": 524,
+                    "base2": 272
+                }
+            },
+            "withHangingFeet": {
+                "upper": {
+                    "base1": 524,
+                    "base2": 422
+                },
+                "lower": {
+                    "base1": 524,
+                    "base2": 272
+                }
+            }
         }
     },
     "lockTypes": {

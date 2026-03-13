@@ -38,6 +38,9 @@ test('mapping adapter baseline: current lock-fork mapping adapts and validates c
 
   assert.equal(validateLockForkMapping(payload).length, 0);
   assert.ok(Object.keys(payload.baseDimensions).length > 0);
+  assert.ok(Object.keys(payload.highHeightRules).length > 0);
+  assert.equal(payload.highHeightRules['7']?.minHeight, 2200);
+  assert.equal(payload.highHeightRules['9']?.heightReference, 2210);
   assert.equal(payload.suppliers.default, '应志友');
 });
 
