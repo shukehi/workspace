@@ -15,6 +15,14 @@ Phase 2 的目标不是继续扩状态，而是在现有状态模型之上支持
 3. 支持受控的撤销入库
 4. 保持库存数量、订单状态、入库流水三者一致
 
+当前已落地的过渡能力：
+
+1. `OrderItem` 已具备 `ordered_quantity / received_quantity`
+2. `POST /api/orders/:id/stock-in` 已支持传 `items[]` 做后端级别的按明细入库
+3. 未传 `items[]` 时仍兼容整单按剩余量入库；显式传空数组会直接报错，避免误整单入库
+4. 订单级 `stocked_in_*` 仍保留“整单完成入库”语义，部分入库事实只记录在 `InventoryReceipt`
+5. 采购页 UI 仍然是“整单执行入库”，尚未切换到明细入库弹窗
+
 ## 2. 当前 Phase 1 限制
 
 当前实现的限制：
@@ -146,8 +154,8 @@ POST /api/orders/:id/stock-in
 4. 校验累计入库数量不能超过采购数量，超量请求必须直接拒绝，不能部分写入
 5. 写入多条 `InventoryReceipt`
 6. 更新每条明细 `received_quantity`
-7. 如果所有明细都已收满，则订单置为 `completed`
-8. 如果仍有未收完明细，则订单保持 `arrived`
+7. 如果所有明细都已收满，则订单置为 `completed`，并回填订单级 `stocked_in_*`
+8. 如果仍有未收完明细，则订单保持 `arrived`，订单级 `stocked_in_*` 不提前写入
 
 补充说明：
 
@@ -250,10 +258,15 @@ Phase 2 不建议再引入 `partial` 之类的新主状态，统一按以下规�
 1. 明细层字段扩展：`ordered_quantity / received_quantity`
 2. `InventoryReceipt` 扩展：`direction / source_receipt_id / 快照字段`
 3. 重写 `stock-in` 服务，支持显式明细数量
-4. 新增撤销入库接口
-5. 采购页入库弹窗
+4. 采购页入库弹窗
+5. 新增撤销入库接口
 6. 库存页撤销入口
 7. 测试与文档收口
+
+已完成：
+
+1. 第 1 步已完成
+2. 第 3 步的后端能力已完成，但前端仍未接入明细入库弹窗
 
 ## 10. 明确暂不做
 

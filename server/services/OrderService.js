@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { Order, OrderItem, OrderIdempotencyKey, sequelize } = require('../models');
 const inventoryReceiptService = require('./InventoryReceiptService');
+const { buildOrderItemKey } = require('./orderItemKey');
 
 function normalizeOrderRemark(remark) {
     if (remark === undefined || remark === null) return '';
@@ -206,6 +207,7 @@ function serializeOrderItem(item) {
     const plain = typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
     return {
         ...plain,
+        item_key: buildOrderItemKey(plain),
         quantity: Number(plain.quantity || 0),
         ordered_quantity: Number(plain.ordered_quantity ?? plain.quantity ?? 0),
         received_quantity: Number(plain.received_quantity || 0)
@@ -641,8 +643,10 @@ class OrderService {
                 throw new InvalidStatusTransitionError(currentStatus, 'completed');
             }
 
+            let receiptItems = [];
             try {
-                await inventoryReceiptService.createFromOrder(order, data, transaction);
+                const created = await inventoryReceiptService.createFromOrder(order, data, transaction);
+                receiptItems = Array.isArray(created?.receiptItems) ? created.receiptItems : [];
             } catch (error) {
                 if (error?.code === 'MATERIAL_NOT_FOUND') {
                     throw new MissingMaterialError(error.materialId);
@@ -650,23 +654,38 @@ class OrderService {
                 throw error;
             }
 
-            for (const item of order.items || []) {
-                const nextReceived = Number(item.received_quantity || 0) + Number(item.quantity || 0);
+            const updatesByOrderItemId = new Map();
+            for (const receiptItem of receiptItems) {
+                const item = receiptItem.orderItem;
+                const nextReceived = Number(item.received_quantity || 0) + Number(receiptItem.quantity || 0);
                 const nextOrdered = Number(item.ordered_quantity ?? item.quantity ?? 0);
                 if (nextReceived > nextOrdered) {
                     throw new ReceivedQuantityExceededError(item.id, nextOrdered, nextReceived);
                 }
-                await item.update({
+                const updatedItem = await item.update({
                     ordered_quantity: nextOrdered,
                     received_quantity: nextReceived
                 }, { transaction });
+                updatesByOrderItemId.set(Number(item.id), updatedItem);
             }
 
+            const allReceived = (order.items || []).every((item) => {
+                const candidate = updatesByOrderItemId.get(Number(item.id)) || item;
+                const orderedQuantity = Number(candidate.ordered_quantity ?? candidate.quantity ?? 0);
+                const receivedQuantity = Number(candidate.received_quantity || 0);
+                return orderedQuantity > 0 && receivedQuantity >= orderedQuantity;
+            });
+
+            const nextStockedInAt = data.stocked_in_at || new Date().toISOString();
             await order.update({
-                status: 'completed',
-                stocked_in_at: data.stocked_in_at || new Date().toISOString(),
-                stocked_in_by: data.operator === undefined ? order.stocked_in_by : data.operator,
-                stocked_in_remark: data.remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.remark),
+                status: allReceived ? 'completed' : 'arrived',
+                stocked_in_at: allReceived ? nextStockedInAt : order.stocked_in_at,
+                stocked_in_by: allReceived
+                    ? (data.operator === undefined ? order.stocked_in_by : data.operator)
+                    : order.stocked_in_by,
+                stocked_in_remark: allReceived
+                    ? (data.remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.remark))
+                    : order.stocked_in_remark,
             }, { transaction });
 
             await transaction.commit();

@@ -1,4 +1,5 @@
 const { InventoryReceipt, Material } = require('../models');
+const { buildOrderItemKey } = require('./orderItemKey');
 
 function normalizeReceiptDate(value) {
     if (!value) return new Date().toISOString();
@@ -44,28 +45,114 @@ async function findMaterialForItem(item, transaction) {
     return material;
 }
 
+function normalizeReceiptQuantity(value, fallback = 0) {
+    const quantity = value === undefined ? fallback : Number(value);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+        const error = new Error('INVALID_RECEIPT_QUANTITY');
+        error.code = 'INVALID_RECEIPT_QUANTITY';
+        throw error;
+    }
+    return quantity;
+}
+
+function resolveReceiptOrderItems(order, payload = {}) {
+    const orderItems = Array.isArray(order?.items) ? order.items : [];
+    if (orderItems.length === 0) {
+        const error = new Error('ORDER_ITEMS_REQUIRED');
+        error.code = 'ORDER_ITEMS_REQUIRED';
+        throw error;
+    }
+
+    if (payload.items === undefined) {
+        return orderItems
+            .map((orderItem) => {
+                const orderedQuantity = Number(orderItem.ordered_quantity ?? orderItem.quantity ?? 0);
+                const receivedQuantity = Number(orderItem.received_quantity || 0);
+                const remainingQuantity = orderedQuantity - receivedQuantity;
+                if (remainingQuantity <= 0) return null;
+                return {
+                    orderItem,
+                    quantity: remainingQuantity,
+                    itemKey: buildOrderItemKey(orderItem)
+                };
+            })
+            .filter(Boolean);
+    }
+
+    if (!Array.isArray(payload.items) || payload.items.length === 0) {
+        const error = new Error('ORDER_ITEMS_REQUIRED');
+        error.code = 'ORDER_ITEMS_REQUIRED';
+        throw error;
+    }
+
+    const seenOrderItemIds = new Set();
+    return payload.items.map((rawItem) => {
+        const orderItemId = Number(rawItem?.order_item_id);
+        const itemKey = String(rawItem?.item_key || '').trim();
+
+        if (!Number.isInteger(orderItemId) || orderItemId <= 0) {
+            const error = new Error('ORDER_ITEM_ID_REQUIRED');
+            error.code = 'ORDER_ITEM_ID_REQUIRED';
+            throw error;
+        }
+
+        if (!itemKey) {
+            const error = new Error('RECEIPT_ITEM_KEY_REQUIRED');
+            error.code = 'RECEIPT_ITEM_KEY_REQUIRED';
+            error.orderItemId = orderItemId;
+            throw error;
+        }
+
+        if (seenOrderItemIds.has(orderItemId)) {
+            const error = new Error('DUPLICATE_RECEIPT_ITEM');
+            error.code = 'DUPLICATE_RECEIPT_ITEM';
+            error.orderItemId = orderItemId;
+            throw error;
+        }
+        seenOrderItemIds.add(orderItemId);
+
+        const orderItem = orderItems.find((candidate) => Number(candidate.id) === orderItemId);
+        if (!orderItem) {
+            const error = new Error('ORDER_ITEM_NOT_FOUND');
+            error.code = 'ORDER_ITEM_NOT_FOUND';
+            error.orderItemId = orderItemId;
+            throw error;
+        }
+
+        const resolvedKey = buildOrderItemKey(orderItem);
+        if (resolvedKey !== itemKey) {
+            const error = new Error('ORDER_ITEM_KEY_MISMATCH');
+            error.code = 'ORDER_ITEM_KEY_MISMATCH';
+            error.orderItemId = orderItemId;
+            error.expectedItemKey = resolvedKey;
+            throw error;
+        }
+
+        return {
+            orderItem,
+            quantity: normalizeReceiptQuantity(rawItem?.quantity),
+            itemKey: resolvedKey
+        };
+    });
+}
+
 class InventoryReceiptService {
     async createFromOrder(order, payload = {}, transaction) {
         const receiptDate = normalizeReceiptDate(payload.stocked_in_at || payload.receipt_date);
         const operator = payload.operator ? String(payload.operator).trim() : '';
         const remark = payload.remark ? String(payload.remark) : '';
-        const items = Array.isArray(order?.items) ? order.items : [];
-        if (items.length === 0) {
+        const receiptItems = resolveReceiptOrderItems(order, payload);
+        if (receiptItems.length === 0) {
             const error = new Error('ORDER_ITEMS_REQUIRED');
             error.code = 'ORDER_ITEMS_REQUIRED';
             throw error;
         }
 
         const created = [];
-        for (const item of items) {
+        for (const receiptItem of receiptItems) {
+            const item = receiptItem.orderItem;
             const material = await findMaterialForItem(item, transaction);
-            const quantity = Number(item?.quantity || 0);
-            if (!Number.isFinite(quantity) || quantity <= 0) {
-                const error = new Error('INVALID_RECEIPT_QUANTITY');
-                error.code = 'INVALID_RECEIPT_QUANTITY';
-                error.materialId = String(item?.material_id || '');
-                throw error;
-            }
+            const quantity = receiptItem.quantity;
 
             await material.update({
                 stock_quantity: Number(material.stock_quantity || 0) + quantity
@@ -88,7 +175,10 @@ class InventoryReceiptService {
             created.push(receipt);
         }
 
-        return created;
+        return {
+            receipts: created,
+            receiptItems
+        };
     }
 
     async list(query = {}) {

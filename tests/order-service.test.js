@@ -410,6 +410,157 @@ test('OrderService stockInOrder creates receipts and increments inventory', asyn
   assert.equal(Number(receipts[0].quantity), 3);
 });
 
+test('OrderService stockInOrder supports explicit partial receipt items', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Material.bulkCreate([
+    {
+      code: 'MAT-PARTIAL-001',
+      name: '锁体A',
+      model: '主锁',
+      supplier: '汇成',
+      stock_quantity: 5,
+      min_stock: 0,
+      unit: '把',
+    },
+    {
+      code: 'MAT-PARTIAL-002',
+      name: '锁体B',
+      model: '副锁',
+      supplier: '汇成',
+      stock_quantity: 1,
+      min_stock: 0,
+      unit: '把',
+    }
+  ]);
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-PARTIAL'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-PARTIAL-001',
+        supplier: '汇成',
+        name: '锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 3,
+        unit: '把',
+      },
+      {
+        material_id: 'MAT-PARTIAL-002',
+        supplier: '汇成',
+        name: '锁体B',
+        model: '副锁',
+        spec: '副锁',
+        quantity: 2,
+        unit: '把',
+      }
+    ]
+  });
+
+  const firstReceipt = await orderService.stockInOrder(created.id, {
+    stocked_in_at: '2026-03-12T12:00:00.000Z',
+    operator: '仓管P1',
+    items: [
+      {
+        order_item_id: created.items[0].id,
+        item_key: created.items[0].item_key,
+        quantity: 1
+      }
+    ]
+  });
+
+  assert.equal(firstReceipt.status, 'arrived');
+  assert.equal(firstReceipt.items[0].received_quantity, 1);
+  assert.equal(firstReceipt.items[1].received_quantity, 0);
+  assert.equal(firstReceipt.stocked_in_at, null);
+  assert.equal(firstReceipt.stocked_in_by ?? null, null);
+  assert.equal(await InventoryReceipt.count({ where: { order_id: created.id } }), 1);
+
+  const finalReceipt = await orderService.stockInOrder(created.id, {
+    stocked_in_at: '2026-03-12T13:00:00.000Z',
+    operator: '仓管P2',
+    items: [
+      {
+        order_item_id: firstReceipt.items[0].id,
+        item_key: firstReceipt.items[0].item_key,
+        quantity: 2
+      },
+      {
+        order_item_id: firstReceipt.items[1].id,
+        item_key: firstReceipt.items[1].item_key,
+        quantity: 2
+      }
+    ]
+  });
+
+  assert.equal(finalReceipt.status, 'completed');
+  assert.equal(finalReceipt.items[0].received_quantity, 3);
+  assert.equal(finalReceipt.items[1].received_quantity, 2);
+  assert.equal(await InventoryReceipt.count({ where: { order_id: created.id } }), 3);
+
+  const materials = await Material.findAll({
+    where: { code: ['MAT-PARTIAL-001', 'MAT-PARTIAL-002'] },
+    order: [['code', 'ASC']]
+  });
+  assert.equal(Number(materials[0].stock_quantity), 8);
+  assert.equal(Number(materials[1].stock_quantity), 3);
+});
+
+test('OrderService stockInOrder rejects explicit empty receipt items', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Material.create({
+    code: 'MAT-EMPTY-ITEMS-001',
+    name: '锁体A',
+    model: '主锁',
+    supplier: '汇成',
+    stock_quantity: 5,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-EMPTY-ITEMS'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-EMPTY-ITEMS-001',
+        supplier: '汇成',
+        name: '锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 2,
+        unit: '把',
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () => orderService.stockInOrder(created.id, {
+      stocked_in_at: '2026-03-12T12:30:00.000Z',
+      operator: '仓管E',
+      items: []
+    }),
+    (error) => {
+      assert.equal(error.code, 'ORDER_ITEMS_REQUIRED');
+      return true;
+    }
+  );
+
+  const refreshed = await orderService.getOrderById(created.id);
+  assert.equal(refreshed.status, 'arrived');
+  assert.equal(refreshed.stocked_in_at, null);
+  assert.equal(await InventoryReceipt.count({ where: { order_id: created.id } }), 0);
+});
+
 test('OrderService stockInOrder rejects missing material mapping', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });
@@ -514,11 +665,67 @@ test('OrderService stockInOrder rejects received quantity overflow', async () =>
     () => orderService.stockInOrder(created.id, {
       stocked_in_at: '2026-03-12T11:00:00.000Z',
       operator: '仓管D',
+      items: [
+        {
+          order_item_id: created.items[0].id,
+          item_key: created.items[0].item_key,
+          quantity: 2
+        }
+      ]
     }),
     (error) => {
       assert.equal(error.code, 'RECEIVED_QUANTITY_EXCEEDED');
       assert.equal(error.orderedQuantity, 2);
       assert.equal(error.nextReceivedQuantity, 4);
+      return true;
+    }
+  );
+});
+
+test('OrderService stockInOrder rejects explicit item key mismatch', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Material.create({
+    code: 'MAT-KEY-MISMATCH-001',
+    name: '锁体A',
+    model: '主锁',
+    supplier: '汇成',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-MISMATCH'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-KEY-MISMATCH-001',
+        supplier: '汇成',
+        name: '锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 1,
+        unit: '把',
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () => orderService.stockInOrder(created.id, {
+      items: [
+        {
+          order_item_id: created.items[0].id,
+          item_key: 'WRONG|KEY|VALUE',
+          quantity: 1
+        }
+      ]
+    }),
+    (error) => {
+      assert.equal(error.code, 'ORDER_ITEM_KEY_MISMATCH');
       return true;
     }
   );

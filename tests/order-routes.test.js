@@ -330,6 +330,161 @@ test('POST /api/orders/:id/stock-in updates inventory and completes order', asyn
   assert.equal(stockedIn.items[0].received_quantity, 4);
 });
 
+test('POST /api/orders/:id/stock-in supports explicit partial receipt items', async () => {
+  await Material.bulkCreate([
+    {
+      code: 'ROUTE-MAT-PARTIAL-001',
+      name: 'Route Partial A',
+      model: 'RPA-1',
+      supplier: '汇成',
+      stock_quantity: 2,
+      min_stock: 0,
+      unit: '把',
+    },
+    {
+      code: 'ROUTE-MAT-PARTIAL-002',
+      name: 'Route Partial B',
+      model: 'RPB-1',
+      supplier: '汇成',
+      stock_quantity: 4,
+      min_stock: 0,
+      unit: '把',
+    }
+  ]);
+
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-STOCKIN-PARTIAL-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      items: [
+        {
+          material_id: 'ROUTE-MAT-PARTIAL-001',
+          name: 'Route Partial A',
+          model: 'RPA-1',
+          spec: 'RPA-1',
+          supplier: '汇成',
+          quantity: 3,
+          unit: '把',
+        },
+        {
+          material_id: 'ROUTE-MAT-PARTIAL-002',
+          name: 'Route Partial B',
+          model: 'RPB-1',
+          spec: 'RPB-1',
+          supplier: '汇成',
+          quantity: 2,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const firstStockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stocked_in_at: '2026-03-12T08:18:00.000Z',
+      operator: '仓管P1',
+      items: [
+        {
+          order_item_id: created.items[0].id,
+          item_key: created.items[0].item_key,
+          quantity: 1,
+        },
+      ],
+    }),
+  });
+
+  assert.equal(firstStockInRes.status, 200);
+  const firstBody = await firstStockInRes.json();
+  assert.equal(firstBody.status, 'arrived');
+  assert.equal(firstBody.items[0].received_quantity, 1);
+  assert.equal(firstBody.items[1].received_quantity, 0);
+  assert.equal(firstBody.stocked_in_at, null);
+  assert.equal(firstBody.stocked_in_by ?? null, null);
+
+  const finalStockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stocked_in_at: '2026-03-12T08:19:00.000Z',
+      operator: '仓管P2',
+      items: [
+        {
+          order_item_id: firstBody.items[0].id,
+          item_key: firstBody.items[0].item_key,
+          quantity: 2,
+        },
+        {
+          order_item_id: firstBody.items[1].id,
+          item_key: firstBody.items[1].item_key,
+          quantity: 2,
+        },
+      ],
+    }),
+  });
+
+  assert.equal(finalStockInRes.status, 200);
+  const finalBody = await finalStockInRes.json();
+  assert.equal(finalBody.status, 'completed');
+  assert.equal(finalBody.items[0].received_quantity, 3);
+  assert.equal(finalBody.items[1].received_quantity, 2);
+});
+
+test('POST /api/orders/:id/stock-in rejects explicit empty receipt items', async () => {
+  await Material.create({
+    code: 'ROUTE-MAT-EMPTY-ITEMS-001',
+    name: 'Route Empty Items',
+    model: 'REI-1',
+    supplier: '汇成',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-STOCKIN-EMPTY-ITEMS-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      items: [
+        {
+          material_id: 'ROUTE-MAT-EMPTY-ITEMS-001',
+          name: 'Route Empty Items',
+          model: 'REI-1',
+          spec: 'REI-1',
+          supplier: '汇成',
+          quantity: 2,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stocked_in_at: '2026-03-12T08:20:00.000Z',
+      operator: '仓管Empty',
+      items: [],
+    }),
+  });
+
+  assert.equal(stockInRes.status, 400);
+  const body = await stockInRes.json();
+  assert.equal(body.error, 'ORDER_ITEMS_REQUIRED');
+});
+
 test('POST /api/orders/:id/stock-in rejects arrived orders without items', async () => {
   const createRes = await fetch(`${baseUrl}/api/orders`, {
     method: 'POST',
@@ -404,6 +559,13 @@ test('POST /api/orders/:id/stock-in rejects received quantity overflow', async (
     body: JSON.stringify({
       stocked_in_at: '2026-03-12T08:21:00.000Z',
       operator: '仓管C',
+      items: [
+        {
+          order_item_id: created.items[0].id,
+          item_key: created.items[0].item_key,
+          quantity: 2,
+        },
+      ],
     }),
   });
 
@@ -412,6 +574,59 @@ test('POST /api/orders/:id/stock-in rejects received quantity overflow', async (
   assert.equal(body.error, 'RECEIVED_QUANTITY_EXCEEDED');
   assert.equal(body.orderedQuantity, 2);
   assert.equal(body.nextReceivedQuantity, 4);
+});
+
+test('POST /api/orders/:id/stock-in rejects explicit item key mismatch', async () => {
+  await Material.create({
+    code: 'ROUTE-MAT-MISMATCH-001',
+    name: 'Mismatch Material',
+    model: 'MM-1',
+    supplier: '汇成',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: '把',
+  });
+
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-STOCKIN-MISMATCH-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      items: [
+        {
+          material_id: 'ROUTE-MAT-MISMATCH-001',
+          name: 'Mismatch Material',
+          model: 'MM-1',
+          spec: 'MM-1',
+          supplier: '汇成',
+          quantity: 1,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items: [
+        {
+          order_item_id: created.items[0].id,
+          item_key: 'WRONG|KEY|VALUE',
+          quantity: 1,
+        },
+      ],
+    }),
+  });
+
+  assert.equal(stockInRes.status, 400);
+  const body = await stockInRes.json();
+  assert.equal(body.error, 'ORDER_ITEM_KEY_MISMATCH');
 });
 
 test.after(async () => {

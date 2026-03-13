@@ -26,6 +26,7 @@
 8. 统计页与摘要卡片已同步 `arrived / 已入库` 口径
 9. 已冻结 `completed` 订单编辑，并将 `arrived` 订单收敛为“仅可修改交货日期/备注”的受限编辑
 10. `OrderItem` 已补充 `ordered_quantity / received_quantity` 基础字段，为 Phase 2 部分入库做准备
+11. 后端 `stock-in` 已支持传 `items[]` 进行按明细、按数量入库；未传时仍兼容按剩余量整单入库
 
 ## 本轮修复项
 
@@ -39,11 +40,15 @@
 6. 修复入库记录请求失败时静默保留旧数据
 7. 修复普通建单/改单路径可伪造 `ordered_quantity / received_quantity`
 8. 修复整单 `stock-in` 缺少超量入库拦截
+9. 修复部分入库前后端缺少稳定明细键的问题，订单明细响应已补 `item_key`
+10. 修复显式 `items: []` 会误回退成整单入库的问题
+11. 修复部分入库时订单级 `stocked_in_*` 语义提前污染的问题
 
 ## 关键文件
 
 - [`/Users/aries/Dve/workspace/server/services/OrderService.js`](/Users/aries/Dve/workspace/server/services/OrderService.js)
 - [`/Users/aries/Dve/workspace/server/services/InventoryReceiptService.js`](/Users/aries/Dve/workspace/server/services/InventoryReceiptService.js)
+- [`/Users/aries/Dve/workspace/server/services/orderItemKey.js`](/Users/aries/Dve/workspace/server/services/orderItemKey.js)
 - [`/Users/aries/Dve/workspace/server/routes/order.js`](/Users/aries/Dve/workspace/server/routes/order.js)
 - [`/Users/aries/Dve/workspace/server/routes/inventoryReceipts.js`](/Users/aries/Dve/workspace/server/routes/inventoryReceipts.js)
 - [`/Users/aries/Dve/workspace/server/models/OrderItem.js`](/Users/aries/Dve/workspace/server/models/OrderItem.js)
@@ -68,7 +73,8 @@
 1. 还没有入库记录详情页
 2. 还不支持部分入库、多次入库、撤销入库
 3. 库存页入库记录尚未做分页
-4. `stock-in` 仍是整单入库，尚未切换到按明细显式入库
+4. 采购页仍未提供明细入库弹窗，部分入库能力目前仅在后端接口可用
+5. 订单级 `stocked_in_*` 仍只表达“整单完成入库”，若后续要展示最近一次入库时间需新增独立字段或直接读流水
 
 ## 下一步建议
 
