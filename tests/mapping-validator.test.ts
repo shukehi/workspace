@@ -97,6 +97,25 @@ test('frontend mapping validator: handle validator validates keywords/thickness/
   assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
   assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].supplier'));
   assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorName'));
+  assert.ok(issues.every((item) => item.path !== 'mappings["拉手A"].materialCode'));
+
+  const materialCodeIssues = validateHandleMapping({
+    defaultSupplier: '默认供应商',
+    unmatchedSupplier: '待人工处理',
+    manualReviewLabel: '未匹配拉手',
+    singleKeywords: ['单活'],
+    doubleKeywords: ['双活'],
+    thicknessAccessoryPacks: {
+      '5': '5公分配件包',
+      '7': '7公分配件包',
+      '9': '9公分配件包',
+      '10': '10公分配件包',
+    },
+    mappings: {
+      拉手B: { supplier: '供应商A', vendorName: '拉手名称', materialCode: '   ' },
+    },
+  });
+  assert.ok(materialCodeIssues.some((item) => item.path === 'mappings["拉手B"].materialCode'));
 });
 
 test('frontend mapping validator: lock validator detects normalized conflicts and missing fields', () => {

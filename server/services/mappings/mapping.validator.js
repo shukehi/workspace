@@ -598,6 +598,9 @@ function validateHandleMapping(value) {
         if (!vendorName) {
             issues.push(createIssue(`${path}.vendorName`, 'required', 'vendorName 不能为空'));
         }
+        if (entry.materialCode !== undefined && !toTrimmedString(entry.materialCode)) {
+            issues.push(createIssue(`${path}.materialCode`, 'required', 'materialCode 不能为空字符串'));
+        }
     });
 
     const mappingSeen = new Map();

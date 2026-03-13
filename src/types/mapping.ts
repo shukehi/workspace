@@ -87,6 +87,7 @@ export interface LockForkMappingConfig {
 export interface HandleMappingEntry {
   supplier: string;
   vendorName: string;
+  materialCode?: string;
 }
 
 export interface HandleMappingConfig {

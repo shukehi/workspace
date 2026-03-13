@@ -252,11 +252,16 @@ function adaptHandleMappingEntry(value: unknown): HandleMappingEntry | null {
   const vendorName = toTrimmedString(record.vendorName)
     || toTrimmedString(record.vendorNameDouble)
     || toTrimmedString(record.vendorNameSingle);
+  const materialCode = toTrimmedString(record.materialCode)
+    || toTrimmedString(record.material_id)
+    || toTrimmedString(record.materialCodeSingle)
+    || toTrimmedString(record.materialCodeDouble);
   if (!supplier && !vendorName) return null;
 
   return {
     supplier,
     vendorName,
+    ...(materialCode ? { materialCode } : {}),
   };
 }
 

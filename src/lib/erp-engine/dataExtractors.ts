@@ -37,6 +37,7 @@ type LockForkResultRow = {
 };
 type HandleResultRow = {
     supplier: string;
+    materialId?: string;
     type: string;
     spec: string;
     remark: string;
@@ -822,7 +823,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
     const EXPORT_REMARK = '外贸白包';
 
     const append = (row: HandleResultRow) => {
-        const key = `${row.supplier}|${row.type}|${row.spec}|${row.remark}`;
+        const key = `${row.supplier}|${row.materialId || ''}|${row.type}|${row.spec}|${row.remark}`;
         if (handleMap[key]) {
             handleMap[key].quantityLeft += row.quantityLeft;
             handleMap[key].quantityRight += row.quantityRight;
@@ -879,6 +880,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
 
         const supplier = toText(mapping.supplier) || defaultSupplier;
         const vendorName = toText(mapping.vendorName);
+        const materialId = toText(mapping.materialCode);
         const effectiveModelLabel = resolvedModel.modelKey || handleName;
 
         if (!vendorName) {
@@ -899,6 +901,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
 
         append({
             supplier,
+            materialId,
             type: finalType,
             spec: accessoryPack,
             remark: exportCustomer ? EXPORT_REMARK : '',
