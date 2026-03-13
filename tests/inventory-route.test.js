@@ -127,6 +127,60 @@ test('GET /api/inventory-receipts returns stock-in records', async () => {
   assert.equal(refreshed.items[0].received_quantity, 2);
 });
 
+test('GET /api/inventory-receipts/:id returns single receipt detail', async () => {
+  const material = await Material.create({
+    code: `TEST-MAT-DETAIL-${Date.now()}`,
+    name: 'Detail Material',
+    model: 'DETAIL-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 1,
+    min_stock: 0
+  });
+
+  const order = await orderService.createOrder({
+    order_no: `DETAIL-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Detail Material',
+        model: 'DETAIL-MODEL',
+        spec: 'DETAIL-MODEL',
+        quantity: 3,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-13T09:00:00.000Z',
+    operator: '仓管Detail',
+    items: [
+      {
+        order_item_id: order.items[0].id,
+        item_key: order.items[0].item_key,
+        quantity: 2
+      }
+    ]
+  });
+
+  const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
+  const listPayload = await listRes.json();
+  const receipt = listPayload.rows[0];
+
+  const detailRes = await fetch(`${baseUrl}/api/inventory-receipts/${receipt.id}`);
+  assert.equal(detailRes.status, 200);
+  const detail = await detailRes.json();
+  assert.equal(detail.id, receipt.id);
+  assert.equal(detail.order_no, order.order_no);
+  assert.equal(detail.reversible_quantity, 2);
+});
+
 test('POST /api/inventory-receipts/:id/reverse reverts stock and order status', async () => {
   const material = await Material.create({
     code: `TEST-MAT-REVERSE-${Date.now()}`,

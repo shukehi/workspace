@@ -455,6 +455,47 @@ class InventoryReceiptService {
             pageSize
         };
     }
+
+    async getById(id) {
+        const receiptId = Number(id);
+        if (!Number.isInteger(receiptId) || receiptId <= 0) {
+            const error = new Error('RECEIPT_NOT_FOUND');
+            error.code = 'RECEIPT_NOT_FOUND';
+            throw error;
+        }
+
+        const receipt = await InventoryReceipt.findByPk(receiptId);
+        if (!receipt) {
+            const error = new Error('RECEIPT_NOT_FOUND');
+            error.code = 'RECEIPT_NOT_FOUND';
+            throw error;
+        }
+
+        const plainReceipt = toPlainReceipt(receipt);
+        if (plainReceipt.direction === 'reversal') {
+            return {
+                ...plainReceipt,
+                reversed_quantity: null,
+                reversible_quantity: null
+            };
+        }
+
+        const reversals = await InventoryReceipt.findAll({
+            where: {
+                direction: 'reversal',
+                source_receipt_id: receiptId
+            }
+        });
+        const { reversedQuantity, reversibleQuantity } = computeReversalStats(
+            plainReceipt,
+            reversals.map(toPlainReceipt)
+        );
+        return {
+            ...plainReceipt,
+            reversed_quantity: reversedQuantity,
+            reversible_quantity: reversibleQuantity
+        };
+    }
 }
 
 const service = new InventoryReceiptService();

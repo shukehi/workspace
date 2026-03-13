@@ -12,6 +12,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const view = read('src/views/Inventory.vue');
   const store = read('src/stores/useInventoryStore.ts');
   const columns = read('src/components/inventory/InventoryReceiptColumns.ts');
+  const router = read('src/router/index.ts');
+  const detailView = read('src/views/InventoryReceiptDetail.vue');
 
   assert.match(view, /采购入库记录/);
   assert.match(view, /receiptSearchQuery/);
@@ -32,11 +34,13 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /exportReceiptsToCSV/);
   assert.match(view, /loadReceipts/);
   assert.match(view, /入库记录加载失败/);
-  assert.match(view, /累计入库数量/);
-  assert.match(view, /净入库数量/);
-  assert.match(view, /最近入库日期/);
+  assert.match(view, /累计入库/);
+  assert.match(view, /净入库/);
   assert.match(view, /涉及订单数/);
+  assert.match(view, /当前筛选记录数/);
+  assert.match(view, /总计入库数量/);
   assert.match(view, /route\.query\.orderNo/);
+  assert.match(view, /route\.query\.tab/);
   assert.match(view, /route\.query\.keyword/);
   assert.match(view, /route\.query\.direction/);
   assert.match(view, /route\.query\.reverseReason/);
@@ -54,6 +58,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /auditRows/);
   assert.match(view, /openReceiptAudit/);
   assert.match(view, /closeReceiptAudit/);
+  assert.match(view, /inventory-receipt-detail/);
+  assert.match(view, /watch\(\(\) => route\.query\.tab/);
   assert.match(view, /SheetContent/);
   assert.match(view, /SheetTitle/);
   assert.match(view, /SheetDescription/);
@@ -87,6 +93,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(store, /const receiptsPageSize = ref/);
   assert.match(store, /async function fetchInventoryReceipts/);
   assert.match(store, /async function fetchAllInventoryReceipts/);
+  assert.match(store, /async function fetchInventoryReceipt/);
   assert.match(store, /const pageSize = 200/);
   assert.match(store, /query\.set\('keyword'/);
   assert.match(store, /query\.set\('direction'/);
@@ -103,5 +110,13 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(columns, /header:\s*'撤销原因'/);
   assert.match(columns, /header:\s*'剩余可撤销'/);
   assert.match(columns, /轨迹/);
+  assert.match(columns, /详情/);
   assert.match(columns, /撤销/);
+  assert.match(router, /name:\s*'inventory-receipt-detail'/);
+  assert.match(detailView, /入库记录详情/);
+  assert.match(detailView, /loadDetail/);
+  assert.match(detailView, /fetchInventoryReceipt/);
+  assert.match(detailView, /跳转采购单/);
+  assert.match(detailView, /watch\(\(\) => route\.params\.id/);
+  assert.match(detailView, /query: \{ tab: 'receipts' \}/);
 });

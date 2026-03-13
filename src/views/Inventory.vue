@@ -24,7 +24,7 @@ const { toast } = useToastStore();
 const route = useRoute();
 const router = useRouter();
 
-const activeTab = ref(route.query.orderNo ? 'receipts' : 'inventory');
+const activeTab = ref(String(route.query.tab || (route.query.orderNo ? 'receipts' : 'inventory')));
 const activeCategory = ref('ALL');
 const searchQuery = ref('');
 const receiptSearchQuery = ref(String(route.query.keyword || '').trim());
@@ -166,6 +166,14 @@ const receiptColumns = createInventoryReceiptColumns({
   },
   onInspect: (receipt: InventoryReceipt) => {
     openReceiptAudit(receipt).catch(() => undefined);
+  },
+  onViewDetail: (receipt: InventoryReceipt) => {
+    router.push({
+      name: 'inventory-receipt-detail',
+      params: {
+        id: receipt.id
+      }
+    }).catch(() => undefined);
   },
   isReceiptReversible
 });
@@ -381,6 +389,12 @@ watch(receiptPageSize, (pageSize) => {
 watch(() => route.query.orderNo, (newOrderNo) => {
   if (newOrderNo) {
     activeTab.value = 'receipts';
+  }
+});
+
+watch(() => route.query.tab, (tab) => {
+  if (tab === 'inventory' || tab === 'receipts') {
+    activeTab.value = String(tab);
   }
 });
 </script>
@@ -642,6 +656,14 @@ watch(() => route.query.orderNo, (newOrderNo) => {
               @click="router.push({ name: 'procurement', query: { orderNo: selectedReceiptAudit.original.order_no } }).catch(() => undefined)"
             >
               跳转采购单
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              class="ml-2"
+              @click="router.push({ name: 'inventory-receipt-detail', params: { id: selectedReceiptAudit.original.id } }).catch(() => undefined)"
+            >
+              详情页
             </Button>
           </div>
           <div class="grid gap-3 md:grid-cols-2">

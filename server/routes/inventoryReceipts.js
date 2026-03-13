@@ -14,6 +14,19 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get('/:id', async (req, res) => {
+    try {
+        const receipt = await inventoryReceiptService.getById(req.params.id);
+        res.json(receipt);
+    } catch (e) {
+        console.error('Fetch inventory receipt failed', e);
+        if (e?.code === 'RECEIPT_NOT_FOUND') {
+            return res.status(404).json({ error: e.code });
+        }
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // POST /api/inventory-receipts/:id/reverse
 router.post('/:id/reverse', async (req, res) => {
     try {

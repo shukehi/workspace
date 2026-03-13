@@ -134,6 +134,10 @@ export const useInventoryStore = defineStore('inventory', () => {
         return rows;
     }
 
+    async function fetchInventoryReceipt(id: number | string) {
+        return await api.get<InventoryReceipt>(`/inventory-receipts/${id}`);
+    }
+
     async function reverseReceipt(id: number, payload: { operator?: string; remark?: string; reversed_at?: string; reverse_reason?: string; quantity?: number } = {}) {
         const receipt = await api.post<InventoryReceipt>(`/inventory-receipts/${id}/reverse`, payload);
         await fetchInventoryReceipts();
@@ -198,6 +202,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         fetchInventory, 
         fetchInventoryReceipts,
         fetchAllInventoryReceipts,
+        fetchInventoryReceipt,
         reverseReceipt,
         updateStock,
         exportReceiptsToCSV

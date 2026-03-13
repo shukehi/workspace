@@ -9,6 +9,7 @@ export const createInventoryReceiptColumns = (actions: {
     onJumpToOrder?: (receipt: InventoryReceipt) => void;
     onReverse?: (receipt: InventoryReceipt) => void;
     onInspect?: (receipt: InventoryReceipt) => void;
+    onViewDetail?: (receipt: InventoryReceipt) => void;
     isReceiptReversible?: (receipt: InventoryReceipt) => boolean;
 } = {}): ColumnDef<InventoryReceipt>[] => [
     {
@@ -100,6 +101,18 @@ export const createInventoryReceiptColumns = (actions: {
             const receipt = row.original;
             const reversible = actions.isReceiptReversible?.(receipt);
             const actionNodes = [];
+
+            if (actions.onViewDetail) {
+                actionNodes.push(h(Button, {
+                    variant: 'ghost',
+                    size: 'sm',
+                    class: 'h-8 px-2 text-muted-foreground hover:text-blue-700',
+                    onClick: (e: MouseEvent) => {
+                        e.stopPropagation();
+                        actions.onViewDetail?.(receipt);
+                    }
+                }, () => '详情'));
+            }
 
             if (actions.onInspect) {
                 actionNodes.push(h(Button, {
