@@ -51,8 +51,11 @@ Week 7
   - `src/stores/useSourceStore.ts` 已切到 `sourceAnalysisRuntime.analyzeOrder()`，不再直接串 `loadSourceAnalysisConfig + analyzeSourceOrder`
   - 已新增 `src/features/source-analysis/services/sourceOrderSnapshot.ts` 与 `sourceContractService.ts`
   - `src/stores/useSourceStore.ts` 已将 `localStorage` 快照和 ERP/历史合同装载下沉到 source-analysis service 层
+  - `src/services/configLoader.ts` 已新增 `refreshSourceAnalysisInputs()` 与 `getSourceAnalysisConfig()`
+  - `src/services/sourceAnalysisConfig.ts` 已改为只消费 loader 暴露的 source-analysis 入口，不再手工编排 `loadAll + refresh* + get*`
   - 已补 `tests/source-analysis-runtime.test.ts`
   - 已补 `tests/source-contract-service.test.ts` 与 `tests/source-order-snapshot.test.ts`
+  - 已补 `tests/config-loader-mapping.test.ts` 的 source-analysis loader 边界测试
   - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
 ```
 

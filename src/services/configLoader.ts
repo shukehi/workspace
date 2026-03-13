@@ -19,6 +19,7 @@ import {
     type MappingKind,
 } from '@/services/configRepository';
 import type { CylinderMappingConfig, HandleMappingConfig, LockForkMappingConfig, LockMappingConfig, PackagingMappingConfig } from '@/types/mapping';
+import type { SourceAnalysisConfig } from '@/types/sourceAnalysis';
 
 // Types for our configuration data
 export interface MaterialCatalog {
@@ -187,6 +188,24 @@ export class ConfigLoaderService {
 
     async refreshHandleMapping() {
         await this.loadHandleMapping();
+    }
+
+    async refreshSourceAnalysisInputs() {
+        await this.loadAll();
+        await this.refreshMaterials();
+        await this.refreshFormulas();
+    }
+
+    getSourceAnalysisConfig(): SourceAnalysisConfig {
+        return {
+            formulas: this.getFormulas(),
+            materials: this.getMaterials(),
+            cylinderMapping: this.getCylinderMapping(),
+            lockMapping: this.getLockMapping(),
+            handleMapping: this.getHandleMapping(),
+            lockForkMapping: this.getLockForkMapping(),
+            packagingMapping: this.getPackagingMapping(),
+        };
     }
 
     getMaterials() { return this.materialCatalog; }

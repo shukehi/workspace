@@ -324,8 +324,10 @@
 3. 已新增 `tests/source-analysis-runtime.test.ts`，锁定 runtime 对 config loader 和 analyzer 的调用顺序。
 4. 已新增 `src/features/source-analysis/services/sourceOrderSnapshot.ts` 与 `sourceContractService.ts`，承载 `localStorage` 快照与合同装载。
 5. `src/stores/useSourceStore.ts` 已将快照持久化和 ERP/历史合同读取下沉到 source-analysis service 层。
-6. 已新增 `tests/source-contract-service.test.ts` 与 `tests/source-order-snapshot.test.ts`。
-7. 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`。
+6. `src/services/configLoader.ts` 已新增 `refreshSourceAnalysisInputs()` 与 `getSourceAnalysisConfig()`，统一 source-analysis 所需配置的刷新和快照装配。
+7. `src/services/sourceAnalysisConfig.ts` 已改为只消费 loader 暴露的 source-analysis 入口，不再手工串联 `loadAll + refresh* + get*`。
+8. 已新增 `tests/source-contract-service.test.ts` 与 `tests/source-order-snapshot.test.ts`，并补了 `tests/config-loader-mapping.test.ts` 的 source-analysis loader 边界测试。
+9. 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`。
 
 ### 9.2 Materials / catalog 边界
 

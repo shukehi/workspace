@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ConfigLoaderService } from '../src/services/configLoader';
-import { ApiWithStaticFallbackConfigRepository } from '../src/services/configRepository';
+import { ApiWithStaticFallbackConfigRepository, type ConfigRepository } from '../src/services/configRepository';
 
 type MockResponse = {
   ok: boolean;
@@ -222,4 +222,52 @@ test('configLoader: handle loader normalizes payloads through adapter', async ()
   assert.equal(loader.getHandleMapping().thicknessAccessoryPacks['10'], '10公分配件包');
   assert.equal(loader.getHandleMapping().thicknessAccessoryPacks['7'], '7公分配件包');
   assert.equal(loader.getLoadSources().handle, 'api');
+});
+
+test('configLoader: source-analysis refresh and snapshot are owned by loader service', async () => {
+  const calls: string[] = [];
+  const repository: ConfigRepository = {
+    async readMaterials() {
+      calls.push('materials');
+      return {
+        payload: {
+          M001: { supplier: '供应商A', name: '材料A' },
+        },
+        source: 'api',
+      };
+    },
+    async readFormulas() {
+      calls.push('formulas');
+      return {
+        payload: {
+          F001: { displayName: '配方A', bom: [] },
+        },
+        source: 'api',
+      };
+    },
+    async readMapping(kind) {
+      calls.push(kind);
+      const payloads: Record<string, unknown> = {
+        packaging: { 包装A: '外协包装A' },
+        cylinder: { dimensions: { 7: { code: '90AB', eccentricity: '34.5*55.5' } } },
+        lock: { mappings: { 锁具A: { supplier: '汇成', vendorName: '6607大锁' } } },
+        lockFork: { suppliers: { default: '应志友' } },
+        handle: { defaultSupplier: '拉手供应商', mappings: {} },
+      };
+      return {
+        payload: payloads[kind],
+        source: 'api',
+      };
+    },
+  };
+
+  const loader = new ConfigLoaderService(repository);
+  await loader.refreshSourceAnalysisInputs();
+  const sourceConfig = loader.getSourceAnalysisConfig();
+
+  assert.deepEqual(calls, ['materials', 'cylinder', 'lock', 'lockFork', 'packaging', 'handle', 'formulas', 'materials', 'formulas']);
+  assert.ok(sourceConfig.materials.M001);
+  assert.ok(sourceConfig.formulas.F001);
+  assert.equal(sourceConfig.packagingMapping.mappings['包装A'], '外协包装A');
+  assert.equal(sourceConfig.lockForkMapping.suppliers.default, '应志友');
 });
