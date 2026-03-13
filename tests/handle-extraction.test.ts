@@ -27,6 +27,7 @@ test('extractHandleData maps matched handle by activity/thickness', () => {
       'DJ-6847双活不分左右': {
         supplier: '供应商X',
         vendorName: 'FC-09太空灰',
+        materialCode: 'HANDLE-MAT-001',
       },
     },
   };
@@ -34,6 +35,7 @@ test('extractHandleData maps matched handle by activity/thickness', () => {
   const extracted = extractHandleData(rows as any[], { remark: '' }, mapping);
   assert.equal(extracted.length, 1);
   assert.equal(extracted[0].supplier, '供应商X');
+  assert.equal((extracted[0] as any).materialId, 'HANDLE-MAT-001');
   assert.equal(extracted[0].type, 'FC-09太空灰 - 双活');
   assert.equal(extracted[0].spec, '10公分配件包');
   assert.equal(extracted[0].quantityLeft, 2);

@@ -169,7 +169,8 @@ test('legacy handle mapping endpoints seed and publish workflow revisions', asyn
     mappings: {
       拉手旧版: {
         supplier: '旧拉手供应商',
-        vendorName: '旧拉手外协名'
+        vendorName: '旧拉手外协名',
+        materialCode: 'HANDLE-LEGACY-001'
       },
     },
   }, null, 2));
@@ -179,6 +180,7 @@ test('legacy handle mapping endpoints seed and publish workflow revisions', asyn
   const getBody = await getRes.json();
   assert.equal(getBody.defaultSupplier, '旧拉手供应商');
   assert.equal(getBody.mappings['拉手旧版'].vendorName, '旧拉手外协名');
+  assert.equal(getBody.mappings['拉手旧版'].materialCode, 'HANDLE-LEGACY-001');
 
   const workflowDetail = await MappingService.getMappingDetail('handle');
   assert.equal(workflowDetail.ok, true);
@@ -195,7 +197,8 @@ test('legacy handle mapping endpoints seed and publish workflow revisions', asyn
       mappings: {
         拉手新版: {
           supplier: '新拉手供应商',
-          vendorName: '新拉手外协名'
+          vendorName: '新拉手外协名',
+          materialCode: 'HANDLE-NEW-001'
         },
       },
     }),

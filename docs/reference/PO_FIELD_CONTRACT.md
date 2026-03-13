@@ -144,6 +144,7 @@ ERP 输入：
 
 提取层输入（extractHandleData）：
 
+- `materialId`（优先来自 `handle` 映射配置中的 `materialCode`）
 - `type`（产品名称）
 - `spec`（规格）
 - `quantity_left`
@@ -154,6 +155,7 @@ ERP 输入：
 
 订单项输出（OrderItem）：
 
+- `material_id` = `materialId || type`
 - `supplier`
 - `type`
 - `spec`

@@ -20,6 +20,7 @@ type MappingRow = {
   model: string;
   supplier: string;
   vendorName: string;
+  materialCode: string;
 };
 
 const defaultSupplier = ref('');
@@ -45,12 +46,13 @@ function makeKeywordRow(value = ''): KeywordRow {
   return { id: createRowId(), value };
 }
 
-function makeMappingRow(model = '', supplier = '', vendorName = ''): MappingRow {
+function makeMappingRow(model = '', supplier = '', vendorName = '', materialCode = ''): MappingRow {
   return {
     id: createRowId(),
     model,
     supplier,
-    vendorName
+    vendorName,
+    materialCode
   };
 }
 
@@ -59,7 +61,8 @@ const payload = computed<HandleMappingConfig>(() => {
   mappings.value.forEach((row) => {
     mappingObj[row.model] = {
       supplier: row.supplier,
-      vendorName: row.vendorName
+      vendorName: row.vendorName,
+      ...(row.materialCode.trim() ? { materialCode: row.materialCode } : {})
     };
   });
 
@@ -132,6 +135,7 @@ const filteredRows = computed(() => {
     row.model.toLowerCase().includes(keyword)
     || row.supplier.toLowerCase().includes(keyword)
     || row.vendorName.toLowerCase().includes(keyword)
+    || row.materialCode.toLowerCase().includes(keyword)
   ));
 });
 
@@ -168,7 +172,8 @@ function resetWithPayload(data: HandleMappingConfig) {
   mappings.value = Object.entries(data.mappings || {}).map(([model, conf]) => makeMappingRow(
     model,
     conf.supplier,
-    conf.vendorName
+    conf.vendorName,
+    conf.materialCode || ''
   ));
   if (mappings.value.length === 0) mappings.value = [makeMappingRow()];
 
@@ -390,7 +395,7 @@ onMounted(editor.load);
             <CardHeader class="space-y-3">
               <div>
                 <CardTitle>型号映射</CardTitle>
-                <CardDescription>内部拉手名称映射到供应商名称（单活/双活）。</CardDescription>
+                <CardDescription>内部拉手名称映射到供应商名称，并可选填库存物料编码。</CardDescription>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
                 <div class="space-y-1">
@@ -404,9 +409,10 @@ onMounted(editor.load);
                 <table class="w-full text-sm text-left">
                   <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0 z-10">
                     <tr>
-                      <th class="px-3 py-2 w-[25%]">内部型号</th>
-                      <th class="px-3 py-2 w-[20%]">供应商</th>
-                      <th class="px-3 py-2 w-[35%]">供应商名称</th>
+                      <th class="px-3 py-2 w-[20%]">内部型号</th>
+                      <th class="px-3 py-2 w-[18%]">供应商</th>
+                      <th class="px-3 py-2 w-[24%]">供应商名称</th>
+                      <th class="px-3 py-2 w-[28%]">物料编码</th>
                       <th class="px-3 py-2 w-[10%]">操作</th>
                     </tr>
                   </thead>
@@ -420,6 +426,9 @@ onMounted(editor.load);
                       </td>
                       <td class="px-3 py-2">
                         <Input v-model="row.vendorName" placeholder="供应商采购名称" />
+                      </td>
+                      <td class="px-3 py-2">
+                        <Input v-model="row.materialCode" placeholder="可选：库存物料编码" />
                       </td>
                       <td class="px-3 py-2">
                         <Button variant="ghost" size="sm" @click="removeMappingRow(row.id)">删除</Button>

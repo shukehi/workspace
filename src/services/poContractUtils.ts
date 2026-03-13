@@ -122,6 +122,7 @@ export function createLockOrderItem(params: {
 
 export function createHandleOrderItem(params: {
     supplier: string;
+    materialId?: string;
     type: string;
     spec: string;
     qtyLeft: number;
@@ -131,7 +132,7 @@ export function createHandleOrderItem(params: {
 }): OrderItem {
     return {
         id: 0,
-        material_id: params.type,
+        material_id: params.materialId || params.type,
         supplier: params.supplier,
         name: params.type || '拉手',
         model: params.spec || '-',

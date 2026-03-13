@@ -24,7 +24,7 @@ function createDeps(): RuleContext {
       hardwareRequirements: {
         cylinders: [{ supplier: '忠恒', type: '锁芯A', eccentricity: '34.5*55.5', quantity: 10 }],
         locks: [{ supplier: '汇成', type: '智能锁体A', spec: '主锁', unit: '把', quantityLeft: 3, quantityRight: 5, quantity: 8, remark: '单活' }],
-        handles: [{ supplier: '供应商X', type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantityLeft: 2, quantityRight: 4, quantity: 6 }],
+        handles: [{ supplier: '供应商X', materialId: 'HANDLE-MAT-002', type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantityLeft: 2, quantityRight: 4, quantity: 6 }],
         lockForks: [{ supplier: '应志友', type: '锁叉A', spec: '570*301 = 871', quantity: 12 }],
         packaging: {
           p1: {
@@ -109,7 +109,7 @@ test('po generator integration: compose groups and create selected category orde
 
   const handleOrder = orders.find((o) => o.category === '拉手');
   assert.ok(handleOrder);
-  assert.equal(handleOrder!.items[0].material_id, 'DJ-6847双活供应商名');
+  assert.equal(handleOrder!.items[0].material_id, 'HANDLE-MAT-002');
 
   const lockForkOrder = orders.find((o) => o.category === '锁叉');
   assert.ok(lockForkOrder);

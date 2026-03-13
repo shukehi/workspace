@@ -22,6 +22,7 @@ export function buildHandleGroups(ctx: RuleContext): SupplierGroup[] {
 
     groupsBySupplier[key].items.push(createHandleOrderItem({
       supplier,
+      materialId: handle.materialId,
       type: handle.type || '拉手',
       spec: handle.spec || '-',
       qtyLeft: Number(handle.quantityLeft || 0),
