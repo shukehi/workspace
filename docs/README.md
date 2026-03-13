@@ -19,6 +19,7 @@
 
 阶段性改造计划、任务拆分和迁移路线图。
 
+- [LOCK_FORK_HIGH_HEIGHT_RULE_PLAN_2026-03-11.md](/Users/aries/Dve/workspace/docs/roadmaps/LOCK_FORK_HIGH_HEIGHT_RULE_PLAN_2026-03-11.md)
 - [SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md)
 - [STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md](/Users/aries/Dve/workspace/docs/roadmaps/STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md)
 - [PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md](/Users/aries/Dve/workspace/docs/roadmaps/PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md)
@@ -30,6 +31,7 @@
 
 阶段性总结、里程碑进度与结果沉淀。
 
+- [PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md)
 - [SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md](/Users/aries/Dve/workspace/docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)
 
 ## reference
