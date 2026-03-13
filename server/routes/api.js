@@ -11,6 +11,7 @@ const printRoutes = require('./print');
 const orderRoutes = require('./order');
 const materialRoutes = require('./material');
 const inventoryRoutes = require('./inventory');
+const inventoryReceiptRoutes = require('./inventoryReceipts');
 const contractRoutes = require('./contracts');
 const contractCacheService = require('../services/ContractCacheService');
 
@@ -35,6 +36,7 @@ router.get('/contracts', async (req, res) => {
 router.use('/contracts', contractRoutes);
 router.use('/materials', materialRoutes);
 router.use('/inventory', inventoryRoutes);
+router.use('/inventory-receipts', inventoryReceiptRoutes);
 router.use('/print', printRoutes);
 
 /**

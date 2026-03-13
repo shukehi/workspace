@@ -2,6 +2,7 @@ const sequelize = require('../config/database');
 const Order = require('./Order');
 const OrderItem = require('./OrderItem');
 const OrderIdempotencyKey = require('./OrderIdempotencyKey');
+const InventoryReceipt = require('./InventoryReceipt');
 const Material = require('./Material');
 const MaterialCatalogProfile = require('./MaterialCatalogProfile');
 const MaterialCatalogRevision = require('./MaterialCatalogRevision');
@@ -20,6 +21,8 @@ Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCA
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
 Order.hasMany(OrderIdempotencyKey, { foreignKey: 'order_id', as: 'idempotencyKeys', onDelete: 'CASCADE' });
 OrderIdempotencyKey.belongsTo(Order, { foreignKey: 'order_id' });
+Order.hasMany(InventoryReceipt, { foreignKey: 'order_id', as: 'inventoryReceipts', onDelete: 'CASCADE' });
+InventoryReceipt.belongsTo(Order, { foreignKey: 'order_id' });
 FormulaDefinition.hasMany(FormulaRevision, { foreignKey: 'formula_id', as: 'revisions', onDelete: 'CASCADE' });
 FormulaRevision.belongsTo(FormulaDefinition, { foreignKey: 'formula_id' });
 FormulaDefinition.hasMany(FormulaAuditLog, { foreignKey: 'formula_id', as: 'auditLogs', onDelete: 'CASCADE' });
@@ -39,6 +42,7 @@ async function ensureOrderItemColumns() {
     const existing = await queryInterface.describeTable(table);
 
     const targetColumns = [
+        'material_id',
         'supplier',
         'internal_name',
         'external_name',
@@ -68,7 +72,17 @@ async function ensureOrderColumns() {
     const table = 'orders';
     const existing = await queryInterface.describeTable(table);
 
-    const targetColumns = ['remark', 'source_contract_code', 'dedupe_key'];
+    const targetColumns = [
+        'remark',
+        'source_contract_code',
+        'dedupe_key',
+        'arrived_at',
+        'arrived_by',
+        'arrived_remark',
+        'stocked_in_at',
+        'stocked_in_by',
+        'stocked_in_remark'
+    ];
 
     for (const col of targetColumns) {
         if (existing[col]) continue;
@@ -160,6 +174,7 @@ module.exports = {
     Order,
     OrderItem,
     OrderIdempotencyKey,
+    InventoryReceipt,
     Material,
     MaterialCatalogProfile,
     MaterialCatalogRevision,

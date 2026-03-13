@@ -6,7 +6,7 @@ const path = require('node:path');
 const TEST_DB = path.join('/tmp', 'order-search-order-service.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Order, OrderItem, OrderIdempotencyKey } = require('../server/models');
+const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models');
 const orderService = require('../server/services/OrderService');
 
 const createdOrderIds = [];
@@ -75,13 +75,13 @@ test('OrderService CRUD and category filter', async (t) => {
   const nextCreatedAt = '2026-02-01T00:00:00.000Z';
   const updated = await orderService.updateOrder(created.id, {
     category: '锁芯',
-    status: 'processing',
+    status: 'submitted',
     created_at: nextCreatedAt,
     remark: '整单备注-更新'
   });
 
   assert.equal(updated.category, '锁芯');
-  assert.equal(updated.status, 'processing');
+  assert.equal(updated.status, 'submitted');
   assert.equal(new Date(updated.created_at).toISOString(), nextCreatedAt);
   assert.equal(updated.remark, '整单备注-更新');
   assert.equal(updated.items[0].remark, 'created by test');
@@ -242,6 +242,205 @@ test('OrderService can restore a cancelled auto order only when idempotency key 
       return true;
     }
   );
+});
+
+test('OrderService supports processing to arrived transition and restores cancelled auto orders to arrived', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('AUTO-ARRIVED'),
+    supplier: '汇成',
+    source_contract_code: 'CT-AUTO-ARRIVED-001',
+    category: '锁具',
+    status: 'processing',
+    delivery_date: '2026-03-15T00:00:00.000Z',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-ARRIVED-001',
+    },
+    created_at: '2026-03-12T09:00:00.000Z',
+    items: [
+      {
+        supplier: '汇成',
+        type: '锁体A',
+        name: '锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 1,
+        unit: '把',
+      }
+    ]
+  });
+
+  const arrived = await orderService.markArrived(created.id, {
+    arrived_at: '2026-03-12T10:00:00.000Z',
+    arrived_by: '采购员A',
+    arrived_remark: '整单到货'
+  });
+  assert.equal(arrived.status, 'arrived');
+  assert.equal(arrived.arrived_by, '采购员A');
+  assert.equal(arrived.arrived_remark, '整单到货');
+  assert.equal(arrived.arrived_at, '2026-03-12T10:00:00.000Z');
+  assert.equal(arrived.delivery_date, '2026-03-15T00:00:00.000Z');
+
+  await orderService.updateOrder(created.id, { status: 'cancelled' });
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id, active: true } }), 0);
+
+  const restored = await orderService.updateOrder(created.id, { status: 'arrived' });
+  assert.equal(restored.status, 'arrived');
+  assert.equal(await OrderIdempotencyKey.count({ where: { order_id: created.id, active: true } }), 1);
+});
+
+test('OrderService rejects invalid status transitions', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('INVALID-TRANSITION'),
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    created_at: '2026-03-12T08:00:00.000Z',
+    items: [
+      {
+        supplier: '测试供应商',
+        name: '包装箱',
+        model: 'PK-1',
+        spec: '900*2050',
+        quantity: 2,
+        unit: '套',
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () => orderService.updateOrder(created.id, { status: 'completed' }),
+    (error) => {
+      assert.equal(error.code, 'INVALID_STATUS_TRANSITION');
+      assert.equal(error.fromStatus, 'draft');
+      assert.equal(error.toStatus, 'completed');
+      return true;
+    }
+  );
+});
+
+test('OrderService stockInOrder creates receipts and increments inventory', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const material = await Material.create({
+    code: 'MAT-STOCKIN-001',
+    name: '锁体A',
+    model: '主锁',
+    supplier: '汇成',
+    stock_quantity: 5,
+    min_stock: 1,
+    unit: '把',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN'),
+    supplier: '汇成',
+    source_contract_code: 'CT-STOCK-IN-001',
+    category: '锁具',
+    status: 'arrived',
+    arrived_at: '2026-03-12T09:00:00.000Z',
+    items: [
+      {
+        material_id: 'MAT-STOCKIN-001',
+        supplier: '汇成',
+        type: '锁体A',
+        name: '锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 3,
+        unit: '把',
+      }
+    ]
+  });
+
+  const stockedIn = await orderService.stockInOrder(created.id, {
+    stocked_in_at: '2026-03-12T11:00:00.000Z',
+    operator: '仓管A',
+    remark: '验收入库'
+  });
+
+  assert.equal(stockedIn.status, 'completed');
+  assert.equal(stockedIn.stocked_in_by, '仓管A');
+  assert.equal(stockedIn.stocked_in_remark, '验收入库');
+  assert.equal(stockedIn.stocked_in_at, '2026-03-12T11:00:00.000Z');
+
+  const refreshedMaterial = await Material.findByPk(material.id);
+  assert.equal(Number(refreshedMaterial.stock_quantity), 8);
+
+  const receipts = await InventoryReceipt.findAll({ where: { order_id: created.id } });
+  assert.equal(receipts.length, 1);
+  assert.equal(receipts[0].material_id, 'MAT-STOCKIN-001');
+  assert.equal(Number(receipts[0].quantity), 3);
+});
+
+test('OrderService stockInOrder rejects missing material mapping', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-MISSING'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MISSING-MATERIAL',
+        supplier: '汇成',
+        name: '锁体B',
+        model: '副锁',
+        spec: '副锁',
+        quantity: 1,
+        unit: '把',
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () => orderService.stockInOrder(created.id, {
+      stocked_in_at: '2026-03-12T11:00:00.000Z',
+      operator: '仓管B',
+    }),
+    (error) => {
+      assert.equal(error.code, 'MATERIAL_NOT_FOUND');
+      assert.equal(error.materialId, 'MISSING-MATERIAL');
+      return true;
+    }
+  );
+});
+
+test('OrderService stockInOrder rejects orders without items', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-NO-ITEMS'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: []
+  });
+
+  await assert.rejects(
+    () => orderService.stockInOrder(created.id, {
+      stocked_in_at: '2026-03-12T11:00:00.000Z',
+      operator: '仓管C',
+    }),
+    (error) => {
+      assert.equal(error.code, 'ORDER_ITEMS_REQUIRED');
+      return true;
+    }
+  );
+
+  const refreshed = await orderService.getOrderById(created.id);
+  assert.equal(refreshed.status, 'arrived');
+  assert.equal(await InventoryReceipt.count({ where: { order_id: created.id } }), 0);
 });
 
 test('OrderService persists source_contract_code from metadata and ignores client-supplied dedupe_key on update', async () => {

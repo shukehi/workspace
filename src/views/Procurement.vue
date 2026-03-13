@@ -34,7 +34,8 @@ const statusLabels: Record<Order['status'], string> = {
   draft: '草稿',
   submitted: '已提交',
   processing: '处理中',
-  completed: '已完成',
+  arrived: '已到货',
+  completed: '已入库',
   cancelled: '已取消'
 };
 
@@ -100,6 +101,21 @@ const handleStatusUpdate = async (order: Order, status: Order['status']) => {
     });
   } catch {
     toast({ title: '更新失败', variant: 'destructive' });
+  }
+};
+
+const handleMarkArrived = async (order: Order) => {
+  try {
+    await store.markOrderArrived(order.id, {
+      arrived_at: new Date().toISOString(),
+    });
+    toast({
+      title: '到货登记成功',
+      description: `订单 ${order.order_no} 已设为 ${statusLabels.arrived}`,
+      variant: 'success'
+    });
+  } catch {
+    toast({ title: '到货登记失败', variant: 'destructive' });
   }
 };
 
@@ -182,14 +198,48 @@ const handleExport = () => {
   });
 };
 
+const handleStockInOrder = async (order: Order) => {
+  try {
+    await store.stockInOrder(order.id, {
+      stocked_in_at: new Date().toISOString(),
+    });
+    toast({
+      title: '入库成功',
+      description: `订单 ${order.order_no} 已设为 ${statusLabels.completed}`,
+      variant: 'success'
+    });
+  } catch (error: any) {
+    const errorCode = String(error?.response?.data?.error || '');
+    if (errorCode === 'MATERIAL_NOT_FOUND') {
+      toast({
+        title: '入库失败',
+        description: `存在未匹配库存物料：${error?.response?.data?.materialId || '-'}`,
+        variant: 'destructive'
+      });
+      return;
+    }
+    toast({ title: '入库失败', variant: 'destructive' });
+  }
+};
+
 const canBulkSubmit = computed(() => (
   selectedRows.value.length > 0
   && selectedRows.value.every((order) => order.status === 'draft')
 ));
 
-const canBulkComplete = computed(() => (
+const canBulkProcess = computed(() => (
   selectedRows.value.length > 0
-  && selectedRows.value.every((order) => order.status === 'submitted' || order.status === 'processing')
+  && selectedRows.value.every((order) => order.status === 'submitted')
+));
+
+const canBulkArrive = computed(() => (
+  selectedRows.value.length > 0
+  && selectedRows.value.every((order) => order.status === 'processing')
+));
+
+const canBulkStockIn = computed(() => (
+  selectedRows.value.length > 0
+  && selectedRows.value.every((order) => order.status === 'arrived')
 ));
 
 const canBulkRestoreDraft = computed(() => (
@@ -199,7 +249,7 @@ const canBulkRestoreDraft = computed(() => (
 
 function isBulkStatusTransitionAllowed(status: Order['status']) {
   if (status === 'submitted') return canBulkSubmit.value;
-  if (status === 'completed') return canBulkComplete.value;
+  if (status === 'processing') return canBulkProcess.value;
   if (status === 'draft') return canBulkRestoreDraft.value;
   return false;
 }
@@ -224,12 +274,99 @@ const handleBulkStatusUpdate = async (status: Order['status']) => {
   }
 };
 
+const handleBulkArrive = async () => {
+  const orders = [...selectedRows.value];
+  const count = orders.length;
+  if (!canBulkArrive.value) {
+    toast({
+      title: '状态流转不允许',
+      description: '当前所选订单不能批量登记到货',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  try {
+    const results = await Promise.allSettled(
+      orders.map((order) => store.markOrderArrived(order.id, { arrived_at: new Date().toISOString() }))
+    );
+    const successCount = results.filter((result) => result.status === 'fulfilled').length;
+    const failedCount = results.length - successCount;
+
+    if (failedCount === 0) {
+      clearSelection();
+      toast({ title: '批量到货登记成功', description: `${count} 张订单已设为 ${statusLabels.arrived}`, variant: 'success' });
+      return;
+    }
+
+    clearSelection();
+    toast({
+      title: '批量到货部分完成',
+      description: `${successCount} 张成功，${failedCount} 张失败，请刷新后重试失败订单`,
+      variant: 'destructive',
+    });
+  } catch {
+    toast({ title: '操作失败', variant: 'destructive' });
+  }
+};
+
+const handleBulkStockIn = async () => {
+  const orders = [...selectedRows.value];
+  const count = orders.length;
+  if (!canBulkStockIn.value) {
+    toast({
+      title: '状态流转不允许',
+      description: '当前所选订单不能批量执行入库',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  try {
+    const results = await Promise.allSettled(
+      orders.map((order) => store.stockInOrder(order.id, { stocked_in_at: new Date().toISOString() }))
+    );
+    const successCount = results.filter((result) => result.status === 'fulfilled').length;
+    const failedCount = results.length - successCount;
+
+    if (failedCount === 0) {
+      clearSelection();
+      toast({ title: '批量入库成功', description: `${count} 张订单已设为 ${statusLabels.completed}`, variant: 'success' });
+      return;
+    }
+
+    const firstRejected = results.find((result) => result.status === 'rejected');
+    const errorCode = String((firstRejected as PromiseRejectedResult | undefined)?.reason?.response?.data?.error || '');
+    const materialId = (firstRejected as PromiseRejectedResult | undefined)?.reason?.response?.data?.materialId;
+
+    clearSelection();
+    if (errorCode === 'MATERIAL_NOT_FOUND') {
+      toast({
+        title: '批量入库部分完成',
+        description: `${successCount} 张成功，${failedCount} 张失败。未匹配库存物料：${materialId || '-'}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: '批量入库部分完成',
+      description: `${successCount} 张成功，${failedCount} 张失败，请刷新后重试失败订单`,
+      variant: 'destructive',
+    });
+  } catch {
+    toast({ title: '操作失败', variant: 'destructive' });
+  }
+};
+
 const columns = createColumns({
   onEdit: openEdit,
   onDelete: requestDelete,
   onPreview: openPreview,
   onPrint: handlePrintOrder,
   onExportPdf: handleExportPdfOrder,
+  onMarkArrived: handleMarkArrived,
+  onStockIn: handleStockInOrder,
   onStatusUpdate: handleStatusUpdate
 });
 
@@ -293,7 +430,7 @@ onMounted(() => {
           :enable-selection="true"
           :toolbar="false"
           :empty-text="tableEmptyText"
-          :table-min-width="1020"
+          :table-min-width="1240"
           density="compact"
           @selection-change="onSelectionChange"
         />
@@ -303,9 +440,13 @@ onMounted(() => {
     <ProcurementBulkActionBar
       :selected-count="selectedRows.length"
       :can-submit="canBulkSubmit"
-      :can-complete="canBulkComplete"
+      :can-process="canBulkProcess"
+      :can-arrive="canBulkArrive"
+      :can-stock-in="canBulkStockIn"
       :can-restore-draft="canBulkRestoreDraft"
       @status="handleBulkStatusUpdate"
+      @arrive="handleBulkArrive"
+      @stock-in="handleBulkStockIn"
       @export="handleExport"
       @delete="handleBulkDelete"
       @clear="clearSelection"

@@ -14,7 +14,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     });
 
     const pendingOrdersCount = computed(() => {
-        return orderStore.purchaseOrders.filter(o => ['draft', 'submitted', 'processing'].includes(o.status)).length;
+        return orderStore.purchaseOrders.filter(o => ['draft', 'submitted', 'processing', 'arrived'].includes(o.status)).length;
     });
 
     const inventoryHealth = computed(() => {
@@ -37,7 +37,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     });
 
     const statusStats = computed(() => {
-        const statuses = ['draft', 'submitted', 'processing', 'completed', 'cancelled'];
+        const statuses = ['draft', 'submitted', 'processing', 'arrived', 'completed', 'cancelled'];
         return statuses.map(status => ({
             status,
             count: orderStore.purchaseOrders.filter(o => o.status === status).length

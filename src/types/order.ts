@@ -31,8 +31,14 @@ export interface Order {
     total_amount: number;
     created_at: string;
     delivery_date?: string;
+    arrived_at?: string;
+    arrived_by?: string;
+    arrived_remark?: string;
+    stocked_in_at?: string;
+    stocked_in_by?: string;
+    stocked_in_remark?: string;
     category?: string;
-    status: 'draft' | 'submitted' | 'processing' | 'completed' | 'cancelled';
+    status: 'draft' | 'submitted' | 'processing' | 'arrived' | 'completed' | 'cancelled';
     remark?: string;
     metadata?: {
         customer_name?: string;

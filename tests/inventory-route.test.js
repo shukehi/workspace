@@ -7,8 +7,10 @@ const path = require('node:path');
 const TEST_DB = path.join('/tmp', 'order-search-inventory-route.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material } = require('../server/models');
+const { sequelize, Material, Order, OrderItem } = require('../server/models');
 const inventoryRoutes = require('../server/routes/inventory');
+const inventoryReceiptRoutes = require('../server/routes/inventoryReceipts');
+const orderService = require('../server/services/OrderService');
 
 const createdMaterialIds = [];
 let server;
@@ -18,6 +20,7 @@ async function startServer() {
   const app = express();
   app.use(express.json());
   app.use('/api/inventory', inventoryRoutes);
+  app.use('/api/inventory-receipts', inventoryReceiptRoutes);
 
   return await new Promise((resolve) => {
     const s = app.listen(0, () => {
@@ -73,6 +76,51 @@ test('GET /api/inventory and PUT /api/inventory/:id', async () => {
   assert.equal(updated.min_stock, 20);
 });
 
+test('GET /api/inventory-receipts returns stock-in records', async () => {
+  const material = await Material.create({
+    code: `TEST-MAT-RECEIPT-${Date.now()}`,
+    name: 'Receipt Material',
+    model: 'R-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 3,
+    min_stock: 1
+  });
+
+  const order = await orderService.createOrder({
+    order_no: `RECEIPT-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Receipt Material',
+        model: 'R-MODEL',
+        spec: 'R-MODEL',
+        quantity: 2,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-12T12:00:00.000Z',
+    operator: '仓管A',
+    remark: '测试入库'
+  });
+
+  const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
+  assert.equal(listRes.status, 200);
+  const list = await listRes.json();
+  assert.equal(list.length, 1);
+  assert.equal(list[0].order_id, order.id);
+  assert.equal(list[0].material_id, material.code);
+  assert.equal(list[0].operator, '仓管A');
+});
+
 test.after(async () => {
   if (server) {
     await new Promise((resolve) => server.close(resolve));
@@ -80,6 +128,8 @@ test.after(async () => {
   if (createdMaterialIds.length > 0) {
     await Material.destroy({ where: { id: createdMaterialIds } });
   }
+  await OrderItem.destroy({ where: {} });
+  await Order.destroy({ where: {} });
   await sequelize.close();
   if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 });

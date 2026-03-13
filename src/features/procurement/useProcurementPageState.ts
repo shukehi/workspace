@@ -22,7 +22,8 @@ const STATUS_OPTIONS: Array<{ id: StatusFilter; label: string }> = [
   { id: 'draft', label: '草稿' },
   { id: 'submitted', label: '已提交' },
   { id: 'processing', label: '处理中' },
-  { id: 'completed', label: '已完成' },
+  { id: 'arrived', label: '已到货' },
+  { id: 'completed', label: '已入库' },
   { id: 'cancelled', label: '已取消' },
 ];
 
@@ -37,7 +38,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
 
   const summaryStats = computed(() => {
     const totalAmount = store.purchaseOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const pendingCount = store.purchaseOrders.filter((order) => ['draft', 'submitted', 'processing'].includes(order.status)).length;
+    const pendingCount = store.purchaseOrders.filter((order) => ['draft', 'submitted', 'processing', 'arrived'].includes(order.status)).length;
     const completedCount = store.purchaseOrders.filter((order) => order.status === 'completed').length;
     const today = new Date().toISOString().split('T')[0];
     const todayCount = store.purchaseOrders.filter((order) => order.created_at.startsWith(today)).length;
@@ -89,7 +90,7 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
     let list = store.sortedOrders;
     if (activeStatus.value !== 'ALL') {
       if (activeStatus.value === 'PENDING') {
-        list = list.filter((order) => ['draft', 'submitted', 'processing'].includes(order.status));
+        list = list.filter((order) => ['draft', 'submitted', 'processing', 'arrived'].includes(order.status));
       } else {
         list = list.filter((order) => order.status === activeStatus.value);
       }

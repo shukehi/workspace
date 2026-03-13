@@ -40,7 +40,7 @@ const emit = defineEmits<{
       </CardHeader>
       <CardContent class="pb-2.5 pt-0 px-3">
         <div class="text-xl font-bold tracking-tight">{{ pendingCount }}</div>
-        <p class="text-[10px] text-amber-600/70 mt-0.5">待付、提交、处理中</p>
+        <p class="text-[10px] text-amber-600/70 mt-0.5">草稿、已提交、采购中、待入库</p>
       </CardContent>
     </Card>
 
@@ -63,12 +63,12 @@ const emit = defineEmits<{
       @click="emit('filter', 'completed')"
     >
       <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 pt-2.5 px-3">
-        <CardTitle class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">已结案</CardTitle>
+        <CardTitle class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">已入库</CardTitle>
         <CheckCircle class="h-3.5 w-3.5 text-emerald-500" />
       </CardHeader>
       <CardContent class="pb-2.5 pt-0 px-3">
         <div class="text-xl font-bold tracking-tight">{{ completedCount }}</div>
-        <p class="text-[10px] text-muted-foreground mt-0.5 opacity-70">已完成订单统计</p>
+        <p class="text-[10px] text-muted-foreground mt-0.5 opacity-70">已入库订单统计</p>
       </CardContent>
     </Card>
   </div>

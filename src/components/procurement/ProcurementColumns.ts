@@ -2,7 +2,7 @@ import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { Order } from '@/types/order';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw, Printer, FileDown } from 'lucide-vue-next';
+import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw, Printer, FileDown, Truck } from 'lucide-vue-next';
 import {
     resolveProcurementCategoryBadgeClass,
     resolveProcurementCategoryLabel,
@@ -16,6 +16,8 @@ export const createColumns = (actions: {
     onPreview: (order: Order) => void;
     onPrint: (order: Order) => void;
     onExportPdf: (order: Order) => void;
+    onMarkArrived: (order: Order) => void;
+    onStockIn: (order: Order) => void;
     onStatusUpdate: (order: Order, status: Order['status']) => void;
 }): ColumnDef<Order>[] => [
     {
@@ -93,15 +95,32 @@ export const createColumns = (actions: {
         }
     },
     {
+        accessorKey: 'arrived_at',
+        header: '到货日期',
+        cell: ({ row }) => {
+            const date = normalizeDateString(row.getValue<string>('arrived_at')) || '-';
+            return h('div', { class: 'text-muted-foreground text-sm' }, date);
+        }
+    },
+    {
+        accessorKey: 'stocked_in_at',
+        header: '入库日期',
+        cell: ({ row }) => {
+            const date = normalizeDateString(row.getValue<string>('stocked_in_at')) || '-';
+            return h('div', { class: 'text-muted-foreground text-sm' }, date);
+        }
+    },
+    {
         accessorKey: 'status',
         header: '状态',
         cell: ({ row }) => {
-            const status = row.getValue<'draft' | 'submitted' | 'processing' | 'completed' | 'cancelled'>('status');
+            const status = row.getValue<'draft' | 'submitted' | 'processing' | 'arrived' | 'completed' | 'cancelled'>('status');
             const statusMap = {
                 draft: { label: '草稿', class: 'bg-muted/60 text-muted-foreground border-border' },
                 submitted: { label: '已提交', class: 'bg-blue-50 text-blue-600 border-blue-200' },
                 processing: { label: '处理中', class: 'bg-amber-50 text-amber-600 border-amber-200' },
-                completed: { label: '已完成', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+                arrived: { label: '已到货', class: 'bg-cyan-50 text-cyan-600 border-cyan-200' },
+                completed: { label: '已入库', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
                 cancelled: { label: '已取消', class: 'bg-rose-50 text-rose-600 border-rose-200' }
             };
             const config = statusMap[status] || statusMap.draft;
@@ -127,13 +146,31 @@ export const createColumns = (actions: {
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onStatusUpdate(order, 'submitted'); }
                 }, () => h(CheckCircle2, { class: 'h-4 w-4' })) : null,
 
-                // Quick Action: Complete
-                status === 'processing' || status === 'submitted' ? h(Button, {
+                // Quick Action: Start procurement
+                status === 'submitted' ? h(Button, {
                     variant: 'ghost',
                     size: 'icon',
                     class: 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50',
-                    title: '结案入库',
-                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onStatusUpdate(order, 'completed'); }
+                    title: '开始采购',
+                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onStatusUpdate(order, 'processing'); }
+                }, () => h(PackageCheck, { class: 'h-4 w-4' })) : null,
+
+                // Quick Action: Mark arrived
+                status === 'processing' ? h(Button, {
+                    variant: 'ghost',
+                    size: 'icon',
+                    class: 'h-8 w-8 text-cyan-500 hover:text-cyan-600 hover:bg-cyan-50',
+                    title: '登记到货',
+                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onMarkArrived(order); }
+                }, () => h(Truck, { class: 'h-4 w-4' })) : null,
+
+                // Quick Action: Stock in
+                status === 'arrived' ? h(Button, {
+                    variant: 'ghost',
+                    size: 'icon',
+                    class: 'h-8 w-8 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50',
+                    title: '执行入库',
+                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onStockIn(order); }
                 }, () => h(PackageCheck, { class: 'h-4 w-4' })) : null,
 
                 // Quick Action: Restore to Draft

@@ -54,6 +54,64 @@ router.put('/:id', async (req, res) => {
                 existingOrder: orderService.toDuplicateOrderSummary(e.existingOrder)
             });
         }
+        if (e?.code === 'INVALID_STATUS_TRANSITION') {
+            return res.status(400).json({
+                error: 'INVALID_STATUS_TRANSITION',
+                fromStatus: e.fromStatus,
+                toStatus: e.toStatus
+            });
+        }
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// POST /api/orders/:id/arrive
+router.post('/:id/arrive', async (req, res) => {
+    try {
+        const order = await orderService.markArrived(req.params.id, req.body || {});
+        res.json(order);
+    } catch (e) {
+        console.error('Mark order arrived failed', e);
+        if (e?.code === 'DUPLICATE_ORDER') {
+            return res.status(409).json({
+                error: 'DUPLICATE_ORDER',
+                existingOrder: orderService.toDuplicateOrderSummary(e.existingOrder)
+            });
+        }
+        if (e?.code === 'INVALID_STATUS_TRANSITION') {
+            return res.status(400).json({
+                error: 'INVALID_STATUS_TRANSITION',
+                fromStatus: e.fromStatus,
+                toStatus: e.toStatus
+            });
+        }
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// POST /api/orders/:id/stock-in
+router.post('/:id/stock-in', async (req, res) => {
+    try {
+        const order = await orderService.stockInOrder(req.params.id, req.body || {});
+        res.json(order);
+    } catch (e) {
+        console.error('Stock in order failed', e);
+        if (e?.code === 'INVALID_STATUS_TRANSITION') {
+            return res.status(400).json({
+                error: 'INVALID_STATUS_TRANSITION',
+                fromStatus: e.fromStatus,
+                toStatus: e.toStatus
+            });
+        }
+        if (e?.code === 'MATERIAL_NOT_FOUND') {
+            return res.status(400).json({
+                error: 'MATERIAL_NOT_FOUND',
+                materialId: e.materialId
+            });
+        }
+        if (e?.code === 'MATERIAL_ID_REQUIRED' || e?.code === 'INVALID_RECEIPT_QUANTITY' || e?.code === 'ORDER_ITEMS_REQUIRED') {
+            return res.status(400).json({ error: e.code });
+        }
         res.status(500).json({ error: e.message });
     }
 });

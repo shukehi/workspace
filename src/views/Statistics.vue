@@ -36,7 +36,8 @@ const getStatusLabel = (status: string) => {
     draft: '草稿',
     submitted: '已提交',
     processing: '处理中',
-    completed: '已完成',
+    arrived: '已到货',
+    completed: '已入库',
     cancelled: '已取消'
   };
   return labels[status] || status;
@@ -47,6 +48,7 @@ const getStatusColor = (status: string) => {
     draft: 'bg-slate-400',
     submitted: 'bg-blue-500',
     processing: 'bg-amber-500',
+    arrived: 'bg-cyan-500',
     completed: 'bg-emerald-500',
     cancelled: 'bg-rose-500'
   };

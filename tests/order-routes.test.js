@@ -8,7 +8,7 @@ const os = require('node:os');
 const tempDbPath = path.join(os.tmpdir(), `order-routes-${Date.now()}.sqlite`);
 process.env.DB_STORAGE = tempDbPath;
 
-const { initDB, sequelize } = require('../server/models');
+const { initDB, sequelize, Material } = require('../server/models');
 const orderRoutes = require('../server/routes/order');
 
 let server;
@@ -104,7 +104,7 @@ test('PUT /api/orders/:id keeps normalized order payload shape', async () => {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      status: 'processing',
+      status: 'submitted',
       created_at: updatedAt,
     }),
   });
@@ -112,9 +112,174 @@ test('PUT /api/orders/:id keeps normalized order payload shape', async () => {
   assert.equal(updateRes.status, 200);
   const updated = await updateRes.json();
   assert.equal(updated.id, created.id);
-  assert.equal(updated.status, 'processing');
+  assert.equal(updated.status, 'submitted');
   assert.equal(updated.created_at, updatedAt);
   assert.equal(Array.isArray(updated.items), true);
+});
+
+test('POST /api/orders/:id/arrive marks processing order as arrived', async () => {
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-ARRIVE-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'processing',
+      remark: '',
+      created_at: '2026-03-12T08:13:00.000Z',
+      delivery_date: '2026-03-18T00:00:00.000Z',
+      items: [
+        {
+          name: '锁体A',
+          model: '主锁',
+          spec: '主锁',
+          supplier: '汇成',
+          quantity: 1,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const arriveRes = await fetch(`${baseUrl}/api/orders/${created.id}/arrive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      arrived_at: '2026-03-12T08:14:00.000Z',
+      arrived_by: '采购员A',
+      arrived_remark: '已到货'
+    }),
+  });
+
+  assert.equal(arriveRes.status, 200);
+  const arrived = await arriveRes.json();
+  assert.equal(arrived.status, 'arrived');
+  assert.equal(arrived.arrived_by, '采购员A');
+  assert.equal(arrived.arrived_at, '2026-03-12T08:14:00.000Z');
+  assert.equal(arrived.delivery_date, '2026-03-18T00:00:00.000Z');
+});
+
+test('PUT /api/orders/:id rejects invalid status transition', async () => {
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-INVALID-001',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      remark: '',
+      created_at: '2026-03-12T08:15:00.000Z',
+      items: [
+        {
+          name: '包装A',
+          model: '960*2050/7/内开外包',
+          spec: '960*2050/7/内开外包',
+          supplier: '方亮包装',
+          quantity: 1,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      status: 'completed',
+    }),
+  });
+
+  assert.equal(updateRes.status, 400);
+  const body = await updateRes.json();
+  assert.equal(body.error, 'INVALID_STATUS_TRANSITION');
+  assert.equal(body.fromStatus, 'draft');
+  assert.equal(body.toStatus, 'completed');
+});
+
+test('POST /api/orders/:id/stock-in updates inventory and completes order', async () => {
+  await Material.create({
+    code: 'ROUTE-MAT-001',
+    name: 'Route Material',
+    model: 'RM-1',
+    supplier: '汇成',
+    stock_quantity: 2,
+    min_stock: 1,
+    unit: '把',
+  });
+
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-STOCKIN-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      arrived_at: '2026-03-12T08:16:00.000Z',
+      items: [
+        {
+          material_id: 'ROUTE-MAT-001',
+          name: 'Route Material',
+          model: 'RM-1',
+          spec: 'RM-1',
+          supplier: '汇成',
+          quantity: 4,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stocked_in_at: '2026-03-12T08:17:00.000Z',
+      operator: '仓管A',
+      remark: '已入库'
+    }),
+  });
+
+  assert.equal(stockInRes.status, 200);
+  const stockedIn = await stockInRes.json();
+  assert.equal(stockedIn.status, 'completed');
+  assert.equal(stockedIn.stocked_in_by, '仓管A');
+  assert.equal(stockedIn.stocked_in_at, '2026-03-12T08:17:00.000Z');
+});
+
+test('POST /api/orders/:id/stock-in rejects arrived orders without items', async () => {
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-STOCKIN-EMPTY-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      arrived_at: '2026-03-12T08:18:00.000Z',
+      items: [],
+    }),
+  });
+  const created = await createRes.json();
+
+  const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stocked_in_at: '2026-03-12T08:19:00.000Z',
+      operator: '仓管B',
+    }),
+  });
+
+  assert.equal(stockInRes.status, 400);
+  const body = await stockInRes.json();
+  assert.equal(body.error, 'ORDER_ITEMS_REQUIRED');
 });
 
 test.after(async () => {

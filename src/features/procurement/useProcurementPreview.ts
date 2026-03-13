@@ -28,7 +28,8 @@ export function resolveOrderStatusLabel(order: Order | null): string {
     draft: '草稿',
     submitted: '已提交',
     processing: '处理中',
-    completed: '已完成',
+    arrived: '已到货',
+    completed: '已入库',
     cancelled: '已取消'
   };
   return statusLabels[order.status] || order.status;

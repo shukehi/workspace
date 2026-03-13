@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { Order, OrderItem, OrderIdempotencyKey, sequelize } = require('../models');
+const inventoryReceiptService = require('./InventoryReceiptService');
 
 function normalizeOrderRemark(remark) {
     if (remark === undefined || remark === null) return '';
@@ -87,6 +88,54 @@ class DuplicateOrderError extends Error {
     }
 }
 
+class InvalidStatusTransitionError extends Error {
+    constructor(fromStatus, toStatus) {
+        super('INVALID_STATUS_TRANSITION');
+        this.name = 'InvalidStatusTransitionError';
+        this.code = 'INVALID_STATUS_TRANSITION';
+        this.fromStatus = fromStatus;
+        this.toStatus = toStatus;
+    }
+}
+
+class MissingMaterialError extends Error {
+    constructor(materialId) {
+        super('MATERIAL_NOT_FOUND');
+        this.name = 'MissingMaterialError';
+        this.code = 'MATERIAL_NOT_FOUND';
+        this.materialId = materialId;
+    }
+}
+
+const ORDER_STATUSES = ['draft', 'submitted', 'processing', 'arrived', 'completed', 'cancelled'];
+const ALLOWED_STATUS_TRANSITIONS = {
+    draft: new Set(['draft', 'submitted', 'cancelled']),
+    submitted: new Set(['submitted', 'processing', 'cancelled']),
+    processing: new Set(['processing', 'arrived', 'cancelled']),
+    arrived: new Set(['arrived', 'completed', 'cancelled']),
+    completed: new Set(['completed']),
+    cancelled: new Set(['cancelled', 'draft', 'submitted', 'processing', 'arrived', 'completed'])
+};
+
+function normalizeStatus(status, fallback = 'draft') {
+    const raw = normalizeDedupeText(status);
+    if (!raw) return fallback;
+    if (!ORDER_STATUSES.includes(raw)) {
+        throw new InvalidStatusTransitionError('unknown', raw);
+    }
+    return raw;
+}
+
+function assertValidStatusTransition(fromStatus, toStatus) {
+    const normalizedFrom = normalizeStatus(fromStatus);
+    const normalizedTo = normalizeStatus(toStatus, normalizedFrom);
+    const allowed = ALLOWED_STATUS_TRANSITIONS[normalizedFrom];
+    if (!allowed || !allowed.has(normalizedTo)) {
+        throw new InvalidStatusTransitionError(normalizedFrom, normalizedTo);
+    }
+    return normalizedTo;
+}
+
 function normalizeDateField(value) {
     if (value === undefined || value === null || value === '') return null;
     if (value instanceof Date) return value.toISOString();
@@ -114,6 +163,8 @@ function serializeOrder(order) {
         created_at: normalizeDateField(plain.created_at) || new Date().toISOString(),
         updated_at: normalizeDateField(plain.updated_at),
         delivery_date: normalizeDateField(plain.delivery_date),
+        arrived_at: normalizeDateField(plain.arrived_at),
+        stocked_in_at: normalizeDateField(plain.stocked_in_at),
         items: Array.isArray(plain.items) ? plain.items.map(serializeOrderItem) : []
     };
 }
@@ -268,10 +319,12 @@ class OrderService {
         try {
             const sourceContractCode = resolveSourceContractCode(data);
             const metadata = normalizeMetadata(data.metadata);
+            const normalizedStatus = normalizeStatus(data.status, 'draft');
             const normalizedData = {
                 ...data,
                 source_contract_code: sourceContractCode,
                 metadata,
+                status: normalizedStatus,
             };
             const dedupeKey = buildOrderDedupeKey(normalizedData);
             const duplicate = await this.findDuplicateAutoOrder(normalizedData, transaction);
@@ -293,11 +346,17 @@ class OrderService {
                 source_contract_code: sourceContractCode || null,
                 dedupe_key: dedupeKey || null,
                 category: normalizedData.category || null,
-                status: normalizedData.status || 'draft',
+                status: normalizedStatus,
                 remark: normalizeOrderRemark(normalizedData.remark),
                 metadata,
                 created_at: normalizedData.created_at || new Date().toISOString(),
-                delivery_date: normalizedData.delivery_date
+                delivery_date: normalizedData.delivery_date,
+                arrived_at: normalizedData.arrived_at || null,
+                arrived_by: normalizedData.arrived_by || null,
+                arrived_remark: normalizeOrderRemark(normalizedData.arrived_remark),
+                stocked_in_at: normalizedData.stocked_in_at || null,
+                stocked_in_by: normalizedData.stocked_in_by || null,
+                stocked_in_remark: normalizeOrderRemark(normalizedData.stocked_in_remark)
             }, { transaction });
 
             if (normalizedData.items && normalizedData.items.length > 0) {
@@ -352,7 +411,9 @@ class OrderService {
             const nextItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
             const nextSupplier = data.supplier === undefined ? order.supplier : data.supplier;
             const nextCategory = data.category === undefined ? order.category : data.category;
-            const nextStatus = data.status === undefined ? order.status : data.status;
+            const nextStatus = data.status === undefined
+                ? normalizeStatus(order.status)
+                : assertValidStatusTransition(order.status, data.status);
             const nextCreatedAt = data.created_at !== undefined ? data.created_at : order.created_at;
             const nextDedupeKey = buildOrderDedupeKey({
                 source_contract_code: nextSourceContractCode,
@@ -393,7 +454,13 @@ class OrderService {
                 status: nextStatus,
                 remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
                 metadata: nextMetadata,
-                delivery_date: data.delivery_date
+                delivery_date: data.delivery_date === undefined ? order.delivery_date : data.delivery_date,
+                arrived_at: data.arrived_at === undefined ? order.arrived_at : data.arrived_at,
+                arrived_by: data.arrived_by === undefined ? order.arrived_by : data.arrived_by,
+                arrived_remark: data.arrived_remark === undefined ? order.arrived_remark : normalizeOrderRemark(data.arrived_remark),
+                stocked_in_at: data.stocked_in_at === undefined ? order.stocked_in_at : data.stocked_in_at,
+                stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
+                stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark)
             }, { transaction });
 
             if (data.created_at !== undefined) {
@@ -419,7 +486,7 @@ class OrderService {
             if (isAutoOrder) {
                 if (nextStatus === 'cancelled') {
                     await this.releaseIdempotencyKeys(id, transaction);
-                } else if (statusTransition !== 'cancelled->draft' && statusTransition !== 'cancelled->submitted' && statusTransition !== 'cancelled->processing' && statusTransition !== 'cancelled->completed') {
+                } else if (!statusTransition.startsWith('cancelled->')) {
                     await this.syncActiveIdempotencyKey({
                         sourceContractCode: nextSourceContractCode,
                         dedupeKey: nextDedupeKey,
@@ -476,10 +543,59 @@ class OrderService {
             }
         }
     }
+
+    async markArrived(id, data = {}) {
+        const payload = {
+            ...data,
+            status: 'arrived',
+            arrived_at: data.arrived_at || new Date().toISOString(),
+        };
+        return await this.updateOrder(id, payload);
+    }
+
+    async stockInOrder(id, data = {}) {
+        const transaction = await sequelize.transaction();
+        try {
+            const order = await Order.findByPk(id, {
+                include: [{ model: OrderItem, as: 'items' }],
+                transaction
+            });
+            if (!order) throw new Error('Order not found');
+
+            const currentStatus = normalizeStatus(order.status);
+            if (currentStatus !== 'arrived') {
+                throw new InvalidStatusTransitionError(currentStatus, 'completed');
+            }
+
+            try {
+                await inventoryReceiptService.createFromOrder(order, data, transaction);
+            } catch (error) {
+                if (error?.code === 'MATERIAL_NOT_FOUND') {
+                    throw new MissingMaterialError(error.materialId);
+                }
+                throw error;
+            }
+
+            await order.update({
+                status: 'completed',
+                stocked_in_at: data.stocked_in_at || new Date().toISOString(),
+                stocked_in_by: data.operator === undefined ? order.stocked_in_by : data.operator,
+                stocked_in_remark: data.remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.remark),
+            }, { transaction });
+
+            await transaction.commit();
+            return await this.getOrderById(id);
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
 }
 
 const orderService = new OrderService();
 orderService.DuplicateOrderError = DuplicateOrderError;
+orderService.InvalidStatusTransitionError = InvalidStatusTransitionError;
+orderService.MissingMaterialError = MissingMaterialError;
 orderService.buildOrderDedupeKey = buildOrderDedupeKey;
 orderService.toDuplicateOrderSummary = toDuplicateOrderSummary;
 

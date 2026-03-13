@@ -11,6 +11,10 @@ const OrderItem = sequelize.define('OrderItem', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    material_id: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     name: {
         type: DataTypes.STRING,
         allowNull: false

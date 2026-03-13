@@ -37,7 +37,7 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
       id: 2,
       order_no: 'PO-LOCK-002',
       category: '锁叉',
-      status: 'completed',
+      status: 'arrived',
       total_amount: 80,
       supplier: '五金厂',
       items: [{ id: 2, material_id: 'm-2', supplier: '待人工处理', name: '锁叉A', model: 'LC-1', quantity: 1, unit: '个' }]
@@ -62,8 +62,8 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
   });
 
   assert.equal(state.summaryStats.value.totalAmount, 300);
-  assert.equal(state.summaryStats.value.pendingCount, 3);
-  assert.equal(state.summaryStats.value.completedCount, 1);
+  assert.equal(state.summaryStats.value.pendingCount, 4);
+  assert.equal(state.summaryStats.value.completedCount, 0);
   assert.equal(state.visibleOrderCount.value, 5);
   assert.equal(state.tableEmptyText.value, '暂无采购订单数据');
   assert.equal(state.hasActiveFilters.value, false);
@@ -75,7 +75,8 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
       { id: 'draft', label: '草稿', count: 1 },
       { id: 'submitted', label: '已提交', count: 1 },
       { id: 'processing', label: '处理中', count: 1 },
-      { id: 'completed', label: '已完成', count: 1 },
+      { id: 'arrived', label: '已到货', count: 1 },
+      { id: 'completed', label: '已入库', count: 0 },
       { id: 'cancelled', label: '已取消', count: 1 },
     ]
   );
@@ -92,7 +93,7 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
     ]
   );
 
-  state.activeStatus.value = 'completed';
+  state.activeStatus.value = 'arrived';
   assert.equal(state.filteredOrders.value.length, 1);
   assert.equal(state.filteredOrders.value[0].order_no, 'PO-LOCK-002');
   assert.equal(state.hasActiveFilters.value, true);
@@ -103,10 +104,10 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
 
   state.resetFilters();
   state.setFilterPreset({ status: 'PENDING' });
-  assert.equal(state.filteredOrders.value.length, 3);
+  assert.equal(state.filteredOrders.value.length, 4);
   assert.deepEqual(
     state.filteredOrders.value.map((order) => order.order_no),
-    ['PO-PKG-001', 'PO-CYL-003', 'PO-HW-004']
+    ['PO-PKG-001', 'PO-LOCK-002', 'PO-CYL-003', 'PO-HW-004']
   );
 
   state.resetFilters();

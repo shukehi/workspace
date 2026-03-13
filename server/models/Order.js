@@ -47,6 +47,32 @@ const Order = sequelize.define('Order', {
     delivery_date: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    arrived_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    arrived_by: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    arrived_remark: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        defaultValue: ''
+    },
+    stocked_in_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    stocked_in_by: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    stocked_in_remark: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        defaultValue: ''
     }
 }, {
     tableName: 'orders',

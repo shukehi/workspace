@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { CheckCircle2, FileSpreadsheet, PackageCheck, Trash2, X } from 'lucide-vue-next';
+import { CheckCircle2, FileSpreadsheet, PackageCheck, Trash2, X, Truck } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import type { Order } from '@/types/order';
 
 defineProps<{
   selectedCount: number;
   canSubmit: boolean;
-  canComplete: boolean;
+  canProcess: boolean;
+  canArrive: boolean;
+  canStockIn: boolean;
   canRestoreDraft: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'status', value: Order['status']): void;
+  (e: 'arrive'): void;
+  (e: 'stock-in'): void;
   (e: 'export'): void;
   (e: 'delete'): void;
   (e: 'clear'): void;
@@ -37,8 +41,14 @@ const emit = defineEmits<{
         <Button variant="outline" size="sm" :disabled="!canSubmit" @click="emit('status', 'submitted')">
           <CheckCircle2 class="w-4 h-4 mr-2" /> 提交
         </Button>
-        <Button variant="outline" size="sm" :disabled="!canComplete" @click="emit('status', 'completed')">
-          <PackageCheck class="w-4 h-4 mr-2" /> 结案
+        <Button variant="outline" size="sm" :disabled="!canProcess" @click="emit('status', 'processing')">
+          <PackageCheck class="w-4 h-4 mr-2" /> 开始采购
+        </Button>
+        <Button variant="outline" size="sm" :disabled="!canArrive" @click="emit('arrive')">
+          <Truck class="w-4 h-4 mr-2" /> 登记到货
+        </Button>
+        <Button variant="outline" size="sm" :disabled="!canStockIn" @click="emit('stock-in')">
+          <PackageCheck class="w-4 h-4 mr-2" /> 执行入库
         </Button>
         <Button variant="outline" size="sm" :disabled="!canRestoreDraft" @click="emit('status', 'draft')">
           <CheckCircle2 class="w-4 h-4 mr-2" /> 恢复草稿

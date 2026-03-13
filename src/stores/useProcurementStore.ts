@@ -96,6 +96,15 @@ export const useProcurementStore = defineStore('procurement', () => {
         }
     }
 
+    function replaceOrderInState(order: Order) {
+        const index = purchaseOrders.value.findIndex((item) => item && item.id === order.id);
+        if (index !== -1) {
+            purchaseOrders.value[index] = order;
+        } else {
+            purchaseOrders.value.unshift(order);
+        }
+    }
+
     async function addOrder(order: Order) {
         try {
             const res = await api.post<Order>('/orders', order);
@@ -190,6 +199,44 @@ export const useProcurementStore = defineStore('procurement', () => {
         }
     }
 
+    async function markOrderArrived(id: number, payload: {
+        arrived_at?: string;
+        arrived_by?: string;
+        arrived_remark?: string;
+    } = {}) {
+        try {
+            const res = await api.post<Order>(`/orders/${id}/arrive`, payload);
+            const normalized = normalizeOrderPayload(res);
+            if (!normalized) {
+                throw new Error('Invalid order payload returned by POST /api/orders/:id/arrive');
+            }
+            replaceOrderInState(normalized);
+            return normalized;
+        } catch (e) {
+            console.error('Failed to mark order arrived', e);
+            throw e;
+        }
+    }
+
+    async function stockInOrder(id: number, payload: {
+        stocked_in_at?: string;
+        operator?: string;
+        remark?: string;
+    } = {}) {
+        try {
+            const res = await api.post<Order>(`/orders/${id}/stock-in`, payload);
+            const normalized = normalizeOrderPayload(res);
+            if (!normalized) {
+                throw new Error('Invalid order payload returned by POST /api/orders/:id/stock-in');
+            }
+            replaceOrderInState(normalized);
+            return normalized;
+        } catch (e) {
+            console.error('Failed to stock in order', e);
+            throw e;
+        }
+    }
+
     function clearOrders() {
         purchaseOrders.value = [];
     }
@@ -255,6 +302,8 @@ export const useProcurementStore = defineStore('procurement', () => {
         deleteOrder,
         bulkDelete,
         bulkUpdateStatus,
+        markOrderArrived,
+        stockInOrder,
         updateOrder,
         clearOrders,
         exportToCSV
