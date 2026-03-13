@@ -57,6 +57,28 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
+    function buildReceiptQuery(params: {
+        orderNo?: string;
+        orderId?: number | string;
+        keyword?: string;
+        direction?: 'in' | 'reversal';
+        reverseReason?: string;
+        page?: number;
+        pageSize?: number;
+    } = {}) {
+        const query = new URLSearchParams();
+        if (params.orderNo) query.set('orderNo', String(params.orderNo).trim());
+        if (params.orderId !== undefined && params.orderId !== null && String(params.orderId).trim()) {
+            query.set('orderId', String(params.orderId).trim());
+        }
+        if (params.keyword) query.set('keyword', String(params.keyword).trim());
+        if (params.direction) query.set('direction', String(params.direction));
+        if (params.reverseReason) query.set('reverseReason', String(params.reverseReason).trim());
+        if (params.page) query.set('page', String(params.page));
+        if (params.pageSize) query.set('pageSize', String(params.pageSize));
+        return query.toString() ? `?${query.toString()}` : '';
+    }
+
     async function fetchInventoryReceipts(params: {
         orderNo?: string;
         orderId?: number | string;
@@ -68,17 +90,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     } = {}) {
         receiptsLoading.value = true;
         try {
-            const query = new URLSearchParams();
-            if (params.orderNo) query.set('orderNo', String(params.orderNo).trim());
-            if (params.orderId !== undefined && params.orderId !== null && String(params.orderId).trim()) {
-                query.set('orderId', String(params.orderId).trim());
-            }
-            if (params.keyword) query.set('keyword', String(params.keyword).trim());
-            if (params.direction) query.set('direction', String(params.direction));
-            if (params.reverseReason) query.set('reverseReason', String(params.reverseReason).trim());
-            if (params.page) query.set('page', String(params.page));
-            if (params.pageSize) query.set('pageSize', String(params.pageSize));
-            const suffix = query.toString() ? `?${query.toString()}` : '';
+            const suffix = buildReceiptQuery(params);
             const res = await api.get<{ rows?: InventoryReceipt[]; total?: number; page?: number; pageSize?: number }>(`/inventory-receipts${suffix}`);
             receipts.value = Array.isArray(res?.rows) ? res.rows : [];
             receiptsTotal.value = Number(res?.total || 0);
@@ -92,6 +104,31 @@ export const useInventoryStore = defineStore('inventory', () => {
         } finally {
             receiptsLoading.value = false;
         }
+    }
+
+    async function fetchAllInventoryReceipts(params: {
+        orderNo?: string;
+        orderId?: number | string;
+        keyword?: string;
+        direction?: 'in' | 'reversal';
+        reverseReason?: string;
+    } = {}) {
+        const pageSize = 200;
+        let page = 1;
+        let total = 0;
+        const rows: InventoryReceipt[] = [];
+
+        do {
+            const suffix = buildReceiptQuery({ ...params, page, pageSize });
+            const res = await api.get<{ rows?: InventoryReceipt[]; total?: number }>(`/inventory-receipts${suffix}`);
+            const chunk = Array.isArray(res?.rows) ? res.rows : [];
+            total = Number(res?.total || 0);
+            rows.push(...chunk);
+            if (chunk.length === 0) break;
+            page += 1;
+        } while (rows.length < total);
+
+        return rows;
     }
 
     async function reverseReceipt(id: number, payload: { operator?: string; remark?: string; reversed_at?: string; reverse_reason?: string; quantity?: number } = {}) {
@@ -157,6 +194,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         sortedReceipts,
         fetchInventory, 
         fetchInventoryReceipts,
+        fetchAllInventoryReceipts,
         reverseReceipt,
         updateStock,
         exportReceiptsToCSV

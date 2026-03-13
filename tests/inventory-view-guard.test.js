@@ -19,10 +19,13 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /receiptDirectionFilter/);
   assert.match(view, /reverseReasonFilter/);
   assert.match(view, /receiptPage/);
+  assert.match(view, /receiptPageSize/);
   assert.match(view, /receiptSummary/);
   assert.match(view, /receiptTotalPages/);
   assert.match(view, /availableReverseReasonOptions/);
   assert.match(view, /handleExportReceipts/);
+  assert.match(view, /fetchAllInventoryReceipts/);
+  assert.match(view, /String\(route\.query\.keyword/);
   assert.match(view, /refDebounced/);
   assert.match(view, /debouncedReceiptSearchQuery/);
   assert.match(view, /fetchInventoryReceipts/);
@@ -38,6 +41,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /route\.query\.direction/);
   assert.match(view, /route\.query\.reverseReason/);
   assert.match(view, /route\.query\.page/);
+  assert.match(view, /route\.query\.pageSize/);
   assert.match(view, /updateInventoryRouteQuery/);
   assert.match(view, /当前按采购订单/);
   assert.match(view, /全部方向/);
@@ -47,6 +51,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /isReceiptReversible/);
   assert.match(view, /selectedReceiptAudit/);
   assert.match(view, /auditReceiptId/);
+  assert.match(view, /auditRows/);
+  assert.match(view, /openReceiptAudit/);
+  assert.match(view, /closeReceiptAudit/);
   assert.match(view, /SheetContent/);
   assert.match(view, /SheetTitle/);
   assert.match(view, /SheetDescription/);
@@ -69,6 +76,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /nextReceiptPage/);
   assert.match(view, /prevReceiptPage/);
   assert.match(view, /共 \{\{ store\.receiptsTotal \}\} 条/);
+  assert.match(view, /20 \/ 页/);
+  assert.match(view, /50 \/ 页/);
+  assert.match(view, /100 \/ 页/);
   assert.match(view, /撤销成功/);
   assert.match(store, /const receipts = ref/);
   assert.match(store, /const sortedReceipts = computed/);
@@ -76,6 +86,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(store, /const receiptsPage = ref/);
   assert.match(store, /const receiptsPageSize = ref/);
   assert.match(store, /async function fetchInventoryReceipts/);
+  assert.match(store, /async function fetchAllInventoryReceipts/);
+  assert.match(store, /const pageSize = 200/);
   assert.match(store, /query\.set\('keyword'/);
   assert.match(store, /query\.set\('direction'/);
   assert.match(store, /query\.set\('reverseReason'/);
