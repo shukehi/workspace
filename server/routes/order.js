@@ -61,6 +61,13 @@ router.put('/:id', async (req, res) => {
                 toStatus: e.toStatus
             });
         }
+        if (e?.code === 'ORDER_EDIT_LOCKED') {
+            return res.status(400).json({
+                error: 'ORDER_EDIT_LOCKED',
+                status: e.status,
+                fields: e.fields
+            });
+        }
         res.status(500).json({ error: e.message });
     }
 });

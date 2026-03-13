@@ -214,13 +214,13 @@ export const createColumns = (actions: {
                     title: '查看/打印',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onPreview(order); }
                 }, () => h(Eye, { class: 'h-4 w-4' })),
-                h(Button, {
+                !['arrived', 'completed'].includes(status) ? h(Button, {
                     variant: 'ghost',
                     size: 'icon',
                     class: 'h-8 w-8 text-muted-foreground hover:text-amber-600',
                     title: '编辑订单',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onEdit(order); }
-                }, () => h(Edit, { class: 'h-4 w-4' })),
+                }, () => h(Edit, { class: 'h-4 w-4' })) : null,
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',

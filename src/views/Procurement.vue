@@ -88,6 +88,7 @@ const {
   selectedOrder,
   editDialogMode,
   previewOrder,
+  canEditOrder,
   confirmState,
   openEdit,
   openPreview,
@@ -493,6 +494,7 @@ watch(() => route.query.orderNo, () => {
     <ProcurementPreviewModal
       v-model:open="isPreviewDialogOpen"
       :order="previewOrder"
+      :can-edit="canEditOrder(previewOrder)"
       @edit="editFromPreview"
     />
 

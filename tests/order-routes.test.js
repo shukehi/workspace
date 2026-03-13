@@ -201,6 +201,51 @@ test('PUT /api/orders/:id rejects invalid status transition', async () => {
   assert.equal(body.toStatus, 'completed');
 });
 
+test('PUT /api/orders/:id rejects detail edits for arrived orders', async () => {
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-LOCKED-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      items: [
+        {
+          material_id: 'ROUTE-MAT-LOCKED',
+          name: '锁体A',
+          model: '主锁',
+          spec: '主锁',
+          supplier: '汇成',
+          quantity: 1,
+          unit: '把',
+        },
+      ],
+    }),
+  });
+  const created = await createRes.json();
+
+  const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      supplier: '新供应商',
+      items: [
+        {
+          ...created.items[0],
+          quantity: 2,
+        },
+      ],
+    }),
+  });
+
+  assert.equal(updateRes.status, 400);
+  const body = await updateRes.json();
+  assert.equal(body.error, 'ORDER_EDIT_LOCKED');
+  assert.equal(body.status, 'arrived');
+  assert.deepEqual(body.fields, ['supplier', 'items']);
+});
+
 test('POST /api/orders/:id/stock-in updates inventory and completes order', async () => {
   await Material.create({
     code: 'ROUTE-MAT-001',

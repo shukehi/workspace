@@ -107,6 +107,16 @@ class MissingMaterialError extends Error {
     }
 }
 
+class OrderEditLockedError extends Error {
+    constructor(status, fields) {
+        super('ORDER_EDIT_LOCKED');
+        this.name = 'OrderEditLockedError';
+        this.code = 'ORDER_EDIT_LOCKED';
+        this.status = status;
+        this.fields = fields;
+    }
+}
+
 const ORDER_STATUSES = ['draft', 'submitted', 'processing', 'arrived', 'completed', 'cancelled'];
 const ALLOWED_STATUS_TRANSITIONS = {
     draft: new Set(['draft', 'submitted', 'cancelled']),
@@ -143,6 +153,41 @@ function normalizeDateField(value) {
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return null;
     return parsed.toISOString();
+}
+
+const ARRIVED_EDITABLE_FIELDS = new Set([
+    'status',
+    'remark',
+    'delivery_date',
+    'arrived_at',
+    'arrived_by',
+    'arrived_remark',
+    'stocked_in_at',
+    'stocked_in_by',
+    'stocked_in_remark'
+]);
+
+const COMPLETED_EDITABLE_FIELDS = new Set([
+    'status',
+    'remark',
+    'delivery_date',
+    'stocked_in_at',
+    'stocked_in_by',
+    'stocked_in_remark'
+]);
+
+function assertEditableOrderFields(order, data) {
+    const currentStatus = normalizeStatus(order?.status);
+    if (!['arrived', 'completed'].includes(currentStatus)) return;
+
+    const allowedFields = currentStatus === 'arrived'
+        ? ARRIVED_EDITABLE_FIELDS
+        : COMPLETED_EDITABLE_FIELDS;
+
+    const blockedFields = Object.keys(data || {}).filter((field) => !allowedFields.has(field));
+    if (blockedFields.length > 0) {
+        throw new OrderEditLockedError(currentStatus, blockedFields);
+    }
 }
 
 function serializeOrderItem(item) {
@@ -398,6 +443,7 @@ class OrderService {
         try {
             const order = await Order.findByPk(id, { transaction });
             if (!order) throw new Error('Order not found');
+            assertEditableOrderFields(order, data);
 
             const existing = await this.getOrderById(id);
             const nextMetadata = normalizeMetadata(
@@ -596,6 +642,7 @@ const orderService = new OrderService();
 orderService.DuplicateOrderError = DuplicateOrderError;
 orderService.InvalidStatusTransitionError = InvalidStatusTransitionError;
 orderService.MissingMaterialError = MissingMaterialError;
+orderService.OrderEditLockedError = OrderEditLockedError;
 orderService.buildOrderDedupeKey = buildOrderDedupeKey;
 orderService.toDuplicateOrderSummary = toDuplicateOrderSummary;
 

@@ -16,6 +16,7 @@ import { createProcurementPreview } from '@/features/procurement/useProcurementP
 const props = defineProps<{
   open: boolean;
   order: Order | null;
+  canEdit?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -93,7 +94,7 @@ const handleEdit = () => {
             <Download v-else class="w-4 h-4 mr-2" />
             {{ exportingPdf ? '导出中...' : '导出 PDF' }}
           </Button>
-          <Button variant="outline" size="sm" :disabled="!order" @click="handleEdit">编辑</Button>
+          <Button v-if="canEdit" variant="outline" size="sm" :disabled="!order" @click="handleEdit">编辑</Button>
           <Button variant="outline" size="sm" @click="handleClose">关闭</Button>
         </div>
       </div>

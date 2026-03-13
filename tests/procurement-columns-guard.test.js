@@ -30,6 +30,7 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.match(content, /title:\s*'查看入库记录'/);
   assert.match(content, /actions\.onViewReceipts\(order\)/);
   assert.match(content, /arrived:\s*\{\s*label:\s*'已到货'/);
+  assert.match(content, /!\['arrived', 'completed'\]\.includes\(status\)/);
   assert.match(content, /title:\s*'开始采购'/);
   assert.match(content, /actions\.onStatusUpdate\(order,\s*'processing'\)/);
   assert.match(content, /title:\s*'登记到货'/);
@@ -85,4 +86,17 @@ test('procurement filter guard: supports risk and manual-review filters', () => 
   assert.match(state, /matchesOrderRiskFilter/);
   assert.match(state, /风险订单/);
   assert.match(state, /待人工处理/);
+});
+
+test('procurement preview guard: arrived and completed orders cannot edit from preview', () => {
+  const modal = read('src/components/procurement/ProcurementPreviewModal.vue');
+  const page = read('src/views/Procurement.vue');
+  const dialogs = read('src/features/procurement/useProcurementDialogs.ts');
+
+  assert.match(modal, /canEdit\?: boolean/);
+  assert.match(modal, /v-if="canEdit"/);
+  assert.match(page, /:can-edit="canEditOrder\(previewOrder\)"/);
+  assert.match(dialogs, /function canEditOrder/);
+  assert.match(dialogs, /function notifyEditLocked/);
+  assert.match(dialogs, /if \(!canEditOrder\(order\)\)/);
 });

@@ -443,6 +443,54 @@ test('OrderService stockInOrder rejects orders without items', async () => {
   assert.equal(await InventoryReceipt.count({ where: { order_id: created.id } }), 0);
 });
 
+test('OrderService rejects detail edits for arrived orders', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('ARRIVED-LOCK'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-LOCK-001',
+        supplier: '汇成',
+        name: '锁体A',
+        model: '主锁',
+        spec: '主锁',
+        quantity: 1,
+        unit: '把',
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () => orderService.updateOrder(created.id, {
+      supplier: '新供应商',
+      items: [
+        {
+          ...created.items[0],
+          quantity: 2
+        }
+      ]
+    }),
+    (error) => {
+      assert.equal(error.code, 'ORDER_EDIT_LOCKED');
+      assert.equal(error.status, 'arrived');
+      assert.deepEqual(error.fields, ['supplier', 'items']);
+      return true;
+    }
+  );
+
+  const updated = await orderService.updateOrder(created.id, {
+    remark: '允许修改备注',
+    delivery_date: '2026-03-20T00:00:00.000Z'
+  });
+  assert.equal(updated.remark, '允许修改备注');
+  assert.equal(updated.delivery_date, '2026-03-20T00:00:00.000Z');
+});
+
 test('OrderService persists source_contract_code from metadata and ignores client-supplied dedupe_key on update', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });

@@ -47,7 +47,37 @@ export function useProcurementDialogs(options: {
     confirmState.value.show = false;
   }
 
+  function canEditOrder(order: Order | null | undefined) {
+    return !!order && order.status !== 'arrived' && order.status !== 'completed';
+  }
+
+  function notifyEditLocked(order: Order) {
+    options.toast({
+      title: '当前订单不可编辑明细',
+      description: order.status === 'arrived'
+        ? '已到货订单仅允许更新备注或日期，不支持继续编辑明细'
+        : '已入库订单已冻结明细，不能再编辑采购内容',
+      variant: 'destructive'
+    });
+  }
+
   function openEdit(order: Order) {
+    if (!canEditOrder(order)) {
+      notifyEditLocked(order);
+      return;
+    }
+    editDialogMode.value = 'edit';
+    const draft = prepareOrderDraft(order);
+    selectedOrder.value = draft;
+    draftOrderForPreview.value = draft;
+    isEditDialogOpen.value = true;
+  }
+
+  function openEditInternal(order: Order) {
+    if (order.status === 'arrived' || order.status === 'completed') {
+      notifyEditLocked(order);
+      return;
+    }
     editDialogMode.value = 'edit';
     const draft = prepareOrderDraft(order);
     selectedOrder.value = draft;
@@ -82,12 +112,12 @@ export function useProcurementDialogs(options: {
   }
 
   function editFromPreview(order: Order) {
-    editDialogMode.value = 'edit';
-    const draft = prepareOrderDraft(order);
+    if (!canEditOrder(order)) {
+      notifyEditLocked(order);
+      return;
+    }
     isPreviewDialogOpen.value = false;
-    selectedOrder.value = draft;
-    draftOrderForPreview.value = draft;
-    isEditDialogOpen.value = true;
+    openEditInternal(order);
   }
 
   const previewOrder = computed(() => {
@@ -156,6 +186,7 @@ export function useProcurementDialogs(options: {
     selectedOrder,
     editDialogMode,
     previewOrder,
+    canEditOrder,
     confirmState,
     openEdit,
     openPreview,
