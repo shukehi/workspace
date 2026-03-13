@@ -27,6 +27,8 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.match(content, /actions\.onPrint\(order\)/);
   assert.match(content, /title:\s*'导出 PDF'/);
   assert.match(content, /actions\.onExportPdf\(order\)/);
+  assert.match(content, /title:\s*'查看入库记录'/);
+  assert.match(content, /actions\.onViewReceipts\(order\)/);
   assert.match(content, /arrived:\s*\{\s*label:\s*'已到货'/);
   assert.match(content, /title:\s*'开始采购'/);
   assert.match(content, /actions\.onStatusUpdate\(order,\s*'processing'\)/);
@@ -68,6 +70,9 @@ test('procurement filter guard: supports risk and manual-review filters', () => 
 
   assert.match(filterBar, /update:activeStatus/);
   assert.match(page, /v-model:active-status/);
+  assert.match(page, /route\.query\.orderNo/);
+  assert.match(page, /syncSearchQueryFromRoute/);
+  assert.match(page, /当前按订单号/);
   assert.match(state, /activeStatus/);
   assert.match(state, /全部订单/);
   assert.match(state, /已提交/);

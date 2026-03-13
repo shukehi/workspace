@@ -1,18 +1,28 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
+import { refDebounced } from '@vueuse/core';
+import { useRoute, useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/useInventoryStore';
+import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
 import { createInventoryColumns } from '@/components/inventory/InventoryColumns';
+import { createInventoryReceiptColumns } from '@/components/inventory/InventoryReceiptColumns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { RefreshCcw, Search, AlertCircle, Package } from 'lucide-vue-next';
-import type { InventoryItem } from '@/types/inventory';
+import { RefreshCcw, Search, AlertCircle, Package, ScrollText } from 'lucide-vue-next';
+import type { InventoryItem, InventoryReceipt } from '@/types/inventory';
 
 const store = useInventoryStore();
+const { toast } = useToastStore();
+const route = useRoute();
+const router = useRouter();
 
 const activeCategory = ref('ALL');
 const searchQuery = ref('');
+const receiptSearchQuery = ref('');
+const receiptOrderFilter = ref(String(route.query.orderNo || '').trim());
+const debouncedReceiptOrderFilter = refDebounced(receiptOrderFilter, 300);
 
 const categories = [
   { id: 'ALL', label: '全部库存' },
@@ -40,6 +50,23 @@ const filteredItems = computed(() => {
   return list;
 });
 
+const filteredReceipts = computed(() => {
+  const query = receiptSearchQuery.value.trim().toLowerCase();
+  const orderNo = receiptOrderFilter.value.trim().toLowerCase();
+
+  return store.sortedReceipts.filter((receipt) => {
+    const matchesOrderNo = !orderNo || receipt.order_no.toLowerCase().includes(orderNo);
+    if (!matchesOrderNo) return false;
+    if (!query) return true;
+
+    return receipt.order_no.toLowerCase().includes(query)
+      || String(receipt.supplier || '').toLowerCase().includes(query)
+      || String(receipt.item_name || '').toLowerCase().includes(query)
+      || String(receipt.operator || '').toLowerCase().includes(query)
+      || String(receipt.material_id || '').toLowerCase().includes(query);
+  });
+});
+
 const handleEdit = (item: InventoryItem) => {
   const newQty = prompt(`修改库存: ${item.model}\n当前数量: ${item.stock_quantity}`, item.stock_quantity.toString());
   if (newQty !== null && !isNaN(parseFloat(newQty))) {
@@ -48,9 +75,64 @@ const handleEdit = (item: InventoryItem) => {
 };
 
 const columns = createInventoryColumns({ onEdit: handleEdit });
+const receiptColumns = createInventoryReceiptColumns({
+  onJumpToOrder: (receipt: InventoryReceipt) => {
+    router.push({
+      name: 'procurement',
+      query: {
+        orderNo: receipt.order_no
+      }
+    }).catch(() => undefined);
+  }
+});
+
+function syncReceiptOrderFilterFromRoute() {
+  receiptOrderFilter.value = String(route.query.orderNo || '').trim();
+}
+
+function updateInventoryRouteQuery(orderNo: string) {
+  const nextQuery = { ...route.query };
+  const trimmed = orderNo.trim();
+  if (trimmed) nextQuery.orderNo = trimmed;
+  else delete nextQuery.orderNo;
+  router.replace({ query: nextQuery }).catch(() => undefined);
+}
+
+function clearReceiptOrderFilter() {
+  receiptOrderFilter.value = '';
+  updateInventoryRouteQuery('');
+}
+
+async function loadInventoryData() {
+  await Promise.all([
+    store.fetchInventory(),
+    loadReceipts(String(route.query.orderNo || '').trim())
+  ]);
+}
+
+async function loadReceipts(orderNo = '') {
+  try {
+    await store.fetchInventoryReceipts(orderNo ? { orderNo } : {});
+  } catch {
+    toast({
+      title: '入库记录加载失败',
+      description: '无法获取最新采购入库记录，请稍后重试',
+      variant: 'destructive'
+    });
+  }
+}
 
 onMounted(() => {
-  store.fetchInventory();
+  loadInventoryData().catch(() => undefined);
+});
+
+watch(() => route.query.orderNo, () => {
+  syncReceiptOrderFilterFromRoute();
+  loadReceipts(String(route.query.orderNo || '').trim()).catch(() => undefined);
+});
+
+watch(debouncedReceiptOrderFilter, (value) => {
+  updateInventoryRouteQuery(value);
 });
 </script>
 
@@ -62,8 +144,8 @@ onMounted(() => {
         <p class="text-muted-foreground mt-1">监控实时库存、预警低水位物料并维护基础余量。</p>
       </div>
       <div class="flex items-center gap-2">
-        <Button variant="outline" size="sm" @click="store.fetchInventory()" :disabled="store.loading">
-          <RefreshCcw class="w-4 h-4 mr-2" :class="{ 'animate-spin': store.loading }" />
+        <Button variant="outline" size="sm" @click="loadInventoryData" :disabled="store.loading || store.receiptsLoading">
+          <RefreshCcw class="w-4 h-4 mr-2" :class="{ 'animate-spin': store.loading || store.receiptsLoading }" />
           同步库存
         </Button>
       </div>
@@ -89,6 +171,17 @@ onMounted(() => {
         <CardContent>
           <div class="text-2xl font-semibold text-rose-600">{{ store.lowStockItems.length }}</div>
           <p class="text-xs text-muted-foreground mt-1">需立即补货</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-xs text-muted-foreground">采购入库记录</CardTitle>
+          <ScrollText class="h-4 w-4 text-cyan-600" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ store.receipts.length }}</div>
+          <p class="text-xs text-muted-foreground mt-1">采购入库流水总数</p>
         </CardContent>
       </Card>
     </div>
@@ -124,6 +217,47 @@ onMounted(() => {
           :columns="columns"
           :data="filteredItems"
           density="compact"
+        />
+      </CardContent>
+    </Card>
+
+    <Card class="flex-1 min-h-0">
+      <CardHeader class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <CardTitle>采购入库记录</CardTitle>
+          <p class="text-sm text-muted-foreground mt-1">追踪采购订单入库时间、物料和操作人。</p>
+        </div>
+        <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+          <div class="relative w-full md:w-72">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              v-model="receiptSearchQuery"
+              placeholder="搜索订单号、物料、操作人..."
+              class="pl-10"
+            />
+          </div>
+          <div class="flex gap-2">
+            <Input
+              v-model="receiptOrderFilter"
+              placeholder="按订单号筛选"
+              class="w-full md:w-56"
+            />
+            <Button variant="outline" @click="clearReceiptOrderFilter" :disabled="!receiptOrderFilter">
+              清空
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent class="p-4 h-full overflow-auto">
+        <p v-if="route.query.orderNo" class="text-xs text-cyan-700 bg-cyan-50 border border-cyan-200 rounded px-3 py-2 mb-3">
+          当前按采购订单 <span class="font-semibold">{{ route.query.orderNo }}</span> 定位入库记录
+        </p>
+        <DataTable
+          :columns="receiptColumns"
+          :data="filteredReceipts"
+          :loading="store.receiptsLoading"
+          density="compact"
+          empty-text="暂无采购入库记录"
         />
       </CardContent>
     </Card>

@@ -2,7 +2,7 @@ import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { Order } from '@/types/order';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw, Printer, FileDown, Truck } from 'lucide-vue-next';
+import { Edit, Trash2, Eye, CheckCircle2, PackageCheck, AlertTriangle, RotateCcw, Printer, FileDown, Truck, ScrollText } from 'lucide-vue-next';
 import {
     resolveProcurementCategoryBadgeClass,
     resolveProcurementCategoryLabel,
@@ -16,6 +16,7 @@ export const createColumns = (actions: {
     onPreview: (order: Order) => void;
     onPrint: (order: Order) => void;
     onExportPdf: (order: Order) => void;
+    onViewReceipts: (order: Order) => void;
     onMarkArrived: (order: Order) => void;
     onStockIn: (order: Order) => void;
     onStatusUpdate: (order: Order, status: Order['status']) => void;
@@ -199,6 +200,13 @@ export const createColumns = (actions: {
                     title: '导出 PDF',
                     onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onExportPdf(order); }
                 }, () => h(FileDown, { class: 'h-4 w-4' })),
+                h(Button, {
+                    variant: 'ghost',
+                    size: 'icon',
+                    class: 'h-8 w-8 text-muted-foreground hover:text-cyan-700',
+                    title: '查看入库记录',
+                    onClick: (e: MouseEvent) => { e.stopPropagation(); actions.onViewReceipts(order); }
+                }, () => h(ScrollText, { class: 'h-4 w-4' })),
                 h(Button, {
                     variant: 'ghost',
                     size: 'icon',

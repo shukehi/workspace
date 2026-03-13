@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
@@ -29,6 +30,8 @@ import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilenam
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
+const route = useRoute();
+const router = useRouter();
 
 const statusLabels: Record<Order['status'], string> = {
   draft: '草稿',
@@ -58,6 +61,14 @@ const {
   onSelectionChange,
   clearSelection,
 } = useProcurementPageState(store);
+
+function syncSearchQueryFromRoute() {
+  const orderNo = String(route.query.orderNo || '').trim();
+  if (!orderNo) return;
+  if (searchQuery.value !== orderNo) {
+    searchQuery.value = orderNo;
+  }
+}
 
 const handleSummaryFilter = (type: 'pending' | 'today' | 'completed' | 'total') => {
   resetFilters();
@@ -195,6 +206,15 @@ const handleExport = () => {
     title: '导出成功',
     description: `已准备好 ${dataToExport.length} 条数据的下载`,
     variant: 'success'
+  });
+};
+
+const handleViewReceipts = async (order: Order) => {
+  await router.push({
+    name: 'inventory',
+    query: {
+      orderNo: order.order_no,
+    }
   });
 };
 
@@ -365,6 +385,7 @@ const columns = createColumns({
   onPreview: openPreview,
   onPrint: handlePrintOrder,
   onExportPdf: handleExportPdfOrder,
+  onViewReceipts: handleViewReceipts,
   onMarkArrived: handleMarkArrived,
   onStockIn: handleStockInOrder,
   onStatusUpdate: handleStatusUpdate
@@ -372,6 +393,11 @@ const columns = createColumns({
 
 onMounted(() => {
   store.fetchOrders();
+  syncSearchQueryFromRoute();
+});
+
+watch(() => route.query.orderNo, () => {
+  syncSearchQueryFromRoute();
 });
 </script>
 
@@ -419,6 +445,10 @@ onMounted(() => {
       :has-active-filters="hasActiveFilters"
       @reset="resetFilters"
     />
+
+    <p v-if="route.query.orderNo" class="text-xs text-cyan-700 bg-cyan-50 border border-cyan-200 rounded px-3 py-2">
+      当前按订单号 <span class="font-semibold">{{ route.query.orderNo }}</span> 定位采购单
+    </p>
 
     <Card class="flex-1 min-h-0">
       <CardContent class="p-2 sm:p-4 h-full overflow-hidden">

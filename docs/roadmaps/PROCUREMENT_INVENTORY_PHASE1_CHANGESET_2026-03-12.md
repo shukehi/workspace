@@ -383,3 +383,40 @@ GET /api/inventory-receipts
 3. 任务 3：入库流水与库存更新
 4. 任务 4：采购管理页状态与动作改造
 5. 任务 5：统计与测试收口
+
+## 13. 当前完成情况（2026-03-12）
+
+已完成：
+
+1. `Order` 状态已扩展为 `draft | submitted | processing | arrived | completed | cancelled`
+2. `Order` 已新增 `arrived_* / stocked_in_*` 字段，前后端类型已同步
+3. `OrderService` 已实现：
+   - `processing -> arrived`
+   - `arrived -> completed`
+   - 非法状态流转拦截
+   - 自动单取消后恢复到 `arrived` 的幂等键处理
+4. `InventoryReceipt` 模型、`InventoryReceiptService`、`GET /api/inventory-receipts` 已落地
+5. `POST /api/orders/:id/arrive` 与 `POST /api/orders/:id/stock-in` 已落地，并覆盖库存增量更新
+6. 采购管理页已同步：
+   - 行级操作“开始采购 / 登记到货 / 执行入库”
+   - 批量操作栏同语义改造
+   - 到货日期 / 入库日期显示
+   - `arrived` 纳入待处理单统计与筛选
+7. 统计页、摘要卡片、状态标签已同步到“已到货 / 已入库”口径
+8. 库存页已增加“采购入库记录”展示区块，并支持按订单号定位查看
+9. 采购页已增加“查看入库记录”入口，可跳转到库存页并带上订单号筛选
+
+已补充修复：
+
+1. 修复“登记到货”会清空既有 `delivery_date` 的回归问题
+2. 修复空明细订单仍可被标记为 `completed` 的伪入库问题
+3. 修复批量到货 / 批量入库部分成功时缺少明确回执的问题
+4. 修复库存页“按订单查看入库记录”只写 query 不走服务端过滤的问题
+5. 修复库存记录跳回采购页后不能按订单号定位的问题
+6. 修复入库记录请求失败时静默保留旧数据的问题
+
+当前仍未做：
+
+1. 入库记录的独立详情页
+2. 部分入库 / 反向撤销入库
+3. 库存页中的入库记录分页、汇总统计与导出
