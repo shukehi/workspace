@@ -110,8 +110,11 @@ http://47.98.198.45:8802/getOutContractDetail
 8. 采购管理页前端筛选按归一化类别工作，`配件 / 五金 / hardware` 会统一归类为五金配件；不要求历史订单的 `category` 存储值完全一致
 9. 采购管理页还提供纯前端风险筛选：`风险订单` 会命中待人工处理和待确认单据，`待人工处理` 只命中高风险单据；该筛选不依赖后端新增接口
 10. 采购管理页摘要卡片里的 `待处理单` 会筛选 `draft / submitted / processing`，`今日新增` 会按 `created_at` 日期筛选
+11. `/api/materials` 对应库存/入库实际使用的 `materials` 数据库表；`/api/config/materials` / `material-catalog` 对应材料目录工作流，二者不会自动双向同步
+12. 采购入库只按 `order_items.material_id -> materials.code/id` 匹配；仅更新材料目录或 mapping 而未补齐 `materials` 表时，仍会触发 `MATERIAL_NOT_FOUND`
 
 ## 4. 关联文档
 
 - `docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md`
 - `docs/reference/formula-management-refactor.md`
+- `docs/reference/MATERIAL_CODE_STANDARDIZATION_CANDIDATES_2026-03-13.csv`

@@ -24,6 +24,7 @@
 - 当 `spec` 第 3 段包含 `内开` 时，锁具左右数量会互换
 - 锁具单位来自锁具配置中的 `defaultUnit`
 - 锁具备注只使用命中映射的 `remark`
+- 锁叉支持高门基础尺寸规则：5/7cm 在 `>= 2200`、9cm 在 `>= 2210` 时切换到高门尺寸
 - 采购管理页分类统一为 `包装 / 锁芯 / 锁具 / 拉手 / 锁叉 / 五金配件`
 - 采购管理页会兼容旧类别值 `配件 / 五金 / hardware` 并统一归到五金配件
 - 采购管理页支持 `风险订单 / 待人工处理` 快捷筛选，便于优先处理锁具、拉手、锁芯等异常明细
@@ -190,6 +191,17 @@ npm test
 npm run build
 ```
 
+数据修复：
+
+```bash
+npm run db:backfill:order-item-material-ids
+```
+
+说明：
+
+- 用于为历史自动生成采购单回填缺失的 `order_items.material_id`
+- 回填后会同步改变明细 `item_key`；如果采购页或入库弹窗已打开，需要刷新页面后再继续入库
+
 仓库结构守护：
 
 ```bash
@@ -225,6 +237,13 @@ node --test tests/repository-structure-guard.test.js
 - `DELETE /api/config/formulas/:formulaKey`：删除配方
 - `GET /api/config/formulas/:formulaKey/revisions`：版本历史
 
+说明：
+
+- `/api/materials` 维护的是库存/入库实际使用的 `materials` 数据库表；采购入库按 `order_items.material_id -> materials.code/id` 匹配
+- `/api/config/materials` 维护的是材料目录工作流，主要服务来源分析、配方和配置读取，不会自动把数据同步到 `materials` 表
+- 拉手自动单如需稳定入库，建议在 `handle` 映射里填写 `materialCode`，并确保对应编码已存在于 `materials` 表
+- 本轮编码治理候选表见 [docs/reference/MATERIAL_CODE_STANDARDIZATION_CANDIDATES_2026-03-13.csv](/Users/aries/Dve/workspace/docs/reference/MATERIAL_CODE_STANDARDIZATION_CANDIDATES_2026-03-13.csv)
+
 ## 配方迁移与回退
 
 JSON 配方迁移到 SQLite：
@@ -253,14 +272,3 @@ npm run db:export:formulas
 ## 说明
 
 - `docs/DEVELOPMENT_GUIDE.md` 主要记录历史架构（`public/js` 时代），不再作为主开发入口文档。
-数据修复：
-
-```bash
-npm run db:backfill:order-item-material-ids
-```
-
-说明：
-
-- 用于为历史自动生成采购单回填缺失的 `order_items.material_id`
-- 回填后会同步改变明细 `item_key`；如果采购页或入库弹窗已打开，需要刷新页面后再继续入库
-
