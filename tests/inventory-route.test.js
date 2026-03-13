@@ -125,6 +125,125 @@ test('GET /api/inventory-receipts returns stock-in records', async () => {
   assert.equal(refreshed.items[0].received_quantity, 2);
 });
 
+test('POST /api/inventory-receipts/:id/reverse reverts stock and order status', async () => {
+  const material = await Material.create({
+    code: `TEST-MAT-REVERSE-${Date.now()}`,
+    name: 'Reverse Material',
+    model: 'REV-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 10,
+    min_stock: 1
+  });
+
+  const order = await orderService.createOrder({
+    order_no: `REVERSE-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Reverse Material',
+        model: 'REV-MODEL',
+        spec: 'REV-MODEL',
+        quantity: 2,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-12T12:20:00.000Z',
+    operator: '仓管A',
+    remark: '测试入库'
+  });
+
+  const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
+  const list = await listRes.json();
+  const originalReceipt = list.find((item) => item.direction !== 'reversal');
+  assert.ok(originalReceipt);
+
+  const reverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reversed_at: '2026-03-12T12:30:00.000Z',
+      operator: '仓管B',
+      reverse_reason: 'entry_error',
+      remark: '录入错误'
+    })
+  });
+
+  assert.equal(reverseRes.status, 200);
+  const reversed = await reverseRes.json();
+  assert.equal(reversed.direction, 'reversal');
+  assert.equal(reversed.source_receipt_id, originalReceipt.id);
+  assert.equal(reversed.reverse_reason, 'entry_error');
+  assert.equal(reversed.quantity, -2);
+
+  const refreshedMaterial = await Material.findByPk(material.id);
+  assert.equal(Number(refreshedMaterial.stock_quantity), 10);
+
+  const refreshedOrder = await orderService.getOrderById(order.id);
+  assert.equal(refreshedOrder.status, 'arrived');
+  assert.equal(refreshedOrder.items[0].received_quantity, 0);
+});
+
+test('POST /api/inventory-receipts/:id/reverse requires reverse reason', async () => {
+  const material = await Material.create({
+    code: `TEST-MAT-REVERSE-REQ-${Date.now()}`,
+    name: 'Reverse Req Material',
+    model: 'REV-REQ',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 5,
+    min_stock: 1
+  });
+
+  const order = await orderService.createOrder({
+    order_no: `REVERSE-REQ-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Reverse Req Material',
+        model: 'REV-REQ',
+        spec: 'REV-REQ',
+        quantity: 1,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-12T12:40:00.000Z',
+    operator: '仓管A'
+  });
+
+  const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
+  const list = await listRes.json();
+  const originalReceipt = list.find((item) => item.direction !== 'reversal');
+
+  const reverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reversed_at: '2026-03-12T12:45:00.000Z'
+    })
+  });
+
+  assert.equal(reverseRes.status, 400);
+  const body = await reverseRes.json();
+  assert.equal(body.error, 'REVERSE_REASON_REQUIRED');
+});
+
 test.after(async () => {
   if (server) {
     await new Promise((resolve) => server.close(resolve));

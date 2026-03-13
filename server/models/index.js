@@ -23,6 +23,7 @@ Order.hasMany(OrderIdempotencyKey, { foreignKey: 'order_id', as: 'idempotencyKey
 OrderIdempotencyKey.belongsTo(Order, { foreignKey: 'order_id' });
 Order.hasMany(InventoryReceipt, { foreignKey: 'order_id', as: 'inventoryReceipts', onDelete: 'CASCADE' });
 InventoryReceipt.belongsTo(Order, { foreignKey: 'order_id' });
+InventoryReceipt.belongsTo(InventoryReceipt, { foreignKey: 'source_receipt_id', as: 'sourceReceipt' });
 FormulaDefinition.hasMany(FormulaRevision, { foreignKey: 'formula_id', as: 'revisions', onDelete: 'CASCADE' });
 FormulaRevision.belongsTo(FormulaDefinition, { foreignKey: 'formula_id' });
 FormulaDefinition.hasMany(FormulaAuditLog, { foreignKey: 'formula_id', as: 'auditLogs', onDelete: 'CASCADE' });
@@ -149,6 +150,30 @@ async function ensureOrderIdempotencyIndexes() {
     `);
 }
 
+async function ensureInventoryReceiptColumns() {
+    const queryInterface = sequelize.getQueryInterface();
+    const table = 'inventory_receipts';
+    const existing = await queryInterface.describeTable(table);
+
+    const targetColumns = [
+        'direction',
+        'source_receipt_id',
+        'reverse_reason'
+    ];
+
+    for (const col of targetColumns) {
+        if (existing[col]) continue;
+        const attr = InventoryReceipt.rawAttributes[col];
+        if (!attr) continue;
+        await queryInterface.addColumn(table, col, {
+            type: attr.type,
+            allowNull: attr.allowNull,
+            defaultValue: attr.defaultValue
+        });
+        console.log(`✅ Added column ${table}.${col}`);
+    }
+}
+
 // Function to sync database
 const initDB = async () => {
     try {
@@ -161,6 +186,7 @@ const initDB = async () => {
         await sequelize.sync();
         await ensureOrderColumns();
         await ensureOrderItemColumns();
+        await ensureInventoryReceiptColumns();
         await ensureMaterialColumns();
         await ensureOrderIdempotencyIndexes();
         console.log('✅ Database synchronized');

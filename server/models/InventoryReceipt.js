@@ -19,6 +19,19 @@ const InventoryReceipt = sequelize.define('InventoryReceipt', {
         type: DataTypes.INTEGER,
         allowNull: true
     },
+    direction: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'in'
+    },
+    source_receipt_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    reverse_reason: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     material_id: {
         type: DataTypes.STRING,
         allowNull: false

@@ -3,9 +3,12 @@ import type { ColumnDef } from '@tanstack/vue-table';
 import type { InventoryReceipt } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { normalizeDateString } from '@/features/procurement/docModel';
+import { RotateCcw } from 'lucide-vue-next';
 
 export const createInventoryReceiptColumns = (actions: {
     onJumpToOrder?: (receipt: InventoryReceipt) => void;
+    onReverse?: (receipt: InventoryReceipt) => void;
+    isReceiptReversible?: (receipt: InventoryReceipt) => boolean;
 } = {}): ColumnDef<InventoryReceipt>[] => [
     {
         accessorKey: 'receipt_date',
@@ -41,17 +44,62 @@ export const createInventoryReceiptColumns = (actions: {
         cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue<string>('item_name') || '-')
     },
     {
+        accessorKey: 'direction',
+        header: '方向',
+        cell: ({ row }) => {
+            const receipt = row.original;
+            const isReversal = receipt.direction === 'reversal';
+            return h('span', {
+                class: `px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                    isReversal
+                        ? 'bg-rose-50 text-rose-600 border-rose-200'
+                        : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                }`
+            }, isReversal ? '撤销' : '入库');
+        }
+    },
+    {
         accessorKey: 'quantity',
         header: '数量',
         cell: ({ row }) => {
             const receipt = row.original;
-            return h('div', { class: 'font-medium text-emerald-600' }, `${Number(receipt.quantity || 0)} ${receipt.unit || ''}`.trim());
+            const quantity = Number(receipt.quantity || 0);
+            const isReversal = quantity < 0 || receipt.direction === 'reversal';
+            return h('div', { class: `font-medium ${isReversal ? 'text-rose-600' : 'text-emerald-600'}` }, `${quantity} ${receipt.unit || ''}`.trim());
         }
     },
     {
         accessorKey: 'operator',
         header: '操作人',
         cell: ({ row }) => h('div', { class: 'text-muted-foreground' }, row.getValue<string>('operator') || '-')
+    },
+    {
+        accessorKey: 'reverse_reason',
+        header: '撤销原因',
+        cell: ({ row }) => {
+            const receipt = row.original;
+            return h('div', { class: 'text-muted-foreground text-xs' }, receipt.direction === 'reversal' ? (receipt.reverse_reason || '-') : '-');
+        }
+    },
+    {
+        id: 'actions',
+        header: '操作',
+        cell: ({ row }) => {
+            const receipt = row.original;
+            const reversible = actions.isReceiptReversible?.(receipt);
+            if (!reversible || !actions.onReverse) {
+                return h('div', { class: 'text-xs text-muted-foreground' }, '-');
+            }
+            return h(Button, {
+                variant: 'ghost',
+                size: 'sm',
+                class: 'h-8 px-2 text-muted-foreground hover:text-rose-600',
+                onClick: (e: MouseEvent) => {
+                    e.stopPropagation();
+                    actions.onReverse?.(receipt);
+                }
+            }, () => [h(RotateCcw, { class: 'h-4 w-4 mr-1' }), '撤销']);
+        }
     },
     {
         accessorKey: 'remark',

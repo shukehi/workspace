@@ -74,6 +74,13 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
+    async function reverseReceipt(id: number, payload: { operator?: string; remark?: string; reversed_at?: string; reverse_reason?: string } = {}) {
+        const receipt = await api.post<InventoryReceipt>(`/inventory-receipts/${id}/reverse`, payload);
+        await fetchInventoryReceipts();
+        await fetchInventory();
+        return receipt;
+    }
+
     function exportReceiptsToCSV(data: InventoryReceipt[]) {
         if (!Array.isArray(data) || data.length === 0) return;
 
@@ -124,6 +131,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         sortedReceipts,
         fetchInventory, 
         fetchInventoryReceipts,
+        reverseReceipt,
         updateStock,
         exportReceiptsToCSV
     };

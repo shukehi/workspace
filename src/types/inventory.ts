@@ -15,6 +15,9 @@ export interface InventoryReceipt {
     order_id: number;
     order_no: string;
     order_item_id?: number | null;
+    direction?: 'in' | 'reversal';
+    source_receipt_id?: number | null;
+    reverse_reason?: string | null;
     material_id: string;
     item_name: string;
     supplier?: string | null;
