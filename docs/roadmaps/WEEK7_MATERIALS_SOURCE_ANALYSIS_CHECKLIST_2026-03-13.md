@@ -53,10 +53,13 @@ Week 7
   - `src/stores/useSourceStore.ts` 已将 `localStorage` 快照和 ERP/历史合同装载下沉到 source-analysis service 层
   - `src/services/configLoader.ts` 已新增 `refreshSourceAnalysisInputs()` 与 `getSourceAnalysisConfig()`
   - `src/services/sourceAnalysisConfig.ts` 已改为只消费 loader 暴露的 source-analysis 入口，不再手工编排 `loadAll + refresh* + get*`
+  - 已新增 `src/features/source-analysis/composables/useSourcePageState.ts`，`src/views/Source.vue` 已将合同输入、长文本模式与表格列装配下沉到页面状态 composable
+  - 已新增 `src/features/source-analysis/services/sourceOrderWorkflow.ts`，`src/stores/useSourceStore.ts` 已将合同加载、历史合同读取、分析重算与 snapshot rehydrate 下沉到 workflow service
   - 已补 `tests/source-analysis-runtime.test.ts`
   - 已补 `tests/source-contract-service.test.ts` 与 `tests/source-order-snapshot.test.ts`
   - 已补 `tests/config-loader-mapping.test.ts` 的 source-analysis loader 边界测试
-  - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
+  - 已补 `tests/source-page-state.test.ts` 与 `tests/source-store-workflow.test.ts`
+  - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/source-page-state.test.ts`、`tests/source-store-workflow.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
 ```
 
 ## 4. 本周退出标准
@@ -214,10 +217,10 @@ server/services/material-catalog/
 
 建议迁移内容：
 
-- [ ] 查询参数、表单输入、分析触发编排
+- [x] 查询参数、表单输入、分析触发编排（当前已落 `useSourcePageState.ts` 与 `sourceOrderWorkflow.ts`）
 - [ ] 分析结果 normalize
-- [ ] 配置依赖装载逻辑
-- [ ] 页面交互与 store 协调逻辑
+- [x] 配置依赖装载逻辑（当前已落 `sourceAnalysisRuntime.ts` 与 `configLoader.ts`）
+- [x] 页面交互与 store 协调逻辑（当前已将合同装载、snapshot 与分析编排下沉到 source-analysis services）
 
 验收：
 
