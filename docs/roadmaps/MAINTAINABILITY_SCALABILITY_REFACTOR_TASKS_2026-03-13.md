@@ -274,7 +274,10 @@
 5. 已新增 `src/features/formulas/composables/useFormulaLocalDraft.ts` 与 `useDirtyBeforeUnload.ts`，承载 local draft 生命周期与浏览器离开保护。
 6. `useFormulaManager.ts` 中的列表/分页加载、detail/revision 读取、local draft/dirty guard 已分别下沉到 list/detail/local-draft composable。
 7. 已新增 `tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts` 与 `tests/formula-dirty-before-unload.test.ts` 锁定这些纯逻辑和装配行为。
-8. 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`。
+8. 已新增 `server/db/migrate.js` 与 `server/db/migrations/*.js`，把 `orders/order_items/inventory_receipts/materials/order_idempotency_keys` 的历史补列逻辑迁入 migration。
+9. `server/models/index.js` 已切到 `sequelize.sync() + runMigrations()`，不再直接调用 `ensure*Columns()`。
+10. 已新增 `tests/db-migrations.test.js`，验证 legacy sqlite schema 能升级到当前结构并写入 migration 记录。
+11. 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/db-migrations.test.js`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`。
 
 ### 8.2 浏览器副作用边界
 
@@ -284,9 +287,9 @@
 
 ### 8.3 Migration 基线
 
-- [ ] 建立 `server/db/migrations/`
-- [ ] 选定迁移执行方式、命名规则和测试环境初始化方式
-- [ ] 盘点 `server/models/index.js` 中哪些 `ensure*Columns()` 可迁入 migration
+- [x] 建立 `server/db/migrations/`
+- [x] 选定迁移执行方式、命名规则和测试环境初始化方式
+- [x] 盘点 `server/models/index.js` 中哪些 `ensure*Columns()` 可迁入 migration
 - [ ] 首批 migration 只做基线和最小必要修正，不混入大规模领域改表
 
 ### 8.4 本周额外约束

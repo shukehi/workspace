@@ -15,6 +15,7 @@ const MappingProfile = require('./MappingProfile');
 const MappingRevision = require('./MappingRevision');
 const MappingAuditLog = require('./MappingAuditLog');
 const MappingUnmatchedEvent = require('./MappingUnmatchedEvent');
+const { runMigrations } = require('../db/migrate');
 
 // Define Relationships
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
@@ -37,143 +38,6 @@ MaterialCatalogRevision.belongsTo(MaterialCatalogProfile, { foreignKey: 'profile
 MaterialCatalogProfile.hasMany(MaterialCatalogAuditLog, { foreignKey: 'profile_id', as: 'auditLogs', onDelete: 'CASCADE' });
 MaterialCatalogAuditLog.belongsTo(MaterialCatalogProfile, { foreignKey: 'profile_id' });
 
-async function ensureOrderItemColumns() {
-    const queryInterface = sequelize.getQueryInterface();
-    const table = 'order_items';
-    const existing = await queryInterface.describeTable(table);
-
-    const targetColumns = [
-        'material_id',
-        'supplier',
-        'internal_name',
-        'external_name',
-        'type',
-        'spec',
-        'mb',
-        'eccentricity',
-        'ordered_quantity',
-        'received_quantity',
-        'quantity_left',
-        'quantity_right'
-    ];
-
-    for (const col of targetColumns) {
-        if (existing[col]) continue;
-        const attr = OrderItem.rawAttributes[col];
-        if (!attr) continue;
-        await queryInterface.addColumn(table, col, {
-            type: attr.type,
-            allowNull: attr.allowNull,
-            defaultValue: attr.defaultValue
-        });
-        console.log(`✅ Added column ${table}.${col}`);
-    }
-}
-
-async function ensureOrderColumns() {
-    const queryInterface = sequelize.getQueryInterface();
-    const table = 'orders';
-    const existing = await queryInterface.describeTable(table);
-
-    const targetColumns = [
-        'remark',
-        'source_contract_code',
-        'dedupe_key',
-        'arrived_at',
-        'arrived_by',
-        'arrived_remark',
-        'stocked_in_at',
-        'stocked_in_by',
-        'stocked_in_remark'
-    ];
-
-    for (const col of targetColumns) {
-        if (existing[col]) continue;
-        const attr = Order.rawAttributes[col];
-        if (!attr) continue;
-        await queryInterface.addColumn(table, col, {
-            type: attr.type,
-            allowNull: attr.allowNull,
-            defaultValue: attr.defaultValue
-        });
-        console.log(`✅ Added column ${table}.${col}`);
-    }
-}
-
-async function ensureMaterialColumns() {
-    const queryInterface = sequelize.getQueryInterface();
-    const table = 'materials';
-    const existing = await queryInterface.describeTable(table);
-
-    const targetColumns = [
-        'package_spec',
-        'stock_quantity',
-        'min_stock',
-        'aliases'
-    ];
-
-    for (const col of targetColumns) {
-        if (existing[col]) continue;
-        const attr = Material.rawAttributes[col];
-        if (!attr) continue;
-        await queryInterface.addColumn(table, col, {
-            type: attr.type,
-            allowNull: attr.allowNull,
-            defaultValue: attr.defaultValue
-        });
-        console.log(`✅ Added column ${table}.${col}`);
-    }
-}
-
-async function ensureOrderIdempotencyIndexes() {
-    const queryInterface = sequelize.getQueryInterface();
-    const table = 'order_idempotency_keys';
-    const existing = await queryInterface.describeTable(table);
-
-    const targetColumns = ['scope', 'source_contract_code', 'dedupe_key', 'order_id', 'active'];
-    for (const col of targetColumns) {
-        if (existing[col]) continue;
-        const attr = OrderIdempotencyKey.rawAttributes[col];
-        if (!attr) continue;
-        await queryInterface.addColumn(table, col, {
-            type: attr.type,
-            allowNull: attr.allowNull,
-            defaultValue: attr.defaultValue
-        });
-        console.log(`✅ Added column ${table}.${col}`);
-    }
-
-    await sequelize.query(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_order_idempotency_active
-        ON order_idempotency_keys(scope, dedupe_key)
-        WHERE active = 1
-    `);
-}
-
-async function ensureInventoryReceiptColumns() {
-    const queryInterface = sequelize.getQueryInterface();
-    const table = 'inventory_receipts';
-    const existing = await queryInterface.describeTable(table);
-
-    const targetColumns = [
-        'direction',
-        'source_receipt_id',
-        'reverse_reason'
-    ];
-
-    for (const col of targetColumns) {
-        if (existing[col]) continue;
-        const attr = InventoryReceipt.rawAttributes[col];
-        if (!attr) continue;
-        await queryInterface.addColumn(table, col, {
-            type: attr.type,
-            allowNull: attr.allowNull,
-            defaultValue: attr.defaultValue
-        });
-        console.log(`✅ Added column ${table}.${col}`);
-    }
-}
-
 // Function to sync database
 const initDB = async () => {
     try {
@@ -182,13 +46,9 @@ const initDB = async () => {
 
         // Safe sync strategy for SQLite:
         // 1) create missing tables
-        // 2) apply additive column migrations manually (no table rebuild)
+        // 2) apply additive migrations manually (no table rebuild)
         await sequelize.sync();
-        await ensureOrderColumns();
-        await ensureOrderItemColumns();
-        await ensureInventoryReceiptColumns();
-        await ensureMaterialColumns();
-        await ensureOrderIdempotencyIndexes();
+        await runMigrations(sequelize);
         console.log('✅ Database synchronized');
     } catch (error) {
         console.error('❌ Unable to connect to the database:', error);

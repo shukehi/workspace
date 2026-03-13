@@ -51,11 +51,14 @@ Week 6
   - `useFormulaManager.ts` 的 detail/revision 远端读取已下沉到 `src/features/formulas/composables/useFormulaDetail.ts`
   - `useFormulaManager.ts` 的 local draft 生命周期已下沉到 `src/features/formulas/composables/useFormulaLocalDraft.ts`
   - `useFormulaManager.ts` 的 `beforeunload` dirty guard 已下沉到 `src/features/formulas/composables/useDirtyBeforeUnload.ts`
+  - 已新增 `server/db/migrate.js` 与 `server/db/migrations/*.js`，建立 migration runner 和首批 additive migration
+  - `server/models/index.js` 已从 `ensure*Columns()` 切到 `sequelize.sync() + runMigrations()`
   - 已补 `tests/formula-draft-model.test.ts`
   - 已补 `tests/formula-list-composable.test.ts`
   - 已补 `tests/formula-detail-composable.test.ts`
   - 已补 `tests/formula-local-draft-composable.test.ts` 与 `tests/formula-dirty-before-unload.test.ts`
-  - 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`
+  - 已补 `tests/db-migrations.test.js`，验证 legacy sqlite schema 升级路径
+  - 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/db-migrations.test.js`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`
 ```
 
 ## 4. 本周退出标准
