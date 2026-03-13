@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：在第二周完成 `OrderService` 模块化拆分后，继续将订单域的 HTTP 层升级为 `route -> controller -> service -> repository` 结构，并建立统一错误/请求校验中间件。
 
 ## 1. 第三周范围
@@ -33,8 +33,8 @@
 ```text
 Week 3
 - Owner: TBD
-- Status: pending
-- Start Date:
+- Status: in_progress
+- Start Date: 2026-03-13
 - Target Date:
 - Exit Criteria:
   - `route -> controller -> service` 链路已在订单域跑通
@@ -45,6 +45,11 @@ Week 3
 - Blocking:
 - PR / Issue:
 - Notes:
+  - 已新增 `server/app/errors/*`、`server/app/middleware/*`、`server/app/http/response.js`
+  - 已新增 `server/controllers/order.controller.js` 并将 `server/routes/order.js` 切到 `asyncHandler + controller + errorHandler`
+  - 已新增 `validateRequest` 与 `server/validators/order.validators.js`，订单写接口和 `GET /api/orders` query 已接入首批字段级 request validation middleware
+  - 已新增 `notFound` 中间件文件，但尚未将全站 API 404 输出切到统一结构
+  - 已执行 `node --test tests/order-routes.test.js`、`node --test tests/order-service.test.js`、`node --test tests/inventory-route.test.js`
 ```
 
 ## 4. 本周退出标准

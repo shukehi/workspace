@@ -234,6 +234,17 @@ test('GET /api/orders returns paginated rows when page query is provided', async
   assert.equal(typeof body.facets.statusCounts.arrived, 'number');
 });
 
+test('GET /api/orders rejects invalid page query with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/orders?page=0&pageSize=10`);
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'query');
+  assert.equal(body.issues[0].field, 'page');
+});
+
 test('PUT /api/orders/:id rejects invalid status transition', async () => {
   const createRes = await fetch(`${baseUrl}/api/orders`, {
     method: 'POST',
@@ -272,6 +283,92 @@ test('PUT /api/orders/:id rejects invalid status transition', async () => {
   assert.equal(body.error, 'INVALID_STATUS_TRANSITION');
   assert.equal(body.fromStatus, 'draft');
   assert.equal(body.toStatus, 'completed');
+});
+
+test('POST /api/orders rejects non-object request bodies with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify([]),
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'body');
+  assert.equal(body.issues[0].field, '$');
+});
+
+test('POST /api/orders rejects invalid status type with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-BAD-STATUS-001',
+      status: 123,
+    }),
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'body');
+  assert.equal(body.issues[0].field, 'status');
+});
+
+test('GET /api/orders/:id rejects invalid id param with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/orders/not-a-number`);
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'params');
+  assert.equal(body.issues[0].field, 'id');
+});
+
+test('POST /api/orders/:id/stock-in rejects non-array items with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/orders/1/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items: {},
+    }),
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'body');
+  assert.equal(body.issues[0].field, 'items');
+});
+
+test('DELETE /api/orders/:id rejects invalid id param with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/orders/not-a-number`, {
+    method: 'DELETE',
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'params');
+  assert.equal(body.issues[0].field, 'id');
+});
+
+test('DELETE /api/orders/:id returns not found shape when order does not exist', async () => {
+  const res = await fetch(`${baseUrl}/api/orders/999999`, {
+    method: 'DELETE',
+  });
+
+  assert.equal(res.status, 404);
+  const body = await res.json();
+  assert.equal(body.error, 'NOT_FOUND');
+  assert.equal(body.message, 'Order not found');
+  assert.equal(body.id, '999999');
 });
 
 test('PUT /api/orders/:id rejects detail edits for arrived orders', async () => {

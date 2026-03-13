@@ -129,17 +129,28 @@
 
 ### 5.1 错误抽象与 middleware
 
-- [ ] 定义 `AppError` 或等价错误结构
-- [ ] 抽取统一 `errorCodes`
-- [ ] 引入 `asyncHandler` 或等价包装，减少 route 中的重复 `try/catch`
-- [ ] 统一 4xx / 5xx 输出格式
+- [x] 定义 `AppError` 或等价错误结构
+- [x] 抽取统一 `errorCodes`
+- [x] 引入 `asyncHandler` 或等价包装，减少 route 中的重复 `try/catch`
+- [x] 为订单域建立统一错误出口，并兼容现有主要错误响应形态
 
 ### 5.2 Controller 与校验边界
 
-- [ ] 将 `server/routes/order.js` 的 HTTP 处理下沉到 controller
-- [ ] 为高风险写接口补请求 schema 或校验 middleware
+- [x] 将 `server/routes/order.js` 的 HTTP 处理下沉到 controller
+- [x] 为高风险写接口补首批请求校验落点（当前为 controller 层轻量校验）
 - [ ] 明确 request parsing、validation、controller、service 的责任顺序
 - [ ] 保留必要的上下文日志，至少记录模块名、动作名、关键主键、错误码
+
+当前已完成的首批落地：
+
+1. 已新增 `server/app/errors/errorCodes.js`、`AppError.js`、`normalizeError.js`。
+2. 已新增 `server/app/middleware/asyncHandler.js`、`errorHandler.js`、`notFound.js`、`validateRequest.js`。
+3. 已新增 `server/app/http/response.js`。
+4. 已新增 `server/controllers/order.controller.js`。
+5. 已新增 `server/validators/order.validators.js`，订单域写接口和 `GET /api/orders` query 已接入首批字段级 request validation middleware。
+6. `server/routes/order.js` 已改为薄路由，只负责 URL 绑定。
+7. 订单域错误当前已由统一 `errorHandler` 输出，保持主要成功/失败 JSON 兼容。
+8. 已执行 `tests/order-routes.test.js`、`tests/order-service.test.js` 与 `tests/inventory-route.test.js`。
 
 ### 5.3 本周额外约束
 
