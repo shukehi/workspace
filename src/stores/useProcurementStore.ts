@@ -207,6 +207,35 @@ export const useProcurementStore = defineStore('procurement', () => {
         }
     }
 
+    async function fetchAllOrders(nextQuery: ProcurementOrderQuery = {}) {
+        const pageSize = 200;
+        let page = 1;
+        let total = 0;
+        const rows: Order[] = [];
+
+        do {
+            const res = await api.get<ProcurementOrderListResponse>('/orders', {
+                params: {
+                    ...nextQuery,
+                    page,
+                    pageSize,
+                },
+            });
+            const normalized = normalizeOrderListPayload(res);
+            if (!normalized) {
+                throw new Error('Invalid paginated order payload returned by /api/orders');
+            }
+            if (page === 1) {
+                total = normalized.total;
+            }
+            rows.push(...normalized.rows);
+            page += 1;
+            if (normalized.rows.length === 0) break;
+        } while (rows.length < total);
+
+        return rows;
+    }
+
     function replaceOrderInState(order: Order) {
         const index = purchaseOrders.value.findIndex((item) => item && item.id === order.id);
         if (index !== -1) {
@@ -421,6 +450,7 @@ export const useProcurementStore = defineStore('procurement', () => {
         facetCounts,
         loading,
         fetchOrders,
+        fetchAllOrders,
         addOrder,
         deleteOrder,
         bulkDelete,

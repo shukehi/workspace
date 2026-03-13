@@ -42,6 +42,7 @@ const props = withDefaults(defineProps<{
   page?: number
   pageSize?: number
   total?: number
+  pageSizeOptions?: number[]
 }>(), {
   enableSelection: false,
   searchPlaceholder: '快速筛选...',
@@ -59,6 +60,7 @@ const props = withDefaults(defineProps<{
   page: 1,
   pageSize: 50,
   total: 0,
+  pageSizeOptions: () => [],
 })
 
 const emit = defineEmits<{
@@ -142,6 +144,15 @@ watch(rowSelection, () => {
   const selectedRows = table.getSelectedRowModel().rows.map(row => row.original)
   emit('selection-change', selectedRows)
 }, { deep: true })
+
+watch(
+  () => [props.manualPagination, props.page, props.data] as const,
+  ([manualPagination]) => {
+    if (!manualPagination) return
+    table.resetRowSelection()
+    emit('selection-change', [])
+  }
+)
 
 function valueUpdater(updaterOrValue: any, ref: any) {
   ref.value = typeof updaterOrValue === 'function'
@@ -288,6 +299,19 @@ function goToNextPage() {
         {{ pageLabelPrefix }} {{ displayPageIndex }} {{ pageLabelConnector }} {{ displayPageCount }}
       </div>
       <div class="flex items-center gap-2 self-start sm:self-auto">
+        <div v-if="props.pageSizeOptions.length > 0" class="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>每页</span>
+          <select
+            class="h-8 rounded-md border bg-background px-2 text-sm text-foreground"
+            :value="String(props.pageSize)"
+            @change="emit('page-size-change', Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option v-for="size in props.pageSizeOptions" :key="size" :value="String(size)">
+              {{ size }}
+            </option>
+          </select>
+          <span>条</span>
+        </div>
         <Button
           variant="outline"
           size="sm"

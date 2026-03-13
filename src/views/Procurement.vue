@@ -123,8 +123,8 @@ function updateProcurementRouteQuery() {
   router.replace({ query: nextQuery }).catch(() => undefined);
 }
 
-async function loadProcurementOrders() {
-  await store.fetchOrders({
+function buildProcurementQuery() {
+  return {
     page: procurementPage.value,
     pageSize: procurementPageSize.value,
     ...(activeStatus.value !== 'ALL' ? { status: activeStatus.value } : {}),
@@ -133,7 +133,11 @@ async function loadProcurementOrders() {
     ...(activeCreatedDate.value ? { createdDate: activeCreatedDate.value } : {}),
     ...(searchQuery.value.trim() ? { keyword: searchQuery.value.trim() } : {}),
     ...(String(route.query.orderNo || '').trim() ? { orderNo: String(route.query.orderNo || '').trim() } : {}),
-  });
+  };
+}
+
+async function loadProcurementOrders() {
+  await store.fetchOrders(buildProcurementQuery());
 }
 
 const handleSummaryFilter = (type: 'pending' | 'today' | 'completed' | 'total') => {
@@ -269,14 +273,25 @@ const handleExportPdfOrder = async (order: Order) => {
   }
 };
 
-const handleExport = () => {
-  const dataToExport = selectedRows.value.length > 0 ? selectedRows.value : filteredOrders.value;
-  store.exportToCSV(dataToExport);
-  toast({
-    title: '导出成功',
-    description: `已准备好 ${dataToExport.length} 条数据的下载`,
-    variant: 'success'
-  });
+const handleExport = async () => {
+  try {
+    const dataToExport = selectedRows.value.length > 0 ? selectedRows.value : filteredOrders.value;
+    const rows = selectedRows.value.length > 0
+      ? dataToExport
+      : await store.fetchAllOrders(buildProcurementQuery());
+    store.exportToCSV(rows);
+    toast({
+      title: '导出成功',
+      description: `已准备好 ${rows.length} 条数据的下载`,
+      variant: 'success'
+    });
+  } catch {
+    toast({
+      title: '导出失败',
+      description: '无法获取完整的采购订单结果，请稍后重试',
+      variant: 'destructive'
+    });
+  }
 };
 
 const handleViewReceipts = async (order: Order) => {
@@ -645,8 +660,10 @@ function handleProcurementRefreshSignal(event: StorageEvent) {
           :page="store.ordersPage"
           :page-size="store.ordersPageSize"
           :total="store.ordersTotal"
+          :page-size-options="[20, 50, 100]"
           density="compact"
           @page-change="procurementPage = $event"
+          @page-size-change="procurementPageSize = $event"
           @selection-change="onSelectionChange"
         />
       </CardContent>
