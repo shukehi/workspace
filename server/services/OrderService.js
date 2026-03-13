@@ -209,9 +209,21 @@ function serializeOrderItem(item) {
         ...plain,
         item_key: buildOrderItemKey(plain),
         quantity: Number(plain.quantity || 0),
-        ordered_quantity: Number(plain.ordered_quantity ?? plain.quantity ?? 0),
+        ordered_quantity: resolveOrderedQuantity(plain.ordered_quantity, plain.quantity),
         received_quantity: Number(plain.received_quantity || 0)
     };
+}
+
+function resolveOrderedQuantity(rawOrderedQuantity, rawQuantity) {
+    const orderedQuantity = Number(rawOrderedQuantity);
+    if (Number.isFinite(orderedQuantity) && orderedQuantity > 0) {
+        return orderedQuantity;
+    }
+    const quantity = Number(rawQuantity);
+    if (Number.isFinite(quantity) && quantity > 0) {
+        return quantity;
+    }
+    return 0;
 }
 
 function normalizeOrderItemForPersistence(item = {}) {
@@ -658,7 +670,7 @@ class OrderService {
             for (const receiptItem of receiptItems) {
                 const item = receiptItem.orderItem;
                 const nextReceived = Number(item.received_quantity || 0) + Number(receiptItem.quantity || 0);
-                const nextOrdered = Number(item.ordered_quantity ?? item.quantity ?? 0);
+                const nextOrdered = resolveOrderedQuantity(item.ordered_quantity, item.quantity);
                 if (nextReceived > nextOrdered) {
                     throw new ReceivedQuantityExceededError(item.id, nextOrdered, nextReceived);
                 }
@@ -671,7 +683,7 @@ class OrderService {
 
             const allReceived = (order.items || []).every((item) => {
                 const candidate = updatesByOrderItemId.get(Number(item.id)) || item;
-                const orderedQuantity = Number(candidate.ordered_quantity ?? candidate.quantity ?? 0);
+                const orderedQuantity = resolveOrderedQuantity(candidate.ordered_quantity, candidate.quantity);
                 const receivedQuantity = Number(candidate.received_quantity || 0);
                 return orderedQuantity > 0 && receivedQuantity >= orderedQuantity;
             });

@@ -42,7 +42,8 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.match(content, /title:\s*'恢复草稿'/);
   assert.match(content, /actions\.onStatusUpdate\(order,\s*'draft'\)/);
   assert.match(stockInEligibility, /export function hasRemainingStockInItems/);
-  assert.match(stockInEligibility, /ordered_quantity \?\? item\.quantity/);
+  assert.match(stockInEligibility, /resolveOrderedQuantity/);
+  assert.match(stockInEligibility, /if \(ordered > 0\) return ordered/);
   assert.match(stockInEligibility, /return ordered - received > 0/);
 });
 

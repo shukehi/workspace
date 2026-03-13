@@ -511,6 +511,53 @@ test('OrderService stockInOrder supports explicit partial receipt items', async 
   assert.equal(Number(materials[1].stock_quantity), 3);
 });
 
+test('OrderService stockInOrder falls back to quantity when ordered_quantity is zero on legacy items', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Material.create({
+    code: 'MAT-LEGACY-ORDERED-001',
+    name: '旧单锁芯',
+    model: 'LEG-1',
+    supplier: '忠恒',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: '套',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-LEGACY-ORDERED'),
+    supplier: '忠恒',
+    category: '锁芯',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-LEGACY-ORDERED-001',
+        supplier: '忠恒',
+        name: '旧单锁芯',
+        model: 'LEG-1',
+        spec: 'LEG-1',
+        quantity: 24,
+        unit: '套',
+      }
+    ]
+  });
+
+  await OrderItem.update(
+    { ordered_quantity: 0, received_quantity: 0 },
+    { where: { order_id: created.id } }
+  );
+
+  const stockedIn = await orderService.stockInOrder(created.id, {
+    stocked_in_at: '2026-03-12T14:00:00.000Z',
+    operator: '仓管Legacy',
+  });
+
+  assert.equal(stockedIn.status, 'completed');
+  assert.equal(stockedIn.items[0].ordered_quantity, 24);
+  assert.equal(stockedIn.items[0].received_quantity, 24);
+});
+
 test('OrderService stockInOrder rejects explicit empty receipt items', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });

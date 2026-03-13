@@ -49,11 +49,17 @@ function normalizeNumber(value: unknown): number {
   return parsed;
 }
 
+function resolveOrderedQuantity(rawOrdered: unknown, rawQuantity: unknown): number {
+  const ordered = normalizeNumber(rawOrdered);
+  if (ordered > 0) return ordered;
+  return normalizeNumber(rawQuantity);
+}
+
 function buildDraftItems(order: Order | null): StockInDraftItem[] {
   if (!order?.items?.length) return [];
   return order.items
     .map((item) => {
-      const ordered = normalizeNumber(item.ordered_quantity ?? item.quantity);
+      const ordered = resolveOrderedQuantity(item.ordered_quantity, item.quantity);
       const received = normalizeNumber(item.received_quantity);
       const remaining = Math.max(ordered - received, 0);
       return {

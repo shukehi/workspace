@@ -63,6 +63,18 @@ function normalizeReverseQuantity(value) {
     return normalizeReceiptQuantity(value);
 }
 
+function resolveOrderedQuantity(rawOrderedQuantity, rawQuantity) {
+    const orderedQuantity = Number(rawOrderedQuantity);
+    if (Number.isFinite(orderedQuantity) && orderedQuantity > 0) {
+        return orderedQuantity;
+    }
+    const quantity = Number(rawQuantity);
+    if (Number.isFinite(quantity) && quantity > 0) {
+        return quantity;
+    }
+    return 0;
+}
+
 function toPlainReceipt(receipt) {
     const plain = typeof receipt.get === 'function' ? receipt.get({ plain: true }) : { ...receipt };
     return {
@@ -85,7 +97,7 @@ function resolveReceiptOrderItems(order, payload = {}) {
     if (payload.items === undefined) {
         return orderItems
             .map((orderItem) => {
-                const orderedQuantity = Number(orderItem.ordered_quantity ?? orderItem.quantity ?? 0);
+                const orderedQuantity = resolveOrderedQuantity(orderItem.ordered_quantity, orderItem.quantity);
                 const receivedQuantity = Number(orderItem.received_quantity || 0);
                 const remainingQuantity = orderedQuantity - receivedQuantity;
                 if (remainingQuantity <= 0) return null;
@@ -344,7 +356,7 @@ class InventoryReceiptService {
 
             const refreshedItems = order.items || [];
             const allReceived = refreshedItems.every((item) => {
-                const ordered = Number(item.ordered_quantity ?? item.quantity ?? 0);
+                const ordered = resolveOrderedQuantity(item.ordered_quantity, item.quantity);
                 const received = Number(item.id === orderItem.id ? Math.max(nextReceived, 0) : item.received_quantity || 0);
                 return ordered > 0 && received >= ordered;
             });
