@@ -142,7 +142,10 @@ test('procurement stock-in guard: arrived orders use detail stock-in dialog', ()
   assert.match(page, /:queue-index="stockInQueueIndex \+ 1"/);
   assert.match(page, /:queue-total="stockInQueue.length \|\| 1"/);
   assert.match(page, /title: isCompleted \? '入库完成，进入下一单' : '部分入库成功，进入下一单'/);
-  assert.match(page, /title: queueActive \? '批量入库已完成' : \(isCompleted \? '入库完成' : '部分入库成功'\)/);
+  assert.match(page, /title: queueActive/);
+  assert.match(page, /'批量入库流程已完成'/);
+  assert.match(page, /'批量入库已完成'/);
+  assert.match(page, /张已完成入库，\$\{pendingCount\} 张仍有明细待入库/);
   assert.match(dialog, /订单级“入库日期”只会在全部明细完成入库后写入/);
   assert.match(dialog, /批量入库第/);
   assert.match(dialog, /item_key/);

@@ -314,13 +314,21 @@ const handleStockInOrder = async (payload?: {
     }
 
     const finishedCount = queueActive ? stockInQueue.value.length : 1;
+    const completedCount = queueActive
+      ? stockInQueue.value.filter((order) => order.id !== updated.id && !hasRemainingStockInItems(order)).length + (isCompleted ? 1 : 0)
+      : (isCompleted ? 1 : 0);
+    const pendingCount = Math.max(finishedCount - completedCount, 0);
     if (queueActive) {
       clearSelection();
     }
     toast({
-      title: queueActive ? '批量入库已完成' : (isCompleted ? '入库完成' : '部分入库成功'),
+      title: queueActive
+        ? (pendingCount > 0 ? '批量入库流程已完成' : '批量入库已完成')
+        : (isCompleted ? '入库完成' : '部分入库成功'),
       description: queueActive
-        ? `${finishedCount} 张订单已完成本轮入库处理`
+        ? (pendingCount > 0
+          ? `${completedCount} 张已完成入库，${pendingCount} 张仍有明细待入库`
+          : `${finishedCount} 张订单已完成入库`)
         : (isCompleted
           ? `订单 ${updated.order_no} 已设为 ${statusLabels.completed}`
           : `订单 ${updated.order_no} 仍有明细待入库`),
