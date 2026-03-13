@@ -5,6 +5,21 @@ const orderService = require('../services/OrderService');
 // GET /api/orders
 router.get('/', async (req, res) => {
     try {
+        const hasPaginationQuery = [
+            'page',
+            'pageSize',
+            'status',
+            'risk',
+            'createdDate',
+            'keyword',
+            'orderNo'
+        ].some((key) => req.query[key] !== undefined);
+
+        if (hasPaginationQuery) {
+            const result = await orderService.getPaginatedOrders(req.query || {});
+            return res.json(result);
+        }
+
         const orders = await orderService.getAllOrders(req.query.category);
         res.json(orders);
     } catch (e) {

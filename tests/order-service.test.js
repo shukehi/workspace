@@ -91,6 +91,18 @@ test('OrderService CRUD and category filter', async (t) => {
   const filteredAfterUpdate = await orderService.getAllOrders('锁芯');
   assert.ok(filteredAfterUpdate.some((o) => o.id === created.id));
 
+  const paginated = await orderService.getPaginatedOrders({
+    status: 'submitted',
+    category: 'cylinder',
+    page: 1,
+    pageSize: 20,
+  });
+  assert.equal(paginated.total, 1);
+  assert.equal(paginated.rows.length, 1);
+  assert.equal(paginated.rows[0].id, created.id);
+  assert.equal(paginated.facets.statusCounts.submitted, 1);
+  assert.equal(paginated.facets.categoryCounts.cylinder, 1);
+
   await orderService.deleteOrder(created.id);
 
   const afterDelete = await orderService.getOrderById(created.id);

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { refDebounced } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useToastStore } from '@/stores/useToastStore';
@@ -41,6 +42,8 @@ const stockInDialogOpen = ref(false);
 const stockInSaving = ref(false);
 const stockInQueue = ref<Order[]>([]);
 const stockInQueueIndex = ref(0);
+const procurementPage = ref(Math.max(1, Number(route.query.page) || 1));
+const procurementPageSize = ref(Math.min(200, Math.max(10, Number(route.query.pageSize) || store.ordersPageSize || 20)));
 
 const statusLabels: Record<Order['status'], string> = {
   draft: '草稿',
@@ -55,6 +58,7 @@ const {
   activeStatus,
   activeCategory,
   activeRiskFilter,
+  activeCreatedDate,
   searchQuery,
   selectedRows,
   summaryStats,
@@ -71,12 +75,65 @@ const {
   clearSelection,
 } = useProcurementPageState(store);
 
+const debouncedSearchQuery = refDebounced(searchQuery, 300);
+
 function syncSearchQueryFromRoute() {
   const orderNo = String(route.query.orderNo || '').trim();
   if (!orderNo) return;
   if (searchQuery.value !== orderNo) {
     searchQuery.value = orderNo;
   }
+}
+
+function syncProcurementFiltersFromRoute() {
+  activeStatus.value = (String(route.query.status || 'ALL') as typeof activeStatus.value);
+  activeCategory.value = (String(route.query.category || 'ALL') as typeof activeCategory.value);
+  activeRiskFilter.value = (String(route.query.risk || 'ALL') as typeof activeRiskFilter.value);
+  activeCreatedDate.value = String(route.query.createdDate || '').trim();
+  searchQuery.value = String(route.query.search || route.query.orderNo || '').trim();
+  procurementPage.value = Math.max(1, Number(route.query.page) || 1);
+  procurementPageSize.value = Math.min(200, Math.max(10, Number(route.query.pageSize) || store.ordersPageSize || 20));
+}
+
+function updateProcurementRouteQuery() {
+  const nextQuery = { ...route.query };
+  const search = searchQuery.value.trim();
+
+  if (activeStatus.value !== 'ALL') nextQuery.status = activeStatus.value;
+  else delete nextQuery.status;
+
+  if (activeCategory.value !== 'ALL') nextQuery.category = activeCategory.value;
+  else delete nextQuery.category;
+
+  if (activeRiskFilter.value !== 'ALL') nextQuery.risk = activeRiskFilter.value;
+  else delete nextQuery.risk;
+
+  if (activeCreatedDate.value) nextQuery.createdDate = activeCreatedDate.value;
+  else delete nextQuery.createdDate;
+
+  if (search) nextQuery.search = search;
+  else delete nextQuery.search;
+
+  if (procurementPage.value > 1) nextQuery.page = String(procurementPage.value);
+  else delete nextQuery.page;
+
+  if (procurementPageSize.value !== 20) nextQuery.pageSize = String(procurementPageSize.value);
+  else delete nextQuery.pageSize;
+
+  router.replace({ query: nextQuery }).catch(() => undefined);
+}
+
+async function loadProcurementOrders() {
+  await store.fetchOrders({
+    page: procurementPage.value,
+    pageSize: procurementPageSize.value,
+    ...(activeStatus.value !== 'ALL' ? { status: activeStatus.value } : {}),
+    ...(activeCategory.value !== 'ALL' ? { category: activeCategory.value } : {}),
+    ...(activeRiskFilter.value !== 'ALL' ? { risk: activeRiskFilter.value } : {}),
+    ...(activeCreatedDate.value ? { createdDate: activeCreatedDate.value } : {}),
+    ...(searchQuery.value.trim() ? { keyword: searchQuery.value.trim() } : {}),
+    ...(String(route.query.orderNo || '').trim() ? { orderNo: String(route.query.orderNo || '').trim() } : {}),
+  });
 }
 
 const handleSummaryFilter = (type: 'pending' | 'today' | 'completed' | 'total') => {
@@ -89,6 +146,7 @@ const handleSummaryFilter = (type: 'pending' | 'today' | 'completed' | 'total') 
     const today = new Date().toISOString().split('T')[0];
     setFilterPreset({ createdDate: today });
   }
+  procurementPage.value = 1;
 };
 
 const {
@@ -115,6 +173,7 @@ const {
 const handleStatusUpdate = async (order: Order, status: Order['status']) => {
   try {
     await store.updateOrder(order.id, { status });
+    await loadProcurementOrders();
     toast({
       title: '状态更新成功',
       description: `订单 ${order.order_no} 已设为 ${statusLabels[status]}`,
@@ -130,6 +189,7 @@ const handleMarkArrived = async (order: Order) => {
     await store.markOrderArrived(order.id, {
       arrived_at: new Date().toISOString(),
     });
+    await loadProcurementOrders();
     toast({
       title: '到货登记成功',
       description: `订单 ${order.order_no} 已设为 ${statusLabels.arrived}`,
@@ -303,6 +363,7 @@ const handleStockInOrder = async (payload?: {
     const hasNext = queueActive && stockInQueueIndex.value < stockInQueue.value.length - 1;
 
     if (hasNext) {
+      await loadProcurementOrders();
       stockInQueueIndex.value += 1;
       stockInOrder.value = stockInQueue.value[stockInQueueIndex.value];
       toast({
@@ -321,6 +382,7 @@ const handleStockInOrder = async (payload?: {
     if (queueActive) {
       clearSelection();
     }
+    await loadProcurementOrders();
     toast({
       title: queueActive
         ? (pendingCount > 0 ? '批量入库流程已完成' : '批量入库已完成')
@@ -412,6 +474,7 @@ const handleBulkStatusUpdate = async (status: Order['status']) => {
 
   try {
     await store.bulkUpdateStatus(selectedRows.value.map(o => o.id), status);
+    await loadProcurementOrders();
     clearSelection();
     toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${statusLabels[status]}`, variant: 'success' });
   } catch {
@@ -439,11 +502,13 @@ const handleBulkArrive = async () => {
     const failedCount = results.length - successCount;
 
     if (failedCount === 0) {
+      await loadProcurementOrders();
       clearSelection();
       toast({ title: '批量到货登记成功', description: `${count} 张订单已设为 ${statusLabels.arrived}`, variant: 'success' });
       return;
     }
 
+    await loadProcurementOrders();
     clearSelection();
     toast({
       title: '批量到货部分完成',
@@ -480,13 +545,30 @@ const columns = createColumns({
 });
 
 onMounted(() => {
-  store.fetchOrders();
+  syncProcurementFiltersFromRoute();
   syncSearchQueryFromRoute();
+  loadProcurementOrders().catch(() => undefined);
   window.addEventListener('storage', handleProcurementRefreshSignal);
 });
 
-watch(() => route.query.orderNo, () => {
+watch(() => [route.query.orderNo, route.query.status, route.query.category, route.query.risk, route.query.createdDate, route.query.search, route.query.page, route.query.pageSize], () => {
+  syncProcurementFiltersFromRoute();
   syncSearchQueryFromRoute();
+  loadProcurementOrders().catch(() => undefined);
+});
+
+watch([activeStatus, activeCategory, activeRiskFilter, activeCreatedDate, debouncedSearchQuery], () => {
+  procurementPage.value = 1;
+  updateProcurementRouteQuery();
+});
+
+watch(procurementPage, () => {
+  updateProcurementRouteQuery();
+});
+
+watch(procurementPageSize, () => {
+  procurementPage.value = 1;
+  updateProcurementRouteQuery();
 });
 
 onBeforeUnmount(() => {
@@ -495,7 +577,7 @@ onBeforeUnmount(() => {
 
 function handleProcurementRefreshSignal(event: StorageEvent) {
   if (event.key !== PROCUREMENT_REFRESH_SIGNAL_KEY || !event.newValue) return;
-  store.fetchOrders();
+  loadProcurementOrders().catch(() => undefined);
 }
 </script>
 
@@ -507,7 +589,7 @@ function handleProcurementRefreshSignal(event: StorageEvent) {
         <p class="text-muted-foreground mt-0.5 text-[11px] uppercase tracking-wider font-medium opacity-70">Procurement Operations Hub</p>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
-        <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="store.fetchOrders()" :disabled="store.loading">
+        <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="loadProcurementOrders()" :disabled="store.loading">
           <RefreshCcw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': store.loading }" />
           刷新
         </Button>
@@ -539,7 +621,7 @@ function handleProcurementRefreshSignal(event: StorageEvent) {
       :category-options="categoryOptions"
       :risk-options="riskOptions"
       :visible-order-count="visibleOrderCount"
-      :total-order-count="store.sortedOrders.length"
+      :total-order-count="store.ordersTotal || store.sortedOrders.length"
       :has-active-filters="hasActiveFilters"
       @reset="resetFilters"
     />
@@ -559,7 +641,12 @@ function handleProcurementRefreshSignal(event: StorageEvent) {
           :toolbar="false"
           :empty-text="tableEmptyText"
           :table-min-width="1240"
+          :manual-pagination="store.serverPaginationEnabled"
+          :page="store.ordersPage"
+          :page-size="store.ordersPageSize"
+          :total="store.ordersTotal"
           density="compact"
+          @page-change="procurementPage = $event"
           @selection-change="onSelectionChange"
         />
       </CardContent>
@@ -584,7 +671,7 @@ function handleProcurementRefreshSignal(event: StorageEvent) {
       v-model:open="isEditDialogOpen"
       :order="selectedOrder"
       :mode="editDialogMode"
-      @saved="store.fetchOrders()"
+      @saved="loadProcurementOrders()"
       @draft-change="syncDraftForPreview"
       @preview="previewDraft"
     />

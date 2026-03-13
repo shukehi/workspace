@@ -80,7 +80,13 @@ test('procurement filter guard: supports risk and manual-review filters', () => 
   assert.match(filterBar, /update:activeStatus/);
   assert.match(page, /v-model:active-status/);
   assert.match(page, /route\.query\.orderNo/);
+  assert.match(page, /route\.query\.page/);
+  assert.match(page, /route\.query\.pageSize/);
+  assert.match(page, /updateProcurementRouteQuery/);
+  assert.match(page, /loadProcurementOrders/);
   assert.match(page, /syncSearchQueryFromRoute/);
+  assert.match(page, /syncProcurementFiltersFromRoute/);
+  assert.match(page, /refDebounced/);
   assert.match(page, /PROCUREMENT_REFRESH_SIGNAL_KEY/);
   assert.match(page, /window\.addEventListener\('storage', handleProcurementRefreshSignal\)/);
   assert.match(page, /window\.removeEventListener\('storage', handleProcurementRefreshSignal\)/);
@@ -98,6 +104,8 @@ test('procurement filter guard: supports risk and manual-review filters', () => 
   assert.match(state, /matchesOrderRiskFilter/);
   assert.match(state, /风险订单/);
   assert.match(state, /待人工处理/);
+  assert.match(state, /serverPaginationEnabled/);
+  assert.match(state, /facetCounts/);
 });
 
 test('procurement preview guard: arrived and completed orders cannot edit from preview', () => {
@@ -139,6 +147,11 @@ test('procurement stock-in guard: arrived orders use detail stock-in dialog', ()
   assert.match(page, /当前订单没有可继续入库的明细/);
   assert.match(page, /onStockIn: openStockInDialog/);
   assert.match(page, /<ProcurementStockInDialog/);
+  assert.match(page, /:manual-pagination="store.serverPaginationEnabled"/);
+  assert.match(page, /:page="store.ordersPage"/);
+  assert.match(page, /:page-size="store.ordersPageSize"/);
+  assert.match(page, /:total="store.ordersTotal"/);
+  assert.match(page, /@page-change="procurementPage = \$event"/);
   assert.match(page, /:queue-index="stockInQueueIndex \+ 1"/);
   assert.match(page, /:queue-total="stockInQueue.length \|\| 1"/);
   assert.match(page, /title: isCompleted \? '入库完成，进入下一单' : '部分入库成功，进入下一单'/);

@@ -38,6 +38,10 @@ const props = withDefaults(defineProps<{
   pageLabelPrefix?: string
   pageLabelConnector?: string
   tableMinWidth?: number
+  manualPagination?: boolean
+  page?: number
+  pageSize?: number
+  total?: number
 }>(), {
   enableSelection: false,
   searchPlaceholder: '快速筛选...',
@@ -51,10 +55,16 @@ const props = withDefaults(defineProps<{
   pageLabelPrefix: '第',
   pageLabelConnector: '/',
   tableMinWidth: 0,
+  manualPagination: false,
+  page: 1,
+  pageSize: 50,
+  total: 0,
 })
 
 const emit = defineEmits<{
   (e: 'selection-change', rows: TData[]): void
+  (e: 'page-change', page: number): void
+  (e: 'page-size-change', pageSize: number): void
 }>()
 
 const sorting = ref<SortingState>([])
@@ -97,6 +107,18 @@ const table = useVueTable({
   },
 })
 
+watch(
+  () => [props.page, props.pageSize, props.manualPagination] as const,
+  ([, pageSize, manualPagination]) => {
+    if (!manualPagination) return;
+    pagination.value = {
+      pageIndex: 0,
+      pageSize: Math.max(1, pageSize || 50),
+    }
+  },
+  { immediate: true }
+)
+
 const activeSearchColumnId = computed(() => {
   if (props.searchColumnId && table.getColumn(props.searchColumnId)) {
     return props.searchColumnId
@@ -131,6 +153,44 @@ defineExpose({
   getSelectedRows: () => table.getSelectedRowModel().rows.map(row => row.original),
   clearSelection: () => table.resetRowSelection()
 })
+
+const displayPageCount = computed(() => {
+  if (!props.manualPagination) return table.getPageCount()
+  return Math.max(1, Math.ceil((props.total || 0) / Math.max(1, props.pageSize || 50)))
+})
+
+const displayPageIndex = computed(() => {
+  if (!props.manualPagination) return table.getState().pagination.pageIndex + 1
+  return Math.max(1, props.page || 1)
+})
+
+const canPreviousPage = computed(() => {
+  if (!props.manualPagination) return table.getCanPreviousPage()
+  return displayPageIndex.value > 1
+})
+
+const canNextPage = computed(() => {
+  if (!props.manualPagination) return table.getCanNextPage()
+  return displayPageIndex.value < displayPageCount.value
+})
+
+function goToPreviousPage() {
+  if (props.manualPagination) {
+    if (!canPreviousPage.value) return
+    emit('page-change', displayPageIndex.value - 1)
+    return
+  }
+  table.previousPage()
+}
+
+function goToNextPage() {
+  if (props.manualPagination) {
+    if (!canNextPage.value) return
+    emit('page-change', displayPageIndex.value + 1)
+    return
+  }
+  table.nextPage()
+}
 </script>
 
 <template>
@@ -225,22 +285,22 @@ defineExpose({
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shrink-0">
       <div class="text-xs text-muted-foreground">
-        {{ pageLabelPrefix }} {{ table.getState().pagination.pageIndex + 1 }} {{ pageLabelConnector }} {{ table.getPageCount() }}
+        {{ pageLabelPrefix }} {{ displayPageIndex }} {{ pageLabelConnector }} {{ displayPageCount }}
       </div>
       <div class="flex items-center gap-2 self-start sm:self-auto">
         <Button
           variant="outline"
           size="sm"
-          :disabled="!table.getCanPreviousPage()"
-          @click="table.previousPage()"
+          :disabled="!canPreviousPage"
+          @click="goToPreviousPage()"
         >
           {{ prevLabel }}
         </Button>
         <Button
           variant="outline"
           size="sm"
-          :disabled="!table.getCanNextPage()"
-          @click="table.nextPage()"
+          :disabled="!canNextPage"
+          @click="goToNextPage()"
         >
           {{ nextLabel }}
         </Button>

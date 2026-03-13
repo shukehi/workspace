@@ -191,6 +191,49 @@ test('POST /api/orders/:id/arrive marks processing order as arrived', async () =
   assert.equal(arrived.delivery_date, '2026-03-18T00:00:00.000Z');
 });
 
+test('GET /api/orders returns paginated rows when page query is provided', async () => {
+  const createOne = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-PAGE-001',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      created_at: '2026-03-12T09:00:00.000Z',
+      items: [{ name: '包装A', model: 'P-1', quantity: 1, unit: '套' }],
+    }),
+  });
+  assert.equal(createOne.status, 200);
+
+  const createTwo = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-PAGE-002',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'arrived',
+      created_at: '2026-03-12T09:01:00.000Z',
+      items: [{ name: '锁体A', model: 'L-1', quantity: 1, unit: '把' }],
+    }),
+  });
+  assert.equal(createTwo.status, 200);
+
+  const res = await fetch(`${baseUrl}/api/orders?page=1&pageSize=10&status=arrived`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+
+  assert.equal(Array.isArray(body.rows), true);
+  assert.equal(body.rows.length >= 1, true);
+  assert.equal(body.total >= 1, true);
+  assert.equal(body.page, 1);
+  assert.equal(body.pageSize, 10);
+  assert.equal(body.rows[0].status, 'arrived');
+  assert.equal(typeof body.summary.pendingCount, 'number');
+  assert.equal(typeof body.facets.statusCounts.arrived, 'number');
+});
+
 test('PUT /api/orders/:id rejects invalid status transition', async () => {
   const createRes = await fetch(`${baseUrl}/api/orders`, {
     method: 'POST',

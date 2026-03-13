@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
-import type { Order, StockInOrderItemInput } from '@/types/order';
+import type {
+    Order,
+    StockInOrderItemInput,
+    ProcurementOrderFacetCounts,
+    ProcurementOrderListResponse,
+    ProcurementOrderQuery,
+    ProcurementOrderSummary
+} from '@/types/order';
 
 function normalizeDateField(value: any): string | null {
     if (value === undefined || value === null || value === '') return null;
@@ -44,6 +51,59 @@ export function normalizeOrderPayload(payload: any): Order | null {
     return isValidOrder(candidate) ? candidate : null;
 }
 
+function normalizeOrderListPayload(payload: any): ProcurementOrderListResponse | null {
+    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.rows)) return null;
+
+    const rows = payload.rows.filter(isValidOrder);
+    return {
+        rows,
+        total: Math.max(0, Number(payload.total) || 0),
+        page: Math.max(1, Number(payload.page) || 1),
+        pageSize: Math.max(1, Number(payload.pageSize) || 20),
+        summary: {
+            totalAmount: Number(payload.summary?.totalAmount || 0),
+            pendingCount: Number(payload.summary?.pendingCount || 0),
+            completedCount: Number(payload.summary?.completedCount || 0),
+            todayCount: Number(payload.summary?.todayCount || 0),
+        },
+        facets: {
+            statusCounts: payload.facets?.statusCounts && typeof payload.facets.statusCounts === 'object'
+                ? payload.facets.statusCounts
+                : { ALL: rows.length },
+            categoryCounts: payload.facets?.categoryCounts && typeof payload.facets.categoryCounts === 'object'
+                ? payload.facets.categoryCounts
+                : { ALL: rows.length },
+            riskCounts: payload.facets?.riskCounts && typeof payload.facets.riskCounts === 'object'
+                ? payload.facets.riskCounts
+                : { ALL: rows.length, RISK: 0, MANUAL: 0 },
+        }
+    };
+}
+
+function buildSummaryFromOrders(orders: Order[]): ProcurementOrderSummary {
+    const totalAmount = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const pendingCount = orders.filter((order) => ['draft', 'submitted', 'processing', 'arrived'].includes(order.status)).length;
+    const completedCount = orders.filter((order) => order.status === 'completed').length;
+    const today = new Date().toISOString().split('T')[0];
+    const todayCount = orders.filter((order) => String(order.created_at || '').startsWith(today)).length;
+
+    return { totalAmount, pendingCount, completedCount, todayCount };
+}
+
+function buildFacetCountsFromOrders(orders: Order[]): ProcurementOrderFacetCounts {
+    const statusCounts: Record<string, number> = { ALL: orders.length };
+    const categoryCounts: Record<string, number> = { ALL: orders.length };
+    const riskCounts: Record<string, number> = { ALL: orders.length, RISK: 0, MANUAL: 0 };
+
+    orders.forEach((order) => {
+        statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
+        const categoryKey = String(order.category || '');
+        categoryCounts[categoryKey] = (categoryCounts[categoryKey] || 0) + 1;
+    });
+
+    return { statusCounts, categoryCounts, riskCounts };
+}
+
 function isNotFoundError(error: unknown): boolean {
     const status = (error as any)?.response?.status;
     return status === 404;
@@ -71,6 +131,25 @@ export const useProcurementStore = defineStore('procurement', () => {
     // State
     const purchaseOrders = ref<Order[]>([]);
     const loading = ref(false);
+    const ordersTotal = ref(0);
+    const ordersPage = ref(1);
+    const ordersPageSize = ref(20);
+    const serverPaginationEnabled = ref(false);
+    const query = ref<ProcurementOrderQuery>({
+        page: 1,
+        pageSize: 20,
+    });
+    const summarySnapshot = ref<ProcurementOrderSummary>({
+        totalAmount: 0,
+        pendingCount: 0,
+        completedCount: 0,
+        todayCount: 0,
+    });
+    const facetCounts = ref<ProcurementOrderFacetCounts>({
+        statusCounts: { ALL: 0 },
+        categoryCounts: { ALL: 0 },
+        riskCounts: { ALL: 0, RISK: 0, MANUAL: 0 },
+    });
 
     // Getters
     const sortedOrders = computed(() => {
@@ -82,13 +161,45 @@ export const useProcurementStore = defineStore('procurement', () => {
     });
 
     // Actions
-    async function fetchOrders() {
+    async function fetchOrders(nextQuery?: ProcurementOrderQuery) {
         loading.value = true;
         try {
+            if (nextQuery) {
+                query.value = {
+                    ...query.value,
+                    ...nextQuery,
+                };
+            }
+
+            if (nextQuery) {
+                const res = await api.get<ProcurementOrderListResponse>('/orders', {
+                    params: query.value,
+                });
+                const normalized = normalizeOrderListPayload(res);
+                if (!normalized) {
+                    throw new Error('Invalid paginated order payload returned by /api/orders');
+                }
+                logInvalidOrders('GET /orders (paginated)', normalized.rows);
+                purchaseOrders.value = normalized.rows;
+                ordersTotal.value = normalized.total;
+                ordersPage.value = normalized.page;
+                ordersPageSize.value = normalized.pageSize;
+                summarySnapshot.value = normalized.summary;
+                facetCounts.value = normalized.facets;
+                serverPaginationEnabled.value = true;
+                return;
+            }
+
             const res = await api.get<Order[]>('/orders');
             logInvalidOrders('GET /orders', Array.isArray(res) ? res : []);
-            // Backend returns sorted by created_at DESC usually, but we can sort again if needed
-            purchaseOrders.value = Array.isArray(res) ? res.filter(isValidOrder) : [];
+            const normalizedOrders = Array.isArray(res) ? res.filter(isValidOrder) : [];
+            purchaseOrders.value = normalizedOrders;
+            ordersTotal.value = normalizedOrders.length;
+            ordersPage.value = 1;
+            ordersPageSize.value = normalizedOrders.length || 20;
+            summarySnapshot.value = buildSummaryFromOrders(normalizedOrders);
+            facetCounts.value = buildFacetCountsFromOrders(normalizedOrders);
+            serverPaginationEnabled.value = false;
         } catch (e) {
             console.error('Failed to fetch orders', e);
         } finally {
@@ -240,6 +351,10 @@ export const useProcurementStore = defineStore('procurement', () => {
 
     function clearOrders() {
         purchaseOrders.value = [];
+        ordersTotal.value = 0;
+        ordersPage.value = 1;
+        ordersPageSize.value = 20;
+        serverPaginationEnabled.value = false;
     }
 
     async function updateOrder(id: number, updates: Partial<Order>) {
@@ -297,6 +412,13 @@ export const useProcurementStore = defineStore('procurement', () => {
     return {
         purchaseOrders,
         sortedOrders,
+        ordersTotal,
+        ordersPage,
+        ordersPageSize,
+        serverPaginationEnabled,
+        query,
+        summarySnapshot,
+        facetCounts,
         loading,
         fetchOrders,
         addOrder,

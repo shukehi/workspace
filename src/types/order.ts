@@ -58,3 +58,36 @@ export interface Order {
         [key: string]: any;
     };
 }
+
+export interface ProcurementOrderSummary {
+    totalAmount: number;
+    pendingCount: number;
+    completedCount: number;
+    todayCount: number;
+}
+
+export interface ProcurementOrderFacetCounts {
+    statusCounts: Record<string, number>;
+    categoryCounts: Record<string, number>;
+    riskCounts: Record<string, number>;
+}
+
+export interface ProcurementOrderListResponse {
+    rows: Order[];
+    total: number;
+    page: number;
+    pageSize: number;
+    summary: ProcurementOrderSummary;
+    facets: ProcurementOrderFacetCounts;
+}
+
+export interface ProcurementOrderQuery {
+    page?: number;
+    pageSize?: number;
+    status?: 'ALL' | 'PENDING' | Order['status'];
+    category?: string;
+    risk?: 'ALL' | 'RISK' | 'MANUAL';
+    createdDate?: string;
+    keyword?: string;
+    orderNo?: string;
+}

@@ -13,6 +13,19 @@ type ProcurementStoreLike = {
   loading: boolean;
   purchaseOrders: Order[];
   sortedOrders: Order[];
+  ordersTotal?: number;
+  serverPaginationEnabled?: boolean;
+  summarySnapshot?: {
+    totalAmount: number;
+    pendingCount: number;
+    completedCount: number;
+    todayCount: number;
+  };
+  facetCounts?: {
+    statusCounts: Record<string, number>;
+    categoryCounts: Record<string, number>;
+    riskCounts: Record<string, number>;
+  };
 };
 
 type StatusFilter = 'ALL' | 'PENDING' | Order['status'];
@@ -37,6 +50,9 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   const selectedRows = ref<Order[]>([]);
 
   const summaryStats = computed(() => {
+    if (store.serverPaginationEnabled && store.summarySnapshot) {
+      return store.summarySnapshot;
+    }
     const totalAmount = store.purchaseOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
     const pendingCount = store.purchaseOrders.filter((order) => ['draft', 'submitted', 'processing', 'arrived'].includes(order.status)).length;
     const completedCount = store.purchaseOrders.filter((order) => order.status === 'completed').length;
@@ -47,6 +63,12 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   });
 
   const statusOptions = computed(() => {
+    if (store.serverPaginationEnabled && store.facetCounts?.statusCounts) {
+      return STATUS_OPTIONS.map((status) => ({
+        ...status,
+        count: store.facetCounts?.statusCounts?.[status.id] || 0
+      }));
+    }
     const counts: Record<string, number> = { ALL: store.sortedOrders.length };
     store.sortedOrders.forEach((order) => {
       counts[order.status] = (counts[order.status] || 0) + 1;
@@ -58,6 +80,16 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   });
 
   const categoryOptions = computed(() => {
+    if (store.serverPaginationEnabled && store.facetCounts?.categoryCounts) {
+      return [
+        { id: 'ALL' as const, label: '全部类别', count: store.facetCounts.categoryCounts.ALL || store.ordersTotal || 0 },
+        ...PROCUREMENT_CATEGORY_ORDER.map((category) => ({
+          id: category,
+          label: resolveProcurementCategoryFilterLabel(category),
+          count: store.facetCounts?.categoryCounts?.[category] || 0
+        }))
+      ];
+    }
     const counts: Record<string, number> = { ALL: store.sortedOrders.length };
     store.sortedOrders.forEach((order) => {
       const cat = normalizePrintCategory(order.category);
@@ -75,6 +107,13 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   });
 
   const riskOptions = computed(() => {
+    if (store.serverPaginationEnabled && store.facetCounts?.riskCounts) {
+      return [
+        { id: 'ALL' as const, label: '全部', count: store.facetCounts.riskCounts.ALL || store.ordersTotal || 0 },
+        { id: 'RISK' as const, label: '风险订单', count: store.facetCounts.riskCounts.RISK || 0 },
+        { id: 'MANUAL' as const, label: '待人工处理', count: store.facetCounts.riskCounts.MANUAL || 0 },
+      ];
+    }
     const allOrders = store.sortedOrders;
     const riskOrders = allOrders.filter((order) => resolveOrderRisk(order).level !== null);
     const manualOrders = allOrders.filter((order) => resolveOrderRisk(order).level === 'high');
@@ -87,6 +126,9 @@ export function useProcurementPageState(store: ProcurementStoreLike) {
   });
 
   const filteredOrders = computed(() => {
+    if (store.serverPaginationEnabled) {
+      return store.sortedOrders;
+    }
     let list = store.sortedOrders;
     if (activeStatus.value !== 'ALL') {
       if (activeStatus.value === 'PENDING') {
