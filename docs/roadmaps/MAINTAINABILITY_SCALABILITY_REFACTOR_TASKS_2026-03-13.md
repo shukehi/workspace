@@ -222,21 +222,30 @@
 
 ### 7.2 共享核心提取
 
-- [ ] 设计共享目录与导出方式
+- [x] 设计共享目录与导出方式
 - [ ] 合并包装、锁具、锁芯、锁叉、拉手等核心规则
-- [ ] 保留前端 facade 与后端 facade，环境差异不进入核心层
+- [x] 保留前端 facade 与后端 facade，环境差异不进入核心层
 
 ### 7.3 回归补强
 
-- [ ] 为共享 adapter / validator 增加基线测试
+- [x] 为共享 adapter / validator 增加基线测试
 - [ ] 覆盖 normalize 冲突、嵌套路径、默认值、结构错误等关键场景
-- [ ] 替换期内对比新旧校验结果，至少保留一次 diff 记录
+- [x] 替换期内对比新旧校验结果，至少保留一次 diff 记录
 
 ### 7.4 本周额外约束
 
 - [ ] 不把 issue path、字段别名或错误层级兼容性忽略掉
 - [ ] 核心共享层只承载规则，不承载浏览器或后端运行时细节
 - [ ] 如有兼容 facade，必须写明退场条件
+
+当前已完成的首批落地：
+
+1. 已新增 `shared/mappings/mapping-adapter-core.js`，统一 packaging / cylinder / lock / lock-fork 的 adapter 规则。
+2. 已新增 `shared/mappings/mapping-validator-core.js`，统一 packaging / cylinder / lock / lock-fork 的 validator 规则。
+3. 前端 `src/services/mappings/mappingAdapter.ts` 与 `mappingValidator.ts` 已改为共享层 facade。
+4. 后端 `server/services/mappings/mapping.adapter.js` 与 `mapping.validator.js` 已改为共享层 facade。
+5. `handle` 仍保留在前后端 facade 中，暂不并入共享核心，避免把尚未完全一致的行为强行合并。
+6. 已通过 `tests/shared-mapping-core.test.js`、`tests/mappings/mapping-parity.test.ts`、`tests/mapping-server-validator.test.js`、`tests/mapping-adapter-baseline.test.ts`、`tests/config-routes.test.js` 与 `npm run type-check`。
 
 建议 PR 拆分：
 

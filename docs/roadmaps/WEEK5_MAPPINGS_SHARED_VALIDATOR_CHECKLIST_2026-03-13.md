@@ -5,7 +5,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：收敛 mappings 域前后端重复的 adapter/validator 逻辑，建立共享规则实现来源，降低配置规则演进时的双端维护成本。
 
 ## 1. 第五周范围
@@ -31,7 +31,7 @@
 ```text
 Week 5
 - Owner: TBD
-- Status: pending
+- Status: in_progress
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -42,6 +42,10 @@ Week 5
 - Blocking:
 - PR / Issue:
 - Notes:
+  - shared adapter core 已落地到 `shared/mappings/mapping-adapter-core.js`
+  - shared validator core 已落地到 `shared/mappings/mapping-validator-core.js`
+  - 当前共享范围为 packaging / cylinder / lock / lock-fork，handle 仍保留在前后端 facade
+  - 已通过 `tests/shared-mapping-core.test.js`、`tests/mappings/mapping-parity.test.ts`、`tests/mapping-server-validator.test.js`、`tests/mapping-adapter-baseline.test.ts`、`tests/config-routes.test.js` 与 `npm run type-check`
 ```
 
 ## 4. 本周退出标准
@@ -152,14 +156,14 @@ shared/
 
 建议动作：
 
-- [ ] 逐类对比 packaging 规则
-- [ ] 逐类对比 lock 规则
-- [ ] 逐类对比 cylinder 规则
-- [ ] 逐类对比 lock-fork 规则
-- [ ] 逐类对比 handle 规则
-- [ ] 标记完全相同逻辑
-- [ ] 标记仅命名差异逻辑
-- [ ] 标记确实需要环境隔离的逻辑
+- [x] 逐类对比 packaging 规则
+- [x] 逐类对比 lock 规则
+- [x] 逐类对比 cylinder 规则
+- [x] 逐类对比 lock-fork 规则
+- [x] 逐类对比 handle 规则
+- [x] 标记完全相同逻辑
+- [x] 标记仅命名差异逻辑
+- [x] 标记确实需要环境隔离的逻辑
 
 交付物：
 
@@ -186,7 +190,7 @@ shared/
 - [ ] `isPlainObject`
 - [ ] `quotePathSegment`
 - [ ] `createIssue`
-- [ ] 各类 normalize key 工具
+- [x] 各类 normalize key 工具
 
 验收：
 
@@ -206,10 +210,10 @@ shared/
 
 建议动作：
 
-- [ ] 先合并 packaging adapter
+- [x] 先合并 packaging adapter
 - [ ] 再合并 lock / handle adapter
-- [ ] 再合并 cylinder / lock-fork adapter
-- [ ] 保持当前默认值和 canonicalization 规则不变
+- [x] 再合并 cylinder / lock-fork adapter
+- [x] 保持当前默认值和 canonicalization 规则不变
 
 验收：
 
@@ -230,16 +234,16 @@ shared/
 
 建议动作：
 
-- [ ] 先合并 packaging validator
-- [ ] 再合并 lock validator
+- [x] 先合并 packaging validator
+- [x] 再合并 lock validator
 - [ ] 再合并 handle validator
-- [ ] 最后合并 cylinder / lock-fork validator
+- [x] 最后合并 cylinder / lock-fork validator
 
 建议注意：
 
-- [ ] issue path 要完全保持兼容
-- [ ] 嵌套校验路径和 code 不要轻易改变
-- [ ] 前端表单高亮与后端 workflow 错误返回必须继续匹配
+- [x] issue path 要完全保持兼容
+- [x] 嵌套校验路径和 code 不要轻易改变
+- [x] 前端表单高亮与后端 workflow 错误返回必须继续匹配
 
 验收：
 
@@ -257,9 +261,9 @@ shared/
 
 建议动作：
 
-- [ ] 将其改为共享层的轻量转发或包装
-- [ ] 保留当前导出名称不变
-- [ ] 确保 `useMappingConfigEditor` 等调用方无需大改
+- [x] 将其改为共享层的轻量转发或包装
+- [x] 保留当前导出名称不变
+- [x] 确保 `useMappingConfigEditor` 等调用方无需大改
 
 验收：
 
@@ -277,9 +281,9 @@ shared/
 
 建议动作：
 
-- [ ] 将后端文件改为共享层包装器
-- [ ] 保留当前 workflow 所依赖的方法名
-- [ ] 保证 `mapping.workflow.js`、`mappingsConfig.js` 不需要同时大改
+- [x] 将后端文件改为共享层包装器
+- [x] 保留当前 workflow 所依赖的方法名
+- [x] 保证 `mapping.workflow.js`、`mappingsConfig.js` 不需要同时大改
 
 验收：
 
@@ -335,10 +339,10 @@ shared/
 
 关键回归点：
 
-- [ ] 前端 path-based issues 保持一致
-- [ ] 后端 workflow 校验结果保持一致
-- [ ] 当前基线映射配置仍能 clean validate
-- [ ] 配置保存/发布流程不回归
+- [x] 前端 path-based issues 保持一致
+- [x] 后端 workflow 校验结果保持一致
+- [x] 当前基线映射配置仍能 clean validate
+- [x] 配置保存/发布流程不回归
 
 ### 任务 10：文档同步与推广模板沉淀
 
@@ -405,12 +409,21 @@ shared/
 ## 9. 第五周验收清单
 
 - [ ] `npm test`
-- [ ] mapping 前端测试通过
-- [ ] mapping 后端测试通过
-- [ ] config routes 测试通过
-- [ ] 前后端 mapping 规则核心实现收敛到共享层
-- [ ] issue path/code 与现状兼容
-- [ ] `git status --short` 仅包含预期改动
+- [x] mapping 前端测试通过
+- [x] mapping 后端测试通过
+- [x] config routes 测试通过
+- [x] 前后端 mapping 规则核心实现已对 packaging / cylinder / lock / lock-fork 收敛到共享层
+- [x] issue path/code 与现状兼容
+- [x] `git status --short` 仅包含预期改动
+
+当前已完成的首批落地：
+
+1. 已新增 `shared/mappings/mapping-adapter-core.js`，作为 packaging / cylinder / lock / lock-fork 的共享 adapter 规则来源。
+2. 已新增 `shared/mappings/mapping-validator-core.js`，作为 packaging / cylinder / lock / lock-fork 的共享 validator 规则来源。
+3. `src/services/mappings/mappingAdapter.ts` 与 `server/services/mappings/mapping.adapter.js` 已切到共享 adapter core。
+4. `src/services/mappings/mappingValidator.ts` 与 `server/services/mappings/mapping.validator.js` 已切到共享 validator core。
+5. `handle` 相关 adapter / validator 仍保留在前后端 facade 中，作为当前已识别的环境差异保留项。
+6. 已通过 `tests/shared-mapping-core.test.js`、`tests/mappings/mapping-parity.test.ts`、`tests/mapping-server-validator.test.js`、`tests/mapping-adapter-baseline.test.ts`、`tests/config-routes.test.js` 和 `npm run type-check`。
 
 ## 10. 第五周不做的事
 
