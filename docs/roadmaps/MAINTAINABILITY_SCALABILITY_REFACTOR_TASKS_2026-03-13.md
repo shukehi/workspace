@@ -271,9 +271,10 @@
 2. 已新增 `src/features/formulas/composables/useFormulaList.ts`，承载列表/分页加载、local draft prepend 和首项选中回退。
 3. 已新增 `src/features/formulas/composables/useFormulaDetail.ts`，承载 detail/revision 远端读取与 local draft detail 应用。
 4. `useFormulaManager.ts` 中的 BOM normalize、本地校验、server error 映射、local draft key 规则已下沉到 model 层。
-5. `useFormulaManager.ts` 中的列表/分页加载与 detail/revision 读取已分别下沉到 list/detail composable。
-6. 已新增 `tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts` 与 `tests/formula-detail-composable.test.ts` 锁定这些纯逻辑和装配行为。
-7. 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`。
+5. 已新增 `src/features/formulas/composables/useFormulaLocalDraft.ts` 与 `useDirtyBeforeUnload.ts`，承载 local draft 生命周期与浏览器离开保护。
+6. `useFormulaManager.ts` 中的列表/分页加载、detail/revision 读取、local draft/dirty guard 已分别下沉到 list/detail/local-draft composable。
+7. 已新增 `tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts` 与 `tests/formula-dirty-before-unload.test.ts` 锁定这些纯逻辑和装配行为。
+8. 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`。
 
 ### 8.2 浏览器副作用边界
 

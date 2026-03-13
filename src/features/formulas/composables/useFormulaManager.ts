@@ -1,17 +1,17 @@
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import { formulaApi } from '@/services/formulaApi';
 import type {
   FormulaBOMItem,
   FormulaDetail,
   FormulaRevisionMeta,
-  FormulaSummary
 } from '@/types/formula';
 import { useToastStore } from '@/stores/useToastStore';
 import { BOM_MATERIAL_CATEGORIES, type FormulaValidationErrors } from '@/features/formulas/types';
+import { useDirtyBeforeUnload } from '@/features/formulas/composables/useDirtyBeforeUnload';
 import { useFormulaList } from '@/features/formulas/composables/useFormulaList';
 import { useFormulaDetail } from '@/features/formulas/composables/useFormulaDetail';
+import { useFormulaLocalDraft } from '@/features/formulas/composables/useFormulaLocalDraft';
 import {
-  LOCAL_DRAFT_KEY_PREFIX,
   isLocalFormulaKey,
   isMeaningfulBomRow,
   normalizeBomRow,
@@ -32,9 +32,6 @@ export function useFormulaManager() {
   const revisions = ref<FormulaRevisionMeta[]>([]);
   const historyOpen = ref(false);
 
-  const localDraftSummary = ref<FormulaSummary | null>(null);
-  const localDraftDetail = ref<FormulaDetail | null>(null);
-  const isLocalDraftSelected = computed(() => isLocalFormulaKey(selectedKey.value));
   const initialized = ref(false);
   const stopHandles: Array<() => void> = [];
 
@@ -42,18 +39,6 @@ export function useFormulaManager() {
 
   const bomDraft = ref<FormulaBOMItem[]>([]);
   const validationErrors = ref<FormulaValidationErrors>({});
-  const isDirty = ref(false);
-
-  function markDirty() {
-    isDirty.value = true;
-    syncLocalDraftSnapshot();
-  }
-
-  function resetDraftWithDetail() {
-    bomDraft.value = (detail.value?.bom || []).map((item) => normalizeBomRow(item));
-    validationErrors.value = {};
-    isDirty.value = false;
-  }
 
   function clearSelection() {
     selectedKey.value = '';
@@ -64,29 +49,25 @@ export function useFormulaManager() {
     bomDraft.value = [];
   }
 
-  function syncLocalDraftSnapshot() {
-    if (!isLocalDraftSelected.value || !localDraftSummary.value || !detail.value) return;
-    localDraftSummary.value.displayName = String(detail.value.displayName || '').trim();
-    localDraftSummary.value.updatedAt = new Date().toISOString();
-    localDraftDetail.value = {
-      ...detail.value,
-      bom: bomDraft.value.map((item) => normalizeBomRow(item)),
-      updatedAt: new Date().toISOString()
-    };
-  }
+  const {
+    localDraftSummary,
+    localDraftDetail,
+    isLocalDraftSelected,
+    isDirty,
+    markDirty,
+    resetDraftWithDetail,
+    clearLocalDraft,
+    createLocalDraft,
+  } = useFormulaLocalDraft({
+    selectedKey,
+    detail,
+    bomDraft,
+    validationErrors,
+  });
 
   function localValidate(options: { allowEmptyBom?: boolean; allowEmptyFormulaKey?: boolean } = {}): boolean {
     validationErrors.value = validateFormulaDraft(detail.value, bomDraft.value, options);
     return Object.keys(validationErrors.value).length === 0;
-  }
-
-  function clearLocalDraft() {
-    if (localDraftSummary.value) {
-      const localKey = localDraftSummary.value.formulaKey;
-      removeListItem(localKey);
-    }
-    localDraftSummary.value = null;
-    localDraftDetail.value = null;
   }
 
   const {
@@ -169,37 +150,7 @@ export function useFormulaManager() {
       if (!confirmed) return;
     }
 
-    const now = new Date().toISOString();
-    const localKey = `${LOCAL_DRAFT_KEY_PREFIX}${Date.now()}`;
-    localDraftSummary.value = {
-      id: -Date.now(),
-      formulaKey: localKey,
-      displayName: '',
-      status: 'draft',
-      activeRevision: null,
-      updatedAt: now
-    };
-    localDraftDetail.value = {
-      id: localDraftSummary.value.id,
-      formulaKey: '',
-      displayName: '',
-      status: 'draft',
-      activeRevision: null,
-      bom: [],
-      updatedAt: now
-    };
-
-    clearSelection();
-    list.value = [localDraftSummary.value, ...list.value];
-    selectedKey.value = localKey;
-    detail.value = {
-      ...localDraftDetail.value,
-      bom: []
-    };
-    validationErrors.value = {};
-    bomDraft.value = [];
-    changeNote.value = '';
-    isDirty.value = true;
+    createLocalDraft(list, clearSelection, changeNote);
     toast({ title: '已创建空白配方，请在右侧填写后保存', variant: 'success' });
   }
 
@@ -225,7 +176,7 @@ export function useFormulaManager() {
           changeNote: changeNote.value || '创建配方'
         });
 
-        clearLocalDraft();
+        clearLocalDraft(removeListItem);
         selectedKey.value = created.formula.formulaKey;
         isDirty.value = false;
         changeNote.value = '';
@@ -331,7 +282,7 @@ export function useFormulaManager() {
     if (isLocalDraftSelected.value) {
       const confirmed = window.confirm('确认放弃当前新增配方吗？');
       if (!confirmed) return;
-      clearLocalDraft();
+      clearLocalDraft(removeListItem);
       clearSelection();
       isDirty.value = false;
       changeNote.value = '';
@@ -368,9 +319,8 @@ export function useFormulaManager() {
       loadList({ append: false });
     }));
 
-    stopHandles.push(watch(isDirty, () => {
-      window.onbeforeunload = isDirty.value ? () => '当前有未保存改动' : null;
-    }, { immediate: true }));
+    const dirtyGuard = useDirtyBeforeUnload(isDirty);
+    stopHandles.push(dirtyGuard.stop);
 
     loadList();
   }

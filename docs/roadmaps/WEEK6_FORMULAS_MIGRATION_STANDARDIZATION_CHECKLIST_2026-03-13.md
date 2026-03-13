@@ -49,10 +49,13 @@ Week 6
   - `useFormulaManager.ts` 的 BOM normalize、本地校验、server error 映射、local draft key 规则已下沉到 `src/features/formulas/model/formulaDraft.ts`
   - `useFormulaManager.ts` 的列表/分页加载已下沉到 `src/features/formulas/composables/useFormulaList.ts`
   - `useFormulaManager.ts` 的 detail/revision 远端读取已下沉到 `src/features/formulas/composables/useFormulaDetail.ts`
+  - `useFormulaManager.ts` 的 local draft 生命周期已下沉到 `src/features/formulas/composables/useFormulaLocalDraft.ts`
+  - `useFormulaManager.ts` 的 `beforeunload` dirty guard 已下沉到 `src/features/formulas/composables/useDirtyBeforeUnload.ts`
   - 已补 `tests/formula-draft-model.test.ts`
   - 已补 `tests/formula-list-composable.test.ts`
   - 已补 `tests/formula-detail-composable.test.ts`
-  - 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`
+  - 已补 `tests/formula-local-draft-composable.test.ts` 与 `tests/formula-dirty-before-unload.test.ts`
+  - 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`
 ```
 
 ## 4. 本周退出标准
@@ -184,7 +187,7 @@ server/db/
 
 - [x] 列表加载与分页职责
 - [x] 明细加载与 revision 状态职责
-- [ ] 本地草稿与 dirty 状态职责
+- [x] 本地草稿与 dirty 状态职责
 - [x] BOM normalize 与本地校验辅助
 
 验收：
