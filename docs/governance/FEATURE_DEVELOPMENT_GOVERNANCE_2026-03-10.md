@@ -49,6 +49,18 @@
 2. 再拆 page state composable
 3. 再拆 dialog/action orchestration composable
 
+### 2.3 浏览器副作用边界
+
+以下能力默认留在页面层、UI 交互层或专用 runtime adapter：
+
+1. `window.confirm` / `window.prompt`
+2. `window.open`
+3. `localStorage`
+4. 下载文件与 `document.createElement('a')`
+5. `window.onbeforeunload`
+
+store、领域 manager、纯业务 composable 不应直接持有这些 API，除非该文件的职责就是 UI/runtime 适配。
+
 ## 3. Store 规范
 
 ### 3.1 Store 只保留领域状态
@@ -82,6 +94,22 @@ Store 不应同时承担：
 - 材料/五金分析
 
 应分为独立层，而不是继续堆进同一个 store。
+
+### 3.3 Store 与 manager 的副作用约束
+
+如果一个 store 或 manager 同时出现以下内容，应优先拆分：
+
+1. 领域状态
+2. 远端加载
+3. 浏览器确认/提示
+4. 本地缓存读写
+5. 导出或跳转
+
+推荐拆法：
+
+1. 状态与领域动作保留在 store / manager
+2. 浏览器副作用挪到页面层或 UI action adapter
+3. 持久化缓存挪到独立 runtime helper
 
 ## 4. 组件规范
 
@@ -171,7 +199,35 @@ legacy route 不允许承担：
 - workflow-backed
 - do not use for new frontend flows
 
-## 7. Repository / Facade 规范
+### 6.3 compatibility shell 退场规则
+
+如果新增了兼容壳文件或兼容导出入口，必须同时满足：
+
+1. 只转发，不承载新行为
+2. 在文档或代码中写清退场条件
+3. 不允许新增业务方继续依赖该入口
+4. 在治理阶段结束前盘点是否仍需要保留
+
+## 7. HTTP 契约与请求校验规范
+
+### 7.1 请求校验落点
+
+新增或重构后的后端接口必须明确以下边界：
+
+1. route/controller 负责请求参数校验与错误映射
+2. service 假定收到的是已过校验的输入
+3. 不允许继续扩大“service 内顺手兜底所有请求形状”的模式
+
+### 7.2 响应与错误语义
+
+新增接口至少要满足：
+
+1. 成功返回结构可预测
+2. 错误结构中的 `code/message/details` 语义稳定
+3. 分页接口的 `rows/total/page/pageSize` 语义一致
+4. 前端不应为同一类领域接口继续增加新的 payload 兼容分支
+
+## 8. Repository / Facade 规范
 
 ### 7.1 repository 的职责
 
@@ -196,7 +252,7 @@ facade 层负责：
 - 隐藏 `configLoader` / repository 细节
 - 给业务代码提供稳定入口
 
-## 8. 新功能开发流程
+## 9. 新功能开发流程
 
 新增功能时，按这个顺序做：
 
@@ -224,6 +280,12 @@ facade 层负责：
 - 先从 legacy 接口读
 - 不行再读静态 JSON
 
+如果涉及写接口或状态流转：
+
+1. 先确定请求校验落点
+2. 再确定错误码与响应结构
+3. 最后才接 UI 行为
+
 ### 第三步：优先落 helper / composable
 
 如果逻辑是可复用或可测试的：
@@ -235,7 +297,7 @@ facade 层负责：
 
 页面应始终是最后一层接线，而不是第一层落逻辑。
 
-## 9. 测试规范
+## 10. 测试规范
 
 ### 9.1 新增结构边界时必须补测试
 
@@ -246,6 +308,8 @@ facade 层负责：
 3. 新增 page state composable
 4. 新增 dialog/action composable
 5. 新增 legacy 退场限制
+6. 新增请求校验边界
+7. 新增浏览器副作用 adapter
 
 ### 9.2 优先级
 
@@ -257,7 +321,7 @@ facade 层负责：
 
 如果一个新边界没有任何测试，后续很容易被悄悄绕开。
 
-## 10. PR / Review 检查清单
+## 11. PR / Review 检查清单
 
 提交前至少自检：
 
@@ -265,8 +329,10 @@ facade 层负责：
 2. 页面是否承担了不该属于页面的逻辑
 3. store 是否同时承担 3 类以上职责
 4. 是否把 fallback 语义暴露到了页面层
-5. 是否补了最小测试
-6. 是否需要更新配置域/重构文档
+5. 是否把浏览器副作用继续塞进 store / manager
+6. 是否给写接口明确了请求校验落点
+7. 是否补了最小测试
+8. 是否需要更新配置域/重构文档
 
 review 时应优先拦截：
 
@@ -274,6 +340,8 @@ review 时应优先拦截：
 2. 新的“大 store”
 3. 页面直接访问 legacy 接口
 4. 兼容层新增特殊语义
+5. 新的裸请求透传
+6. 新的浏览器 API 直接进入核心 store / manager
 
 补充检查：
 
@@ -281,7 +349,7 @@ review 时应优先拦截：
 2. 计划、迁移、issue、草案类文档是否补了状态说明
 3. 是否明确了当前应以哪份文档为准
 
-## 11. 当前默认建议
+## 12. 当前默认建议
 
 如果后续继续新增功能，默认按下面方式放置：
 
@@ -292,8 +360,10 @@ review 时应优先拦截：
 - 动作流程：`src/features/<feature>/use*Actions.ts`
 - 纯数据 helper：`src/features/<feature>/*.ts`
 - 配置读取：`src/services/*Repository.ts` 或 facade
+- 浏览器副作用适配：`src/features/<feature>/*Runtime.ts` 或等价 UI adapter
+- 请求校验：`server/app/http/*`、`server/app/errors/*` 或模块内 schema / validator
 
-## 12. 关联文档
+## 13. 关联文档
 
 - [前后端开发规范（强约束版）](/Users/aries/Dve/workspace/docs/governance/ENGINEERING_CONVENTIONS.md)
 - [文档状态标注规范](/Users/aries/Dve/workspace/docs/governance/DOCUMENT_STATUS_CONVENTIONS.md)
