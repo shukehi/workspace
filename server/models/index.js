@@ -50,6 +50,8 @@ async function ensureOrderItemColumns() {
         'spec',
         'mb',
         'eccentricity',
+        'ordered_quantity',
+        'received_quantity',
         'quantity_left',
         'quantity_right'
     ];

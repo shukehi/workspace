@@ -192,7 +192,27 @@ function assertEditableOrderFields(order, data) {
 
 function serializeOrderItem(item) {
     if (!item) return item;
-    return typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
+    const plain = typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
+    return {
+        ...plain,
+        quantity: Number(plain.quantity || 0),
+        ordered_quantity: Number(plain.ordered_quantity ?? plain.quantity ?? 0),
+        received_quantity: Number(plain.received_quantity || 0)
+    };
+}
+
+function normalizeOrderItemForPersistence(item = {}) {
+    const quantity = Number(item.quantity || 0);
+    return {
+        ...item,
+        quantity,
+        ordered_quantity: item.ordered_quantity === undefined
+            ? quantity
+            : Number(item.ordered_quantity || 0),
+        received_quantity: item.received_quantity === undefined
+            ? 0
+            : Number(item.received_quantity || 0)
+    };
 }
 
 function serializeOrder(order) {
@@ -406,7 +426,7 @@ class OrderService {
 
             if (normalizedData.items && normalizedData.items.length > 0) {
                 const items = normalizedData.items.map(item => ({
-                    ...item,
+                    ...normalizeOrderItemForPersistence(item),
                     id: undefined, // ❌ 重要：剥离前端的字符串 ID，允许数据库自增
                     order_id: order.id
                 }));
@@ -522,7 +542,7 @@ class OrderService {
                 await OrderItem.destroy({ where: { order_id: id }, transaction });
 
                 const items = data.items.map(item => ({
-                    ...item,
+                    ...normalizeOrderItemForPersistence(item),
                     id: undefined, // ❌ 重要：剥离 ID 以便重新插入时生成新的整数 ID
                     order_id: id
                 }));
@@ -620,6 +640,15 @@ class OrderService {
                     throw new MissingMaterialError(error.materialId);
                 }
                 throw error;
+            }
+
+            for (const item of order.items || []) {
+                const nextReceived = Number(item.received_quantity || 0) + Number(item.quantity || 0);
+                const nextOrdered = Number(item.ordered_quantity ?? item.quantity ?? 0);
+                await item.update({
+                    ordered_quantity: nextOrdered,
+                    received_quantity: nextReceived
+                }, { transaction });
             }
 
             await order.update({

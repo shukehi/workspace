@@ -72,6 +72,8 @@ test('POST /api/orders returns normalized plain order payload with created_at an
   assert.equal(body.items.length, 1);
   assert.equal(typeof body.total_amount, 'number');
   assert.equal(body.items[0].name, '包装A');
+  assert.equal(body.items[0].ordered_quantity, 2);
+  assert.equal(body.items[0].received_quantity, 0);
 });
 
 test('PUT /api/orders/:id keeps normalized order payload shape', async () => {
@@ -296,6 +298,8 @@ test('POST /api/orders/:id/stock-in updates inventory and completes order', asyn
   assert.equal(stockedIn.status, 'completed');
   assert.equal(stockedIn.stocked_in_by, '仓管A');
   assert.equal(stockedIn.stocked_in_at, '2026-03-12T08:17:00.000Z');
+  assert.equal(stockedIn.items[0].ordered_quantity, 4);
+  assert.equal(stockedIn.items[0].received_quantity, 4);
 });
 
 test('POST /api/orders/:id/stock-in rejects arrived orders without items', async () => {

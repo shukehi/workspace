@@ -12,6 +12,8 @@ export interface OrderItem {
     name: string;
     model: string;
     quantity: number;
+    ordered_quantity?: number;
+    received_quantity?: number;
     quantity_left?: number;
     quantity_right?: number;
     orientation?: string;

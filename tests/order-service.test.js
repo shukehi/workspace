@@ -62,6 +62,8 @@ test('OrderService CRUD and category filter', async (t) => {
   assert.equal(created.items[0].eccentricity, '34.5*55.5/中心孔偏心');
   assert.equal(created.items[0].quantity_left, 1);
   assert.equal(created.items[0].quantity_right, 2);
+  assert.equal(created.items[0].ordered_quantity, 3);
+  assert.equal(created.items[0].received_quantity, 0);
   assert.equal(created.remark, '整单备注-创建');
   assert.equal(created.items[0].remark, 'created by test');
 
@@ -370,6 +372,8 @@ test('OrderService stockInOrder creates receipts and increments inventory', asyn
   assert.equal(stockedIn.stocked_in_by, '仓管A');
   assert.equal(stockedIn.stocked_in_remark, '验收入库');
   assert.equal(stockedIn.stocked_in_at, '2026-03-12T11:00:00.000Z');
+  assert.equal(stockedIn.items[0].ordered_quantity, 3);
+  assert.equal(stockedIn.items[0].received_quantity, 3);
 
   const refreshedMaterial = await Material.findByPk(material.id);
   assert.equal(Number(refreshedMaterial.stock_quantity), 8);

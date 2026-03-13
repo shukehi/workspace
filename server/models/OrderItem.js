@@ -55,6 +55,16 @@ const OrderItem = sequelize.define('OrderItem', {
         type: DataTypes.FLOAT,
         defaultValue: 0
     },
+    ordered_quantity: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0
+    },
+    received_quantity: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0
+    },
     quantity_left: {
         type: DataTypes.FLOAT,
         allowNull: true

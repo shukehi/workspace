@@ -119,6 +119,10 @@ test('GET /api/inventory-receipts returns stock-in records', async () => {
   assert.equal(list[0].order_id, order.id);
   assert.equal(list[0].material_id, material.code);
   assert.equal(list[0].operator, '仓管A');
+
+  const refreshed = await orderService.getOrderById(order.id);
+  assert.equal(refreshed.items[0].ordered_quantity, 2);
+  assert.equal(refreshed.items[0].received_quantity, 2);
 });
 
 test.after(async () => {
