@@ -1,0 +1,48 @@
+# 采购与库存边界改造 PR 说明（2026-03-13）
+
+## Title
+
+完善采购到货、部分入库、撤销入库与库存审计链路
+
+## Summary
+
+- 打通采购单从到货、按明细入库、库存入库记录查看，到部分撤销入库的完整链路
+- 完善库存页筛选、分页、导出与轨迹审计能力
+- 修复历史单据与边界场景下多处状态、数量、入口判断问题
+
+## Changes
+
+1. 订单状态扩展为 `draft / submitted / processing / arrived / completed / cancelled`
+2. 新增到货与入库相关字段，并支持 `POST /api/orders/:id/arrive`
+3. 新增 `InventoryReceipt` 流水模型与 `GET /api/inventory-receipts`
+4. `POST /api/orders/:id/stock-in` 支持按明细、按数量入库
+5. 采购页新增明细入库弹窗，支持部分入库与“入库完成 / 部分入库成功”提示区分
+6. 库存页支持入库记录查看、按订单号定位、服务端筛选、服务端分页、`pageSize`、全量条件导出
+7. 库存页支持部分撤销、撤销原因、撤销轨迹抽屉与状态回退联动
+8. 修复无剩余待入库明细仍显示“执行入库”入口的问题
+9. 修复历史 `ordered_quantity = 0` 单据被误判为不可继续入库的问题，并统一前后端兼容逻辑
+
+## Docs
+
+- [`/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_PROGRESS_2026-03-12.md`](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_PROGRESS_2026-03-12.md)
+- [`/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md`](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md)
+- [`/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_MANUAL_REGRESSION_CHECKLIST_2026-03-13.md`](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_MANUAL_REGRESSION_CHECKLIST_2026-03-13.md)
+- [`/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_RECEIPT_PLAN_2026-03-12.md`](/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_RECEIPT_PLAN_2026-03-12.md)
+- [`/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_REVERSAL_PLAN_2026-03-12.md`](/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_REVERSAL_PLAN_2026-03-12.md)
+
+## Verification
+
+- `node --test tests/order-service.test.js`
+- `node --test tests/order-routes.test.js`
+- `node --test tests/inventory-route.test.js`
+- `node --test tests/procurement-columns-guard.test.js`
+- `node --test tests/inventory-view-guard.test.js`
+- `npx tsx --test tests/procurement-page-state.test.ts`
+- `npx tsx --test tests/procurement-preview.test.ts`
+- `npx vue-tsc --noEmit`
+
+## Notes
+
+- 当前批量入库仍保持禁用，等待批量明细选择方案
+- 当前入库详情为抽屉形态，尚未拆分为独立详情页
+- 本地数据库已额外回填一批 `ordered_quantity <= 0 && quantity > 0` 的历史明细；这部分属于环境数据修复，不包含在 Git 提交中
