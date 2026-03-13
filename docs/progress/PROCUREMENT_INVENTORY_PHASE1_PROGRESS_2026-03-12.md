@@ -62,3 +62,11 @@
 1. 还没有入库记录详情页
 2. 还不支持部分入库、多次入库、撤销入库
 3. 库存页入库记录尚未做分页、导出、汇总统计
+
+## 下一步建议
+
+下一阶段不建议直接编码，而应先按 Phase 2 方案冻结“部分入库 / 多次入库 / 撤销入库”的数据与接口边界。
+
+对应方案文档：
+
+- [`/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_RECEIPT_PLAN_2026-03-12.md`](/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_RECEIPT_PLAN_2026-03-12.md)
