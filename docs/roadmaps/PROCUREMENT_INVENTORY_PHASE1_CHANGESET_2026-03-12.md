@@ -12,6 +12,11 @@
 
 本阶段目标不是一次性完成完整库存子系统，而是建立“到货”和“入库”两个明确节点，并保证库存变更可追踪。
 
+本阶段固定口径：
+
+1. `arrived` 计入“待处理单”，因为其业务含义是“已到货但尚未完成入库闭环”。
+2. 采购管理页的批量操作栏必须与行级操作保持同一语义，不允许保留旧“结案”含义。
+
 ## 2. 必改数据模型
 
 ### 2.1 Order 模型
@@ -135,6 +140,11 @@ POST /api/orders/:id/arrive
 POST /api/orders/:id/stock-in
 ```
 
+说明：
+
+1. `stock-in` 接口是“入库流水与库存更新”任务的对外入口，不得单独跳过。
+2. 入库流水写入、库存增量更新、订单状态更新必须通过同一事务完成。
+
 ### 5.3 入库记录接口
 
 建议新增文件：
@@ -154,6 +164,7 @@ GET /api/inventory-receipts
 文件：
 
 - `/src/components/procurement/ProcurementColumns.ts`
+- `/src/components/procurement/ProcurementBulkActionBar.vue`
 - `/src/views/Procurement.vue`
 - `/src/features/procurement/useProcurementPageState.ts`
 
@@ -163,6 +174,13 @@ GET /api/inventory-receipts
 2. 状态按钮行为
 3. 筛选项
 4. 到货日期 / 入库日期列
+5. 批量操作栏按钮语义
+
+固定要求：
+
+1. `arrived` 纳入待处理单统计与筛选。
+2. 批量操作栏不允许继续将 `completed` 表述为“结案”。
+3. 行级操作与批量操作必须使用相同状态文案和相同业务语义。
 
 ### 6.2 统计页与统计 store
 
@@ -177,6 +195,11 @@ GET /api/inventory-receipts
 2. `statusStats` 枚举
 3. 状态标签与颜色映射
 4. 描述文案“等待后续入库处理”的含义
+
+固定口径：
+
+1. `pendingOrdersCount` 必须包含 `draft / submitted / processing / arrived`
+2. 统计页状态分布必须显式展示 `arrived`
 
 ### 6.3 订单类型定义
 
@@ -248,3 +271,115 @@ GET /api/inventory-receipts
 3. 每次入库都有对应流水记录。
 4. 采购页、统计页、筛选器对新状态口径一致。
 5. 自动采购单的幂等逻辑在新状态下未被破坏。
+
+## 11. 开发任务拆分
+
+### 任务 1：订单状态与字段扩展
+
+目标：
+
+1. 扩展订单状态，新增 `arrived`
+2. 新增到货/入库相关字段
+3. 同步前后端类型定义
+
+涉及：
+
+- `/server/models/Order.js`
+- `/server/models/index.js`
+- `/src/types/order.ts`
+
+完成标准：
+
+1. 数据库启动后可自动补齐新增字段
+2. 查询订单接口可返回新字段
+3. 前端类型检查可通过
+
+### 任务 2：后端状态流转与幂等修正
+
+目标：
+
+1. 支持 `processing -> arrived -> completed`
+2. 修正自动采购单幂等逻辑对新状态的兼容
+
+涉及：
+
+- `/server/services/OrderService.js`
+- `/server/routes/order.js`
+
+完成标准：
+
+1. 非法状态流转被拒绝
+2. `cancelled -> *` 恢复路径覆盖 `arrived`
+3. 新状态不破坏重复建单保护
+
+### 任务 3：入库流水与库存更新
+
+目标：
+
+1. 建立采购入库流水
+2. 入库时同步更新库存汇总值
+3. 通过 `stock-in` 接口暴露事务化入库能力
+
+涉及：
+
+- `server/models/InventoryReceipt.js`
+- `/server/models/index.js`
+- `server/services/InventoryReceiptService.js`
+- 相关 route 文件
+
+完成标准：
+
+1. 入库成功后可查询到流水记录
+2. `Material.stock_quantity` 正确增加
+3. 失败时事务回滚
+4. `stock-in` 接口已接通并复用同一事务逻辑
+
+### 任务 4：采购管理页状态与动作改造
+
+目标：
+
+1. 采购页支持“登记到货”“执行入库”
+2. 列表补充到货日期/入库日期
+3. 统一状态文案
+4. 批量操作栏与行级操作语义一致
+
+涉及：
+
+- `/src/views/Procurement.vue`
+- `/src/components/procurement/ProcurementColumns.ts`
+- `/src/features/procurement/useProcurementPageState.ts`
+
+完成标准：
+
+1. 按钮仅在正确状态出现
+2. 列表和筛选器支持新状态
+3. 不再混淆“采购完成”和“已入库”
+4. 批量操作栏不再保留旧“结案”语义
+
+### 任务 5：统计与测试收口
+
+目标：
+
+1. 让统计页、摘要卡片、筛选口径接受新状态
+2. 补齐关键测试
+
+涉及：
+
+- `/src/stores/useStatisticsStore.ts`
+- `/src/views/Statistics.vue`
+- `tests/order-*.js`
+- `tests/procurement-*.test.*`
+
+完成标准：
+
+1. `arrived` 出现在状态统计中
+2. 待处理单明确包含 `arrived`
+3. 主要流转路径有测试覆盖
+
+## 12. 推荐执行顺序
+
+1. 任务 1：订单状态与字段扩展
+2. 任务 2：后端状态流转与幂等修正
+3. 任务 3：入库流水与库存更新
+4. 任务 4：采购管理页状态与动作改造
+5. 任务 5：统计与测试收口
