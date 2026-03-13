@@ -172,15 +172,29 @@
 
 ### 6.1 真实热点收敛
 
-- [ ] 优先梳理 `src/views/Inventory.vue` 的路由、分页、撤销、筛选编排
+- [x] 优先梳理 `src/views/Inventory.vue` 的路由、分页、撤销、筛选编排（首批已落到 receipts route composable）
 - [ ] 优先梳理 `server/services/InventoryReceiptService.js` 的规则边界和数据访问边界
 - [ ] 评估 `useInventoryStore.ts`，仅在职责确实过重时再继续拆分
 
 ### 6.2 结构复制
 
-- [ ] 复制 `controller -> service -> repository / policy` 的后端模式
-- [ ] 将页面收敛为装配层，避免继续加重 store
+- [x] 先在 `inventoryReceipts` 路由复制 `controller -> service -> validation` 的 HTTP 层模式
+- [x] 将页面收敛为装配层，避免继续加重 store（已下沉 receipts route/filter/pagination 编排）
 - [ ] 把与下载、打印或浏览器 API 直接相关的行为挡在 UI 边界
+
+当前已完成的首批落地：
+
+1. 已新增 `server/controllers/inventory-receipt.controller.js`。
+2. 已新增 `server/validators/inventory-receipt.validators.js`。
+3. `server/routes/inventoryReceipts.js` 已切到 `asyncHandler + controller + errorHandler + validateRequest`。
+4. inventory receipt 相关错误已接入 `normalizeError`，与订单域错误出口保持一致。
+5. 已新增 `src/features/inventory/composables/useInventoryReceiptRouteState.ts`，将 `Inventory.vue` 中 receipts 的 route/filter/pagination 状态下沉。
+6. 已新增 `src/features/inventory/composables/useInventoryReceiptFlow.ts`，将 `Inventory.vue` 中 receipts 的撤销弹窗与轨迹审计状态下沉。
+7. `src/views/Inventory.vue` 已改为消费 receipt route / flow composable，页面层不再直接维护对应 watchers 和弹窗状态细节。
+8. 已新增 `server/services/inventory/inventory-receipt.{errors,mapper,policy,query-policy,repository,service}.js` 与 `server/services/inventory/index.js`，`server/services/InventoryReceiptService.js` 已降为兼容入口壳。
+9. 已新增 `server/controllers/inventory.controller.js` 与 `server/validators/inventory.validators.js`，`server/routes/inventory.js` 已切到 `controller + validateRequest + errorHandler`。
+10. 已新增 `server/services/inventory/inventory.{mapper,repository,service}.js`，`inventory.controller.js` 已降为薄控制器。
+11. 已补 inventory receipt 的 params/body 校验回归、Inventory 结构 guard 与 composable 行为测试，并通过 `tests/inventory-route.test.js`、`tests/order-service.test.js`、`tests/inventory-view-guard.test.js`、`tests/inventory-receipt-route-state.test.ts`、`tests/inventory-receipt-flow.test.ts` 以及 `npm run type-check`。
 
 ### 6.3 本周额外约束
 

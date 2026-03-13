@@ -49,6 +49,33 @@ function fromKnownCode(error) {
             },
             originalError: error,
         });
+    case ERROR_CODES.RECEIPT_NOT_FOUND:
+        return new AppError({
+            code: ERROR_CODES.RECEIPT_NOT_FOUND,
+            status: 404,
+            originalError: error,
+        });
+    case ERROR_CODES.RECEIPT_REVERSE_NOT_ALLOWED:
+    case ERROR_CODES.RECEIPT_ALREADY_REVERSED:
+    case ERROR_CODES.RECEIPT_ALREADY_FULLY_REVERSED:
+    case ERROR_CODES.REVERSE_REASON_REQUIRED:
+    case ERROR_CODES.INVALID_RECEIPT_DATE:
+    case ERROR_CODES.ORDER_NOT_FOUND:
+        return new AppError({
+            code: error.code,
+            status: 400,
+            originalError: error,
+        });
+    case ERROR_CODES.REVERSE_QUANTITY_EXCEEDED:
+        return new AppError({
+            code: ERROR_CODES.REVERSE_QUANTITY_EXCEEDED,
+            status: 400,
+            details: {
+                reversibleQuantity: error.reversibleQuantity,
+                requestedQuantity: error.requestedQuantity,
+            },
+            originalError: error,
+        });
     case ERROR_CODES.MATERIAL_ID_REQUIRED:
     case ERROR_CODES.INVALID_RECEIPT_QUANTITY:
     case ERROR_CODES.ORDER_ITEMS_REQUIRED:

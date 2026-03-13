@@ -76,6 +76,36 @@ test('GET /api/inventory and PUT /api/inventory/:id', async () => {
   assert.equal(updated.min_stock, 20);
 });
 
+test('PUT /api/inventory/:id rejects invalid stock values with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/inventory/1`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stock_quantity: 'oops' })
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'body');
+  assert.equal(body.issues[0].field, 'stock_quantity');
+});
+
+test('PUT /api/inventory/:id rejects invalid id param with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/inventory/not-a-number`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stock_quantity: 10 })
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'params');
+  assert.equal(body.issues[0].field, 'id');
+});
+
 test('GET /api/inventory-receipts returns stock-in records', async () => {
   const material = await Material.create({
     code: `TEST-MAT-RECEIPT-${Date.now()}`,
@@ -125,6 +155,17 @@ test('GET /api/inventory-receipts returns stock-in records', async () => {
   const refreshed = await orderService.getOrderById(order.id);
   assert.equal(refreshed.items[0].ordered_quantity, 2);
   assert.equal(refreshed.items[0].received_quantity, 2);
+});
+
+test('GET /api/inventory-receipts/:id rejects invalid id param with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/inventory-receipts/not-a-number`);
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'params');
+  assert.equal(body.issues[0].field, 'id');
 });
 
 test('GET /api/inventory-receipts/:id returns single receipt detail', async () => {
@@ -373,6 +414,23 @@ test('POST /api/inventory-receipts/:id/reverse requires reverse reason', async (
   assert.equal(reverseRes.status, 400);
   const body = await reverseRes.json();
   assert.equal(body.error, 'REVERSE_REASON_REQUIRED');
+});
+
+test('POST /api/inventory-receipts/:id/reverse rejects invalid quantity type with validation error', async () => {
+  const res = await fetch(`${baseUrl}/api/inventory-receipts/1/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      quantity: 'oops'
+    })
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.equal(body.issues[0].target, 'body');
+  assert.equal(body.issues[0].field, 'quantity');
 });
 
 test('GET /api/inventory-receipts keeps reversal stats correct under pagination and filters', async () => {

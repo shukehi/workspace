@@ -5,7 +5,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：在订单域完成服务拆分与 HTTP 层收口后，将同样的模块化模式复制到 inventory 域，优先收敛 `Inventory.vue` 与 `InventoryReceiptService.js`，降低库存相关功能继续膨胀的风险。
 
 ## 1. 第四周范围
@@ -33,8 +33,8 @@
 ```text
 Week 4
 - Owner: TBD
-- Status: pending
-- Start Date:
+- Status: in_progress
+- Start Date: 2026-03-13
 - Target Date:
 - Exit Criteria:
   - inventory 域职责映射已完成并落到页面 / store / controller / service / repository
@@ -44,6 +44,16 @@ Week 4
 - Blocking:
 - PR / Issue:
 - Notes:
+  - 已在 `server/routes/inventoryReceipts.js` 复制 `controller + asyncHandler + errorHandler + validateRequest` 模式
+  - 已新增 `server/controllers/inventory-receipt.controller.js` 与 `server/validators/inventory-receipt.validators.js`
+  - 已将 inventory receipt 错误接入 `normalizeError`
+  - 已新增 `src/features/inventory/composables/useInventoryReceiptRouteState.ts`，收敛 receipts route/filter/pagination 编排
+  - 已新增 `src/features/inventory/composables/useInventoryReceiptFlow.ts`，收敛 receipts 撤销弹窗与轨迹审计编排
+  - `src/views/Inventory.vue` 已改为消费 receipt route composable，保留页面装配职责
+  - 已新增 `server/services/inventory/*`，将 `InventoryReceiptService.js` 收敛为兼容入口壳
+  - 已新增 `server/controllers/inventory.controller.js` 与 `server/validators/inventory.validators.js`，`server/routes/inventory.js` 已切到 `controller + validateRequest + errorHandler`
+  - 已新增 `server/services/inventory/inventory.{mapper,repository,service}.js`，`inventory.controller.js` 已改为消费 service
+  - 已执行 `node --test tests/inventory-route.test.js`、`node --test tests/order-service.test.js`、`node --test tests/inventory-view-guard.test.js`、`npx tsx --test tests/inventory-receipt-route-state.test.ts tests/inventory-receipt-flow.test.ts` 与 `npm run type-check`
 ```
 
 ## 4. 本周退出标准
@@ -154,7 +164,7 @@ server/controllers/
 
 建议迁移内容：
 
-- [ ] 分页、筛选、搜索状态
+- [x] 分页、筛选、搜索状态（receipts route/filter/pagination 已下沉到 `useInventoryReceiptRouteState`）
 - [ ] 入库记录弹窗或明细跳转编排
 - [ ] 回退相关交互编排
 - [ ] 列表刷新与联动逻辑
@@ -203,9 +213,10 @@ server/controllers/
 建议动作：
 
 - [ ] 抽出库存列表与更新 controller
+- [x] 抽出库存列表与更新 controller
 - [ ] 抽出入库记录列表、详情、回退 controller
 - [ ] 接入 `asyncHandler`
-- [ ] 接入统一成功/错误响应模式
+- [x] 接入统一成功/错误响应模式
 
 验收：
 
@@ -228,11 +239,12 @@ server/controllers/
 建议拆分方向：
 
 - [ ] 列表查询与筛选
+- [x] 列表查询与筛选（已抽 `inventory-receipt.query-policy.js`）
 - [ ] receipt 明细查询
-- [ ] reversal 校验与执行
+- [x] reversal 校验与执行（已抽 `inventory-receipt.errors.js` / `policy.js` / `service.js`）
 - [ ] 库存数量更新
 - [ ] 与订单状态回写联动
-- [ ] DTO 序列化
+- [x] DTO 序列化（已抽 `inventory-receipt.mapper.js`）
 
 验收：
 

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue';
-import { refDebounced } from '@vueuse/core';
+import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
+import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
 import DataTable from '@/components/data-table/DataTable.vue';
 import { createInventoryColumns } from '@/components/inventory/InventoryColumns';
 import { createInventoryReceiptColumns } from '@/components/inventory/InventoryReceiptColumns';
@@ -27,22 +28,6 @@ const router = useRouter();
 const activeTab = ref(String(route.query.tab || (route.query.orderNo ? 'receipts' : 'inventory')));
 const activeCategory = ref('ALL');
 const searchQuery = ref('');
-const receiptSearchQuery = ref(String(route.query.keyword || '').trim());
-const receiptOrderFilter = ref(String(route.query.orderNo || '').trim());
-const receiptDirectionFilter = ref<'ALL' | 'in' | 'reversal'>(String(route.query.direction || 'ALL') as 'ALL' | 'in' | 'reversal');
-const reverseReasonFilter = ref(String(route.query.reverseReason || 'ALL'));
-const receiptPage = ref(Math.max(1, Number(route.query.page) || 1));
-const receiptPageSize = ref(Math.min(200, Math.max(10, Number(route.query.pageSize) || store.receiptsPageSize || 50)));
-const debouncedReceiptOrderFilter = refDebounced(receiptOrderFilter, 300);
-const debouncedReceiptSearchQuery = refDebounced(receiptSearchQuery, 300);
-const reverseDialogOpen = ref(false);
-const reverseReceiptTarget = ref<InventoryReceipt | null>(null);
-const auditReceiptId = ref<number | null>(null);
-const auditRows = ref<InventoryReceipt[]>([]);
-const reverseReason = ref('entry_error');
-const reverseRemark = ref('');
-const reverseQuantity = ref('');
-const reversing = ref(false);
 
 const reverseReasonOptions = [
   { value: 'entry_error', label: '录入错误' },
@@ -57,6 +42,21 @@ const categories = [
   { id: '锁叉', label: '锁叉' },
   { id: '包装', label: '包装材料' }
 ];
+
+const {
+  receiptSearchQuery,
+  receiptOrderFilter,
+  receiptDirectionFilter,
+  reverseReasonFilter,
+  receiptPage,
+  receiptPageSize,
+  clearReceiptRouteFilters,
+  buildReceiptFetchParams,
+} = useInventoryReceiptRouteState(route, router, {
+  activeTab,
+  defaultPageSize: store.receiptsPageSize || 50,
+  loadReceipts: (orderNo = '') => loadReceipts(orderNo),
+});
 
 const filteredItems = computed(() => {
   let list = store.sortedItems;
@@ -108,34 +108,6 @@ const availableReverseReasonOptions = computed(() => {
   ];
 });
 
-const selectedReceiptAudit = computed(() => {
-  if (!auditReceiptId.value) return null;
-
-  const source = auditRows.value.length > 0 ? auditRows.value : store.receipts;
-  const matched = source.find((receipt) => Number(receipt.id) === Number(auditReceiptId.value))
-    || source.find((receipt) => Number(receipt.source_receipt_id || 0) === Number(auditReceiptId.value));
-
-  if (!matched) return null;
-
-  const originalId = matched.direction === 'reversal'
-    ? Number(matched.source_receipt_id || 0)
-    : Number(matched.id);
-
-  const original = source.find((receipt) => Number(receipt.id) === originalId && receipt.direction !== 'reversal');
-  if (!original) return null;
-
-  const reversals = source
-    .filter((receipt) => Number(receipt.source_receipt_id || 0) === originalId)
-    .sort((a, b) => new Date(b.receipt_date || b.created_at || 0).getTime() - new Date(a.receipt_date || a.created_at || 0).getTime());
-  const netQuantity = Number(original.quantity || 0) - reversals.reduce((sum, receipt) => sum + Math.abs(Number(receipt.quantity || 0)), 0);
-
-  return {
-    original,
-    reversals,
-    netQuantity
-  };
-});
-
 const handleEdit = (item: InventoryItem) => {
   const newQty = prompt(`修改库存: ${item.model}\n当前数量: ${item.stock_quantity}`, item.stock_quantity.toString());
   if (newQty !== null && !isNaN(parseFloat(newQty))) {
@@ -148,6 +120,29 @@ function isReceiptReversible(receipt: InventoryReceipt) {
   return receipt.direction !== 'reversal' && Number(receipt.reversible_quantity || 0) > 0;
 }
 
+const {
+  reverseDialogOpen,
+  reverseReceiptTarget,
+  auditReceiptId,
+  reverseReason,
+  reverseRemark,
+  reverseQuantity,
+  reversing,
+  selectedReceiptAudit,
+  requestReverseReceipt,
+  confirmReverseReceipt: confirmReceiptFlowReverse,
+  openReceiptAudit,
+  closeReceiptAudit,
+  reconcileReceiptAudit,
+} = useInventoryReceiptFlow({
+  store,
+  toast,
+  loadReceipts: (orderNo = '') => loadReceipts(orderNo),
+  notifyProcurementRefresh: () => {
+    window.localStorage.setItem(PROCUREMENT_REFRESH_SIGNAL_KEY, String(Date.now()));
+  },
+});
+
 const receiptColumns = createInventoryReceiptColumns({
   onJumpToOrder: (receipt: InventoryReceipt) => {
     router.push({
@@ -158,11 +153,7 @@ const receiptColumns = createInventoryReceiptColumns({
     }).catch(() => undefined);
   },
   onReverse: async (receipt: InventoryReceipt) => {
-    reverseReceiptTarget.value = receipt;
-    reverseReason.value = 'entry_error';
-    reverseRemark.value = '';
-    reverseQuantity.value = '';
-    reverseDialogOpen.value = true;
+    requestReverseReceipt(receipt);
   },
   onInspect: (receipt: InventoryReceipt) => {
     openReceiptAudit(receipt).catch(() => undefined);
@@ -179,110 +170,11 @@ const receiptColumns = createInventoryReceiptColumns({
 });
 
 async function confirmReverseReceipt() {
-  if (!reverseReceiptTarget.value) return;
-  if (!reverseReason.value) return;
-  reversing.value = true;
-  const quantityValue = reverseQuantity.value.trim();
-  try {
-    await store.reverseReceipt(reverseReceiptTarget.value.id, {
-      reversed_at: new Date().toISOString(),
-      reverse_reason: reverseReason.value,
-      remark: reverseRemark.value.trim() || undefined,
-      quantity: quantityValue ? Number(quantityValue) : undefined,
-    });
-    await loadReceipts(String(route.query.orderNo || '').trim());
-    toast({
-      title: '撤销成功',
-      description: `已撤销 ${reverseReceiptTarget.value.order_no} 的入库记录`,
-      variant: 'success'
-    });
-    window.localStorage.setItem(PROCUREMENT_REFRESH_SIGNAL_KEY, String(Date.now()));
-    reverseDialogOpen.value = false;
-    reverseReceiptTarget.value = null;
-    auditRows.value = [];
-    reverseRemark.value = '';
-    reverseQuantity.value = '';
-  } catch (error: any) {
-    const errorCode = String(error?.response?.data?.error || '');
-    toast({
-      title: '撤销失败',
-      description: errorCode === 'RECEIPT_ALREADY_REVERSED'
-        ? '该入库记录已经撤销过'
-        : errorCode === 'RECEIPT_ALREADY_FULLY_REVERSED'
-          ? '该入库记录已经全部撤销'
-          : errorCode === 'REVERSE_QUANTITY_EXCEEDED'
-            ? '本次撤销数量超过剩余可撤销量'
-        : errorCode === 'REVERSE_REASON_REQUIRED'
-          ? '请选择撤销原因'
-          : '请稍后重试',
-      variant: 'destructive'
-    });
-  } finally {
-    reversing.value = false;
-  }
-}
-
-function syncReceiptOrderFilterFromRoute() {
-  receiptSearchQuery.value = String(route.query.keyword || '').trim();
-  receiptOrderFilter.value = String(route.query.orderNo || '').trim();
-  receiptDirectionFilter.value = String(route.query.direction || 'ALL') as 'ALL' | 'in' | 'reversal';
-  reverseReasonFilter.value = String(route.query.reverseReason || 'ALL');
-  receiptPage.value = Math.max(1, Number(route.query.page) || 1);
-  receiptPageSize.value = Math.min(200, Math.max(10, Number(route.query.pageSize) || store.receiptsPageSize || 50));
-}
-
-function updateInventoryRouteQuery(orderNo: string, keyword: string, direction: string, reverseReason: string, page: number, pageSize: number) {
-  const nextQuery = { ...route.query };
-  const trimmedOrderNo = orderNo.trim();
-  const trimmedKeyword = keyword.trim();
-  if (trimmedOrderNo) nextQuery.orderNo = trimmedOrderNo;
-  else delete nextQuery.orderNo;
-  if (trimmedKeyword) nextQuery.keyword = trimmedKeyword;
-  else delete nextQuery.keyword;
-  if (direction && direction !== 'ALL') nextQuery.direction = direction;
-  else delete nextQuery.direction;
-  if (reverseReason && reverseReason !== 'ALL') nextQuery.reverseReason = reverseReason;
-  else delete nextQuery.reverseReason;
-  if (page > 1) nextQuery.page = String(page);
-  else delete nextQuery.page;
-  if (pageSize !== 50) nextQuery.pageSize = String(pageSize);
-  else delete nextQuery.pageSize;
-  router.replace({ query: nextQuery }).catch(() => undefined);
+  await confirmReceiptFlowReverse(String(route.query.orderNo || '').trim());
 }
 
 function clearReceiptOrderFilter() {
-  receiptSearchQuery.value = '';
-  receiptOrderFilter.value = '';
-  receiptDirectionFilter.value = 'ALL';
-  reverseReasonFilter.value = 'ALL';
-  receiptPage.value = 1;
-  receiptPageSize.value = 50;
-  updateInventoryRouteQuery('', '', 'ALL', 'ALL', 1, 50);
-}
-
-async function openReceiptAudit(receipt: InventoryReceipt) {
-  const originalId = receipt.direction === 'reversal'
-    ? Number(receipt.source_receipt_id || 0)
-    : Number(receipt.id);
-  auditReceiptId.value = originalId;
-
-  try {
-    auditRows.value = await store.fetchAllInventoryReceipts({
-      orderNo: receipt.order_no
-    });
-  } catch {
-    auditRows.value = [];
-    toast({
-      title: '轨迹加载失败',
-      description: '无法获取完整的入库撤销轨迹，请稍后重试',
-      variant: 'destructive'
-    });
-  }
-}
-
-function closeReceiptAudit() {
-  auditReceiptId.value = null;
-  auditRows.value = [];
+  clearReceiptRouteFilters();
 }
 
 function handleExportReceipts() {
@@ -328,18 +220,8 @@ async function loadInventoryData() {
 
 async function loadReceipts(orderNo = '') {
   try {
-    await store.fetchInventoryReceipts({
-      ...(orderNo ? { orderNo } : {}),
-      ...(receiptSearchQuery.value.trim() ? { keyword: receiptSearchQuery.value.trim() } : {}),
-      ...(receiptDirectionFilter.value !== 'ALL' ? { direction: receiptDirectionFilter.value } : {}),
-      ...(reverseReasonFilter.value !== 'ALL' ? { reverseReason: reverseReasonFilter.value } : {}),
-      page: receiptPage.value,
-      pageSize: receiptPageSize.value
-    });
-    if (auditReceiptId.value && !selectedReceiptAudit.value) {
-      auditReceiptId.value = null;
-      auditRows.value = [];
-    }
+    await store.fetchInventoryReceipts(buildReceiptFetchParams(orderNo));
+    reconcileReceiptAudit();
   } catch {
     toast({
       title: '入库记录加载失败',
@@ -361,41 +243,6 @@ function prevReceiptPage() {
 
 onMounted(() => {
   loadInventoryData().catch(() => undefined);
-});
-
-watch(() => [route.query.orderNo, route.query.keyword, route.query.direction, route.query.reverseReason, route.query.page, route.query.pageSize], () => {
-  syncReceiptOrderFilterFromRoute();
-  loadReceipts(String(route.query.orderNo || '').trim()).catch(() => undefined);
-});
-
-watch(
-  [debouncedReceiptOrderFilter, debouncedReceiptSearchQuery, receiptDirectionFilter, reverseReasonFilter],
-  ([orderNo, keyword, direction, reverseReason]) => {
-    receiptPage.value = 1;
-    updateInventoryRouteQuery(orderNo, keyword, direction, reverseReason, 1, receiptPageSize.value);
-  }
-);
-
-watch(receiptPage, (page) => {
-  updateInventoryRouteQuery(receiptOrderFilter.value, receiptSearchQuery.value, receiptDirectionFilter.value, reverseReasonFilter.value, page, receiptPageSize.value);
-});
-
-watch(receiptPageSize, (pageSize) => {
-  receiptPage.value = 1;
-  updateInventoryRouteQuery(receiptOrderFilter.value, receiptSearchQuery.value, receiptDirectionFilter.value, reverseReasonFilter.value, 1, pageSize);
-});
-
-// Update active tab if orderNo changes to ensure we show receipts
-watch(() => route.query.orderNo, (newOrderNo) => {
-  if (newOrderNo) {
-    activeTab.value = 'receipts';
-  }
-});
-
-watch(() => route.query.tab, (tab) => {
-  if (tab === 'inventory' || tab === 'receipts') {
-    activeTab.value = String(tab);
-  }
 });
 </script>
 
