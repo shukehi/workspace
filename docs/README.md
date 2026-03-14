@@ -16,6 +16,7 @@
 - [FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
 - [PR_FEATURE_CHECKLIST_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/PR_FEATURE_CHECKLIST_2026-03-10.md)
 - [COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md)
+- [FEATURE_PLACEMENT_GUIDE_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/FEATURE_PLACEMENT_GUIDE_2026-03-13.md)
 - [LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md)
 - [DOCUMENT_STATUS_CONVENTIONS.md](/Users/aries/Dve/workspace/docs/governance/DOCUMENT_STATUS_CONVENTIONS.md)
 - [CSS_GOVERNANCE_CHECKLIST.md](/Users/aries/Dve/workspace/docs/governance/CSS_GOVERNANCE_CHECKLIST.md)

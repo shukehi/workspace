@@ -55,9 +55,10 @@ Week 8
 - PR / Issue:
 - Notes:
   - 已新增 `docs/governance/COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md`
+  - 已新增 `docs/governance/FEATURE_PLACEMENT_GUIDE_2026-03-13.md`
   - 已盘点当前 compatibility shell：`server/services/OrderService.js`、`server/services/InventoryReceiptService.js`、`server/services/FormulaService.js`
   - 已在 `tests/governance-boundary-guard.test.js` 补 compatibility shell allowlist 与“单行转发” guard
-  - `docs/README.md` 已加入 compatibility shell 退场清单入口
+  - `docs/README.md` 已加入 compatibility shell 退场清单与新功能落位指南入口
 ```
 
 ## 4. 本周退出标准
@@ -217,11 +218,11 @@ Week 8
 
 建议内容：
 
-- [ ] 新页面逻辑放哪
-- [ ] 新共享类型放哪
-- [ ] 新 controller/service/repository 放哪
-- [ ] 新配置规则放哪
-- [ ] 什么情况下可进入 shared
+- [x] 新页面逻辑放哪
+- [x] 新共享类型放哪
+- [x] 新 controller/service/repository 放哪
+- [x] 新配置规则放哪
+- [x] 什么情况下可进入 shared
 
 验收：
 

@@ -386,6 +386,19 @@
 2. 已为每个 compatibility shell 写明保留原因、退场条件和最晚处理阶段。
 3. 已补 `tests/governance-boundary-guard.test.js`，冻结 compatibility shell allowlist，并校验这些文件继续保持“单行转发”形态。
 
+### 10.4 新功能落位指南
+
+- [x] 为前端 feature / 页面状态 / shared / runtime adapter 给出统一落位规则
+- [x] 为后端 controller / service / repository / validator 给出统一落位规则
+- [x] 写明配置真源、loader、runtime 的分层方式
+
+当前已完成的首批落地：
+
+1. 已新增 `docs/governance/FEATURE_PLACEMENT_GUIDE_2026-03-13.md`。
+2. 已明确前端页面、feature、store、shared 的放置规则。
+3. 已明确后端 route/controller/service/repository/validator 的放置规则。
+4. 已明确配置真源、loader、runtime 与 compatibility 入口的分层方式。
+
 建议 PR 拆分：
 
 1. `docs(governance): codify boundary and validation rules`
