@@ -10,7 +10,7 @@
 > - `docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`
-> 状态：in_progress
+> 状态：completed
 > 目标：将前七周的重构路线沉淀为团队可执行的统一索引，并把关键结构约束升级为工程规范，避免后续新增功能再次绕开已建立的模式。
 
 ## 1. 第八周范围
@@ -42,7 +42,7 @@
 ```text
 Week 8
 - Owner: TBD
-- Status: in_progress
+- Status: completed
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -325,7 +325,7 @@ Week 8
 - [x] 工程规范已反映本轮结构决策
 - [x] PR 检查项可用于日常评审
 - [x] 结构守护规则至少覆盖关键倒退风险
-- [ ] `git status --short` 仅包含预期文档/守护改动
+- [x] `git status --short` 仅包含预期文档/守护改动
 
 本轮已记录的 smoke：
 

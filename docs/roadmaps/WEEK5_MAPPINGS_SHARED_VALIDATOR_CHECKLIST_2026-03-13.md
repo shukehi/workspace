@@ -5,7 +5,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
-> 状态：in_progress
+> 状态：completed
 > 目标：收敛 mappings 域前后端重复的 adapter/validator 逻辑，建立共享规则实现来源，降低配置规则演进时的双端维护成本。
 
 ## 1. 第五周范围
@@ -31,7 +31,7 @@
 ```text
 Week 5
 - Owner: TBD
-- Status: in_progress
+- Status: completed
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -419,7 +419,7 @@ shared/
 - [x] config routes 测试通过
 - [x] 前后端 mapping 规则核心实现已对 packaging / cylinder / lock / lock-fork 收敛到共享层
 - [x] issue path/code 与现状兼容
-- [ ] `git status --short` 仅包含预期改动
+- [x] `git status --short` 仅包含预期改动
 
 本轮已记录的 smoke / diff：
 

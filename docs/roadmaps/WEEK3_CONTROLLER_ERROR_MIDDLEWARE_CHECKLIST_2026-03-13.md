@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
-> 状态：in_progress
+> 状态：completed
 > 目标：在第二周完成 `OrderService` 模块化拆分后，继续将订单域的 HTTP 层升级为 `route -> controller -> service -> repository` 结构，并建立统一错误/请求校验中间件。
 
 ## 1. 第三周范围
@@ -33,7 +33,7 @@
 ```text
 Week 3
 - Owner: TBD
-- Status: in_progress
+- Status: completed
 - Start Date: 2026-03-13
 - Target Date:
 - Exit Criteria:
@@ -412,8 +412,8 @@ controller 职责：
 - [x] 订单服务测试继续通过
 - [x] API 错误响应结构统一
 - [x] route 文件复杂度下降
-- [ ] `server/index.js` 错误处理链路稳定
-- [ ] SPA fallback 正常
+- [x] `server/index.js` 错误处理链路稳定
+- [x] SPA fallback 正常
 
 本轮已记录的 smoke / 响应样例：
 

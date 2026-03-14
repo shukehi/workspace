@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
-> 状态：in_progress
+> 状态：completed
 > 目标：在订单、inventory、mappings 的结构化模式逐步稳定后，优先收敛 `useFormulaManager.ts` 的前端工作流边界，并正式建立数据库 migration 规范，开始替代启动时补列策略。
 
 ## 1. 第六周范围
@@ -34,7 +34,7 @@
 ```text
 Week 6
 - Owner: TBD
-- Status: in_progress
+- Status: completed
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -403,7 +403,7 @@ server/db/
 - [x] migration 可在本地执行
 - [x] 首批 `ensure*Columns()` 逻辑已迁出或缩减
 - [x] formulas 前后端职责边界更清晰
-- [ ] `git status --short` 仅包含预期改动
+- [x] `git status --short` 仅包含预期改动
 
 本轮已记录的 smoke：
 

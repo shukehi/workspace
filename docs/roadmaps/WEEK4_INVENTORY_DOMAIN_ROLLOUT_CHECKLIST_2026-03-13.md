@@ -5,7 +5,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
-> 状态：in_progress
+> 状态：completed
 > 目标：在订单域完成服务拆分与 HTTP 层收口后，将同样的模块化模式复制到 inventory 域，优先收敛 `Inventory.vue` 与 `InventoryReceiptService.js`，降低库存相关功能继续膨胀的风险。
 
 ## 1. 第四周范围
@@ -33,7 +33,7 @@
 ```text
 Week 4
 - Owner: TBD
-- Status: in_progress
+- Status: completed
 - Start Date: 2026-03-13
 - Target Date:
 - Exit Criteria:
@@ -389,7 +389,7 @@ server/controllers/
 - [x] 库存回退主流程无回归
 - [x] inventory 路由和 service 文件复杂度下降
 - [x] inventory API 错误输出结构统一
-- [ ] `git status --short` 仅包含预期改动
+- [x] `git status --short` 仅包含预期改动
 
 本轮已记录的 smoke：
 

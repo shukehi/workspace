@@ -168,16 +168,16 @@ Week N
 
 基于当前分支实现和周清单记录，当前状态更接近下面这个快照：
 
-1. Week 1 - Status: in_progress | 已完成共享契约落点与 Procurement 样板拆分，且已通过 `type-check / test / build`，仍待补齐 Procurement smoke 记录
-2. Week 2 - Status: in_progress | 已完成订单服务模块化拆分，且已通过 `type-check / test / build`，仍待补齐订单主链路 smoke 记录
-3. Week 3 - Status: in_progress | 已完成订单域 controller / error / validation 管线，且已通过 `type-check / test / build`，仍待补齐订单 API smoke / 响应样例记录
-4. Week 4 - Status: in_progress | 已完成 inventory 域复制模式第一轮，且已通过 `type-check / test / build`，仍待补齐 inventory 页面与回退链路 smoke 记录
-5. Week 5 - Status: in_progress | 已完成 mappings 共享规则核心第一轮，且已通过 `type-check / test / build`，仍待补齐 mapping diff / smoke 记录
-6. Week 6 - Status: in_progress | 已完成 formulas manager 收敛与 migration 基线，且已通过 `type-check / test / build`，仍待补齐 formulas editor / migration smoke 记录
-7. Week 7 - Status: in_progress | 已完成 source-analysis runtime/materials 页面状态第一轮收敛，且已通过 `type-check / test / build`，仍待补齐 source-analysis / materials smoke 记录
-8. Week 8 - Status: in_progress | 已完成 compatibility shell 退场清单、guard 与落位指南第一轮固化，且已通过 `type-check / test / build`，仍待补齐治理文档使用 smoke 记录
+1. Week 1 - Status: completed | 共享契约落点与 Procurement 样板拆分已完成，自动化验收和页面 smoke 已补齐
+2. Week 2 - Status: completed | 订单服务模块化拆分已完成，主链路与 duplicate/idempotency smoke 已补齐
+3. Week 3 - Status: completed | 订单域 controller / error / validation 管线已完成，成功/校验/not-found 响应样例与 server/index / SPA fallback 验证已补齐
+4. Week 4 - Status: completed | inventory 域模式复制已完成，inventory / receipt / reverse 主链路 smoke 已补齐
+5. Week 5 - Status: completed | mappings 共享规则核心已完成，前后端真实配置 diff / smoke 已补齐
+6. Week 6 - Status: completed | formulas manager 收敛与 migration 基线已完成，页面与空库/旧库 smoke 已补齐
+7. Week 7 - Status: completed | source-analysis / materials 边界收敛已完成，页面入口与 workflow/runtime 证据已补齐
+8. Week 8 - Status: completed | compatibility shell 清单、guard、落位指南与 docs 入口治理已完成，治理 smoke 已补齐
 
-当前所有周仍保留 `in_progress`，不是因为结构成果不足。当前分支已经通过统一的 `npm run type-check`、`npm test`、`npm run build`；继续保留 `in_progress` 的唯一原因，是各周特定影响域的 smoke / 使用记录尚未按周完全补齐。
+当前 Week 1-8 已全部达到本轮定义的退出标准：统一通过 `npm run type-check`、`npm test`、`npm run build`，且各周影响域 smoke / 使用记录已补齐。
 
 ## 8. 每周统一验收标准
 
