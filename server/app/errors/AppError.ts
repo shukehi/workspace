@@ -1,4 +1,21 @@
+export {};
+
+interface AppErrorOptions {
+    code?: string;
+    status?: number;
+    message?: string;
+    details?: unknown;
+    expose?: boolean;
+    originalError?: unknown;
+}
+
 class AppError extends Error {
+    code?: string;
+    status: number;
+    details?: unknown;
+    expose: boolean;
+    originalError?: unknown;
+
     constructor({
         code,
         status = 500,
@@ -6,7 +23,7 @@ class AppError extends Error {
         details = undefined,
         expose = true,
         originalError = undefined,
-    }) {
+    }: AppErrorOptions) {
         super(message || code);
         this.name = 'AppError';
         this.code = code;

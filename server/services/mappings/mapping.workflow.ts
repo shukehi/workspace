@@ -1,3 +1,5 @@
+export {};
+
 const fs = require('fs');
 const MappingRepository = require('./mapping.repository');
 const {
@@ -20,12 +22,52 @@ const {
     toAuditLog
 } = require('./mapping.mapper');
 
-function operatorFromRequest(req) {
+type PlainRecord = Record<string, any>;
+
+interface WorkflowIssue {
+    path: string;
+    code: string;
+    message: string;
+}
+
+interface WorkflowErrorItem {
+    field: string;
+    code: string;
+    message: string;
+}
+
+interface DraftParams {
+    revision?: number | string | null;
+    payload: PlainRecord;
+    changeNote?: string;
+    operator?: string;
+    schemaVersion?: number | string | null;
+}
+
+interface PublishParams {
+    fromRevision: number | string;
+    changeNote?: string;
+    operator?: string;
+}
+
+interface RollbackParams {
+    targetRevision: number | string;
+    reason?: string;
+    operator?: string;
+}
+
+interface EnsurePublishedParams {
+    legacyPayload?: PlainRecord | null;
+    operator?: string;
+    changeNote?: string;
+}
+
+function operatorFromRequest(req?: PlainRecord): string {
     const fromHeader = req?.headers?.['x-operator'] || req?.headers?.['x-user'];
     return String(fromHeader || 'system-admin');
 }
 
-function toWorkflowErrors(issues) {
+function toWorkflowErrors(issues: WorkflowIssue[]): WorkflowErrorItem[] {
     return issues.map((issue) => ({
         field: issue.path,
         code: issue.code,
@@ -33,16 +75,16 @@ function toWorkflowErrors(issues) {
     }));
 }
 
-function normalizeProfileCode(profileCode) {
+function normalizeProfileCode(profileCode: unknown): string {
     return String(profileCode || '').trim();
 }
 
-function normalizeSchemaVersion(input) {
+function normalizeSchemaVersion(input: unknown): number {
     const parsed = Number(input);
     return Number.isInteger(parsed) && parsed > 0 ? parsed : SCHEMA_VERSION;
 }
 
-async function ensureProfile(profileCode, transaction) {
+async function ensureProfile(profileCode: unknown, transaction?: unknown): Promise<PlainRecord> {
     const normalizedProfileCode = normalizeProfileCode(profileCode);
     let profile = await MappingRepository.findProfileByCode(normalizedProfileCode, transaction);
     if (profile) return profile;
@@ -57,12 +99,12 @@ async function ensureProfile(profileCode, transaction) {
     return profile;
 }
 
-async function listMappings() {
+async function listMappings(): Promise<PlainRecord[]> {
     const profiles = await MappingRepository.listProfiles();
     return profiles.map(toSummary);
 }
 
-async function getMappingDetail(profileCode) {
+async function getMappingDetail(profileCode: unknown): Promise<PlainRecord | null> {
     const profileCodeErrors = validateProfileCode(profileCode);
     if (profileCodeErrors.length > 0) {
         return { ok: false, status: 422, errors: toWorkflowErrors(profileCodeErrors) };
@@ -88,13 +130,13 @@ async function getMappingDetail(profileCode) {
     };
 }
 
-async function updateDraft(profileCode, {
+async function updateDraft(profileCode: unknown, {
     revision,
     payload,
     changeNote,
     operator,
     schemaVersion
-}) {
+}: DraftParams): Promise<PlainRecord> {
     const profileCodeErrors = validateProfileCode(profileCode);
     if (profileCodeErrors.length > 0) {
         return { ok: false, status: 422, errors: toWorkflowErrors(profileCodeErrors) };
@@ -105,7 +147,7 @@ async function updateDraft(profileCode, {
         return { ok: false, status: 422, errors: toWorkflowErrors(payloadIssues) };
     }
 
-    return MappingRepository.withTransaction(async (transaction) => {
+    return MappingRepository.withTransaction(async (transaction: unknown) => {
         const normalizedProfileCode = normalizeProfileCode(profileCode);
         const profile = await ensureProfile(normalizedProfileCode, transaction);
         const latestRevision = await MappingRepository.findLatestRevisionByProfileId(profile.id, transaction);
@@ -174,17 +216,17 @@ async function updateDraft(profileCode, {
     });
 }
 
-async function publish(profileCode, {
+async function publish(profileCode: unknown, {
     fromRevision,
     changeNote,
     operator
-}) {
+}: PublishParams): Promise<PlainRecord> {
     const profileCodeErrors = validateProfileCode(profileCode);
     if (profileCodeErrors.length > 0) {
         return { ok: false, status: 422, errors: toWorkflowErrors(profileCodeErrors) };
     }
 
-    return MappingRepository.withTransaction(async (transaction) => {
+    return MappingRepository.withTransaction(async (transaction: unknown) => {
         const normalizedProfileCode = normalizeProfileCode(profileCode);
         const profile = await MappingRepository.findProfileByCode(normalizedProfileCode, transaction);
         if (!profile) {
@@ -256,17 +298,17 @@ async function publish(profileCode, {
     });
 }
 
-async function rollback(profileCode, {
+async function rollback(profileCode: unknown, {
     targetRevision,
     reason,
     operator
-}) {
+}: RollbackParams): Promise<PlainRecord> {
     const profileCodeErrors = validateProfileCode(profileCode);
     if (profileCodeErrors.length > 0) {
         return { ok: false, status: 422, errors: toWorkflowErrors(profileCodeErrors) };
     }
 
-    return MappingRepository.withTransaction(async (transaction) => {
+    return MappingRepository.withTransaction(async (transaction: unknown) => {
         const normalizedProfileCode = normalizeProfileCode(profileCode);
         const profile = await MappingRepository.findProfileByCode(normalizedProfileCode, transaction);
         if (!profile) {
@@ -326,7 +368,7 @@ async function rollback(profileCode, {
     });
 }
 
-async function listRevisions(profileCode) {
+async function listRevisions(profileCode: unknown): Promise<PlainRecord | null> {
     const profileCodeErrors = validateProfileCode(profileCode);
     if (profileCodeErrors.length > 0) {
         return { ok: false, status: 422, errors: toWorkflowErrors(profileCodeErrors) };
@@ -343,7 +385,7 @@ async function listRevisions(profileCode) {
     };
 }
 
-async function listAuditLogs(profileCode) {
+async function listAuditLogs(profileCode: unknown): Promise<PlainRecord | null> {
     const profileCodeErrors = validateProfileCode(profileCode);
     if (profileCodeErrors.length > 0) {
         return { ok: false, status: 422, errors: toWorkflowErrors(profileCodeErrors) };
@@ -360,7 +402,7 @@ async function listAuditLogs(profileCode) {
     };
 }
 
-async function getPublishedMapping(profileCode) {
+async function getPublishedMapping(profileCode: unknown): Promise<PlainRecord | null> {
     const detail = await getMappingDetail(profileCode);
     if (!detail) return null;
     if (!detail.ok) return detail;
@@ -370,7 +412,11 @@ async function getPublishedMapping(profileCode) {
     };
 }
 
-async function seedFromLegacyPayload(profileCode, payload, { operator, changeNote } = {}) {
+async function seedFromLegacyPayload(
+    profileCode: unknown,
+    payload: PlainRecord,
+    { operator, changeNote }: { operator?: string; changeNote?: string } = {},
+): Promise<PlainRecord> {
     const draft = await updateDraft(profileCode, {
         revision: 0,
         payload,
@@ -386,7 +432,10 @@ async function seedFromLegacyPayload(profileCode, payload, { operator, changeNot
     });
 }
 
-async function ensurePublishedMapping(profileCode, { legacyPayload, operator, changeNote } = {}) {
+async function ensurePublishedMapping(
+    profileCode: unknown,
+    { legacyPayload, operator, changeNote }: EnsurePublishedParams = {},
+): Promise<PlainRecord | null> {
     const published = await getPublishedMapping(profileCode);
     if (published && published.ok && published.payload) {
         return published;
@@ -404,7 +453,7 @@ async function ensurePublishedMapping(profileCode, { legacyPayload, operator, ch
     return getPublishedMapping(profileCode);
 }
 
-function syncLegacyRuntimeFile(runtimeFile, payload) {
+function syncLegacyRuntimeFile(runtimeFile: string | undefined, payload: PlainRecord): void {
     if (!runtimeFile) return;
     const tempPath = `${runtimeFile}.tmp-${process.pid}-${Date.now()}`;
     fs.writeFileSync(tempPath, JSON.stringify(payload, null, 4));

@@ -1,8 +1,10 @@
-function sendSuccess(res, data, status = 200) {
+export {};
+
+function sendSuccess(res: any, data: unknown, status = 200) {
     return res.status(status).json(data);
 }
 
-function sendCreated(res, data) {
+function sendCreated(res: any, data: unknown) {
     return sendSuccess(res, data, 201);
 }
 
