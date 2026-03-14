@@ -1,6 +1,6 @@
 # 后端 TypeScript 第五阶段进度（2026-03-14）
 
-> 状态：阶段计划，部分已落地。
+> 状态：已完成阶段记录。
 > 对应建议：`docs/governance/BACKEND_TYPESCRIPT_NEXT_PHASE_RECOMMENDATIONS_2026-03-13.md`
 
 ## 1. 目标
@@ -54,3 +54,10 @@
 4. `tests/inventory-route.test.js`
 5. `tests/order-service.test.js`
 6. `tests/order-routes.test.js`
+
+补充结果：
+
+1. 第五阶段全部代码已完成并合并回 `main`
+2. 全量验证已通过：
+   - `npm run type-check:server`
+   - `npm test`
