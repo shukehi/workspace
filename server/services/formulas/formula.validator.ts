@@ -1,8 +1,35 @@
+export {};
+
+type BomUsage = {
+    single: number;
+    double: number;
+    paired: number;
+};
+
+type BomRow = {
+    materialId: string;
+    position: string;
+    materialCategory: string;
+    supplier: string;
+    usage: BomUsage;
+};
+
+type FormulaPayload = {
+    formulaKey: string;
+    displayName: string;
+    bom: BomRow[];
+};
+
+type ValidationError = {
+    field: string;
+    message: string;
+};
+
 const VALID_BOM_CATEGORIES = new Set(['转印纸', '油漆', '塑粉']);
 
-function normalizeBom(input) {
+function normalizeBom(input: unknown): BomRow[] {
     if (!Array.isArray(input)) return [];
-    return input.map((item) => ({
+    return input.map((item: any) => ({
         materialId: String(item?.materialId || '').trim(),
         position: String(item?.position || '').trim(),
         materialCategory: String(item?.materialCategory || '').trim(),
@@ -15,7 +42,7 @@ function normalizeBom(input) {
     }));
 }
 
-function filterMeaningfulBomRows(bom) {
+function filterMeaningfulBomRows(bom: unknown): BomRow[] {
     return normalizeBom(bom).filter((row) => {
         const hasUsage = Number(row?.usage?.single || 0) > 0
             || Number(row?.usage?.double || 0) > 0
@@ -24,9 +51,9 @@ function filterMeaningfulBomRows(bom) {
     });
 }
 
-function parsePayload(payloadText) {
+function parsePayload(payloadText: unknown): FormulaPayload {
     try {
-        const parsed = JSON.parse(payloadText || '{}');
+        const parsed = JSON.parse(String(payloadText || '{}'));
         return {
             formulaKey: String(parsed.formulaKey || '').trim(),
             displayName: String(parsed.displayName || '').trim(),
@@ -37,7 +64,7 @@ function parsePayload(payloadText) {
     }
 }
 
-function serializePayload({ formulaKey, displayName, bom }) {
+function serializePayload({ formulaKey, displayName, bom }: Partial<FormulaPayload>): string {
     return JSON.stringify({
         formulaKey: String(formulaKey || '').trim(),
         displayName: String(displayName || '').trim(),
@@ -45,8 +72,8 @@ function serializePayload({ formulaKey, displayName, bom }) {
     });
 }
 
-function validateBaseFields({ formulaKey, displayName }) {
-    const errors = [];
+function validateBaseFields({ formulaKey, displayName }: Partial<FormulaPayload>): ValidationError[] {
+    const errors: ValidationError[] = [];
     if (!String(formulaKey || '').trim()) {
         errors.push({ field: 'formulaKey', message: '配方编码不能为空' });
     }
@@ -56,9 +83,17 @@ function validateBaseFields({ formulaKey, displayName }) {
     return errors;
 }
 
-function validateBomRows({ bom, allowEmptyBom = false, materialCodeSet = null }) {
+function validateBomRows({
+    bom,
+    allowEmptyBom = false,
+    materialCodeSet = null
+}: {
+    bom: unknown;
+    allowEmptyBom?: boolean;
+    materialCodeSet?: Set<string> | null;
+}): ValidationError[] {
     const rows = normalizeBom(bom);
-    const errors = [];
+    const errors: ValidationError[] = [];
 
     if (!Array.isArray(rows) || rows.length === 0) {
         if (!allowEmptyBom) {
@@ -67,7 +102,7 @@ function validateBomRows({ bom, allowEmptyBom = false, materialCodeSet = null })
         return errors;
     }
 
-    const seen = new Set();
+    const seen = new Set<string>();
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row.materialId) {
@@ -83,7 +118,7 @@ function validateBomRows({ bom, allowEmptyBom = false, materialCodeSet = null })
             errors.push({ field: `bom[${i}].supplier`, message: '供应商不能为空' });
         }
 
-        ['single', 'double', 'paired'].forEach((key) => {
+        (['single', 'double', 'paired'] as const).forEach((key) => {
             const val = Number(row?.usage?.[key]);
             if (Number.isNaN(val) || val < 0) {
                 errors.push({ field: `bom[${i}].usage.${key}`, message: '用量必须为非负数' });
