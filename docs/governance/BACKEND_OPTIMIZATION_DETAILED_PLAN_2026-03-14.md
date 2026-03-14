@@ -1,28 +1,32 @@
 # 后端架构优化与重构详细方案 (2026-03-14)
 
+> **当前状态：阶段一已完成 (Done)，进入阶段二准备期。**
+> **最后更新：2026-03-14**
+
 ## 1. 总体目标
-*   **消除混合态**：将 `server/` 目录下伪装成 `.ts` 的 CommonJS 代码彻底转化为标准的 ESM (TypeScript)。
-*   **架构一致性**：全面推广 `Repository` 模式，实现业务逻辑与数据访问的解耦。
-*   **功能补完**：实现物料匹配的模糊搜索与别名逻辑，提升系统智能化程度。
-*   **错误治理**：解耦巨型错误转换逻辑，提升系统的可扩展性。
+*   **消除混合态**：将 `server/` 目录下伪装成 `.ts` 的 CommonJS 代码彻底转化为标准的 ESM (TypeScript)。 [Phase 1 DONE]
+*   **架构一致性**：全面推广 `Repository` 模式，实现业务逻辑与数据访问的解耦。 [Phase 2 Target]
+*   **功能补完**：实现物料匹配的模糊搜索与别名逻辑，提升系统智能化程度。 [Phase 2 Target]
+*   **错误治理**：解耦巨型错误转换逻辑，提升系统的可扩展性。 [Phase 3 Target]
 
 ---
 
 ## 2. 阶段优化路径
 
-### 阶段一：基础设施“混合态”清理（稳定性基石）
+### 阶段一：基础设施“混合态”清理（稳定性基石） [COMPLETED]
 **目标**：彻底解决 `server/app` 目录下 TS 文件中 `require`/`module.exports` 混用的不规范现状。
 
-**优化步骤**：
-1.  **ESM 语法转换**：
+**已执行步骤**：
+1.  **ESM 语法转换**： [DONE]
     *   将 `server/app/errors/AppError.ts`、`response.ts`、`validateRequest.ts` 中的 `require` 替换为 `import`。
     *   将 `module.exports` 替换为命名的 `export` 或 `export default`。
     *   移除无意义的 `export {}` 标记。
-2.  **类型收紧**：
+2.  **类型收紧**： [DONE]
     *   在 `response.ts` 中定义标准的 `ApiResponse` 接口。
     *   在 `validateRequest.ts` 中利用泛型增强 `req.body` 和 `req.query` 的类型推断。
-3.  **全局路径别名优化**：
-    *   检查并优化 `import` 路径，确保在 TS 环境下不依赖 CommonJS 的路径解析特性。
+3.  **兼容性加固**： [DONE]
+    *   在 TS 核心文件中添加 `module.exports` 以确保现有 JS 路由/控制器能够无缝调用。
+    *   同步重构了 `order.mapper.ts` 的导出，解决了 `normalizeError.ts` 的引用依赖。
 
 ### 阶段二：物料模块重构与算法增强（业务价值提升）
 **目标**：将遗留的 `MaterialService.js` 升级为符合模式规范的 TS 模块，并补齐智能匹配缺项。
