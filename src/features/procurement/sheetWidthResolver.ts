@@ -1,8 +1,9 @@
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { getSheetSchema, type SheetColumnSemantic } from '@/features/procurement/order-sheet.schema';
 import sharedSchema from '@/features/procurement/procurement-schema.shared.json';
+import { STORAGE_KEYS } from '@/shared/constants/storage';
 
-export const COLUMN_WIDTH_STORAGE_KEY = 'po_edit_column_widths_by_category_v1';
+export const COLUMN_WIDTH_STORAGE_KEY = STORAGE_KEYS.COLUMN_WIDTHS;
 
 const SEMANTIC_BASE_WIDTHS = sharedSchema.semanticWidths as Record<SheetColumnSemantic, number>;
 const CATEGORY_BASELINE_TOTAL_WIDTH = sharedSchema.categoryBaselineTotalWidth as Record<PrintCategory, number>;

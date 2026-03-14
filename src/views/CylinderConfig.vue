@@ -16,6 +16,7 @@ import type {
   CylinderDimensionVariant,
   CylinderSpecialRule
 } from '@/types/mapping';
+import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
 // --- 类型定义 ---
 type DimensionRow = { id: string; thickness: string; code: string; eccentricity: string; remark?: string };
@@ -117,8 +118,8 @@ function resetWithPayload(data: CylinderMappingConfig) {
 }
 
 const editor = useMappingConfigEditor<CylinderMappingConfig>({
-  endpoint: '/config/cylinder',
-  workflowProfileCode: 'cylinder',
+  endpoint: CONFIG_ENDPOINTS.CYLINDER.path,
+  workflowProfileCode: CONFIG_ENDPOINTS.CYLINDER.profile,
   loadErrorDescription: '无法读取锁芯映射配置',
   saveSuccessDescription: '锁芯映射已更新',
   getPayload: () => payload.value,

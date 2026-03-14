@@ -7,6 +7,7 @@ import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { refreshMaterialsRuntime } from '@/services/configRuntime';
+import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
 const jsonDraft = ref('{}');
 const changeNote = ref('');
@@ -18,9 +19,9 @@ const payload = computed(() => {
 });
 
 const editor = useMappingConfigEditor<any>({
-  endpoint: '/config/material-catalog',
-  workflowProfileCode: 'material-catalog',
-  workflowBasePath: '/config/material-catalog',
+  endpoint: CONFIG_ENDPOINTS.MATERIAL_CATALOG.path,
+  workflowProfileCode: CONFIG_ENDPOINTS.MATERIAL_CATALOG.profile,
+  workflowBasePath: CONFIG_ENDPOINTS.MATERIAL_CATALOG.basePath,
   loadErrorDescription: '无法读取物料目录配置',
   saveSuccessDescription: '物料目录已发布',
   getPayload: () => payload.value,

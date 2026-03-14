@@ -12,10 +12,12 @@ import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappin
 import { refreshPackagingRuntime } from '@/services/configRuntime';
 import { adaptPackagingMapping, normalizePackagingMappingKey, validatePackagingMapping } from '@/services/mappings';
 import type { PackagingMappingConfig } from '@/types/mapping';
+import { DEFAULT_PACKAGING_SUPPLIER } from '@/shared/constants/business';
+import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
 type MappingRow = { id: string; key: string; value: string; };
 
-const supplierName = ref('');
+const supplierName = ref(DEFAULT_PACKAGING_SUPPLIER);
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
 
@@ -59,7 +61,7 @@ const hasUnsavedChanges = computed(() => {
 });
 
 function resetWithPayload(data: PackagingMappingConfig) {
-  supplierName.value = data.supplierName || '';
+  supplierName.value = data.supplierName || DEFAULT_PACKAGING_SUPPLIER;
   mappings.reset(mapToRows(data.mappings, 'key', (k, v) => ({ key: k, value: v } as any)));
   const sorted: any = { supplierName: data.supplierName, mappings: {} };
   Object.keys(data.mappings || {}).sort().forEach(k => sorted.mappings[k] = data.mappings?.[k]);
@@ -67,8 +69,8 @@ function resetWithPayload(data: PackagingMappingConfig) {
 }
 
 const editor = useMappingConfigEditor<PackagingMappingConfig>({
-  endpoint: '/config/packaging',
-  workflowProfileCode: 'packaging',
+  endpoint: CONFIG_ENDPOINTS.PACKAGING.path,
+  workflowProfileCode: CONFIG_ENDPOINTS.PACKAGING.profile,
   loadErrorDescription: '无法读取包装映射配置',
   saveSuccessDescription: '包装映射已更新',
   getPayload: () => payload.value,
@@ -94,7 +96,7 @@ onMounted(editor.load);
     <Card>
       <CardHeader><CardTitle>基础配置</CardTitle></CardHeader>
       <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="space-y-2"><label class="text-sm font-medium">默认供应商</label><Input v-model="supplierName" placeholder="例如：方亮包装" /></div>
+        <div class="space-y-2"><label class="text-sm font-medium">默认供应商</label><Input v-model="supplierName" :placeholder="`例如：${DEFAULT_PACKAGING_SUPPLIER}`" /></div>
         <div class="space-y-2"><label class="text-sm font-medium">搜索映射</label><Input v-model="searchQuery" placeholder="搜索内容..." /></div>
       </CardContent>
     </Card>

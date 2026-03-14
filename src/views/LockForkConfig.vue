@@ -17,6 +17,8 @@ import type {
   LockForkMappingConfig,
   LockForkTypeConfig
 } from '@/types/mapping';
+import { DEFAULT_HANGING_FEET_STANDARD, DEFAULT_HEIGHT_REFERENCE } from '@/shared/constants/business';
+import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
 // --- 类型定义 ---
 type BaseDimensionRow = {
@@ -29,8 +31,8 @@ type EdgeTypeRow = { id: string; name: string; nameModifier: string; };
 type SupplierRow = { id: string; key: string; value: string; };
 type KeywordRow = { id: string; value: string; };
 
-const hangingFeetStandard = ref('35');
-const heightReference = ref('2050');
+const hangingFeetStandard = ref(DEFAULT_HANGING_FEET_STANDARD);
+const heightReference = ref(DEFAULT_HEIGHT_REFERENCE);
 const highHeightRules = ref<LockForkMappingConfig['highHeightRules']>({});
 const activeTab = ref<'base' | 'lockType' | 'edges' | 'suppliers'>('base');
 
@@ -111,7 +113,8 @@ function resetWithPayload(raw: LockForkMappingConfig) {
 }
 
 const editor = useMappingConfigEditor<LockForkMappingConfig>({
-  endpoint: '/config/lock-fork', workflowProfileCode: 'lock_fork',
+  endpoint: CONFIG_ENDPOINTS.LOCK_FORK.path, 
+  workflowProfileCode: CONFIG_ENDPOINTS.LOCK_FORK.profile,
   loadErrorDescription: '无法读取锁叉映射配置', saveSuccessDescription: '锁叉映射已更新',
   getPayload: () => payload.value, getClientIssues: () => clientIssues.value,
   validatePayload: validateLockForkMapping, adaptPayload: (v) => adaptLockForkMapping(v),
@@ -133,8 +136,8 @@ onMounted(editor.load);
     <Card class="border-amber-300 bg-amber-50/60"><CardHeader><CardTitle>规则说明</CardTitle><CardDescription>10cm 门厚 T型 边型 内开门使用正常锁叉。</CardDescription></CardHeader></Card>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card><CardHeader><CardTitle>吊脚标准值</CardTitle></CardHeader><CardContent><Input v-model="hangingFeetStandard" placeholder="35" /></CardContent></Card>
-      <Card><CardHeader><CardTitle>高度参考值</CardTitle></CardHeader><CardContent><Input v-model="heightReference" placeholder="2050" /></CardContent></Card>
+      <Card><CardHeader><CardTitle>吊脚标准值</CardTitle></CardHeader><CardContent><Input v-model="hangingFeetStandard" :placeholder="DEFAULT_HANGING_FEET_STANDARD" /></CardContent></Card>
+      <Card><CardHeader><CardTitle>高度参考值</CardTitle></CardHeader><CardContent><Input v-model="heightReference" :placeholder="DEFAULT_HEIGHT_REFERENCE" /></CardContent></Card>
     </div>
 
     <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
@@ -166,7 +169,7 @@ onMounted(editor.load);
             <Input v-model="(row as any)[f]" />
           </template>
         </ConfigTable>
-      </CardContent></Card>
+      </CardContent>
     </div>
 
     <div v-show="activeTab === 'edges'">

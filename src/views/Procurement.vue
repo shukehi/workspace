@@ -24,8 +24,7 @@ import { useProcurementPageState } from '@/features/procurement/useProcurementPa
 import { hasRemainingStockInItems } from '@/features/procurement/stockInEligibility';
 import { useProcurementRouteQuery } from '@/features/procurement/composables/useProcurementRouteQuery';
 import { useOrderActions } from '@/features/procurement/composables/useOrderActions';
-
-const PROCUREMENT_REFRESH_SIGNAL_KEY = 'procurement-orders-refresh-signal';
+import { SIGNALS } from '@/shared/constants/storage';
 
 const store = useProcurementStore();
 const { toast } = useToastStore();
@@ -213,7 +212,7 @@ watch([procurementPage, procurementPageSize], () => updateProcurementRouteQuery(
 onBeforeUnmount(() => window.removeEventListener('storage', handleProcurementRefreshSignal));
 
 function handleProcurementRefreshSignal(e: StorageEvent) {
-  if (e.key === PROCUREMENT_REFRESH_SIGNAL_KEY && e.newValue) loadProcurementOrders().catch(() => undefined);
+  if (e.key === SIGNALS.PROCUREMENT_REFRESH && e.newValue) loadProcurementOrders().catch(() => undefined);
 }
 </script>
 

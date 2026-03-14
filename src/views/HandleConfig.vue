@@ -12,6 +12,8 @@ import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappin
 import { refreshHandleRuntime } from '@/services/configRuntime';
 import { adaptHandleMapping, validateHandleMapping } from '@/services/mappings';
 import type { HandleMappingConfig } from '@/types/mapping';
+import { HANDLE_EXPORT_CUSTOMER_KEYWORD, HANDLE_PLACEHOLDER_KEYWORD } from '@/shared/constants/business';
+import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
 type KeywordRow = { id: string; value: string };
 type MappingRow = {
@@ -34,8 +36,8 @@ const baselineSnapshot = ref('');
 // 使用通用的 useEditableList 管理行数组
 const singleKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: '' }));
 const doubleKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: '' }));
-const exportCustomerKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: '三部' }));
-const placeholderKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: '冲整体拉手孔' }));
+const exportCustomerKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: HANDLE_EXPORT_CUSTOMER_KEYWORD }));
+const placeholderKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: HANDLE_PLACEHOLDER_KEYWORD }));
 const mappings = useEditableList<MappingRow>(() => ({
   id: '',
   model: '',
@@ -155,8 +157,8 @@ async function scrollToFirstIssue() {
 }
 
 const editor = useMappingConfigEditor<HandleMappingConfig>({
-  endpoint: '/config/handle',
-  workflowProfileCode: 'handle',
+  endpoint: CONFIG_ENDPOINTS.HANDLE.path,
+  workflowProfileCode: CONFIG_ENDPOINTS.HANDLE.profile,
   loadErrorDescription: '无法读取拉手映射配置',
   saveSuccessDescription: '拉手映射已更新',
   getPayload: () => payload.value,
@@ -207,7 +209,7 @@ onMounted(editor.load);
         <CardHeader><CardTitle>外贸默认规则</CardTitle><CardDescription>当未识别到单活/双活时，使用默认规则。</CardDescription></CardHeader>
         <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ConfigTable title="外贸客户关键词" :columns="[{key:'value',label:'关键词'}]" :rows="exportCustomerKeywords.list.value" @add="exportCustomerKeywords.add()" @remove="exportCustomerKeywords.remove">
-            <template #cell-value="{ row }"><Input v-model="row.value" placeholder="例如：三部" /></template>
+            <template #cell-value="{ row }"><Input v-model="row.value" :placeholder="`例如：${HANDLE_EXPORT_CUSTOMER_KEYWORD}`" /></template>
           </ConfigTable>
           <div class="space-y-2">
             <label class="text-sm font-medium">外贸默认活动类型</label>

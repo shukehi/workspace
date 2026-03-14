@@ -12,6 +12,8 @@ import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappin
 import { refreshLockRuntime } from '@/services/configRuntime';
 import { adaptLockMapping, normalizeLockMappingKey, validateLockMapping } from '@/services/mappings';
 import type { LockMappingConfig } from '@/types/mapping';
+import { DEFAULT_LOCK_UNIT, DEFAULT_LOCK_PRIMARY_LABEL, DEFAULT_LOCK_SECONDARY_LABEL } from '@/shared/constants/business';
+import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
 type MappingRow = {
   id: string;
@@ -23,9 +25,9 @@ type MappingRow = {
   remark: string;
 };
 
-const defaultUnit = ref('套');
-const primaryLabel = ref('主锁');
-const secondaryLabel = ref('副锁');
+const defaultUnit = ref(DEFAULT_LOCK_UNIT);
+const primaryLabel = ref(DEFAULT_LOCK_PRIMARY_LABEL);
+const secondaryLabel = ref(DEFAULT_LOCK_SECONDARY_LABEL);
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
 const previewPrimaryInput = ref('');
@@ -91,17 +93,17 @@ function resolvePreviewMatch(rawModel: string, mode: 'primary' | 'secondary') {
   const n = normalizeLockMappingKey(rawModel);
   if (!n) return null;
   const matched = normalizedMappingRows.value[n];
-  if (!matched) return { matched: false as const, normalized: n, supplier: '待人工处理', vendorName: rawModel.trim(), spec: mode === 'primary' ? (primaryLabel.value || '主锁') : (secondaryLabel.value || '副锁'), remark: '' };
-  return { matched: true as const, normalized: n, supplier: matched.supplier || '待人工处理', vendorName: matched.vendorName || rawModel.trim(), spec: mode === 'primary' ? (matched.primarySpec || primaryLabel.value || '主锁') : (matched.secondarySpec || secondaryLabel.value || '副锁'), remark: matched.remark || '' };
+  if (!matched) return { matched: false as const, normalized: n, supplier: '待人工处理', vendorName: rawModel.trim(), spec: mode === 'primary' ? (primaryLabel.value || DEFAULT_LOCK_PRIMARY_LABEL) : (secondaryLabel.value || DEFAULT_LOCK_SECONDARY_LABEL), remark: '' };
+  return { matched: true as const, normalized: n, supplier: matched.supplier || '待人工处理', vendorName: matched.vendorName || rawModel.trim(), spec: mode === 'primary' ? (matched.primarySpec || primaryLabel.value || DEFAULT_LOCK_PRIMARY_LABEL) : (matched.secondarySpec || secondaryLabel.value || DEFAULT_LOCK_SECONDARY_LABEL), remark: matched.remark || '' };
 }
 
 const previewPrimaryMatch = computed(() => resolvePreviewMatch(previewPrimaryInput.value, 'primary'));
 const previewSecondaryMatch = computed(() => resolvePreviewMatch(previewSecondaryInput.value, 'secondary'));
 
 function resetWithPayload(data: LockMappingConfig) {
-  defaultUnit.value = data.defaultUnit || '套';
-  primaryLabel.value = data.primaryLabel || '主锁';
-  secondaryLabel.value = data.secondaryLabel || '副锁';
+  defaultUnit.value = data.defaultUnit || DEFAULT_LOCK_UNIT;
+  primaryLabel.value = data.primaryLabel || DEFAULT_LOCK_PRIMARY_LABEL;
+  secondaryLabel.value = data.secondaryLabel || DEFAULT_LOCK_SECONDARY_LABEL;
   mappings.reset(mapToRows(data.mappings, 'model', (model, conf) => ({
     model, supplier: conf.supplier, vendorName: conf.vendorName,
     primarySpec: conf.primarySpec || '', secondarySpec: conf.secondarySpec || '', remark: conf.remark || ''
@@ -110,7 +112,8 @@ function resetWithPayload(data: LockMappingConfig) {
 }
 
 const editor = useMappingConfigEditor<LockMappingConfig>({
-  endpoint: '/config/lock', workflowProfileCode: 'lock',
+  endpoint: CONFIG_ENDPOINTS.LOCK.path, 
+  workflowProfileCode: CONFIG_ENDPOINTS.LOCK.profile,
   loadErrorDescription: '无法读取锁具映射配置', saveSuccessDescription: '锁具映射已更新',
   getPayload: () => payload.value, getClientIssues: () => clientIssues.value,
   validatePayload: validateLockMapping, adaptPayload: (v) => adaptLockMapping(v),
