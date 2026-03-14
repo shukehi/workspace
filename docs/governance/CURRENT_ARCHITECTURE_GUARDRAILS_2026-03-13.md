@@ -24,6 +24,23 @@
 2. 后端 `server/` 不做全量 TypeScript 迁移
 3. 只在“稳定边界”和“纯逻辑模块”中优先引入 TypeScript
 
+### 2.1 后端新增模块默认规则
+
+后续后端新增模块，不采用“全部强制 TypeScript”的策略，而采用双轨规则：
+
+1. 新增纯逻辑模块，优先使用 TypeScript
+2. 新增 shared contract / DTO / validator / policy / mapper / normalizer，优先使用 TypeScript
+3. 新增会被前后端长期共享的数据结构定义，优先使用 TypeScript
+4. 新增运行入口、migration、一次性脚本，可继续使用 JavaScript
+5. 新增强依赖运行时、副作用较重且仍在高频试验的主编排模块，可先使用 JavaScript，待稳定后再迁移
+
+判断原则：
+
+1. 类型边界越清晰，越适合直接用 TypeScript
+2. 运行时耦合越重、试验性越强，越不必强制立即 TypeScript 化
+3. 不为扩展名统一牺牲当前迭代速度
+4. 但也不再让所有新增后端模块默认无限期停留在 JavaScript
+
 优先适合类型化的区域：
 
 1. shared contracts / DTO
