@@ -60,7 +60,9 @@ Week 6
   - 已补 `tests/db-migrations.test.js`，验证 legacy sqlite schema 升级路径
   - 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/db-migrations.test.js`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`
   - 已执行统一验收：`npm run build`、`npm test`
-  - formulas editor / migration smoke 记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：访问 `/formula`，列表成功加载；点击现有配方后右侧详情与 BOM 明细正常显示；点击“+ 新增配方”后本地草稿插入列表顶部，右侧进入空白草稿编辑态
+  - 2026-03-13 smoke：使用隔离空库执行 `initDB()` 后，完成 `createFormula -> publish -> rollback` 链路，得到 `formulaKey = F20260313-0001`，发布成功，回滚后 revision = `3`
+  - 2026-03-13 smoke：使用隔离 legacy sqlite schema 执行 `initDB()`，五条 migration 全部落地，且 `orders.category`、`inventory_receipts.direction` 等新增列存在
 ```
 
 ## 4. 本周退出标准
@@ -402,6 +404,27 @@ server/db/
 - [x] 首批 `ensure*Columns()` 逻辑已迁出或缩减
 - [x] formulas 前后端职责边界更清晰
 - [ ] `git status --short` 仅包含预期改动
+
+本轮已记录的 smoke：
+
+1. Frontend formulas page
+   - 访问 `http://127.0.0.1:5173/formula`
+   - 配方列表正常加载
+   - 点击现有配方后，右侧显示配方编码、名称、BOM 明细和动作按钮
+   - 点击“+ 新增配方”后，列表顶部出现“未命名配方 / 未保存草稿”，右侧进入空白草稿编辑态
+2. Empty database migration + workflow
+   - 在隔离空库上执行 `initDB()`
+   - 成功完成 `createFormula -> publish -> rollback`
+   - 结果：`formulaKey = F20260313-0001`，发布成功，回滚后 `revision = 3`
+3. Legacy database migration
+   - 在隔离 legacy sqlite schema 上执行 `initDB()`
+   - 五条 migration 全部应用成功：
+     - `20260313-001-add-order-columns`
+     - `20260313-002-add-order-item-columns`
+     - `20260313-003-add-inventory-receipt-columns`
+     - `20260313-004-add-material-columns`
+     - `20260313-005-add-order-idempotency-columns-and-index`
+   - 确认新增列存在：`orders.category`、`orders.dedupe_key`、`order_items.material_id`、`inventory_receipts.direction`、`materials.package_spec`
 
 ## 9. 第六周不做的事
 

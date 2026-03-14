@@ -54,13 +54,13 @@ What remains is week-specific smoke evidence.
 
 ## 7. Week 6 - Formulas And Migrations
 
-- [ ] Verify formulas list load.
-- [ ] Verify detail load and revision load.
-- [ ] Verify local draft create / edit / clear flow.
-- [ ] Verify save / publish / rollback flow.
-- [ ] Verify migration runner on an empty database.
-- [ ] Verify migration runner on a legacy schema upgrade path.
-- [ ] Record smoke result in [WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md).
+- [x] Verify formulas list load.
+- [x] Verify detail load and revision load.
+- [x] Verify local draft create / edit / clear flow.
+- [x] Verify save / publish / rollback flow.
+- [x] Verify migration runner on an empty database.
+- [x] Verify migration runner on a legacy schema upgrade path.
+- [x] Record smoke result in [WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md).
 
 ## 8. Week 7 - Source Analysis And Materials
 
