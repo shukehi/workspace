@@ -43,8 +43,11 @@ Week 1
   - 已新增 `src/shared/*`、`server/shared/*` 首批共享契约落点
   - 已新增 `useProcurementRouteQuery.ts`、`orderNormalizer.ts`、`orderSummary.ts`
   - 已跑 `npm run type-check`
+  - 已跑 `npm run build`
+  - 已跑 `npm test`
   - 已跑 Procurement/共享契约/API 兼容性定向测试
   - 已跑 `tests/order-routes.test.js` 和 `tests/api-contracts-route-shape.test.js`
+  - Procurement 主链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -393,8 +396,8 @@ Week 1
 ## 6. 本周验收清单
 
 - [x] `npm run type-check`
-- [ ] `npm test`
-- [ ] `npm run build`
+- [x] `npm test`
+- [x] `npm run build`
 - [ ] Procurement 页面手工验证通过
 - [x] URL query 与筛选行为保持一致
 - [x] 无新增业务规则变更

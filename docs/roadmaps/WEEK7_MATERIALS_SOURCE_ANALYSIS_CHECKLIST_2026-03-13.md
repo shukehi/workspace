@@ -63,6 +63,8 @@ Week 7
   - 已补 `tests/source-page-state.test.ts` 与 `tests/source-store-workflow.test.ts`
   - 已补 `tests/materials-page-state.test.ts` 与 `tests/material-management-page-state.test.ts`
   - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/source-page-state.test.ts`、`tests/source-store-workflow.test.ts`、`tests/materials-page-state.test.ts`、`tests/material-management-page-state.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
+  - 已执行统一验收：`npm run build`、`npm test`
+  - source-analysis / materials 主链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -407,12 +409,12 @@ server/services/material-catalog/
 
 ## 9. 第七周验收清单
 
-- [ ] `npm test`
-- [ ] source-analysis 相关测试通过
-- [ ] material / config routes 相关测试通过
-- [ ] 来源分析结果无回归
-- [ ] materials 与 material catalog 语义边界更清晰
-- [ ] config runtime / repository / loader 职责更明确
+- [x] `npm test`
+- [x] source-analysis 相关测试通过
+- [x] material / config routes 相关测试通过
+- [x] 来源分析结果无回归
+- [x] materials 与 material catalog 语义边界更清晰
+- [x] config runtime / repository / loader 职责更明确
 - [ ] `git status --short` 仅包含预期改动
 
 ## 10. 第七周不做的事

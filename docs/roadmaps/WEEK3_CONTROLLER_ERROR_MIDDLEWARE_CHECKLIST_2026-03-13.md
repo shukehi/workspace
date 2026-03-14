@@ -50,6 +50,8 @@ Week 3
   - 已新增 `validateRequest` 与 `server/validators/order.validators.js`，订单写接口和 `GET /api/orders` query 已接入首批字段级 request validation middleware
   - 已新增 `notFound` 中间件文件，但尚未将全站 API 404 输出切到统一结构
   - 已执行 `node --test tests/order-routes.test.js`、`node --test tests/order-service.test.js`、`node --test tests/inventory-route.test.js`
+  - 已执行统一验收：`npm run type-check`、`npm run build`、`npm test`
+  - 关键订单 API smoke 与响应样例记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -403,11 +405,11 @@ controller 职责：
 
 ## 8. 第三周验收清单
 
-- [ ] `npm test`
-- [ ] 订单路由测试通过
-- [ ] 订单服务测试继续通过
+- [x] `npm test`
+- [x] 订单路由测试通过
+- [x] 订单服务测试继续通过
 - [ ] API 错误响应结构统一
-- [ ] route 文件复杂度下降
+- [x] route 文件复杂度下降
 - [ ] `server/index.js` 错误处理链路稳定
 - [ ] SPA fallback 正常
 

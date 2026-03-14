@@ -46,6 +46,8 @@ Week 5
   - shared validator core 已落地到 `shared/mappings/mapping-validator-core.js`
   - 当前共享范围为 packaging / cylinder / lock / lock-fork，handle 仍保留在前后端 facade
   - 已通过 `tests/shared-mapping-core.test.js`、`tests/mappings/mapping-parity.test.ts`、`tests/mapping-server-validator.test.js`、`tests/mapping-adapter-baseline.test.ts`、`tests/config-routes.test.js` 与 `npm run type-check`
+  - 已执行统一验收：`npm run build`、`npm test`
+  - 新旧 mapping 结果 diff / smoke 记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -408,13 +410,13 @@ shared/
 
 ## 9. 第五周验收清单
 
-- [ ] `npm test`
+- [x] `npm test`
 - [x] mapping 前端测试通过
 - [x] mapping 后端测试通过
 - [x] config routes 测试通过
 - [x] 前后端 mapping 规则核心实现已对 packaging / cylinder / lock / lock-fork 收敛到共享层
 - [x] issue path/code 与现状兼容
-- [x] `git status --short` 仅包含预期改动
+- [ ] `git status --short` 仅包含预期改动
 
 当前已完成的首批落地：
 

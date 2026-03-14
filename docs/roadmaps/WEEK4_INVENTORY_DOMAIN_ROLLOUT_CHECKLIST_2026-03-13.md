@@ -54,6 +54,8 @@ Week 4
   - 已新增 `server/controllers/inventory.controller.js` 与 `server/validators/inventory.validators.js`，`server/routes/inventory.js` 已切到 `controller + validateRequest + errorHandler`
   - 已新增 `server/services/inventory/inventory.{mapper,repository,service}.js`，`inventory.controller.js` 已改为消费 service
   - 已执行 `node --test tests/inventory-route.test.js`、`node --test tests/order-service.test.js`、`node --test tests/inventory-view-guard.test.js`、`npx tsx --test tests/inventory-receipt-route-state.test.ts tests/inventory-receipt-flow.test.ts` 与 `npm run type-check`
+  - 已执行统一验收：`npm run build`、`npm test`
+  - inventory 页面/回退链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -378,12 +380,12 @@ server/controllers/
 
 ## 8. 第四周验收清单
 
-- [ ] `npm test`
-- [ ] inventory 路由测试通过
-- [ ] inventory 视图守护测试通过
-- [ ] 库存回退主流程无回归
-- [ ] inventory 路由和 service 文件复杂度下降
-- [ ] inventory API 错误输出结构统一
+- [x] `npm test`
+- [x] inventory 路由测试通过
+- [x] inventory 视图守护测试通过
+- [x] 库存回退主流程无回归
+- [x] inventory 路由和 service 文件复杂度下降
+- [x] inventory API 错误输出结构统一
 - [ ] `git status --short` 仅包含预期改动
 
 ## 9. 第四周不做的事

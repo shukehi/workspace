@@ -59,6 +59,8 @@ Week 6
   - 已补 `tests/formula-local-draft-composable.test.ts` 与 `tests/formula-dirty-before-unload.test.ts`
   - 已补 `tests/db-migrations.test.js`，验证 legacy sqlite schema 升级路径
   - 已通过 `npm run type-check`、`tests/formula-draft-model.test.ts`、`tests/formula-list-composable.test.ts`、`tests/formula-detail-composable.test.ts`、`tests/formula-local-draft-composable.test.ts`、`tests/formula-dirty-before-unload.test.ts`、`tests/db-migrations.test.js`、`tests/config-routes.test.js`、`tests/formula-workflow.test.js`、`tests/formula-validator.test.js`
+  - 已执行统一验收：`npm run build`、`npm test`
+  - formulas editor / migration smoke 记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -393,12 +395,12 @@ server/db/
 
 ## 8. 第六周验收清单
 
-- [ ] `npm test`
-- [ ] formulas 相关测试通过
-- [ ] config routes 测试通过
-- [ ] migration 可在本地执行
-- [ ] 首批 `ensure*Columns()` 逻辑已迁出或缩减
-- [ ] formulas 前后端职责边界更清晰
+- [x] `npm test`
+- [x] formulas 相关测试通过
+- [x] config routes 测试通过
+- [x] migration 可在本地执行
+- [x] 首批 `ensure*Columns()` 逻辑已迁出或缩减
+- [x] formulas 前后端职责边界更清晰
 - [ ] `git status --short` 仅包含预期改动
 
 ## 9. 第六周不做的事

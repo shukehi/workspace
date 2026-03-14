@@ -44,6 +44,8 @@ Week 2
   - 已拆出 `order.errors.js`、`order.policy.js`、`order.query-policy.js`、`order.mapper.js`、`order.repository.js`、`order.dedupe.js`、`order.stockin.js`、`order.service.js`、`orders/index.js`
   - `server/services/OrderService.js` 已降级为兼容壳，转发到 `server/services/orders/index.js`
   - 已执行 `node --test tests/order-service.test.js`、`node --test tests/order-routes.test.js`、`node --test tests/inventory-route.test.js`
+  - 已执行统一验收：`npm run type-check`、`npm run build`、`npm test`
+  - 订单主链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -453,12 +455,12 @@ server/services/orders/
 
 ## 8. 第二周验收清单
 
-- [ ] `npm test`
-- [ ] 订单相关测试全部通过
-- [ ] 库存联动相关测试通过
-- [ ] 订单接口行为无回归
+- [x] `npm test`
+- [x] 订单相关测试全部通过
+- [x] 库存联动相关测试通过
+- [x] 订单接口行为无回归
 - [x] `server/services/OrderService.js` 显著缩小或仅保留兼容壳
-- [ ] 新增模块职责清晰且命名稳定
+- [x] 新增模块职责清晰且命名稳定
 - [ ] `git status --short` 仅包含预期改动
 
 当前已验证：

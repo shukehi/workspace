@@ -59,6 +59,8 @@ Week 8
   - 已盘点当前 compatibility shell：`server/services/OrderService.js`、`server/services/InventoryReceiptService.js`、`server/services/FormulaService.js`
   - 已在 `tests/governance-boundary-guard.test.js` 补 compatibility shell allowlist 与“单行转发” guard
   - `docs/README.md` 已加入 compatibility shell 退场清单与新功能落位指南入口
+  - 已执行统一验收：`npm run type-check`、`npm run build`、`npm test`
+  - governance 文档类 smoke / 团队使用记录仍待补齐，因此本周继续保留 `in_progress`
 ```
 
 ## 4. 本周退出标准
@@ -315,11 +317,11 @@ Week 8
 
 ## 6. 第八周验收清单
 
-- [ ] 总执行索引可直接指导团队推进
-- [ ] docs 导航已更新
-- [ ] 工程规范已反映本轮结构决策
-- [ ] PR 检查项可用于日常评审
-- [ ] 结构守护规则至少覆盖关键倒退风险
+- [x] 总执行索引可直接指导团队推进
+- [x] docs 导航已更新
+- [x] 工程规范已反映本轮结构决策
+- [x] PR 检查项可用于日常评审
+- [x] 结构守护规则至少覆盖关键倒退风险
 - [ ] `git status --short` 仅包含预期文档/守护改动
 
 ## 7. 第八周不做的事
