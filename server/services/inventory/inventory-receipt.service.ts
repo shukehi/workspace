@@ -1,3 +1,5 @@
+export {};
+
 const { sequelize } = require('../../models');
 const repository = require('./inventory-receipt.repository');
 const {
@@ -17,8 +19,15 @@ const {
 const { resolveReceiptOrderItems } = require('./inventory-receipt.policy');
 const { buildInventoryReceiptListQuery } = require('./inventory-receipt.query-policy');
 
+type PlainRecord = Record<string, any>;
+
 class InventoryReceiptService {
-  async createFromOrder(order, payload = {}, transaction) {
+  ReceiptReverseNotAllowedError?: typeof ReceiptReverseNotAllowedError;
+  ReceiptAlreadyReversedError?: typeof ReceiptAlreadyReversedError;
+  ReceiptAlreadyFullyReversedError?: typeof ReceiptAlreadyFullyReversedError;
+  ReverseQuantityExceededError?: typeof ReverseQuantityExceededError;
+
+  async createFromOrder(order: PlainRecord, payload: PlainRecord = {}, transaction?: unknown) {
     const receiptDate = normalizeReceiptDate(payload.stocked_in_at || payload.receipt_date);
     const operator = payload.operator ? String(payload.operator).trim() : '';
     const remark = payload.remark ? String(payload.remark) : '';
@@ -62,7 +71,7 @@ class InventoryReceiptService {
     };
   }
 
-  async reverseReceipt(receiptId, payload = {}) {
+  async reverseReceipt(receiptId: number | string, payload: PlainRecord = {}) {
     const transaction = await sequelize.transaction();
     try {
       const receipt = await repository.findReceiptById(receiptId, transaction);
@@ -84,7 +93,7 @@ class InventoryReceiptService {
         throw createReceiptError('ORDER_NOT_FOUND');
       }
 
-      const orderItem = (order.items || []).find((item) => Number(item.id) === Number(receipt.order_item_id));
+      const orderItem = (order.items || []).find((item: PlainRecord) => Number(item.id) === Number(receipt.order_item_id));
       if (!orderItem) {
         throw createReceiptError('ORDER_ITEM_NOT_FOUND', { orderItemId: receipt.order_item_id });
       }
@@ -133,7 +142,7 @@ class InventoryReceiptService {
       }, transaction);
 
       const refreshedItems = order.items || [];
-      const allReceived = refreshedItems.every((item) => {
+      const allReceived = refreshedItems.every((item: PlainRecord) => {
         const ordered = resolveOrderedQuantity(item.ordered_quantity, item.quantity);
         const received = Number(item.id === orderItem.id ? Math.max(nextReceived, 0) : item.received_quantity || 0);
         return ordered > 0 && received >= ordered;
@@ -154,16 +163,16 @@ class InventoryReceiptService {
     }
   }
 
-  async list(query = {}) {
+  async list(query: PlainRecord = {}) {
     const { where, page, pageSize, offset } = buildInventoryReceiptListQuery(query);
     const result = await repository.findReceiptsAndCount({ where, offset, pageSize });
 
     const plainReceipts = result.rows.map(toPlainReceipt);
     const originalIds = plainReceipts
-      .filter((receipt) => receipt.direction !== 'reversal')
-      .map((receipt) => Number(receipt.id))
-      .filter((id) => Number.isInteger(id) && id > 0);
-    const reversalGroups = new Map();
+      .filter((receipt: PlainRecord) => receipt.direction !== 'reversal')
+      .map((receipt: PlainRecord) => Number(receipt.id))
+      .filter((id: number) => Number.isInteger(id) && id > 0);
+    const reversalGroups = new Map<number, PlainRecord[]>();
 
     for (const reversal of (await repository.findRelatedReversals(originalIds)).map(toPlainReceipt)) {
       const key = Number(reversal.source_receipt_id);
@@ -172,7 +181,7 @@ class InventoryReceiptService {
       reversalGroups.set(key, current);
     }
 
-    const rows = plainReceipts.map((receipt) => {
+    const rows = plainReceipts.map((receipt: PlainRecord) => {
       if (receipt.direction === 'reversal') {
         return {
           ...receipt,
@@ -197,7 +206,7 @@ class InventoryReceiptService {
     };
   }
 
-  async getById(id) {
+  async getById(id: number | string) {
     const receiptId = Number(id);
     if (!Number.isInteger(receiptId) || receiptId <= 0) {
       throw createReceiptError('RECEIPT_NOT_FOUND');

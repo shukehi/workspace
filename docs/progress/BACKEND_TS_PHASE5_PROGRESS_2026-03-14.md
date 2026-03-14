@@ -23,6 +23,10 @@
    - `server/services/formulas/formula.mapper.ts`
 4. 已完成第二步代码迁移：
    - `server/services/formulas/formula.workflow.ts`
+5. 已完成第三步第一小步：
+   - `server/services/inventory/inventory.service.ts`
+6. 已完成第三步第二小步：
+   - `server/services/inventory/inventory-receipt.service.ts`
 
 ## 3. 当前约束
 
