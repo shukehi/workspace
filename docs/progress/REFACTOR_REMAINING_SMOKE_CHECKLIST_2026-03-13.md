@@ -31,10 +31,10 @@ What remains is week-specific smoke evidence.
 
 ## 4. Week 3 - Controller / Error / Validation
 
-- [ ] Verify at least one successful order write request through the controller pipeline.
-- [ ] Verify at least one validation error response shape.
-- [ ] Verify at least one not-found or business error response shape.
-- [ ] Save one before/after response example in [WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md).
+- [x] Verify at least one successful order write request through the controller pipeline.
+- [x] Verify at least one validation error response shape.
+- [x] Verify at least one not-found or business error response shape.
+- [x] Save one before/after response example in [WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md).
 
 ## 5. Week 4 - Inventory Domain
 

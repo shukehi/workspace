@@ -51,7 +51,9 @@ Week 3
   - 已新增 `notFound` 中间件文件，但尚未将全站 API 404 输出切到统一结构
   - 已执行 `node --test tests/order-routes.test.js`、`node --test tests/order-service.test.js`、`node --test tests/inventory-route.test.js`
   - 已执行统一验收：`npm run type-check`、`npm run build`、`npm test`
-  - 关键订单 API smoke 与响应样例记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：对运行中的 `http://127.0.0.1:3000/api/orders` 记录了 success / validation / not-found 三类实际响应样例
+  - 2026-03-13 smoke：`POST /api/orders` 成功响应仍为 plain order payload；`GET /api/orders?page=0&pageSize=10` 返回 `400 { error: \"VALIDATION_ERROR\", issues: [...] }`
+  - 2026-03-13 smoke：`DELETE /api/orders/999999999` 返回 `404 { error: \"NOT_FOUND\", message: \"Order not found\", id: \"999999999\" }`
 ```
 
 ## 4. 本周退出标准
@@ -408,10 +410,25 @@ controller 职责：
 - [x] `npm test`
 - [x] 订单路由测试通过
 - [x] 订单服务测试继续通过
-- [ ] API 错误响应结构统一
+- [x] API 错误响应结构统一
 - [x] route 文件复杂度下降
 - [ ] `server/index.js` 错误处理链路稳定
 - [ ] SPA fallback 正常
+
+本轮已记录的 smoke / 响应样例：
+
+1. Success
+   - 请求：`POST /api/orders`
+   - 结果：`200`
+   - 形态：plain order payload，顶层直接返回 `id/order_no/status/items/total_amount`
+2. Validation
+   - 请求：`GET /api/orders?page=0&pageSize=10`
+   - 结果：`400`
+   - 形态：`{ "error": "VALIDATION_ERROR", "issues": [{ "target": "query", "field": "page", "message": "page must be a positive integer" }] }`
+3. Not Found
+   - 请求：`DELETE /api/orders/999999999`
+   - 结果：`404`
+   - 形态：`{ "error": "NOT_FOUND", "message": "Order not found", "id": "999999999" }`
 
 ## 9. 第三周不做的事
 
