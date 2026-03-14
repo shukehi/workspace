@@ -6,7 +6,8 @@ import { normalizePrintMode, type PrintMode } from '@/features/procurement/docMo
 import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
 import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
-import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
+import { resolveSheetWidths, fitPrintColumnWidths } from '@/features/procurement/sheetWidthResolver';
+import { validateForPrinting } from '@/features/procurement/orderRules';
 
 type PrintSourcePayload = {
   poNumber?: string;
@@ -28,71 +29,21 @@ const source = ref<PrintSourcePayload | null>(null);
 
 const embedded = computed(() => route.query.embedded === '1' || window.self !== window.top);
 const autoPrintRequested = computed(() => route.query.autoPrint === '1');
-const customerNameDisplay = computed(() => route.query.pdf === '1' ? 'salesDepartment' : 'full');
 const modeLabels: Record<PrintMode, string> = {
   signature: '签字版',
   compact: '简洁版',
 };
 
-function closeAutoPrintWindow() {
-  if (!autoPrintRequested.value) return;
-  if (window.opener || window.history.length <= 1) {
-    window.close();
-  }
-}
-
-function hasValidDeliveryDate(order: any) {
-  if (!order?.delivery_date && !order?.deliveryDate) return false;
-  const parsed = new Date(order.delivery_date || order.deliveryDate);
-  return !Number.isNaN(parsed.getTime());
-}
-
-function confirmProceedWhenDeliveryDateMissing() {
-  const order = source.value?.order;
-  if (!order) return true;
-  if (hasValidDeliveryDate(order)) return true;
-  return window.confirm('当前订单未设置交货日期，是否继续打印/导出 PDF？');
-}
-
 const previewWidthState = computed(() => {
   const order = source.value?.order;
-  if (!order) {
-    return resolveSheetWidths('packaging', null, { preferLocalWhenMissing: true });
-  }
   return resolveSheetWidths(
-    order.category,
-    order.metadata?.printColumnWidths,
+    order?.category || 'packaging',
+    order?.metadata?.printColumnWidths,
     { preferLocalWhenMissing: true }
   );
 });
-const previewDefaultWidths = computed(() => previewWidthState.value.defaults);
-const previewColumnWidths = computed(() => previewWidthState.value.widths);
 
-const PRINT_TABLE_MAX_WIDTH = 680;
-
-function getColumnMinWidth(key: string) {
-  if (key === 'no') return 36;
-  if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 62;
-  if (key === 'unit') return 50;
-  if (key === 'remark') return 120;
-  return 82;
-}
-
-function fitPrintColumnWidths(widths: Record<string, number>) {
-  const entries = Object.entries(widths);
-  const total = entries.reduce((sum, [, value]) => sum + Number(value || 0), 0);
-  if (total <= PRINT_TABLE_MAX_WIDTH || total <= 0) return widths;
-
-  const scale = PRINT_TABLE_MAX_WIDTH / total;
-  const next: Record<string, number> = {};
-  entries.forEach(([key, value]) => {
-    const scaled = Math.floor(Number(value || 0) * scale);
-    next[key] = Math.max(getColumnMinWidth(key), scaled);
-  });
-  return next;
-}
-
-const printColumnWidths = computed(() => fitPrintColumnWidths(previewColumnWidths.value));
+const printColumnWidths = computed(() => fitPrintColumnWidths(previewWidthState.value.widths));
 
 async function loadSource() {
   try {
@@ -104,38 +55,25 @@ async function loadSource() {
 
     if (snapshotId) {
       const snapshot = await api.get<any>(`/print/snapshots/${encodeURIComponent(snapshotId)}`);
-      source.value = {
-        ...snapshot.payload,
-        snapshotId,
-      };
+      source.value = { ...snapshot.payload, snapshotId };
     } else if (orderId) {
       const order = await api.get<any>(`/orders/${encodeURIComponent(orderId)}`);
-      source.value = {
-        poNumber: order.order_no,
-        category: order.category,
-        order,
-        orderId,
-      };
+      source.value = { poNumber: order.order_no, category: order.category, order, orderId };
     } else {
-      throw new Error('缺少 snapshotId 或 orderId，无法渲染打印文档');
+      throw new Error('缺少 snapshotId 或 orderId');
     }
 
-    const activeSource = source.value;
-    if (!activeSource) {
-      throw new Error('未找到可渲染的订单数据');
-    }
+    if (!source.value) throw new Error('未找到订单数据');
 
-    printMode.value = normalizePrintMode(String(route.query.printMode || activeSource.printMode || 'signature'));
-    document.title = activeSource.order?.order_no
-      ? `${activeSource.order.order_no} - ${PROCUREMENT_DOCUMENT_TITLE}`
-      : PROCUREMENT_DOCUMENT_TITLE;
+    printMode.value = normalizePrintMode(String(route.query.printMode || source.value.printMode || 'signature'));
+    document.title = source.value.order?.order_no ? `${source.value.order.order_no} - ${PROCUREMENT_DOCUMENT_TITLE}` : PROCUREMENT_DOCUMENT_TITLE;
 
     if (autoPrintRequested.value) {
       setTimeout(() => window.print(), 350);
     }
   } catch (e: any) {
     source.value = null;
-    error.value = e?.message || '订单渲染失败';
+    error.value = e?.message || '渲染失败';
   } finally {
     loading.value = false;
   }
@@ -144,22 +82,21 @@ async function loadSource() {
 function setPrintMode(mode: PrintMode) {
   if (printMode.value === mode) return;
   printMode.value = mode;
-
-  const nextQuery = {
-    ...route.query,
-    printMode: mode,
-  };
-  router.replace({ query: nextQuery }).catch(() => undefined);
+  router.replace({ query: { ...route.query, printMode: mode } }).catch(() => undefined);
 }
 
 function handlePrint() {
-  if (!confirmProceedWhenDeliveryDateMissing()) return;
+  const validation = validateForPrinting(source.value?.order);
+  if (!validation.canProceed) return;
+  if (validation.needsConfirm && !window.confirm(validation.message)) return;
   window.print();
 }
 
 async function exportPdf() {
   if (!source.value) return;
-  if (!confirmProceedWhenDeliveryDateMissing()) return;
+  const validation = validateForPrinting(source.value.order);
+  if (!validation.canProceed) return;
+  if (validation.needsConfirm && !window.confirm(validation.message)) return;
 
   try {
     exporting.value = true;
@@ -168,20 +105,14 @@ async function exportPdf() {
       printMode: printMode.value,
     };
 
-    if (source.value.snapshotId) {
-      payload.snapshotId = source.value.snapshotId;
-    } else if (source.value.orderId) {
-      payload.orderId = source.value.orderId;
-    } else {
+    if (source.value.snapshotId) payload.snapshotId = source.value.snapshotId;
+    else if (source.value.orderId) payload.orderId = source.value.orderId;
+    else {
       payload.category = source.value.category || '';
       payload.order = source.value.order;
     }
 
-    await api.downloadPDF(
-      '/pdf/generate',
-      payload,
-      buildPurchaseOrderPdfFilename(source.value.order)
-    );
+    await api.downloadPDF('/pdf/generate', payload, buildPurchaseOrderPdfFilename(source.value.order));
   } catch (e) {
     console.error('Export PDF failed', e);
     alert('PDF 导出失败');
@@ -190,77 +121,59 @@ async function exportPdf() {
   }
 }
 
-watch(
-  () => [route.query.snapshotId, route.query.orderId],
-  () => {
-    loadSource();
-  }
-);
-
-watch(
-  () => route.query.printMode,
-  (nextMode) => {
-    if (!source.value) return;
-    const normalized = normalizePrintMode(String(nextMode || source.value.printMode || 'signature'));
-    if (normalized === printMode.value) return;
-    printMode.value = normalized;
-  }
-);
-
-onMounted(() => {
-  window.addEventListener('afterprint', closeAutoPrintWindow);
-  loadSource();
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener('afterprint', closeAutoPrintWindow);
-});
+watch(() => [route.query.snapshotId, route.query.orderId], () => loadSource());
+onMounted(loadSource);
 </script>
 
 <template>
-  <div :class="['print-document-shell', embedded ? 'is-embedded' : '']">
-    <div v-if="!embedded" class="controls-bar">
-      <div class="controls-title">
-        <h2>{{ PROCUREMENT_DOCUMENT_TITLE }}</h2>
-        <p v-if="source?.order?.order_no" class="controls-subtitle">订单号：{{ source.order.order_no }}</p>
-      </div>
-      <div class="controls-actions">
-        <div class="mode-switch">
-          <button
-            class="mode-btn"
-            :class="printMode === 'signature' ? 'mode-btn-active' : ''"
-            @click="setPrintMode('signature')"
-          >
-            {{ modeLabels.signature }}
-          </button>
-          <button
-            class="mode-btn"
-            :class="printMode === 'compact' ? 'mode-btn-active' : ''"
-            @click="setPrintMode('compact')"
-          >
-            {{ modeLabels.compact }}
+  <div class="print-document-container min-h-screen bg-slate-50/50 print:bg-white print:p-0" :class="{ 'pb-20': !embedded }">
+    <div v-if="!embedded" class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between shadow-sm print:hidden">
+      <div class="flex items-center gap-4">
+        <h1 class="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-md">
+          {{ source?.order?.order_no || '打印文档' }}
+        </h1>
+        <div class="h-4 w-px bg-slate-200"></div>
+        <div class="flex p-0.5 bg-slate-100 rounded-md">
+          <button v-for="(label, mode) in modeLabels" :key="mode" @click="setPrintMode(mode as PrintMode)" class="px-3 py-1 text-xs font-medium rounded transition-all" :class="printMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+            {{ label }}
           </button>
         </div>
-        <button class="btn btn-secondary" @click="handlePrint">打印</button>
-        <button class="btn btn-primary" :disabled="exporting" @click="exportPdf">
-          {{ exporting ? '导出中...' : '导出 PDF' }}
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="handlePrint" class="h-9 px-4 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors inline-flex items-center gap-2">
+          <span>打印预览</span>
+        </button>
+        <button @click="exportPdf" :disabled="exporting" class="h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition-all inline-flex items-center gap-2">
+          <span>{{ exporting ? '导出中...' : '导出 PDF' }}</span>
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="state">正在生成预览...</div>
-    <div v-else-if="error" class="state error">{{ error }}</div>
-    <div id="printDocumentOutput" v-else>
-      <OrderSheetView
-        v-if="source?.order"
-        :order="source.order"
-        mode="preview"
-        :customer-name-display="customerNameDisplay"
-        :column-widths="printColumnWidths"
-        :default-widths="previewDefaultWidths"
-      />
+    <div class="max-w-[820px] mx-auto p-4 md:p-8 print:p-0">
+      <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
+        <div class="w-8 h-8 border-2 border-slate-200 border-t-slate-400 rounded-full animate-spin"></div>
+        <p class="text-sm font-medium animate-pulse">正在准备文档数据...</p>
+      </div>
+      <div v-else-if="error" class="bg-rose-50 border border-rose-100 rounded-xl p-8 text-center max-w-md mx-auto my-12">
+        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span class="text-xl font-bold">!</span>
+        </div>
+        <h2 class="text-rose-900 font-bold mb-2">文档加载失败</h2>
+        <p class="text-rose-600/80 text-sm mb-6">{{ error }}</p>
+        <button @click="loadSource" class="text-sm font-bold text-rose-700 hover:underline">尝试重新加载</button>
+      </div>
+      <div v-else-if="source?.order" class="bg-white shadow-[0_0_40px_rgba(0,0,0,0.03)] border border-slate-100 print:shadow-none print:border-0 rounded-sm overflow-hidden">
+        <OrderSheetView 
+          :order="source.order" 
+          mode="preview"
+          :column-widths="printColumnWidths" 
+          :default-widths="previewWidthState.defaults"
+        />
+      </div>
     </div>
   </div>
 </template>
 
-<style src="@/features/procurement/print-document.css"></style>
+<style>
+@import "@/features/procurement/print-document.css";
+</style>
