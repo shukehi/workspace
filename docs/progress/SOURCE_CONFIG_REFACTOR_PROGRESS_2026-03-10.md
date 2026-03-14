@@ -1,5 +1,8 @@
 # Source/配置重构阶段性总结（2026-03-10）
 
+> 状态：历史阶段文档。
+> 当前 source-analysis 与配置链路结果请优先查看 `docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`。
+
 ## 目标
 
 本轮重构围绕 4 个核心问题推进：
