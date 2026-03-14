@@ -1,4 +1,6 @@
 export type InventoryReceiptDirection = 'in' | 'reversal';
+export type FormulaStatus = 'draft' | 'published' | 'archived';
+export type FormulaRevisionState = 'draft' | 'published' | 'archived';
 
 export interface MaterialAttributes {
     id: number;
@@ -192,4 +194,66 @@ export interface OrderWithItemsAttributes extends OrderAttributes {
 
 export interface InventoryReceiptWithOrderAttributes extends InventoryReceiptAttributes {
     order?: OrderAttributes;
+}
+
+export interface FormulaDefinitionAttributes {
+    id: number;
+    formula_key: string;
+    display_name: string;
+    category: string;
+    status: FormulaStatus;
+    active_revision?: number | null;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface FormulaDefinitionCreationAttributes {
+    id?: number;
+    formula_key: string;
+    display_name: string;
+    category?: string;
+    status?: FormulaStatus;
+    active_revision?: number | null;
+}
+
+export interface FormulaRevisionAttributes {
+    id: number;
+    formula_id: number;
+    revision: number;
+    state: FormulaRevisionState;
+    payload_json: string;
+    change_note?: string | null;
+    created_by: string;
+    created_at?: Date;
+}
+
+export interface FormulaRevisionCreationAttributes {
+    id?: number;
+    formula_id: number;
+    revision: number;
+    state?: FormulaRevisionState;
+    payload_json: string;
+    change_note?: string | null;
+    created_by?: string;
+}
+
+export interface FormulaAuditLogAttributes {
+    id: number;
+    formula_id: number;
+    action: string;
+    from_revision?: number | null;
+    to_revision?: number | null;
+    operator: string;
+    meta_json?: string | null;
+    created_at?: Date;
+}
+
+export interface FormulaAuditLogCreationAttributes {
+    id?: number;
+    formula_id: number;
+    action: string;
+    from_revision?: number | null;
+    to_revision?: number | null;
+    operator?: string;
+    meta_json?: string | null;
 }

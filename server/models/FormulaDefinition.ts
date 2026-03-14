@@ -1,7 +1,14 @@
+import type { ModelDefined } from 'sequelize';
+
+import type {
+    FormulaDefinitionAttributes,
+    FormulaDefinitionCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const FormulaDefinition = sequelize.define('FormulaDefinition', {
+const FormulaDefinition: ModelDefined<FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes> = sequelize.define('FormulaDefinition', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,

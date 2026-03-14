@@ -1,6 +1,6 @@
 # 后端 TypeScript 第二批迁移进度（2026-03-13）
 
-> 状态：进行中计划。
+> 状态：阶段计划，部分已落地。
 > 对应任务：`docs/governance/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md` 中“第二批：配方模型与 repository”。
 
 ## 1. 目标范围
@@ -19,12 +19,29 @@
 当前状态：
 
 1. 第一批（订单 / 库存 / 物料）已完成并提交
-2. 第二批尚未开始代码迁移
-3. 当前仅完成第二批进度文档初始化
+2. 已完成第二批第一步类型预备：在 `server/models/types.ts` 中补 formulas 类型
+3. 已完成第二批第一个真实模型迁移：`server/models/FormulaDefinition.ts`
+4. 已完成第二批第二个真实模型迁移：`server/models/FormulaRevision.ts`
+5. 已完成第二批第三个真实模型迁移：`server/models/FormulaAuditLog.ts`
+6. 已完成第二批 repository 迁移：`server/services/formulas/formula.repository.ts`
+7. 第二批计划范围内的 4 个目标文件已完成迁移
 
 ## 3. 已完成项
 
-当前暂无第二批代码迁移完成项。
+已完成：
+
+1. 已在 `server/models/types.ts` 中补充：
+   - `FormulaDefinitionAttributes / CreationAttributes`
+   - `FormulaRevisionAttributes / CreationAttributes`
+   - `FormulaAuditLogAttributes / CreationAttributes`
+2. 已将 `server/models/FormulaDefinition.js` 迁移为 `server/models/FormulaDefinition.ts`
+3. 已将 `server/models/FormulaRevision.js` 迁移为 `server/models/FormulaRevision.ts`
+4. 已将 `server/models/FormulaAuditLog.js` 迁移为 `server/models/FormulaAuditLog.ts`
+5. 已将 `server/services/formulas/formula.repository.js` 迁移为 `server/services/formulas/formula.repository.ts`
+6. 已执行 `npm run type-check:server`
+7. 已执行 `node --require tsx/cjs --test --test-concurrency=1 tests/formula-workflow.test.js tests/formula-validator.test.js`
+8. 上述定向测试全部通过（5/5）
+9. 当前未改动 formulas 业务语义
 
 ## 4. 当前建议顺序
 
@@ -33,6 +50,15 @@
 3. 迁 `server/models/FormulaRevision.js`
 4. 迁 `server/models/FormulaAuditLog.js`
 5. 迁 `server/services/formulas/formula.repository.js`
+
+当前结果：
+
+1. 第 1 步已完成
+2. 第 2 步已完成
+3. 第 3 步已完成
+4. 第 4 步已完成
+5. 第 5 步已完成
+6. 第二批计划范围已完成
 
 ## 5. 当前约束
 
@@ -71,7 +97,7 @@
 
 建议下一步从：
 
-1. 分析 `server/models/FormulaDefinition.js`
-2. 确认是否需要在 `server/models/types.ts` 中补 formulas 类型
+1. 执行第二批定向验证
+2. 评估是否收口提交第二批
 
-开始，再进入第二批的第一个真实迁移文件。
+开始，确认 formulas 模型层与 repository 层迁移后的链路稳定性。

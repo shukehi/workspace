@@ -1,7 +1,14 @@
+import type { ModelDefined } from 'sequelize';
+
+import type {
+    FormulaAuditLogAttributes,
+    FormulaAuditLogCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const FormulaAuditLog = sequelize.define('FormulaAuditLog', {
+const FormulaAuditLog: ModelDefined<FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes> = sequelize.define('FormulaAuditLog', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,

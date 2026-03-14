@@ -1,7 +1,14 @@
+import type { ModelDefined } from 'sequelize';
+
+import type {
+    FormulaRevisionAttributes,
+    FormulaRevisionCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const FormulaRevision = sequelize.define('FormulaRevision', {
+const FormulaRevision: ModelDefined<FormulaRevisionAttributes, FormulaRevisionCreationAttributes> = sequelize.define('FormulaRevision', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
