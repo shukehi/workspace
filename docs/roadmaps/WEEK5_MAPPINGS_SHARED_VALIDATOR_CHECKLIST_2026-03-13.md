@@ -47,7 +47,10 @@ Week 5
   - 当前共享范围为 packaging / cylinder / lock / lock-fork，handle 仍保留在前后端 facade
   - 已通过 `tests/shared-mapping-core.test.js`、`tests/mappings/mapping-parity.test.ts`、`tests/mapping-server-validator.test.js`、`tests/mapping-adapter-baseline.test.ts`、`tests/config-routes.test.js` 与 `npm run type-check`
   - 已执行统一验收：`npm run build`、`npm test`
-  - 新旧 mapping 结果 diff / smoke 记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：使用 `data/config/*.json` production 配置对 packaging / cylinder / lock / lock-fork 执行前后端 adapter + validator 实际结果对比
+  - 2026-03-13 smoke：四类配置的 frontend/backend adapter 输出完全一致，validator 输出也完全一致，且 `issues = 0`
+  - 2026-03-13 smoke：实际摘要为 packaging `mappings = 9`、cylinder `dimensions = 4, mappings = 13, customLogos = 6`、lock `mappings = 2, defaultUnit = 套`、lockFork `baseDimensions = 3, highHeightRules = 3, suppliers = 1`
+  - `handle` 仍未纳入共享核心范围，因此本周 smoke 记录仅覆盖 packaging / cylinder / lock / lock-fork
 ```
 
 ## 4. 本周退出标准
@@ -417,6 +420,28 @@ shared/
 - [x] 前后端 mapping 规则核心实现已对 packaging / cylinder / lock / lock-fork 收敛到共享层
 - [x] issue path/code 与现状兼容
 - [ ] `git status --short` 仅包含预期改动
+
+本轮已记录的 smoke / diff：
+
+1. Packaging
+   - 前后端 adapter 输出一致
+   - validator 输出一致，`issues = 0`
+   - 当前 production mapping 数量：`9`
+2. Cylinder
+   - 前后端 adapter 输出一致
+   - validator 输出一致，`issues = 0`
+   - 当前 production 摘要：`dimensions = 4`、`mappings = 13`、`customLogos = 6`
+3. Lock
+   - 前后端 adapter 输出一致
+   - validator 输出一致，`issues = 0`
+   - 当前 production 摘要：`mappings = 2`、`defaultUnit = 套`
+4. Lock Fork
+   - 前后端 adapter 输出一致
+   - validator 输出一致，`issues = 0`
+   - 当前 production 摘要：`baseDimensions = 3`、`highHeightRules = 3`、`suppliers = 1`
+5. 说明
+   - 本轮 smoke 只覆盖已进入共享核心的 packaging / cylinder / lock / lock-fork
+   - `handle` 仍保留在前后端 facade，不作为 Week 5 共享核心 smoke 范围
 
 当前已完成的首批落地：
 

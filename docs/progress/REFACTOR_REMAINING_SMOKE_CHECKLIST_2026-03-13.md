@@ -47,10 +47,10 @@ What remains is week-specific smoke evidence.
 
 ## 6. Week 5 - Shared Mappings Core
 
-- [ ] Compare one real packaging mapping result between frontend and backend.
-- [ ] Compare one real cylinder mapping result between frontend and backend.
-- [ ] Compare one real lock or lock-fork mapping result between frontend and backend.
-- [ ] Record one adapter / validator diff summary in [WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md).
+- [x] Compare one real packaging mapping result between frontend and backend.
+- [x] Compare one real cylinder mapping result between frontend and backend.
+- [x] Compare one real lock or lock-fork mapping result between frontend and backend.
+- [x] Record one adapter / validator diff summary in [WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md).
 
 ## 7. Week 6 - Formulas And Migrations
 
