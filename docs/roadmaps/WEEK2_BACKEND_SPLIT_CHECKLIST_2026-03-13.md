@@ -49,6 +49,7 @@ Week 2
   - 2026-03-13 smoke：链路一 `draft -> submitted` 更新成功，订单 `SMOKE-PO-UPDATE-1773448481603` 返回 `submitted`
   - 2026-03-13 smoke：链路二 `processing -> arrive -> stock-in` 成功，订单 `SMOKE-PO-FLOW-1773448481603` 依次返回 `arrived`、`completed`，且 `received_quantity = 2`
   - 2026-03-13 smoke：链路三 `draft -> delete` 成功，订单 `SMOKE-PO-DELETE-1773448481603` 删除返回成功
+  - 2026-03-13 smoke：同 `source_contract_code = SMOKE-CT-1773449940364` 的自动单在第二次创建时命中 `DUPLICATE_ORDER`；原单取消后可重新生成新订单 `SMOKE-AUTO-PO-REGEN-1773449940364`
 ```
 
 ## 4. 本周退出标准
@@ -479,6 +480,8 @@ server/services/orders/
 3. 对同一订单执行 `POST /api/orders/:id/stock-in`，结果进入 `completed`，并确认 `received_quantity = 2`
 4. 创建隔离订单 `SMOKE-PO-DELETE-1773448481603`，执行 `DELETE /api/orders/:id` 成功
 5. 脚本结束后已清理临时订单、订单明细与临时物料，不保留脏数据
+6. 创建自动单 `SMOKE-AUTO-PO-1773449940364` 后，再用同一 `source_contract_code` 与同一 item 指纹重建订单，确认命中 `DUPLICATE_ORDER`
+7. 将原自动单状态改为 `cancelled` 后，再次创建同合同自动单，确认重新生成新订单 `SMOKE-AUTO-PO-REGEN-1773449940364`
 
 ## 9. 第二周不做的事
 

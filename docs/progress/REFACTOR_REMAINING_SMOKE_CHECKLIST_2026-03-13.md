@@ -26,7 +26,7 @@ What remains is week-specific smoke evidence.
 - [x] Run update order main path.
 - [x] Run arrive / stock-in main path.
 - [x] Run cancel or delete path.
-- [ ] Verify duplicate-order / idempotency behavior on at least one realistic sample.
+- [x] Verify duplicate-order / idempotency behavior on at least one realistic sample.
 - [x] Record smoke result in [WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md).
 
 ## 4. Week 3 - Controller / Error / Validation
