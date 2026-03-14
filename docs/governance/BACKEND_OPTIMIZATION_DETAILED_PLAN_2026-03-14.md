@@ -1,12 +1,12 @@
 # 后端架构优化与重构详细方案 (2026-03-14)
 
-> **当前状态：阶段一已完成 (Done)，进入阶段二准备期。**
+> **当前状态：阶段一、二已完成 (Done)，进入阶段三重构期。**
 > **最后更新：2026-03-14**
 
 ## 1. 总体目标
 *   **消除混合态**：将 `server/` 目录下伪装成 `.ts` 的 CommonJS 代码彻底转化为标准的 ESM (TypeScript)。 [Phase 1 DONE]
-*   **架构一致性**：全面推广 `Repository` 模式，实现业务逻辑与数据访问的解耦。 [Phase 2 Target]
-*   **功能补完**：实现物料匹配的模糊搜索与别名逻辑，提升系统智能化程度。 [Phase 2 Target]
+*   **架构一致性**：全面推广 `Repository` 模式，实现业务逻辑与数据访问的解耦。 [Phase 2 DONE]
+*   **功能补完**：实现物料匹配的模糊搜索与别名逻辑，提升系统智能化程度。 [Phase 2 DONE]
 *   **错误治理**：解耦巨型错误转换逻辑，提升系统的可扩展性。 [Phase 3 Target]
 
 ---
@@ -28,24 +28,24 @@
     *   在 TS 核心文件中添加 `module.exports` 以确保现有 JS 路由/控制器能够无缝调用。
     *   同步重构了 `order.mapper.ts` 的导出，解决了 `normalizeError.ts` 的引用依赖。
 
-### 阶段二：物料模块重构与算法增强（业务价值提升） [IN PROGRESS]
+### 阶段二：物料模块重构与算法增强（业务价值提升） [DONE]
 **目标**：将遗留的 `MaterialService.js` 升级为符合模式规范的 TS 模块，并补齐智能匹配缺项。
 
 **已执行步骤**：
 1.  **引入 Repository 模式**： [DONE]
     *   新建 `server/services/materials/material.repository.ts`。
-    *   封装了 `findById`, `findByCode`, `findOneExact`, `findByAlias` 等数据访问逻辑。
+    *   封装了支持事务透传的 `findById`, `findByCode`, `findOneExact`, `findByAlias`, `findFuzzy` 等数据访问逻辑。
 2.  **Service 层 TS 迁移**： [DONE]
     *   将 `MaterialService.js` 彻底迁移至 `MaterialService.ts`。
-    *   注入了 `MaterialRepository`，并对业务逻辑进行了规范化标注。
-3.  **别名匹配初步实现**： [DONE]
-    *   在 `findSmartMatch` 中引入了基于 `aliases` JSON 字段的查询逻辑。
-
-**待执行步骤**：
-1.  **模糊搜索算法增强**： [TODO]
-    *   引入简单的权重匹配或字符串相似度算法，以处理模糊场景下的物料识别。
-2.  **自动化验证**： [TODO]
-    *   编写专门的智能匹配单元测试用例。
+    *   注入了 `MaterialRepository`，并对业务逻辑进行了全量 `transaction` 传播支持。
+    *   引入了“更新后回读（Re-fetch after update）”机制，确保了领域对象的数据一致性。
+3.  **三级梯度匹配实现 (Smart Match)**： [DONE]
+    *   实现了 **[精确匹配] -> [别名匹配] -> [模糊搜索]** 的智能化匹配流程。
+    *   别名匹配：利用 SQLite 的 `json_each` 函数实现了对 JSON 数组内元素的精准搜索。
+    *   模糊搜索：引入了基于 SQL `CASE WHEN` 的权重排序逻辑，支持更鲁棒的模糊匹配。
+4.  **自动化验证**： [DONE]
+    *   编写并运行了 `tests/material-smart-match.test.ts` 专项测试。
+    *   回归验证了 `materials-workflow` 和 `formula-lifecycle` 相关测试。
 
 
 ### 阶段三：架构模式解耦与导出一致性（可维护性增强）
