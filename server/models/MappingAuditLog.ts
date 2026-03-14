@@ -1,7 +1,13 @@
+import type { ModelDefined } from 'sequelize';
+import type {
+    MappingAuditLogAttributes,
+    MappingAuditLogCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const MaterialCatalogAuditLog = sequelize.define('MaterialCatalogAuditLog', {
+const MappingAuditLog: ModelDefined<MappingAuditLogAttributes, MappingAuditLogCreationAttributes> = sequelize.define('MappingAuditLog', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -33,10 +39,10 @@ const MaterialCatalogAuditLog = sequelize.define('MaterialCatalogAuditLog', {
         allowNull: true
     }
 }, {
-    tableName: 'material_catalog_audit_logs',
+    tableName: 'mapping_audit_logs',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: false
 });
 
-module.exports = MaterialCatalogAuditLog;
+module.exports = MappingAuditLog;

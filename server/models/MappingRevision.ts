@@ -1,3 +1,9 @@
+import type { ModelDefined } from 'sequelize';
+import type {
+    MappingRevisionAttributes,
+    MappingRevisionCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const {
@@ -5,7 +11,7 @@ const {
     SCHEMA_VERSION
 } = require('../services/mappings/mapping.constants');
 
-const MappingRevision = sequelize.define('MappingRevision', {
+const MappingRevision: ModelDefined<MappingRevisionAttributes, MappingRevisionCreationAttributes> = sequelize.define('MappingRevision', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,

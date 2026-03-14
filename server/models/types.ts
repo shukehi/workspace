@@ -1,6 +1,13 @@
 export type InventoryReceiptDirection = 'in' | 'reversal';
 export type FormulaStatus = 'draft' | 'published' | 'archived';
 export type FormulaRevisionState = 'draft' | 'published' | 'archived';
+export type MappingProfileCode = 'packaging' | 'cylinder' | 'lock' | 'lock_fork' | 'handle';
+export type MappingProfileStatus = 'active' | 'inactive';
+export type MappingRevisionState = 'draft' | 'published' | 'archived';
+export type MappingUnmatchedEventStatus = 'open' | 'resolved' | 'ignored';
+export type MaterialCatalogProfileCode = 'materials';
+export type MaterialCatalogProfileStatus = 'active';
+export type MaterialCatalogRevisionState = 'draft' | 'published' | 'archived';
 
 export interface MaterialAttributes {
     id: number;
@@ -251,6 +258,150 @@ export interface FormulaAuditLogAttributes {
 export interface FormulaAuditLogCreationAttributes {
     id?: number;
     formula_id: number;
+    action: string;
+    from_revision?: number | null;
+    to_revision?: number | null;
+    operator?: string;
+    meta_json?: string | null;
+}
+
+export interface MappingProfileAttributes {
+    id: number;
+    profile_code: MappingProfileCode;
+    display_name: string;
+    status: MappingProfileStatus;
+    active_revision?: number | null;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface MappingProfileCreationAttributes {
+    id?: number;
+    profile_code: MappingProfileCode;
+    display_name: string;
+    status?: MappingProfileStatus;
+    active_revision?: number | null;
+}
+
+export interface MappingRevisionAttributes {
+    id: number;
+    profile_id: number;
+    revision: number;
+    state: MappingRevisionState;
+    schema_version: number;
+    payload_json: string;
+    change_note?: string | null;
+    created_by: string;
+    created_at?: Date;
+}
+
+export interface MappingRevisionCreationAttributes {
+    id?: number;
+    profile_id: number;
+    revision: number;
+    state?: MappingRevisionState;
+    schema_version?: number;
+    payload_json?: string;
+    change_note?: string | null;
+    created_by?: string;
+}
+
+export interface MappingAuditLogAttributes {
+    id: number;
+    profile_id: number;
+    action: string;
+    from_revision?: number | null;
+    to_revision?: number | null;
+    operator: string;
+    meta_json?: string | null;
+    created_at?: Date;
+}
+
+export interface MappingAuditLogCreationAttributes {
+    id?: number;
+    profile_id: number;
+    action: string;
+    from_revision?: number | null;
+    to_revision?: number | null;
+    operator?: string;
+    meta_json?: string | null;
+}
+
+export interface MappingUnmatchedEventAttributes {
+    id: number;
+    profile_code: MappingProfileCode;
+    raw_value: string;
+    sample_json?: string | null;
+    hit_count: number;
+    first_seen_at: Date;
+    last_seen_at: Date;
+    status: MappingUnmatchedEventStatus;
+}
+
+export interface MappingUnmatchedEventCreationAttributes {
+    id?: number;
+    profile_code: MappingProfileCode;
+    raw_value: string;
+    sample_json?: string | null;
+    hit_count?: number;
+    first_seen_at?: Date | string;
+    last_seen_at?: Date | string;
+    status?: MappingUnmatchedEventStatus;
+}
+
+export interface MaterialCatalogProfileAttributes {
+    id: number;
+    profile_code: MaterialCatalogProfileCode;
+    display_name: string;
+    status: MaterialCatalogProfileStatus;
+    active_revision?: number | null;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface MaterialCatalogProfileCreationAttributes {
+    id?: number;
+    profile_code?: MaterialCatalogProfileCode;
+    display_name?: string;
+    status?: MaterialCatalogProfileStatus;
+    active_revision?: number | null;
+}
+
+export interface MaterialCatalogRevisionAttributes {
+    id: number;
+    profile_id: number;
+    revision: number;
+    state: MaterialCatalogRevisionState;
+    payload_json: string;
+    change_note?: string | null;
+    created_by: string;
+    created_at?: Date;
+}
+
+export interface MaterialCatalogRevisionCreationAttributes {
+    id?: number;
+    profile_id: number;
+    revision: number;
+    state?: MaterialCatalogRevisionState;
+    payload_json?: string;
+    change_note?: string | null;
+    created_by?: string;
+}
+
+export interface MaterialCatalogAuditLogAttributes {
+    id: number;
+    profile_id: number;
+    action: string;
+    from_revision?: number | null;
+    to_revision?: number | null;
+    operator: string;
+    meta_json?: string | null;
+    created_at?: Date;
+}
+
+export interface MaterialCatalogAuditLogCreationAttributes {
+    id?: number;
+    profile_id: number;
     action: string;
     from_revision?: number | null;
     to_revision?: number | null;

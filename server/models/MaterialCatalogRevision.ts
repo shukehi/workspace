@@ -1,7 +1,13 @@
+import type { ModelDefined } from 'sequelize';
+import type {
+    MaterialCatalogRevisionAttributes,
+    MaterialCatalogRevisionCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const MaterialCatalogRevision = sequelize.define('MaterialCatalogRevision', {
+const MaterialCatalogRevision: ModelDefined<MaterialCatalogRevisionAttributes, MaterialCatalogRevisionCreationAttributes> = sequelize.define('MaterialCatalogRevision', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,

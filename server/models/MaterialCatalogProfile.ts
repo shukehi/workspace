@@ -1,11 +1,13 @@
+import type { ModelDefined } from 'sequelize';
+import type {
+    MaterialCatalogProfileAttributes,
+    MaterialCatalogProfileCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const {
-    PROFILE_CODE_LIST,
-    PROFILE_STATUSES
-} = require('../services/mappings/mapping.constants');
 
-const MappingProfile = sequelize.define('MappingProfile', {
+const MaterialCatalogProfile: ModelDefined<MaterialCatalogProfileAttributes, MaterialCatalogProfileCreationAttributes> = sequelize.define('MaterialCatalogProfile', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -15,28 +17,27 @@ const MappingProfile = sequelize.define('MappingProfile', {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
-        validate: {
-            isIn: [PROFILE_CODE_LIST]
-        }
+        defaultValue: 'materials'
     },
     display_name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        defaultValue: 'Materials Catalog'
     },
     status: {
         type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: PROFILE_STATUSES.ACTIVE
+        defaultValue: 'active'
     },
     active_revision: {
         type: DataTypes.INTEGER,
         allowNull: true
     }
 }, {
-    tableName: 'mapping_profiles',
+    tableName: 'material_catalog_profiles',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'
 });
 
-module.exports = MappingProfile;
+module.exports = MaterialCatalogProfile;

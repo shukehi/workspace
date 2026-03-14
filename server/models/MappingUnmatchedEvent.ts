@@ -1,3 +1,9 @@
+import type { ModelDefined } from 'sequelize';
+import type {
+    MappingUnmatchedEventAttributes,
+    MappingUnmatchedEventCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const {
@@ -5,7 +11,7 @@ const {
     UNMATCHED_EVENT_STATUSES
 } = require('../services/mappings/mapping.constants');
 
-const MappingUnmatchedEvent = sequelize.define('MappingUnmatchedEvent', {
+const MappingUnmatchedEvent: ModelDefined<MappingUnmatchedEventAttributes, MappingUnmatchedEventCreationAttributes> = sequelize.define('MappingUnmatchedEvent', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
