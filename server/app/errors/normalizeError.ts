@@ -1,13 +1,16 @@
-export {};
-
-const AppError = require('./AppError');
-const ERROR_CODES = require('./errorCodes');
-const { toDuplicateOrderSummary } = require('../../services/orders/order.mapper');
+import AppError from './AppError';
+import ERROR_CODES from './errorCodes';
+import { toDuplicateOrderSummary } from '../../services/orders/order.mapper';
 
 type PlainRecord = Record<string, any>;
 
-function fromKnownCode(error: PlainRecord) {
-    switch (error?.code) {
+/**
+ * 根据预定义的错误代码创建标准化的 AppError
+ */
+function fromKnownCode(error: PlainRecord): AppError | null {
+    if (!error?.code) return null;
+
+    switch (error.code) {
     case ERROR_CODES.DUPLICATE_ORDER:
         return new AppError({
             code: ERROR_CODES.DUPLICATE_ORDER,
@@ -114,12 +117,16 @@ function fromKnownCode(error: PlainRecord) {
     }
 }
 
-function normalizeError(error: unknown) {
+/**
+ * 标准化未知错误为标准 AppError
+ */
+export function normalizeError(error: unknown): AppError {
     if (error instanceof AppError) return error;
 
     const known = fromKnownCode((error || {}) as PlainRecord);
     if (known) return known;
 
+    // 处理 Sequelize 校验错误
     if ((error as PlainRecord)?.name === 'SequelizeValidationError') {
         return new AppError({
             code: ERROR_CODES.VALIDATION_ERROR,
@@ -136,6 +143,7 @@ function normalizeError(error: unknown) {
         });
     }
 
+    // 默认回退到内部服务器错误
     return new AppError({
         code: ERROR_CODES.INTERNAL_ERROR,
         status: 500,
@@ -146,3 +154,4 @@ function normalizeError(error: unknown) {
 }
 
 module.exports = normalizeError;
+export default normalizeError;

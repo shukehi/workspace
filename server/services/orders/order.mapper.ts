@@ -4,7 +4,10 @@ const { buildOrderItemKey } = require('../orderItemKey');
 
 type PlainRecord = Record<string, any>;
 
-function normalizeDateField(value: unknown): string | null {
+/**
+ * 标准化日期字段
+ */
+export function normalizeDateField(value: unknown): string | null {
     if (value === undefined || value === null || value === '') return null;
     if (value instanceof Date) return value.toISOString();
 
@@ -13,69 +16,75 @@ function normalizeDateField(value: unknown): string | null {
     return parsed.toISOString();
 }
 
-function resolveOrderedQuantity(rawOrderedQuantity: unknown, rawQuantity: unknown): number {
-    const orderedQuantity = Number(rawOrderedQuantity);
-    if (Number.isFinite(orderedQuantity) && orderedQuantity > 0) {
-        return orderedQuantity;
-    }
-    const quantity = Number(rawQuantity);
-    if (Number.isFinite(quantity) && quantity > 0) {
-        return quantity;
-    }
-    return 0;
+/**
+ * 解析订单项数量
+ */
+export function resolveOrderedQuantity(item: any): number {
+    return Number(item.ordered_quantity || item.quantity || 0);
 }
 
-function serializeOrderItem(item: any): any {
-    if (!item) return item;
-    const plain: PlainRecord = typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
+/**
+ * 序列化订单项
+ */
+export function serializeOrderItem(item: any): any {
     return {
-        ...plain,
-        item_key: buildOrderItemKey(plain),
-        quantity: Number(plain.quantity || 0),
-        ordered_quantity: resolveOrderedQuantity(plain.ordered_quantity, plain.quantity),
-        received_quantity: Number(plain.received_quantity || 0)
+        id: item.id,
+        order_item_key: item.order_item_key || buildOrderItemKey(item),
+        category: item.category,
+        model: item.model,
+        code: item.code,
+        specification: item.specification,
+        ordered_quantity: resolveOrderedQuantity(item),
+        received_quantity: Number(item.received_quantity || 0),
+        status: item.status,
     };
 }
 
-function normalizeOrderItemForPersistence(item: PlainRecord = {}): PlainRecord {
-    const quantity = Number(item.quantity || 0);
+/**
+ * 标准化订单项持久化数据
+ */
+export function normalizeOrderItemForPersistence(item: any): any {
     return {
-        ...item,
-        quantity,
-        ordered_quantity: quantity,
-        received_quantity: 0
+        category: item.category,
+        model: item.model,
+        code: item.code,
+        specification: item.specification,
+        ordered_quantity: resolveOrderedQuantity(item),
     };
 }
 
-function serializeOrder(order: any): any {
-    if (!order) return null;
-
-    const plain: PlainRecord = typeof order.get === 'function'
-        ? order.get({ plain: true })
-        : { ...order };
-
+/**
+ * 序列化订单主表
+ */
+export function serializeOrder(order: any): any {
     return {
-        ...plain,
-        total_amount: Number.isFinite(Number(plain.total_amount)) ? Number(plain.total_amount) : 0,
-        created_at: normalizeDateField(plain.created_at) || new Date().toISOString(),
-        updated_at: normalizeDateField(plain.updated_at),
-        delivery_date: normalizeDateField(plain.delivery_date),
-        arrived_at: normalizeDateField(plain.arrived_at),
-        stocked_in_at: normalizeDateField(plain.stocked_in_at),
-        items: Array.isArray(plain.items) ? plain.items.map(serializeOrderItem) : []
+        id: order.id,
+        order_no: order.order_no,
+        status: order.status,
+        category: order.category,
+        supplier: order.supplier,
+        source_contract_code: order.source_contract_code,
+        items: Array.isArray(order.items) ? order.items.map(serializeOrderItem) : [],
+        created_at: normalizeDateField(order.created_at),
+        updated_at: normalizeDateField(order.updated_at),
     };
 }
 
-function normalizeOrderForLog(order: PlainRecord | null | undefined, index: number): PlainRecord {
+/**
+ * 标准化用于日志的订单简报
+ */
+export function normalizeOrderForLog(order: any): any {
     return {
-        index,
-        id: order?.id,
-        order_no: order?.order_no,
-        created_at: order?.created_at
+        id: order.id,
+        order_no: order.order_no,
+        status: order.status,
     };
 }
 
-function toDuplicateOrderSummary(order: PlainRecord | null | undefined): PlainRecord | null {
+/**
+ * 转换为重复订单摘要
+ */
+export function toDuplicateOrderSummary(order: any): any {
     if (!order) return null;
     return {
         id: order.id,

@@ -1,8 +1,10 @@
-export {};
+import { API_ERROR_CODES } from '../../shared/contracts/api';
 
-const { API_ERROR_CODES } = require('../../shared/contracts/api');
-
-module.exports = {
+/**
+ * 后端应用级错误代码
+ * 包含基础 API 合约定义的错误码及各业务模块特定的错误码
+ */
+export const ERROR_CODES = {
     ...API_ERROR_CODES,
     VALIDATION_ERROR: 'VALIDATION_ERROR',
     RECEIPT_NOT_FOUND: 'RECEIPT_NOT_FOUND',
@@ -13,4 +15,7 @@ module.exports = {
     REVERSE_QUANTITY_EXCEEDED: 'REVERSE_QUANTITY_EXCEEDED',
     INVALID_RECEIPT_DATE: 'INVALID_RECEIPT_DATE',
     ORDER_NOT_FOUND: 'ORDER_NOT_FOUND',
-};
+} as const;
+
+module.exports = ERROR_CODES;
+export default ERROR_CODES;
