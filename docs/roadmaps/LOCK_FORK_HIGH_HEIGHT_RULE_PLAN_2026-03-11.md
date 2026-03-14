@@ -1,5 +1,8 @@
 # 锁叉高门基础尺寸规则开发计划（2026-03-11） [已完成]
 
+> 状态：历史阶段文档。
+> 当前规则请优先查看 `docs/reference/LOCK_FORK_RULES.md`。
+
 ## 1. 交付总结 (2026-03-11)
 本计划中的所有功能点（5/7/9cm 高门阈值、独立基准、自动化测试及文档更新）已全部按期交付。详见 [LOCK_FORK_RULES.md](/Users/aries/Dve/workspace/docs/reference/LOCK_FORK_RULES.md)。
 

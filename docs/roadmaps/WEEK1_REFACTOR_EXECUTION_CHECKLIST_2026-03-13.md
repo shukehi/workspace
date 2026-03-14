@@ -3,7 +3,7 @@
 > 关联文档：
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
-> 状态：completed
+> 状态：历史阶段文档。
 > 目标：把第一周的重构工作进一步细化到文件级，确保可以直接开工。
 
 ## 1. 第一周范围

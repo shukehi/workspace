@@ -1,5 +1,8 @@
 # Refactor Remaining Smoke Checklist (2026-03-13)
 
+> 状态：历史阶段文档。
+> 当前各周完成状态请优先查看对应 `docs/roadmaps/WEEK*.md` 文档顶部状态说明。
+
 ## 1. Purpose
 
 This checklist tracks the remaining manual smoke / usage records required before Week 1-8 can be moved from `in_progress` to `completed`.

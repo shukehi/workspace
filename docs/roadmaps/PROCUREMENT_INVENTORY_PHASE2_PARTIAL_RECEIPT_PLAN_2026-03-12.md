@@ -1,5 +1,8 @@
 # 采购与库存边界改造 Phase 2 方案：部分入库与撤销入库（2026-03-12）
 
+> 状态：阶段计划，部分已落地。
+> 当前已落地能力与剩余建议请结合 `docs/progress/PROCUREMENT_INVENTORY_PR_NOTE_2026-03-13.md` 阅读。
+
 ## 1. 目标
 
 Phase 1 已完成：

@@ -1,7 +1,7 @@
 # 可维护性与可扩展性重构蓝图（2026-03-13）
 
-> 状态：proposal
-> 目标：在不改变现有业务结果的前提下，逐步降低项目复杂度，提升维护效率、需求扩展速度和多人协作稳定性。
+> 状态：历史阶段文档。
+> 当前执行结果请优先查看 `docs/progress/REFACTOR_PROGRAM_SUMMARY_2026-03-13.md` 与 `docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md`。
 
 ## 1. 背景
 

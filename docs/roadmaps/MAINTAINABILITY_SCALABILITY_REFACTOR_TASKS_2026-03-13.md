@@ -2,8 +2,8 @@
 
 > 对应主文档：`docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > 对应索引：`docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md`
-> 状态：active
-> 用途：作为 Week 1-8 执行体系的任务拆解附录，补充“每周要拆什么、先后顺序如何、建议如何分批提交”。
+> 状态：阶段计划，部分已落地。
+> 当前已完成项请优先结合各 `WEEK*.md` 文档顶部状态与 `docs/progress/REFACTOR_PROGRAM_SUMMARY_2026-03-13.md` 阅读。
 
 ## 1. 使用方式
 

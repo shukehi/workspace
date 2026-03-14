@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md`
-> 状态：completed
+> 状态：历史阶段文档。
 > 目标：在订单、inventory、mappings、formulas 的结构化模式逐步稳定后，继续收敛 materials 与 source-analysis 域，优先拆解 `useSourceStore -> loadSourceAnalysisConfig -> configLoader` 链路，降低来源解析、物料目录、配置读取与业务规则之间的耦合度。
 
 ## 1. 第七周范围

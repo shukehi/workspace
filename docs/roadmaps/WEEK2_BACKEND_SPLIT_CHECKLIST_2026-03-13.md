@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md`
-> 状态：completed
+> 状态：历史阶段文档。
 > 目标：为第二周的后端核心拆分建立可直接执行的文件级计划，重点围绕 `server/services/OrderService.js`。
 
 ## 1. 第二周范围

@@ -10,7 +10,7 @@
 > - `docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`
-> 状态：completed
+> 状态：历史阶段文档。
 > 目标：将前七周的重构路线沉淀为团队可执行的统一索引，并把关键结构约束升级为工程规范，避免后续新增功能再次绕开已建立的模式。
 
 ## 1. 第八周范围

@@ -4,7 +4,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
-> 状态：completed
+> 状态：历史阶段文档。
 > 目标：在第二周完成 `OrderService` 模块化拆分后，继续将订单域的 HTTP 层升级为 `route -> controller -> service -> repository` 结构，并建立统一错误/请求校验中间件。
 
 ## 1. 第三周范围

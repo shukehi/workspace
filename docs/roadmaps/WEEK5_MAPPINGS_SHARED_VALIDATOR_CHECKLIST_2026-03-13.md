@@ -5,7 +5,7 @@
 > - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 > - `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
-> 状态：completed
+> 状态：历史阶段文档。
 > 目标：收敛 mappings 域前后端重复的 adapter/validator 逻辑，建立共享规则实现来源，降低配置规则演进时的双端维护成本。
 
 ## 1. 第五周范围
