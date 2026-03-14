@@ -1,21 +1,25 @@
+export {};
+
 const crypto = require('crypto');
 
-function normalizeDedupeText(value) {
+type PlainRecord = Record<string, any>;
+
+function normalizeDedupeText(value: unknown): string {
     if (value === undefined || value === null) return '';
     return String(value).trim();
 }
 
-function normalizeDedupeNumber(value) {
+function normalizeDedupeNumber(value: unknown): number {
     const parsed = Number(value);
     if (Number.isNaN(parsed)) return 0;
     return Number(parsed.toFixed(4));
 }
 
-function resolveSourceContractCode(data, fallback = '') {
+function resolveSourceContractCode(data: PlainRecord | null | undefined, fallback = ''): string {
     return normalizeDedupeText(data?.source_contract_code || data?.metadata?.source_contract_code || fallback);
 }
 
-function normalizeMetadata(data, fallback = {}) {
+function normalizeMetadata(data: PlainRecord | null | undefined, fallback: PlainRecord = {}): PlainRecord {
     const next = data && typeof data === 'object' ? { ...data } : { ...fallback };
     const sourceContractCode = resolveSourceContractCode({ source_contract_code: next.source_contract_code, metadata: next });
     if (sourceContractCode) {
@@ -26,7 +30,7 @@ function normalizeMetadata(data, fallback = {}) {
     return next;
 }
 
-function serializeItemFingerprint(item) {
+function serializeItemFingerprint(item: PlainRecord | null | undefined): PlainRecord {
     return {
         supplier: normalizeDedupeText(item?.supplier),
         internal_name: normalizeDedupeText(item?.internal_name),
@@ -43,7 +47,7 @@ function serializeItemFingerprint(item) {
     };
 }
 
-function buildOrderDedupePayload(data) {
+function buildOrderDedupePayload(data: PlainRecord | null | undefined): PlainRecord {
     const sourceContractCode = resolveSourceContractCode(data);
     const category = normalizeDedupeText(data?.category);
     const supplier = normalizeDedupeText(data?.supplier);
@@ -59,7 +63,7 @@ function buildOrderDedupePayload(data) {
     };
 }
 
-function buildOrderDedupeKey(data) {
+function buildOrderDedupeKey(data: PlainRecord | null | undefined): string {
     const payload = buildOrderDedupePayload(data);
     if (!payload.sourceContractCode || !payload.category || !payload.supplier || payload.items.length === 0) {
         return '';

@@ -1,6 +1,6 @@
 # 后端 TypeScript 第四批迁移进度（2026-03-13）
 
-> 状态：阶段计划，准备中。
+> 状态：阶段计划，部分已落地。
 > 对应任务：`docs/governance/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md` 中“第四批：shared / validator / rule helpers”。
 
 ## 1. 目标范围
@@ -34,6 +34,26 @@
 2. 这些文件大多不直接写数据库，也不主导主编排流程
 3. 它们更适合按“共享契约 -> validator -> helper”顺序分段迁移
 4. `inventory` 目录里已有拆出来的 `mapper / policy / query-policy`，应纳入第四批，而不是只盯 `orders` 和 `mappings`
+5. 已完成第四批 A 段迁移：
+   - `server/shared/contracts/api.ts`
+   - `server/shared/contracts/pagination.ts`
+   - `server/shared/constants/order.ts`
+6. 已完成第四批 B 段迁移：
+   - `server/validators/order.validators.ts`
+   - `server/validators/inventory.validators.ts`
+   - `server/validators/inventory-receipt.validators.ts`
+   - `server/services/mappings/mapping.validator.ts`
+7. 已完成第四批 C 段迁移：
+   - `server/services/orders/order.policy.ts`
+   - `server/services/orders/order.mapper.ts`
+   - `server/services/orders/order.dedupe.ts`
+   - `server/services/inventory/inventory.mapper.ts`
+   - `server/services/inventory/inventory-receipt.mapper.ts`
+   - `server/services/inventory/inventory-receipt.policy.ts`
+   - `server/services/inventory/inventory-receipt.query-policy.ts`
+8. 已完成第四批 D 段迁移：
+   - `server/services/mappings/mapping.constants.ts`
+   - `server/services/mappings/mapping.mapper.ts`
 
 ## 3. 推荐子批次
 
@@ -96,3 +116,10 @@
 1. 依赖范围小
 2. 返回结构稳定
 3. 最容易先建立第四批的迁移模式
+
+当前结果：
+
+1. 第四批 A 段已完成代码迁移
+2. 第四批 B 段已完成代码迁移
+3. 第四批 C 段已完成代码迁移
+4. 第四批 D 段已完成代码迁移

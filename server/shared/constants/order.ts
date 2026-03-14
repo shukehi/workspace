@@ -5,9 +5,11 @@ const ORDER_STATUSES = [
     'arrived',
     'completed',
     'cancelled',
-];
+] as const;
 
-const ORDER_PENDING_STATUSES = [
+type OrderStatus = typeof ORDER_STATUSES[number];
+
+const ORDER_PENDING_STATUSES: readonly OrderStatus[] = [
     'draft',
     'submitted',
     'processing',

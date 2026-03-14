@@ -1,4 +1,8 @@
-function toSummary(profile) {
+export {};
+
+type PlainRecord = Record<string, any>;
+
+function toSummary(profile: PlainRecord) {
     return {
         id: profile.id,
         profileCode: profile.profile_code,
@@ -9,7 +13,7 @@ function toSummary(profile) {
     };
 }
 
-function toRevisionMeta(revision) {
+function toRevisionMeta(revision: PlainRecord) {
     return {
         id: revision.id,
         revision: revision.revision,
@@ -21,7 +25,7 @@ function toRevisionMeta(revision) {
     };
 }
 
-function toDetail(profile, options = {}) {
+function toDetail(profile: PlainRecord, options: PlainRecord = {}) {
     const {
         latestRevision = null,
         draftRevision = null,
@@ -40,8 +44,8 @@ function toDetail(profile, options = {}) {
     };
 }
 
-function toAuditLog(log) {
-    let meta = {};
+function toAuditLog(log: PlainRecord) {
+    let meta: PlainRecord = {};
     try {
         meta = log.meta_json ? JSON.parse(log.meta_json) : {};
     } catch {

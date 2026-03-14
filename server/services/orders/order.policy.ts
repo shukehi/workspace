@@ -1,8 +1,16 @@
+export {};
+
 const { ORDER_STATUSES, ORDER_PENDING_STATUSES } = require('../../shared/constants/order');
 const { API_ERROR_CODES } = require('../../shared/contracts/api');
 
+type OrderStatus = string;
+
 class InvalidStatusTransitionError extends Error {
-    constructor(fromStatus, toStatus) {
+    code: string;
+    fromStatus: string;
+    toStatus: string;
+
+    constructor(fromStatus: string, toStatus: string) {
         super(API_ERROR_CODES.INVALID_STATUS_TRANSITION);
         this.name = 'InvalidStatusTransitionError';
         this.code = API_ERROR_CODES.INVALID_STATUS_TRANSITION;
@@ -12,7 +20,11 @@ class InvalidStatusTransitionError extends Error {
 }
 
 class OrderEditLockedError extends Error {
-    constructor(status, fields) {
+    code: string;
+    status: string;
+    fields: string[];
+
+    constructor(status: string, fields: string[]) {
         super(API_ERROR_CODES.ORDER_EDIT_LOCKED);
         this.name = 'OrderEditLockedError';
         this.code = API_ERROR_CODES.ORDER_EDIT_LOCKED;
@@ -21,7 +33,7 @@ class OrderEditLockedError extends Error {
     }
 }
 
-const ALLOWED_STATUS_TRANSITIONS = {
+const ALLOWED_STATUS_TRANSITIONS: Record<string, Set<string>> = {
     draft: new Set(['draft', 'submitted', 'cancelled']),
     submitted: new Set(['submitted', 'processing', 'cancelled']),
     processing: new Set(['processing', 'arrived', 'cancelled']),
@@ -51,12 +63,12 @@ const COMPLETED_EDITABLE_FIELDS = new Set([
     'stocked_in_remark'
 ]);
 
-function normalizeStatusValue(status) {
+function normalizeStatusValue(status: unknown): string {
     if (status === undefined || status === null) return '';
     return String(status).trim();
 }
 
-function normalizeStatus(status, fallback = 'draft') {
+function normalizeStatus(status: unknown, fallback: OrderStatus = 'draft'): OrderStatus {
     const raw = normalizeStatusValue(status);
     if (!raw) return fallback;
     if (!ORDER_STATUSES.includes(raw)) {
@@ -65,7 +77,7 @@ function normalizeStatus(status, fallback = 'draft') {
     return raw;
 }
 
-function assertValidStatusTransition(fromStatus, toStatus) {
+function assertValidStatusTransition(fromStatus: unknown, toStatus: unknown): OrderStatus {
     const normalizedFrom = normalizeStatus(fromStatus);
     const normalizedTo = normalizeStatus(toStatus, normalizedFrom);
     const allowed = ALLOWED_STATUS_TRANSITIONS[normalizedFrom];
@@ -75,7 +87,7 @@ function assertValidStatusTransition(fromStatus, toStatus) {
     return normalizedTo;
 }
 
-function assertEditableOrderFields(order, data) {
+function assertEditableOrderFields(order: { status?: unknown } | null | undefined, data: Record<string, unknown> = {}): void {
     const currentStatus = normalizeStatus(order?.status);
     if (!['arrived', 'completed'].includes(currentStatus)) return;
 
@@ -89,7 +101,7 @@ function assertEditableOrderFields(order, data) {
     }
 }
 
-function isPendingOrderStatus(status) {
+function isPendingOrderStatus(status: string): boolean {
     return ORDER_PENDING_STATUSES.includes(status);
 }
 

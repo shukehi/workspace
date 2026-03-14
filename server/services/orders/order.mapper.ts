@@ -1,15 +1,19 @@
+export {};
+
 const { buildOrderItemKey } = require('../orderItemKey');
 
-function normalizeDateField(value) {
+type PlainRecord = Record<string, any>;
+
+function normalizeDateField(value: unknown): string | null {
     if (value === undefined || value === null || value === '') return null;
     if (value instanceof Date) return value.toISOString();
 
-    const parsed = new Date(value);
+    const parsed = new Date(value as string | number | Date);
     if (Number.isNaN(parsed.getTime())) return null;
     return parsed.toISOString();
 }
 
-function resolveOrderedQuantity(rawOrderedQuantity, rawQuantity) {
+function resolveOrderedQuantity(rawOrderedQuantity: unknown, rawQuantity: unknown): number {
     const orderedQuantity = Number(rawOrderedQuantity);
     if (Number.isFinite(orderedQuantity) && orderedQuantity > 0) {
         return orderedQuantity;
@@ -21,9 +25,9 @@ function resolveOrderedQuantity(rawOrderedQuantity, rawQuantity) {
     return 0;
 }
 
-function serializeOrderItem(item) {
+function serializeOrderItem(item: any): any {
     if (!item) return item;
-    const plain = typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
+    const plain: PlainRecord = typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
     return {
         ...plain,
         item_key: buildOrderItemKey(plain),
@@ -33,7 +37,7 @@ function serializeOrderItem(item) {
     };
 }
 
-function normalizeOrderItemForPersistence(item = {}) {
+function normalizeOrderItemForPersistence(item: PlainRecord = {}): PlainRecord {
     const quantity = Number(item.quantity || 0);
     return {
         ...item,
@@ -43,10 +47,10 @@ function normalizeOrderItemForPersistence(item = {}) {
     };
 }
 
-function serializeOrder(order) {
+function serializeOrder(order: any): any {
     if (!order) return null;
 
-    const plain = typeof order.get === 'function'
+    const plain: PlainRecord = typeof order.get === 'function'
         ? order.get({ plain: true })
         : { ...order };
 
@@ -62,7 +66,7 @@ function serializeOrder(order) {
     };
 }
 
-function normalizeOrderForLog(order, index) {
+function normalizeOrderForLog(order: PlainRecord | null | undefined, index: number): PlainRecord {
     return {
         index,
         id: order?.id,
@@ -71,7 +75,7 @@ function normalizeOrderForLog(order, index) {
     };
 }
 
-function toDuplicateOrderSummary(order) {
+function toDuplicateOrderSummary(order: PlainRecord | null | undefined): PlainRecord | null {
     if (!order) return null;
     return {
         id: order.id,

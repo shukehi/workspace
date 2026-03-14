@@ -1,3 +1,5 @@
+export {};
+
 const { buildOrderItemKey, buildLegacyOrderItemKey } = require('../orderItemKey');
 const {
   createReceiptError,
@@ -7,7 +9,9 @@ const {
   resolveOrderedQuantity,
 } = require('./inventory-receipt.mapper');
 
-function resolveReceiptOrderItems(order, payload = {}) {
+type PlainRecord = Record<string, any>;
+
+function resolveReceiptOrderItems(order: PlainRecord | null | undefined, payload: PlainRecord = {}) {
   const orderItems = Array.isArray(order?.items) ? order.items : [];
   if (orderItems.length === 0) {
     throw createReceiptError('ORDER_ITEMS_REQUIRED');
@@ -33,8 +37,8 @@ function resolveReceiptOrderItems(order, payload = {}) {
     throw createReceiptError('ORDER_ITEMS_REQUIRED');
   }
 
-  const seenOrderItemIds = new Set();
-  return payload.items.map((rawItem) => {
+  const seenOrderItemIds = new Set<number>();
+  return payload.items.map((rawItem: PlainRecord) => {
     const orderItemId = Number(rawItem?.order_item_id);
     const itemKey = String(rawItem?.item_key || '').trim();
 

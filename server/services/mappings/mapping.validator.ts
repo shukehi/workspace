@@ -1,3 +1,5 @@
+export {};
+
 const {
     adaptHandleMapping,
 } = require('./mapping.adapter');
@@ -11,29 +13,37 @@ const {
     validateLockForkMapping,
 } = sharedMappingValidatorCore;
 
-function asRecord(value) {
-    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+type UnknownRecord = Record<string, unknown>;
+
+interface MappingIssue {
+    path: string;
+    code: string;
+    message: string;
 }
 
-function toTrimmedString(value) {
+function asRecord(value: unknown): UnknownRecord {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : {};
+}
+
+function toTrimmedString(value: unknown): string {
     if (typeof value === 'string') return value.trim();
     if (value === null || value === undefined) return '';
     return String(value).trim();
 }
 
-function isPlainObject(value) {
+function isPlainObject(value: unknown): value is UnknownRecord {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function quotePathSegment(segment) {
+function quotePathSegment(segment: string): string {
     return JSON.stringify(segment);
 }
 
-function createIssue(path, code, message) {
+function createIssue(path: string, code: string, message: string): MappingIssue {
     return { path, code, message };
 }
 
-function normalizeHandleMappingKey(input) {
+function normalizeHandleMappingKey(input: unknown): string {
     return String(input || '')
         .trim()
         .toLowerCase()
@@ -42,7 +52,7 @@ function normalizeHandleMappingKey(input) {
         .replace(/\s+/g, '');
 }
 
-function validateProfileCode(profileCode) {
+function validateProfileCode(profileCode: unknown): MappingIssue[] {
     const normalized = String(profileCode || '').trim();
     if (PROFILE_CODE_LIST.includes(normalized)) return [];
     return [{
@@ -52,24 +62,24 @@ function validateProfileCode(profileCode) {
     }];
 }
 
-function parsePayload(payloadText) {
+function parsePayload(payloadText: unknown): UnknownRecord {
     try {
-        const parsed = JSON.parse(payloadText || '{}');
-        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        const parsed = JSON.parse(String(payloadText || '{}'));
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as UnknownRecord : {};
     } catch {
         return {};
     }
 }
 
-function serializePayload(payload) {
+function serializePayload(payload: unknown): string {
     const normalized = payload && typeof payload === 'object' && !Array.isArray(payload)
         ? payload
         : {};
     return JSON.stringify(normalized);
 }
 
-function validateHandleMapping(value) {
-    const issues = [];
+function validateHandleMapping(value: unknown): MappingIssue[] {
+    const issues: MappingIssue[] = [];
 
     if (!isPlainObject(value)) {
         issues.push(createIssue('$', 'invalid-type', '拉手映射必须是对象'));
@@ -115,8 +125,8 @@ function validateHandleMapping(value) {
         issues.push(createIssue('fallbackModelSources', 'invalid-type', 'fallbackModelSources 必须是数组'));
     }
 
-    const keywordSeen = new Set();
-    adapted.singleKeywords.forEach((keyword, index) => {
+    const keywordSeen = new Set<string>();
+    adapted.singleKeywords.forEach((keyword: string, index: number) => {
         if (!keyword) {
             issues.push(createIssue(`singleKeywords[${index}]`, 'required', 'singleKeywords 不能为空字符串'));
             return;
@@ -129,7 +139,7 @@ function validateHandleMapping(value) {
         keywordSeen.add(normalized);
     });
 
-    adapted.doubleKeywords.forEach((keyword, index) => {
+    adapted.doubleKeywords.forEach((keyword: string, index: number) => {
         if (!keyword) {
             issues.push(createIssue(`doubleKeywords[${index}]`, 'required', 'doubleKeywords 不能为空字符串'));
             return;
@@ -142,8 +152,8 @@ function validateHandleMapping(value) {
         keywordSeen.add(normalized);
     });
 
-    const exportKeywordSeen = new Set();
-    adapted.exportCustomerKeywords.forEach((keyword, index) => {
+    const exportKeywordSeen = new Set<string>();
+    adapted.exportCustomerKeywords.forEach((keyword: string, index: number) => {
         if (!keyword) {
             issues.push(createIssue(`exportCustomerKeywords[${index}]`, 'required', 'exportCustomerKeywords 不能为空字符串'));
             return;
@@ -156,8 +166,8 @@ function validateHandleMapping(value) {
         exportKeywordSeen.add(normalized);
     });
 
-    const placeholderKeywordSeen = new Set();
-    adapted.placeholderKeywords.forEach((keyword, index) => {
+    const placeholderKeywordSeen = new Set<string>();
+    adapted.placeholderKeywords.forEach((keyword: string, index: number) => {
         if (!keyword) {
             issues.push(createIssue(`placeholderKeywords[${index}]`, 'required', 'placeholderKeywords 不能为空字符串'));
             return;
@@ -170,8 +180,8 @@ function validateHandleMapping(value) {
         placeholderKeywordSeen.add(normalized);
     });
 
-    const fallbackSourceSeen = new Set();
-    adapted.fallbackModelSources.forEach((source, index) => {
+    const fallbackSourceSeen = new Set<string>();
+    adapted.fallbackModelSources.forEach((source: string, index: number) => {
         if (source !== 'remark' && source !== 'xsbz') {
             issues.push(createIssue(`fallbackModelSources[${index}]`, 'invalid-value', 'fallbackModelSources 仅允许 remark 或 xsbz'));
             return;
@@ -224,8 +234,8 @@ function validateHandleMapping(value) {
         }
     });
 
-    const mappingSeen = new Map();
-    Object.entries(adapted.mappings).forEach(([name, mapping]) => {
+    const mappingSeen = new Map<string, string>();
+    Object.entries(adapted.mappings).forEach(([name, mapping]: [string, any]) => {
         const path = `mappings[${quotePathSegment(name)}]`;
         const normalized = normalizeHandleMappingKey(name);
         const existing = mappingSeen.get(normalized);
@@ -245,7 +255,7 @@ function validateHandleMapping(value) {
     return issues;
 }
 
-function validateMappingPayload(profileCode, payload) {
+function validateMappingPayload(profileCode: unknown, payload: unknown): MappingIssue[] {
     const normalizedProfileCode = String(profileCode || '').trim();
     const profileCodeErrors = validateProfileCode(normalizedProfileCode);
     if (profileCodeErrors.length > 0) return profileCodeErrors;

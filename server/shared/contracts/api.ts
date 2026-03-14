@@ -16,9 +16,23 @@ const API_ERROR_CODES = {
     INVALID_ID: 'INVALID_ID',
     INTERNAL_ERROR: 'INTERNAL_ERROR',
     ERP_PROXY_FAILED: 'ERP_PROXY_FAILED',
-};
+} as const;
 
-function createApiSuccessResponse(data, message) {
+type ApiErrorCode = typeof API_ERROR_CODES[keyof typeof API_ERROR_CODES];
+
+interface ApiSuccessResponse<T> {
+    success: true;
+    data: T;
+    message?: string;
+}
+
+type ApiErrorExtras = Record<string, unknown>;
+
+interface ApiErrorResponse extends ApiErrorExtras {
+    error: ApiErrorCode;
+}
+
+function createApiSuccessResponse<T>(data: T, message?: string): ApiSuccessResponse<T> {
     return {
         success: true,
         data,
@@ -26,7 +40,7 @@ function createApiSuccessResponse(data, message) {
     };
 }
 
-function createApiErrorResponse(code, extras = {}) {
+function createApiErrorResponse(code: ApiErrorCode, extras: ApiErrorExtras = {}): ApiErrorResponse {
     return {
         error: code,
         ...extras,

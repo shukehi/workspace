@@ -1,7 +1,11 @@
+export {};
+
 const { Op } = require('sequelize');
 
-function buildInventoryReceiptListQuery(query = {}) {
-  const where = {};
+type QueryInput = Record<string, unknown>;
+
+function buildInventoryReceiptListQuery(query: QueryInput = {}) {
+  const where: Record<string | symbol, unknown> = {};
 
   if (query.orderId) where.order_id = Number(query.orderId);
   if (query.orderNo) where.order_no = String(query.orderNo).trim();

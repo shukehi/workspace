@@ -1,10 +1,12 @@
+export {};
+
 const PROFILE_CODES = Object.freeze({
     PACKAGING: 'packaging',
     CYLINDER: 'cylinder',
     LOCK: 'lock',
     LOCK_FORK: 'lock_fork',
     HANDLE: 'handle'
-});
+} as const);
 
 const PROFILE_CODE_LIST = Object.freeze(Object.values(PROFILE_CODES));
 
@@ -19,7 +21,7 @@ const PROFILE_DISPLAY_NAMES = Object.freeze({
 const PROFILE_STATUSES = Object.freeze({
     ACTIVE: 'active',
     INACTIVE: 'inactive'
-});
+} as const);
 
 const PROFILE_STATUS_LIST = Object.freeze(Object.values(PROFILE_STATUSES));
 
@@ -27,7 +29,7 @@ const REVISION_STATES = Object.freeze({
     DRAFT: 'draft',
     PUBLISHED: 'published',
     ARCHIVED: 'archived'
-});
+} as const);
 
 const REVISION_STATE_LIST = Object.freeze(Object.values(REVISION_STATES));
 
@@ -36,20 +38,20 @@ const AUDIT_ACTIONS = Object.freeze({
     UPDATE_DRAFT: 'update_draft',
     PUBLISH: 'publish',
     ROLLBACK: 'rollback'
-});
+} as const);
 
 const UNMATCHED_EVENT_STATUSES = Object.freeze({
     OPEN: 'open',
     RESOLVED: 'resolved',
     IGNORED: 'ignored'
-});
+} as const);
 
 const UNMATCHED_EVENT_STATUS_LIST = Object.freeze(Object.values(UNMATCHED_EVENT_STATUSES));
 
 const SCHEMA_VERSION = 1;
 
-function getProfileDisplayName(profileCode) {
-    return PROFILE_DISPLAY_NAMES[profileCode] || profileCode;
+function getProfileDisplayName(profileCode: string): string {
+    return PROFILE_DISPLAY_NAMES[profileCode as keyof typeof PROFILE_DISPLAY_NAMES] || profileCode;
 }
 
 module.exports = {
