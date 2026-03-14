@@ -40,6 +40,10 @@
 7. `docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`
 8. `docs/roadmaps/WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md`
 
+### 3.3 阶段总结
+
+1. `docs/progress/REFACTOR_PROGRAM_SUMMARY_2026-03-13.md`
+
 ## 4. 推荐执行顺序
 
 建议严格按以下顺序推进：
@@ -159,6 +163,21 @@ Week N
 2. 存在外部依赖、环境问题、回归失败时标记为 `blocked`，并写清 Blocking。
 3. 每次状态变更都要同步 PR / Issue 链接，避免口头追踪。
 4. 跨周未完成项不得直接顺延，必须在 Notes 中说明遗留范围和风险。
+
+## 7.1 当前状态快照
+
+基于当前分支实现和周清单记录，当前状态更接近下面这个快照：
+
+1. Week 1 - Status: in_progress | 已完成共享契约落点与 Procurement 样板拆分，仍待更完整周级验收
+2. Week 2 - Status: in_progress | 已完成订单服务模块化拆分，仍待更完整周级验收
+3. Week 3 - Status: in_progress | 已完成订单域 controller / error / validation 管线，仍待更完整周级验收
+4. Week 4 - Status: in_progress | 已完成 inventory 域复制模式第一轮，仍待更完整周级验收
+5. Week 5 - Status: in_progress | 已完成 mappings 共享规则核心第一轮，仍待更完整周级验收
+6. Week 6 - Status: in_progress | 已完成 formulas manager 收敛与 migration 基线，仍待更完整周级验收
+7. Week 7 - Status: in_progress | 已完成 source-analysis runtime/materials 页面状态第一轮收敛，仍待更完整周级验收
+8. Week 8 - Status: in_progress | 已完成 compatibility shell 退场清单、guard 与落位指南第一轮固化
+
+当前所有周仍保留 `in_progress`，不是因为结构成果不足，而是因为统一的 `type-check / test / build / smoke` 退出标准还没有按周完全补齐。
 
 ## 8. 每周统一验收标准
 

@@ -57,6 +57,7 @@
 
 阶段性总结、里程碑进度与结果沉淀。
 
+- [REFACTOR_PROGRAM_SUMMARY_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/REFACTOR_PROGRAM_SUMMARY_2026-03-13.md)
 - [PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md)
 - [SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md](/Users/aries/Dve/workspace/docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)
 
