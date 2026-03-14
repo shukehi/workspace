@@ -17,7 +17,6 @@ const MappingAuditLog = require('./MappingAuditLog');
 const MappingUnmatchedEvent = require('./MappingUnmatchedEvent');
 const { runMigrations } = require('../db/migrate');
 
-// Define Relationships
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
 Order.hasMany(OrderIdempotencyKey, { foreignKey: 'order_id', as: 'idempotencyKeys', onDelete: 'CASCADE' });
@@ -38,15 +37,11 @@ MaterialCatalogRevision.belongsTo(MaterialCatalogProfile, { foreignKey: 'profile
 MaterialCatalogProfile.hasMany(MaterialCatalogAuditLog, { foreignKey: 'profile_id', as: 'auditLogs', onDelete: 'CASCADE' });
 MaterialCatalogAuditLog.belongsTo(MaterialCatalogProfile, { foreignKey: 'profile_id' });
 
-// Function to sync database
 const initDB = async () => {
     try {
         await sequelize.authenticate();
         console.log('📦 Database connection establishment... OK');
 
-        // Safe sync strategy for SQLite:
-        // 1) create missing tables
-        // 2) apply additive migrations manually (no table rebuild)
         await sequelize.sync();
         await runMigrations(sequelize);
         console.log('✅ Database synchronized');

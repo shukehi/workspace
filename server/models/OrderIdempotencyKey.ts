@@ -1,7 +1,14 @@
+import type { ModelDefined } from 'sequelize';
+
+import type {
+    OrderIdempotencyKeyAttributes,
+    OrderIdempotencyKeyCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const OrderIdempotencyKey = sequelize.define('OrderIdempotencyKey', {
+const OrderIdempotencyKey: ModelDefined<OrderIdempotencyKeyAttributes, OrderIdempotencyKeyCreationAttributes> = sequelize.define('OrderIdempotencyKey', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,

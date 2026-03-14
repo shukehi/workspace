@@ -1,7 +1,14 @@
+import type { ModelDefined } from 'sequelize';
+
+import type {
+    OrderAttributes,
+    OrderCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Order = sequelize.define('Order', {
+const Order: ModelDefined<OrderAttributes, OrderCreationAttributes> = sequelize.define('Order', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -37,7 +44,7 @@ const Order = sequelize.define('Order', {
         defaultValue: ''
     },
     metadata: {
-        type: DataTypes.JSON, // Use JSON type for metadata
+        type: DataTypes.JSON,
         defaultValue: {}
     },
     created_at: {
@@ -76,7 +83,7 @@ const Order = sequelize.define('Order', {
     }
 }, {
     tableName: 'orders',
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'
 });

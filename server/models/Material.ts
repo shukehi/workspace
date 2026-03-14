@@ -1,7 +1,14 @@
+import type { ModelDefined } from 'sequelize';
+
+import type {
+    MaterialAttributes,
+    MaterialCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Material = sequelize.define('Material', {
+const Material: ModelDefined<MaterialAttributes, MaterialCreationAttributes> = sequelize.define('Material', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -49,7 +56,7 @@ const Material = sequelize.define('Material', {
         defaultValue: 100
     },
     aliases: {
-        type: DataTypes.JSON, // Store list of strings ["alias1", "alias2"]
+        type: DataTypes.JSON,
         defaultValue: []
     }
 }, {

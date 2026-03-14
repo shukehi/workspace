@@ -1,7 +1,14 @@
+import type { ModelDefined } from 'sequelize';
+
+import type {
+    InventoryReceiptAttributes,
+    InventoryReceiptCreationAttributes,
+} from './types';
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const InventoryReceipt = sequelize.define('InventoryReceipt', {
+const InventoryReceipt: ModelDefined<InventoryReceiptAttributes, InventoryReceiptCreationAttributes> = sequelize.define('InventoryReceipt', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,

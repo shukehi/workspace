@@ -1,6 +1,6 @@
 # 后端 TypeScript 第一批迁移进度（2026-03-13）
 
-> 状态：进行中计划。
+> 状态：阶段计划，部分已落地。
 > 对应任务：`docs/governance/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md` 中“第一批：订单 / 库存 / 物料主链路”。
 
 ## 1. 目标范围
@@ -26,11 +26,40 @@
 
 1. 已创建迁移分支：`codex/backend-ts-batch1`
 2. 已完成迁移策略文档与任务拆解文档
-3. 尚未开始第一批代码迁移
+3. 已完成第一步公共类型文件：`server/models/types.ts`
+4. 已切换后端运行脚本到 `tsx`，为逐步加载 `.ts` 模块提供最小接线
+5. 已完成第一个真实模型迁移：`server/models/Material.ts`
+6. 已完成第二个真实模型迁移：`server/models/OrderIdempotencyKey.ts`
+7. 已完成第三个真实模型迁移：`server/models/InventoryReceipt.ts`
+8. 已完成第四个真实模型迁移：`server/models/OrderItem.ts`
+9. 已完成第五个真实模型迁移：`server/models/Order.ts`
+10. 已完成模型汇总入口迁移：`server/models/index.ts`
+11. 已完成第一个 repository 迁移：`server/services/inventory/inventory.repository.ts`
+12. 已完成第二个 repository 迁移：`server/services/inventory/inventory-receipt.repository.ts`
+13. 已完成第三个 repository 迁移：`server/services/orders/order.repository.ts`
+14. 第一批计划范围内的 10 个目标文件已完成迁移
 
 ## 3. 已完成项
 
-当前暂无代码迁移完成项。
+已完成：
+
+1. 新增 `server/models/types.ts`
+2. 固定第一批核心模型的基础 `Attributes / CreationAttributes` 类型
+3. 新增 `tsconfig.server.json` 与 `npm run type-check:server`
+4. 后端运行脚本已切到 `tsx`，保持 JS 入口不变
+5. 已将 `server/models/Material.js` 迁移为 `server/models/Material.ts`
+6. 已将 `server/models/OrderIdempotencyKey.js` 迁移为 `server/models/OrderIdempotencyKey.ts`
+7. 已将 `server/models/InventoryReceipt.js` 迁移为 `server/models/InventoryReceipt.ts`
+8. 已将 `server/models/OrderItem.js` 迁移为 `server/models/OrderItem.ts`
+9. 已将 `server/models/Order.js` 迁移为 `server/models/Order.ts`
+10. 已将 `server/models/index.js` 迁移为 `server/models/index.ts`
+11. 已将 `server/services/inventory/inventory.repository.js` 迁移为 `server/services/inventory/inventory.repository.ts`
+12. 已将 `server/services/inventory/inventory-receipt.repository.js` 迁移为 `server/services/inventory/inventory-receipt.repository.ts`
+13. 已将 `server/services/orders/order.repository.js` 迁移为 `server/services/orders/order.repository.ts`
+14. 已执行 `npm run type-check:server`
+15. 已执行 `node --require tsx/cjs --test --test-concurrency=1 tests/order-service.test.js tests/order-routes.test.js tests/inventory-route.test.js`
+16. 上述定向测试全部通过（53/53）
+17. 当前未改动数据库 schema 和业务语义
 
 ## 4. 当前建议顺序
 
@@ -42,6 +71,10 @@
 6. 迁 `Order`
 7. 迁 `server/models/index.ts`
 8. 迁 repository
+
+当前结果：
+
+1. 上述顺序已执行完成
 
 ## 5. 当前约束
 
@@ -76,6 +109,7 @@
 
 建议下一步从：
 
-1. 新增 `server/models/types.ts`
+1. 评估是否提交第一批迁移
+2. 如继续扩展，准备第二批（formulas）进度文档与代码迁移入口
 
-开始，先建立第一批模型的公共 `Attributes / CreationAttributes` 基础类型。
+开始，进入下一批前，先收敛本批提交边界。
