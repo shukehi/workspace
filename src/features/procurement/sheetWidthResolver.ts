@@ -8,6 +8,11 @@ const SEMANTIC_BASE_WIDTHS = sharedSchema.semanticWidths as Record<SheetColumnSe
 const CATEGORY_BASELINE_TOTAL_WIDTH = sharedSchema.categoryBaselineTotalWidth as Record<PrintCategory, number>;
 const COLUMN_FALLBACK_WIDTH = 120;
 
+/**
+ * 打印模式下的最大表格宽度（像素）
+ */
+export const PRINT_TABLE_MAX_WIDTH = 680;
+
 function buildCategoryDefaultWidths(category: PrintCategory) {
   const schema = getSheetSchema(category);
   const defaults: Record<string, number> = {};
@@ -97,4 +102,35 @@ export function resolveSheetWidths(
 
 export function resolveInitialWidths(categoryRaw: string | undefined, metadataPrintWidths: any) {
   return resolveSheetWidths(categoryRaw, metadataPrintWidths, { preferLocalWhenMissing: true });
+}
+
+/**
+ * 获取特定列的最小宽度约束
+ */
+function getColumnMinWidth(key: string) {
+  if (key === 'no') return 36;
+  if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 62;
+  if (key === 'unit') return 50;
+  if (key === 'remark') return 120;
+  return 82;
+}
+
+/**
+ * 将列宽等比例缩放以适配打印宽度
+ */
+export function fitPrintColumnWidths(widths: Record<string, number>, maxWidth = PRINT_TABLE_MAX_WIDTH) {
+  const entries = Object.entries(widths);
+  const total = entries.reduce((sum, [, value]) => sum + Number(value || 0), 0);
+  
+  if (total <= maxWidth || total <= 0) return widths;
+
+  const scale = maxWidth / total;
+  const next: Record<string, number> = {};
+  
+  entries.forEach(([key, value]) => {
+    const scaled = Math.floor(Number(value || 0) * scale);
+    next[key] = Math.max(getColumnMinWidth(key), scaled);
+  });
+  
+  return next;
 }
