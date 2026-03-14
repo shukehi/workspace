@@ -1,4 +1,4 @@
-import type { Transaction } from 'sequelize';
+import type { Transaction, Model } from 'sequelize';
 import { Op } from 'sequelize';
 import type {
     MaterialAttributes,
@@ -6,32 +6,38 @@ import type {
 } from '../../models/types';
 
 const { Material } = require('../../models');
+const sequelize = require('../../config/database');
 
 /**
- * 物料数据访问层 (Repository)
+ * 内部模型实例类型，仅在 Repository 层可见
+ */
+interface MaterialInstance extends Model<MaterialAttributes, MaterialCreationAttributes>, MaterialAttributes {}
+
+/**
+ * 物料数据访问层 (Repository) - 最高标准封装
  */
 export class MaterialRepository {
     /**
      * 根据 ID 查找物料
      */
-    static async findById(id: number, transaction?: Transaction): Promise<MaterialAttributes | null> {
-        return Material.findByPk(id, transaction ? { transaction } : {});
+    static async findById(id: number, transaction?: Transaction): Promise<MaterialInstance | null> {
+        return Material.findByPk(id, { transaction });
     }
 
     /**
      * 根据编码查找物料
      */
-    static async findByCode(code: string, transaction?: Transaction): Promise<MaterialAttributes | null> {
+    static async findByCode(code: string, transaction?: Transaction): Promise<MaterialInstance | null> {
         return Material.findOne({
             where: { code },
-            ...(transaction ? { transaction } : {})
+            transaction
         });
     }
 
     /**
-     * 根据名称或模型精确匹配
+     * 根据名称、模型或编码精确匹配
      */
-    static async findOneExact(rawName: string, transaction?: Transaction): Promise<MaterialAttributes | null> {
+    static async findOneExact(rawName: string, transaction?: Transaction): Promise<MaterialInstance | null> {
         return Material.findOne({
             where: {
                 [Op.or]: [
@@ -40,14 +46,14 @@ export class MaterialRepository {
                     { name: rawName }
                 ]
             },
-            ...(transaction ? { transaction } : {})
+            transaction
         });
     }
 
     /**
      * 搜索物料
      */
-    static async search(query: string, limit = 50): Promise<MaterialAttributes[]> {
+    static async search(query: string, limit = 50): Promise<MaterialInstance[]> {
         const where: any = {};
         if (query) {
             where[Op.or] = [
@@ -63,15 +69,15 @@ export class MaterialRepository {
     /**
      * 获取所有物料
      */
-    static async findAll(): Promise<MaterialAttributes[]> {
+    static async findAll(): Promise<MaterialInstance[]> {
         return Material.findAll();
     }
 
     /**
      * 创建物料
      */
-    static async create(payload: MaterialCreationAttributes, transaction?: Transaction): Promise<MaterialAttributes> {
-        return Material.create(payload, transaction ? { transaction } : {});
+    static async create(payload: MaterialCreationAttributes, transaction?: Transaction): Promise<MaterialInstance> {
+        return Material.create(payload, { transaction });
     }
 
     /**
@@ -80,26 +86,49 @@ export class MaterialRepository {
     static async update(id: number, payload: Partial<MaterialAttributes>, transaction?: Transaction): Promise<[number]> {
         return Material.update(payload, {
             where: { id },
-            ...(transaction ? { transaction } : {})
+            transaction
         });
     }
 
     /**
-     * 根据别名查找物料 (TODO: 算法增强阶段实现)
+     * 根据别名查找物料 (SQLite 稳健版)
      */
-    static async findByAlias(alias: string, transaction?: Transaction): Promise<MaterialAttributes | null> {
-        // 使用 JSON 包含逻辑查询 aliases 数组
+    static async findByAlias(alias: string, transaction?: Transaction): Promise<MaterialInstance | null> {
+        // 使用 sequelize.escape 确保 alias 安全
+        // 移除表名前缀以增强 SQL 兼容性
+        const escapedAlias = sequelize.escape(alias);
         return Material.findOne({
-            where: sequelize.where(
-                sequelize.fn('JSON_EXTRACT', sequelize.col('aliases'), '$'),
-                { [Op.like]: `%${alias}%` }
-            ),
-            ...(transaction ? { transaction } : {})
+            where: sequelize.literal(`EXISTS (SELECT 1 FROM json_each(aliases) WHERE value = ${escapedAlias})`),
+            transaction
+        });
+    }
+
+    /**
+     * 执行模糊匹配搜索 (排序权重增强版)
+     */
+    static async findFuzzy(rawName: string, transaction?: Transaction): Promise<MaterialInstance | null> {
+        const escapedName = sequelize.escape(rawName);
+
+        return Material.findOne({
+            where: {
+                [Op.or]: [
+                    { name: { [Op.like]: `%${rawName}%` } },
+                    { model: { [Op.like]: `%${rawName}%` } },
+                    { code: { [Op.like]: `%${rawName}%` } }
+                ]
+            },
+            order: [
+                // 优先级排序：1.全等 2.前缀匹配 3.包含
+                [sequelize.literal(`CASE 
+                    WHEN name = ${escapedName} THEN 1 
+                    WHEN name LIKE ${escapedName} || '%' THEN 2 
+                    ELSE 3 END`), 'ASC'],
+                ['updatedAt', 'DESC']
+            ],
+            transaction
         });
     }
 }
 
-// 为了保持与现有 JS 代码的兼容性，同时提供 module.exports
-const sequelize = require('../../config/database');
 module.exports = MaterialRepository;
 export default MaterialRepository;

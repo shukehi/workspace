@@ -28,21 +28,25 @@
     *   在 TS 核心文件中添加 `module.exports` 以确保现有 JS 路由/控制器能够无缝调用。
     *   同步重构了 `order.mapper.ts` 的导出，解决了 `normalizeError.ts` 的引用依赖。
 
-### 阶段二：物料模块重构与算法增强（业务价值提升）
+### 阶段二：物料模块重构与算法增强（业务价值提升） [IN PROGRESS]
 **目标**：将遗留的 `MaterialService.js` 升级为符合模式规范的 TS 模块，并补齐智能匹配缺项。
 
-**优化步骤**：
-1.  **引入 Repository 模式**：
+**已执行步骤**：
+1.  **引入 Repository 模式**： [DONE]
     *   新建 `server/services/materials/material.repository.ts`。
-    *   将 `MaterialService.js` 中直接调用 `sequelize` 的代码（如 `findAll`, `create`, `update`）迁移至 Repository。
-2.  **Service 层 TS 迁移**：
-    *   将 `MaterialService.js` 改名为 `MaterialService.ts`。
-    *   注入 `MaterialRepository`，并为所有方法添加完整的输入输出类型定义。
-3.  **智能匹配算法升级 (Smart Match)**：
-    *   **别名支持**：在数据库中增加别名字段或关联表，在 `findSmartMatch` 中引入别名查询。
-    *   **模糊搜索**：引入 `Op.iLike` 或简单的权重匹配算法，实现当精确匹配失败时的模糊降级方案。
-4.  **自动化验证**：
-    *   编写 `material-smart-match.test.ts`，覆盖精确匹配、别名匹配和模糊匹配场景。
+    *   封装了 `findById`, `findByCode`, `findOneExact`, `findByAlias` 等数据访问逻辑。
+2.  **Service 层 TS 迁移**： [DONE]
+    *   将 `MaterialService.js` 彻底迁移至 `MaterialService.ts`。
+    *   注入了 `MaterialRepository`，并对业务逻辑进行了规范化标注。
+3.  **别名匹配初步实现**： [DONE]
+    *   在 `findSmartMatch` 中引入了基于 `aliases` JSON 字段的查询逻辑。
+
+**待执行步骤**：
+1.  **模糊搜索算法增强**： [TODO]
+    *   引入简单的权重匹配或字符串相似度算法，以处理模糊场景下的物料识别。
+2.  **自动化验证**： [TODO]
+    *   编写专门的智能匹配单元测试用例。
+
 
 ### 阶段三：架构模式解耦与导出一致性（可维护性增强）
 **目标**：重构巨型单体逻辑，统一服务层的导出风格。
