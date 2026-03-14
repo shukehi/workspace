@@ -1,7 +1,24 @@
+export {};
+
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
 
-function normalizeIssues(issues, target) {
+interface RequestIssue {
+    field: string;
+    message: string;
+}
+
+interface NormalizedIssue extends RequestIssue {
+    target: string;
+}
+
+interface ValidatorsMap {
+    params?: (value: Record<string, unknown>) => RequestIssue[];
+    query?: (value: Record<string, unknown>) => RequestIssue[];
+    body?: (value: unknown) => RequestIssue[];
+}
+
+function normalizeIssues(issues: RequestIssue[], target: string): NormalizedIssue[] {
     return issues.map((issue) => ({
         target,
         field: issue.field,
@@ -9,9 +26,9 @@ function normalizeIssues(issues, target) {
     }));
 }
 
-function validateRequest(validators = {}) {
-    return function requestValidationMiddleware(req, res, next) {
-        const issues = [];
+function validateRequest(validators: ValidatorsMap = {}) {
+    return function requestValidationMiddleware(req: any, res: any, next: (error?: unknown) => unknown) {
+        const issues: NormalizedIssue[] = [];
 
         if (typeof validators.params === 'function') {
             issues.push(...normalizeIssues(validators.params(req.params || {}), 'params'));

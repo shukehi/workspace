@@ -1,8 +1,12 @@
+export {};
+
 const AppError = require('./AppError');
 const ERROR_CODES = require('./errorCodes');
 const { toDuplicateOrderSummary } = require('../../services/orders/order.mapper');
 
-function fromKnownCode(error) {
+type PlainRecord = Record<string, any>;
+
+function fromKnownCode(error: PlainRecord) {
     switch (error?.code) {
     case ERROR_CODES.DUPLICATE_ORDER:
         return new AppError({
@@ -110,19 +114,19 @@ function fromKnownCode(error) {
     }
 }
 
-function normalizeError(error) {
+function normalizeError(error: unknown) {
     if (error instanceof AppError) return error;
 
-    const known = fromKnownCode(error);
+    const known = fromKnownCode((error || {}) as PlainRecord);
     if (known) return known;
 
-    if (error?.name === 'SequelizeValidationError') {
+    if ((error as PlainRecord)?.name === 'SequelizeValidationError') {
         return new AppError({
             code: ERROR_CODES.VALIDATION_ERROR,
             status: 400,
             details: {
-                issues: Array.isArray(error.errors)
-                    ? error.errors.map((item) => ({
+                issues: Array.isArray((error as PlainRecord).errors)
+                    ? (error as PlainRecord).errors.map((item: PlainRecord) => ({
                         message: item.message,
                         path: item.path,
                     }))
@@ -135,7 +139,7 @@ function normalizeError(error) {
     return new AppError({
         code: ERROR_CODES.INTERNAL_ERROR,
         status: 500,
-        message: error?.message || ERROR_CODES.INTERNAL_ERROR,
+        message: (error as PlainRecord)?.message || ERROR_CODES.INTERNAL_ERROR,
         expose: false,
         originalError: error,
     });

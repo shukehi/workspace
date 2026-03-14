@@ -1,9 +1,19 @@
-function normalizeKeyPart(value) {
+export {};
+
+type OrderItemLike = {
+    material_id?: unknown;
+    name?: unknown;
+    type?: unknown;
+    spec?: unknown;
+    model?: unknown;
+};
+
+function normalizeKeyPart(value: unknown): string {
     if (value === undefined || value === null) return '';
     return String(value).trim();
 }
 
-function buildOrderItemKey(item = {}) {
+function buildOrderItemKey(item: OrderItemLike = {}): string {
     return [
         normalizeKeyPart(item.material_id),
         normalizeKeyPart(item.name || item.type),
@@ -11,7 +21,7 @@ function buildOrderItemKey(item = {}) {
     ].join('|');
 }
 
-function buildLegacyOrderItemKey(item = {}) {
+function buildLegacyOrderItemKey(item: OrderItemLike = {}): string {
     return [
         '',
         normalizeKeyPart(item.name || item.type),

@@ -1,3 +1,5 @@
+export {};
+
 const { API_ERROR_CODES } = require('../../shared/contracts/api');
 
 module.exports = {

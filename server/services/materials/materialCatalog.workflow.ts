@@ -1,3 +1,5 @@
+export {};
+
 const MaterialCatalogRepository = require('./materialCatalog.repository');
 
 const PROFILE_CODE = 'materials';
@@ -7,32 +9,47 @@ const AUDIT_ACTIONS = Object.freeze({
     CREATE_DRAFT: 'create_draft',
     UPDATE_DRAFT: 'update_draft',
     PUBLISH: 'publish'
-});
+} as const);
 
-function operatorFromRequest(req) {
+type PlainRecord = Record<string, any>;
+
+interface DraftParams {
+    revision?: number | string | null;
+    payload: PlainRecord;
+    changeNote?: string;
+    operator?: string;
+}
+
+interface PublishParams {
+    fromRevision: number | string;
+    changeNote?: string;
+    operator?: string;
+}
+
+function operatorFromRequest(req?: PlainRecord): string {
     const fromHeader = req?.headers?.['x-operator'] || req?.headers?.['x-user'];
     return String(fromHeader || 'system-admin');
 }
 
-function parsePayload(payloadJson) {
+function parsePayload(payloadJson: unknown): PlainRecord {
     if (!payloadJson) return {};
     try {
-        const parsed = JSON.parse(payloadJson);
-        return parsed && typeof parsed === 'object' ? parsed : {};
+        const parsed = JSON.parse(String(payloadJson));
+        return parsed && typeof parsed === 'object' ? parsed as PlainRecord : {};
     } catch {
         return {};
     }
 }
 
-function serializePayload(payload) {
+function serializePayload(payload: unknown): string {
     return JSON.stringify(payload && typeof payload === 'object' ? payload : {});
 }
 
-function normalizePayload(payload) {
-    return payload && typeof payload === 'object' ? payload : {};
+function normalizePayload(payload: unknown): PlainRecord {
+    return payload && typeof payload === 'object' ? payload as PlainRecord : {};
 }
 
-async function ensureProfile(transaction) {
+async function ensureProfile(transaction?: unknown): Promise<PlainRecord> {
     let profile = await MaterialCatalogRepository.findProfileByCode(PROFILE_CODE, transaction);
     if (profile) return profile;
 
@@ -45,7 +62,7 @@ async function ensureProfile(transaction) {
     return profile;
 }
 
-async function seedFromLegacyIfNeeded(transaction) {
+async function seedFromLegacyIfNeeded(transaction?: unknown): Promise<{ profile: PlainRecord; seeded: boolean }> {
     const profile = await ensureProfile(transaction);
     const latest = await MaterialCatalogRepository.findLatestRevision(profile.id, transaction);
     if (latest) return { profile, seeded: false };
@@ -77,7 +94,7 @@ async function seedFromLegacyIfNeeded(transaction) {
     return { profile, seeded: true };
 }
 
-function toRevisionMeta(revision) {
+function toRevisionMeta(revision?: PlainRecord | null): PlainRecord | null {
     return revision ? {
         revision: revision.revision,
         state: revision.state,
@@ -87,7 +104,7 @@ function toRevisionMeta(revision) {
     } : null;
 }
 
-function toAuditLog(log) {
+function toAuditLog(log: PlainRecord): PlainRecord {
     return {
         id: log.id,
         action: log.action,
@@ -99,8 +116,8 @@ function toAuditLog(log) {
     };
 }
 
-async function getPublishedMaterialsCatalog() {
-    return MaterialCatalogRepository.withTransaction(async (transaction) => {
+async function getPublishedMaterialsCatalog(): Promise<PlainRecord> {
+    return MaterialCatalogRepository.withTransaction(async (transaction: unknown) => {
         const { profile } = await seedFromLegacyIfNeeded(transaction);
         const published = await MaterialCatalogRepository.findPublishedRevision(profile.id, transaction);
         if (!published) {
@@ -110,8 +127,8 @@ async function getPublishedMaterialsCatalog() {
     });
 }
 
-async function getMaterialsCatalogDetail() {
-    return MaterialCatalogRepository.withTransaction(async (transaction) => {
+async function getMaterialsCatalogDetail(): Promise<PlainRecord> {
+    return MaterialCatalogRepository.withTransaction(async (transaction: unknown) => {
         const { profile } = await seedFromLegacyIfNeeded(transaction);
         const latest = await MaterialCatalogRepository.findLatestRevision(profile.id, transaction);
         const draft = await MaterialCatalogRepository.findDraftRevision(profile.id, transaction);
@@ -133,8 +150,8 @@ async function getMaterialsCatalogDetail() {
     });
 }
 
-async function updateDraft({ revision, payload, changeNote, operator }) {
-    return MaterialCatalogRepository.withTransaction(async (transaction) => {
+async function updateDraft({ revision, payload, changeNote, operator }: DraftParams): Promise<PlainRecord> {
+    return MaterialCatalogRepository.withTransaction(async (transaction: unknown) => {
         const { profile } = await seedFromLegacyIfNeeded(transaction);
         const latest = await MaterialCatalogRepository.findLatestRevision(profile.id, transaction);
         const expectedRevision = revision === undefined || revision === null ? null : Number(revision);
@@ -188,8 +205,8 @@ async function updateDraft({ revision, payload, changeNote, operator }) {
     });
 }
 
-async function publish({ fromRevision, changeNote, operator }) {
-    return MaterialCatalogRepository.withTransaction(async (transaction) => {
+async function publish({ fromRevision, changeNote, operator }: PublishParams): Promise<PlainRecord> {
+    return MaterialCatalogRepository.withTransaction(async (transaction: unknown) => {
         const { profile } = await seedFromLegacyIfNeeded(transaction);
         const draft = await MaterialCatalogRepository.findDraftRevision(profile.id, transaction);
         if (!draft) {
@@ -251,7 +268,7 @@ async function publish({ fromRevision, changeNote, operator }) {
     });
 }
 
-async function saveAndPublishLegacyCompatible(payload, req) {
+async function saveAndPublishLegacyCompatible(payload: PlainRecord, req?: PlainRecord): Promise<PlainRecord> {
     const detail = await getMaterialsCatalogDetail();
     const draftResult = await updateDraft({
         revision: detail.latestRevision ? detail.latestRevision.revision : 0,
@@ -268,16 +285,16 @@ async function saveAndPublishLegacyCompatible(payload, req) {
     });
 }
 
-async function listRevisions() {
-    return MaterialCatalogRepository.withTransaction(async (transaction) => {
+async function listRevisions(): Promise<PlainRecord[]> {
+    return MaterialCatalogRepository.withTransaction(async (transaction: unknown) => {
         const { profile } = await seedFromLegacyIfNeeded(transaction);
         const revisions = await MaterialCatalogRepository.listRevisions(profile.id, transaction);
         return revisions.map(toRevisionMeta);
     });
 }
 
-async function listAuditLogs() {
-    return MaterialCatalogRepository.withTransaction(async (transaction) => {
+async function listAuditLogs(): Promise<PlainRecord[]> {
+    return MaterialCatalogRepository.withTransaction(async (transaction: unknown) => {
         const { profile } = await seedFromLegacyIfNeeded(transaction);
         const logs = await MaterialCatalogRepository.listAuditLogs(profile.id, transaction);
         return logs.map(toAuditLog);
