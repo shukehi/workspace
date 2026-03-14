@@ -7,8 +7,6 @@ const routePath = require.resolve('../server/routes/pdf');
 
 const originalServiceModule = require(servicePath);
 
-let server;
-let baseUrl;
 let lastPdfCall = null;
 
 async function startServer() {
@@ -52,73 +50,80 @@ function restorePdfService() {
   };
 }
 
-test.before(async () => {
+async function withMockedPdfRoute(run) {
   mockPdfService();
   delete require.cache[routePath];
-  const started = await startServer();
-  server = started.server;
-  baseUrl = started.baseUrl;
-});
-
-test.beforeEach(() => {
   lastPdfCall = null;
-});
+
+  const started = await startServer();
+  try {
+    await run(started.baseUrl);
+  } finally {
+    await new Promise((resolve) => started.server.close(resolve));
+    restorePdfService();
+    delete require.cache[routePath];
+  }
+}
 
 test('POST /api/pdf/generate returns binary PDF with Content-Disposition header', async () => {
-  const res = await fetch(`${baseUrl}/api/pdf/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      poNumber: 'PO-TEST-001',
-      category: '包装',
-      order: {
-        supplier: '测试供应商',
-        customerName: '测试客户',
-        code: 'PO-TEST-001',
-        list: [{ name: '测试明细', quantity: 1 }]
-      }
-    })
+  await withMockedPdfRoute(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/pdf/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        poNumber: 'PO-TEST-001',
+        category: '包装',
+        order: {
+          supplier: '测试供应商',
+          customerName: '测试客户',
+          code: 'PO-TEST-001',
+          list: [{ name: '测试明细', quantity: 1 }]
+        }
+      })
+    });
+
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'application/pdf');
+    assert.equal(
+      res.headers.get('content-disposition'),
+      'attachment; filename="%E6%B5%8B%E8%AF%95%E4%BE%9B%E5%BA%94%E5%95%86%20%E5%8C%85%E8%A3%85%20PO-TEST-001%20%E9%A2%90%E5%AE%B6%E9%87%87%E8%B4%AD%E8%AE%A2%E5%8D%95.pdf"'
+    );
+
+    const content = Buffer.from(await res.arrayBuffer()).toString('utf8');
+    assert.match(content, /^%PDF-1\.4/);
+
+    assert.ok(lastPdfCall);
+    assert.equal(lastPdfCall.poNumber, 'PO-TEST-001');
+    const renderUrl = new URL(lastPdfCall.renderUrl);
+    assert.equal(renderUrl.pathname, '/print-document');
+    assert.ok(renderUrl.searchParams.get('snapshotId'));
+    assert.equal(renderUrl.searchParams.get('printMode'), 'signature');
+    assert.equal(renderUrl.searchParams.get('embedded'), '1');
   });
-
-  assert.equal(res.status, 200);
-  assert.equal(res.headers.get('content-type'), 'application/pdf');
-  assert.equal(
-    res.headers.get('content-disposition'),
-    'attachment; filename="%E6%B5%8B%E8%AF%95%E4%BE%9B%E5%BA%94%E5%95%86%20%E5%8C%85%E8%A3%85%20PO-TEST-001%20%E9%A2%90%E5%AE%B6%E9%87%87%E8%B4%AD%E8%AE%A2%E5%8D%95.pdf"'
-  );
-
-  const content = Buffer.from(await res.arrayBuffer()).toString('utf8');
-  assert.match(content, /^%PDF-1\.4/);
-
-  assert.ok(lastPdfCall);
-  assert.equal(lastPdfCall.poNumber, 'PO-TEST-001');
-  const renderUrl = new URL(lastPdfCall.renderUrl);
-  assert.equal(renderUrl.pathname, '/print-document');
-  assert.ok(renderUrl.searchParams.get('snapshotId'));
-  assert.equal(renderUrl.searchParams.get('printMode'), 'signature');
-  assert.equal(renderUrl.searchParams.get('embedded'), '1');
 });
 
 test('POST /api/pdf/generate supports orderId source and ignores client renderBaseUrl', async () => {
-  const res = await fetch(`${baseUrl}/api/pdf/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      poNumber: 'PO-ORDER-ID-001',
-      orderId: '321',
-      printMode: 'compact',
-      renderBaseUrl: 'https://evil.example.com'
-    })
-  });
+  await withMockedPdfRoute(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/pdf/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        poNumber: 'PO-ORDER-ID-001',
+        orderId: '321',
+        printMode: 'compact',
+        renderBaseUrl: 'https://evil.example.com'
+      })
+    });
 
-  assert.equal(res.status, 200);
-  assert.ok(lastPdfCall);
-  assert.equal(lastPdfCall.poNumber, 'PO-ORDER-ID-001');
-  const renderUrl = new URL(lastPdfCall.renderUrl);
-  assert.equal(renderUrl.pathname, '/print-document');
-  assert.equal(renderUrl.searchParams.get('orderId'), '321');
-  assert.equal(renderUrl.searchParams.get('printMode'), 'compact');
-  assert.equal(renderUrl.host, new URL(baseUrl).host);
+    assert.equal(res.status, 200);
+    assert.ok(lastPdfCall);
+    assert.equal(lastPdfCall.poNumber, 'PO-ORDER-ID-001');
+    const renderUrl = new URL(lastPdfCall.renderUrl);
+    assert.equal(renderUrl.pathname, '/print-document');
+    assert.equal(renderUrl.searchParams.get('orderId'), '321');
+    assert.equal(renderUrl.searchParams.get('printMode'), 'compact');
+    assert.equal(renderUrl.host, new URL(baseUrl).host);
+  });
 });
 
 test('POST /api/pdf/generate prefers origin host in non-production', async () => {
@@ -128,22 +133,24 @@ test('POST /api/pdf/generate prefers origin host in non-production', async () =>
     process.env.NODE_ENV = 'development';
     delete process.env.PRINT_RENDER_BASE_URL;
 
-    const res = await fetch(`${baseUrl}/api/pdf/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'http://localhost:5173',
-      },
-      body: JSON.stringify({
-        poNumber: 'PO-ORIGIN-001',
-        orderId: '9527',
-      })
-    });
+    await withMockedPdfRoute(async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/pdf/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost:5173',
+        },
+        body: JSON.stringify({
+          poNumber: 'PO-ORIGIN-001',
+          orderId: '9527',
+        })
+      });
 
-    assert.equal(res.status, 200);
-    assert.ok(lastPdfCall);
-    const renderUrl = new URL(lastPdfCall.renderUrl);
-    assert.equal(renderUrl.host, 'localhost:5173');
+      assert.equal(res.status, 200);
+      assert.ok(lastPdfCall);
+      const renderUrl = new URL(lastPdfCall.renderUrl);
+      assert.equal(renderUrl.host, 'localhost:5173');
+    });
   } finally {
     if (oldNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = oldNodeEnv;
@@ -161,19 +168,21 @@ test('POST /api/pdf/generate requires configured render base url in production',
     delete process.env.PRINT_RENDER_BASE_URL;
     delete process.env.PDF_RENDER_BASE_URL;
 
-    const res = await fetch(`${baseUrl}/api/pdf/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        poNumber: 'PO-PROD-001',
-        orderId: '9528',
-      })
-    });
+    await withMockedPdfRoute(async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/pdf/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          poNumber: 'PO-PROD-001',
+          orderId: '9528',
+        })
+      });
 
-    assert.equal(res.status, 500);
-    const body = await res.json();
-    assert.equal(body.success, false);
-    assert.match(String(body.message || ''), /PRINT_RENDER_BASE_URL is required in production/);
+      assert.equal(res.status, 500);
+      const body = await res.json();
+      assert.equal(body.success, false);
+      assert.match(String(body.message || ''), /PRINT_RENDER_BASE_URL is required in production/);
+    });
   } finally {
     if (oldNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = oldNodeEnv;
@@ -185,32 +194,26 @@ test('POST /api/pdf/generate requires configured render base url in production',
 });
 
 test('POST /api/pdf/generate validates required fields', async () => {
-  const missingSourceRes = await fetch(`${baseUrl}/api/pdf/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
-  });
-  assert.equal(missingSourceRes.status, 400);
-  const missingSourceBody = await missingSourceRes.json();
-  assert.equal(missingSourceBody.success, false);
+  await withMockedPdfRoute(async (baseUrl) => {
+    const missingSourceRes = await fetch(`${baseUrl}/api/pdf/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    assert.equal(missingSourceRes.status, 400);
+    const missingSourceBody = await missingSourceRes.json();
+    assert.equal(missingSourceBody.success, false);
 
-  const invalidSnapshotRes = await fetch(`${baseUrl}/api/pdf/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      poNumber: 'PO-TEST-002',
-      snapshotId: 'not-found-id'
-    })
+    const invalidSnapshotRes = await fetch(`${baseUrl}/api/pdf/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        poNumber: 'PO-TEST-002',
+        snapshotId: 'not-found-id'
+      })
+    });
+    assert.equal(invalidSnapshotRes.status, 400);
+    const invalidSnapshotBody = await invalidSnapshotRes.json();
+    assert.equal(invalidSnapshotBody.success, false);
   });
-  assert.equal(invalidSnapshotRes.status, 400);
-  const invalidSnapshotBody = await invalidSnapshotRes.json();
-  assert.equal(invalidSnapshotBody.success, false);
-});
-
-test.after(async () => {
-  if (server) {
-    await new Promise((resolve) => server.close(resolve));
-  }
-  restorePdfService();
-  delete require.cache[routePath];
 });

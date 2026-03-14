@@ -1,79 +1,32 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue';
+import { h } from 'vue';
 import { useSourceStore } from '@/stores/useSourceStore';
-import { sourceColumns } from '@/components/source/SourceColumns';
 import GeneratePODialog from '@/components/source/GeneratePODialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import DataTable from '@/components/data-table/DataTable.vue';
-import type { ColumnDef } from '@tanstack/vue-table';
 import { Search } from 'lucide-vue-next';
-import LongTextCell from '@/components/source/LongTextCell.vue';
 import ContractHistoryDialog from '@/components/source/ContractHistoryDialog.vue';
+import LongTextCell from '@/components/source/LongTextCell.vue';
+import { useSourcePageState } from '@/features/source-analysis/composables/useSourcePageState';
 
 const store = useSourceStore();
-const contractInput = ref('');
-const longTextMode = ref<'clip' | 'hover' | 'expand'>('hover');
-const historyDialogOpen = ref(false);
-
-const longTextColumnKeys = new Set([
-  'productModelName',
-  'spec',
-  'sj',
-  'fssj',
-  'xsbz',
-  'qbbc',
-  'bz',
-]);
-
-const handleSearch = () => {
-  if (contractInput.value) {
-    store.fetchContract(contractInput.value);
-  }
-};
-
-const handleHistoryLoaded = (contractCode: string) => {
-  contractInput.value = contractCode;
-};
-
-const sourceTableMinWidth = computed(() => {
-  const indexColumnWidth = 50;
-  const contentWidth = sourceColumns.reduce((total, column) => total + (column.width || 100), 0);
-  return indexColumnWidth + contentWidth + 120;
-});
-
-const columns = computed<ColumnDef<any>[]>(() => {
-  const cols: ColumnDef<any>[] = [
-    {
-      id: 'index',
-      header: '#',
-      cell: ({ row }) => row.index + 1,
-      enableSorting: false,
-      size: 50
-    }
-  ];
-
-  const dataCols = sourceColumns.map(col => ({
-    accessorKey: col.key,
-    header: col.label,
-    size: col.width || 100,
-    cell: ({ row }: any) => {
-      const val = row.original[col.key];
-      if (!longTextColumnKeys.has(col.key)) {
-        return val || '-';
-      }
-
-      return h(LongTextCell, {
-        text: val,
-        mode: longTextMode.value,
-        maxWidth: col.width || 180,
-        label: col.label,
-      });
-    }
-  }));
-
-  return [...cols, ...dataCols];
+const {
+  contractInput,
+  longTextMode,
+  historyDialogOpen,
+  sourceTableMinWidth,
+  columns,
+  handleSearch,
+  handleHistoryLoaded,
+} = useSourcePageState(store, {
+  renderLongTextCell: ({ text, mode, maxWidth, label }) => h(LongTextCell, {
+    text,
+    mode,
+    maxWidth,
+    label,
+  }),
 });
 </script>
 

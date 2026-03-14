@@ -14,6 +14,8 @@ import ProcurementPreviewModal from '@/components/procurement/ProcurementPreview
 import ProcurementStockInDialog from '@/components/procurement/ProcurementStockInDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { API_ERROR_CODES } from '@/shared/constants/api';
+import { ORDER_STATUS_LABELS } from '@/shared/constants/order';
 import {
   Plus,
   RefreshCcw,
@@ -30,6 +32,7 @@ import { hasValidDeliveryDate } from '@/features/procurement/useProcurementPrevi
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilename';
 import { hasRemainingStockInItems } from '@/features/procurement/stockInEligibility';
+import { useProcurementRouteQuery } from '@/features/procurement/composables/useProcurementRouteQuery';
 
 const PROCUREMENT_REFRESH_SIGNAL_KEY = 'procurement-orders-refresh-signal';
 
@@ -42,17 +45,6 @@ const stockInDialogOpen = ref(false);
 const stockInSaving = ref(false);
 const stockInQueue = ref<Order[]>([]);
 const stockInQueueIndex = ref(0);
-const procurementPage = ref(Math.max(1, Number(route.query.page) || 1));
-const procurementPageSize = ref(Math.min(200, Math.max(10, Number(route.query.pageSize) || 20)));
-
-const statusLabels: Record<Order['status'], string> = {
-  draft: '草稿',
-  submitted: '已提交',
-  processing: '处理中',
-  arrived: '已到货',
-  completed: '已入库',
-  cancelled: '已取消'
-};
 
 const {
   activeStatus,
@@ -76,65 +68,20 @@ const {
 } = useProcurementPageState(store);
 
 const debouncedSearchQuery = refDebounced(searchQuery, 300);
-
-function syncSearchQueryFromRoute() {
-  const orderNo = String(route.query.orderNo || '').trim();
-  if (!orderNo) return;
-  if (searchQuery.value !== orderNo) {
-    searchQuery.value = orderNo;
-  }
-}
-
-function syncProcurementFiltersFromRoute() {
-  activeStatus.value = (String(route.query.status || 'ALL') as typeof activeStatus.value);
-  activeCategory.value = (String(route.query.category || 'ALL') as typeof activeCategory.value);
-  activeRiskFilter.value = (String(route.query.risk || 'ALL') as typeof activeRiskFilter.value);
-  activeCreatedDate.value = String(route.query.createdDate || '').trim();
-  searchQuery.value = String(route.query.search || route.query.orderNo || '').trim();
-  procurementPage.value = Math.max(1, Number(route.query.page) || 1);
-  procurementPageSize.value = Math.min(200, Math.max(10, Number(route.query.pageSize) || 20));
-}
-
-function updateProcurementRouteQuery() {
-  const nextQuery = { ...route.query };
-  const search = searchQuery.value.trim();
-
-  if (activeStatus.value !== 'ALL') nextQuery.status = activeStatus.value;
-  else delete nextQuery.status;
-
-  if (activeCategory.value !== 'ALL') nextQuery.category = activeCategory.value;
-  else delete nextQuery.category;
-
-  if (activeRiskFilter.value !== 'ALL') nextQuery.risk = activeRiskFilter.value;
-  else delete nextQuery.risk;
-
-  if (activeCreatedDate.value) nextQuery.createdDate = activeCreatedDate.value;
-  else delete nextQuery.createdDate;
-
-  if (search) nextQuery.search = search;
-  else delete nextQuery.search;
-
-  if (procurementPage.value > 1) nextQuery.page = String(procurementPage.value);
-  else delete nextQuery.page;
-
-  if (procurementPageSize.value !== 20) nextQuery.pageSize = String(procurementPageSize.value);
-  else delete nextQuery.pageSize;
-
-  router.replace({ query: nextQuery }).catch(() => undefined);
-}
-
-function buildProcurementQuery() {
-  return {
-    page: procurementPage.value,
-    pageSize: procurementPageSize.value,
-    ...(activeStatus.value !== 'ALL' ? { status: activeStatus.value } : {}),
-    ...(activeCategory.value !== 'ALL' ? { category: activeCategory.value } : {}),
-    ...(activeRiskFilter.value !== 'ALL' ? { risk: activeRiskFilter.value } : {}),
-    ...(activeCreatedDate.value ? { createdDate: activeCreatedDate.value } : {}),
-    ...(searchQuery.value.trim() ? { keyword: searchQuery.value.trim() } : {}),
-    ...(String(route.query.orderNo || '').trim() ? { orderNo: String(route.query.orderNo || '').trim() } : {}),
-  };
-}
+const {
+  procurementPage,
+  procurementPageSize,
+  syncSearchQueryFromRoute,
+  syncProcurementFiltersFromRoute,
+  updateProcurementRouteQuery,
+  buildProcurementQuery,
+} = useProcurementRouteQuery(route, router, {
+  activeStatus,
+  activeCategory,
+  activeRiskFilter,
+  activeCreatedDate,
+  searchQuery,
+});
 
 async function loadProcurementOrders() {
   await store.fetchOrders(buildProcurementQuery());
@@ -180,7 +127,7 @@ const handleStatusUpdate = async (order: Order, status: Order['status']) => {
     await loadProcurementOrders();
     toast({
       title: '状态更新成功',
-      description: `订单 ${order.order_no} 已设为 ${statusLabels[status]}`,
+      description: `订单 ${order.order_no} 已设为 ${ORDER_STATUS_LABELS[status]}`,
       variant: 'success'
     });
   } catch {
@@ -196,7 +143,7 @@ const handleMarkArrived = async (order: Order) => {
     await loadProcurementOrders();
     toast({
       title: '到货登记成功',
-      description: `订单 ${order.order_no} 已设为 ${statusLabels.arrived}`,
+      description: `订单 ${order.order_no} 已设为 ${ORDER_STATUS_LABELS.arrived}`,
       variant: 'success'
     });
   } catch {
@@ -407,14 +354,14 @@ const handleStockInOrder = async (payload?: {
           ? `${completedCount} 张已完成入库，${pendingCount} 张仍有明细待入库`
           : `${finishedCount} 张订单已完成入库`)
         : (isCompleted
-          ? `订单 ${updated.order_no} 已设为 ${statusLabels.completed}`
+          ? `订单 ${updated.order_no} 已设为 ${ORDER_STATUS_LABELS.completed}`
           : `订单 ${updated.order_no} 仍有明细待入库`),
       variant: 'success'
     });
     resetStockInFlow();
   } catch (error: any) {
     const errorCode = String(error?.response?.data?.error || '');
-    if (errorCode === 'MATERIAL_NOT_FOUND') {
+    if (errorCode === API_ERROR_CODES.materialNotFound) {
       toast({
         title: '入库失败',
         description: `存在未匹配库存物料：${error?.response?.data?.materialId || '-'}`,
@@ -422,7 +369,7 @@ const handleStockInOrder = async (payload?: {
       });
       return;
     }
-    if (errorCode === 'ORDER_ITEMS_REQUIRED') {
+    if (errorCode === API_ERROR_CODES.orderItemsRequired) {
       toast({
         title: '入库失败',
         description: '请至少填写一条本次入库明细',
@@ -430,7 +377,7 @@ const handleStockInOrder = async (payload?: {
       });
       return;
     }
-    if (errorCode === 'RECEIVED_QUANTITY_EXCEEDED') {
+    if (errorCode === API_ERROR_CODES.receivedQuantityExceeded) {
       toast({
         title: '入库失败',
         description: '本次入库数量超过剩余待入库数量',
@@ -481,7 +428,7 @@ const handleBulkStatusUpdate = async (status: Order['status']) => {
   if (!isBulkStatusTransitionAllowed(status)) {
     toast({
       title: '状态流转不允许',
-      description: `当前所选订单不能批量设为${statusLabels[status]}`,
+      description: `当前所选订单不能批量设为${ORDER_STATUS_LABELS[status]}`,
       variant: 'destructive',
     });
     return;
@@ -491,7 +438,7 @@ const handleBulkStatusUpdate = async (status: Order['status']) => {
     await store.bulkUpdateStatus(selectedRows.value.map(o => o.id), status);
     await loadProcurementOrders();
     clearSelection();
-    toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${statusLabels[status]}`, variant: 'success' });
+    toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${ORDER_STATUS_LABELS[status]}`, variant: 'success' });
   } catch {
     toast({ title: '操作失败', variant: 'destructive' });
   }
@@ -519,7 +466,7 @@ const handleBulkArrive = async () => {
     if (failedCount === 0) {
       await loadProcurementOrders();
       clearSelection();
-      toast({ title: '批量到货登记成功', description: `${count} 张订单已设为 ${statusLabels.arrived}`, variant: 'success' });
+      toast({ title: '批量到货登记成功', description: `${count} 张订单已设为 ${ORDER_STATUS_LABELS.arrived}`, variant: 'success' });
       return;
     }
 

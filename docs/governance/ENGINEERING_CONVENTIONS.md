@@ -24,6 +24,9 @@
    - `public/css/components/*`
    - `public/css/pages/*`
 5. 禁止跨页面文件覆盖他页组件样式（除非有明确兼容方案）。
+6. `src/views/*` 默认只做页面装配，不继续堆叠复杂数据转换、打印导出、弹窗状态机和配置装载细节。
+7. `store` / 领域 manager 默认不直接操作 `window.confirm`、`window.prompt`、`window.open`、`localStorage`、`document.createElement('a')`、`window.onbeforeunload`；如确有必要，必须通过 UI 边界或 runtime adapter 封装。
+8. 页面、store、业务组件不自行决定 workflow / legacy / static fallback 的读取顺序，配置来源判断统一收口到 repository / facade。
 
 ## 4. 后端规范
 
@@ -34,6 +37,9 @@
 5. 涉及多表写入必须放事务。
 6. 涉及跨模块状态流转时，必须先定义状态语义与允许流转，再开始编码。
 7. 涉及库存数量变更时，禁止只改汇总字段，必须同时写业务流水或留痕记录。
+8. route/controller 不直接把裸 `req.body` / `req.query` 透传到核心业务逻辑，关键写接口必须有明确的请求校验落点。
+9. 新增或改造后的业务接口应优先收敛到统一错误结构，至少保持 `code/message/details` 语义稳定。
+10. route 文件不新增大段重复 `try/catch + res.status(...)` 分支；如该模式继续增加，必须同步推动 middleware / controller 收口。
 
 ## 5. 数据库与迁移规范
 
@@ -44,6 +50,14 @@
    - `src/types/**`
    - Mock 数据
    - 对应测试
+5. 正式 schema 变更以 `server/db/migrations/` 为目标落点，`ensure*Columns()` 只允许作为过渡期兜底，不得继续扩大覆盖面。
+
+## 5.1 兼容层与 legacy 退场规则
+
+1. 兼容壳文件可以存在，但只允许转发，不允许继续承载新逻辑。
+2. legacy route / compatibility shell 必须在代码或文档中标注其定位与退场方向。
+3. 新功能禁止以兼容层作为主入口。
+4. 每次涉及兼容层的 PR，必须写清保留原因、退场条件和预计清理阶段。
 
 ## 6. 测试与质量门禁
 
@@ -76,6 +90,7 @@ npm test
    - 验证步骤
    - 回滚方案
 3. API/DB 变更必须列出契约差异与兼容策略。
+4. 如果引入新的请求校验、兼容层或副作用边界，PR 中必须明确其放置位置与后续约束。
 
 ## 9. 文档同步规范
 
@@ -96,6 +111,7 @@ npm test
 4. 手工验证脚本统一放 `tests/manual/` 或 `scripts/experiments/`，禁止散落在根目录。
 5. 说明性文档统一放 `docs/` 子目录，截图或示意图统一放 `docs/assets/`。
 6. 禁止跟踪 `dist/`、`node_modules/`、`temp/`、`database.sqlite` 及 `data/runtime/**`。
+7. 新增兼容壳文件或临时迁移入口时，文件名、导出入口和退场说明必须可搜索定位，避免静默长期残留。
 
 ## 12. 关联文档
 

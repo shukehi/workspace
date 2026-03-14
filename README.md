@@ -6,8 +6,16 @@
 
 - 前端主应用：`src/`（Vue 3 + Pinia + Vue Router + TypeScript）
 - 后端服务：`server/`（Express + Sequelize + SQLite）
-- 打印预览：已迁移到 `src/views/PrintPreview.vue`（路由 `/print-preview`）
+- 打印预览：当前页面为 `src/views/PrintDocument.vue`（路由 `/print-document`）
 - Mock 模式：仅在 `VITE_USE_MOCK=true` 时启用
+
+## 当前结构方向
+
+- `src/views/*` 逐步收敛为页面装配层，复杂业务逻辑优先下沉到 `src/features/*`
+- `store` 与领域 manager 以状态协调为主，不继续承载过深的浏览器副作用和配置装载逻辑
+- 后端逐步收敛到 `route/controller/service/repository` 边界，关键写接口要求明确请求校验落点
+- schema 变更以 migration 为目标方向，启动时 `ensure*Columns()` 仅作为过渡兜底
+- 兼容层与 legacy 入口可以暂存，但必须有明确退场路径
 
 ## 功能模块
 
@@ -262,13 +270,15 @@ npm run db:export:formulas
 
 请优先阅读：
 
-- [工程开发约定](docs/ENGINEERING_CONVENTIONS.md)
-- [目录结构优化计划](docs/PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md)
-- [优化计划（阶段跟踪）](docs/OPTIMIZATION_PLAN_2026-03-03.md)
-- [legacy 清理计划](docs/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md)
-- [PO 字段契约](docs/PO_FIELD_CONTRACT.md)
-- [锁具规则说明](docs/reference/LOCK_RULES.md)
+- [文档总索引](/Users/aries/Dve/workspace/docs/README.md)
+- [前后端开发规范](/Users/aries/Dve/workspace/docs/governance/ENGINEERING_CONVENTIONS.md)
+- [功能开发与配置接入规范](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
+- [PR 功能开发检查清单](/Users/aries/Dve/workspace/docs/governance/PR_FEATURE_CHECKLIST_2026-03-10.md)
+- [本轮重构总索引](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
+- [可维护性与可扩展性重构蓝图](/Users/aries/Dve/workspace/docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md)
+- [PO 字段契约](/Users/aries/Dve/workspace/docs/reference/PO_FIELD_CONTRACT.md)
 
 ## 说明
 
-- `docs/DEVELOPMENT_GUIDE.md` 主要记录历史架构（`public/js` 时代），不再作为主开发入口文档。
+- `docs/archive/` 下的历史方案和旧开发指南不再作为当前实现依据。
+- 本轮结构治理请优先以 `docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md` 和 `docs/governance/*` 为准。

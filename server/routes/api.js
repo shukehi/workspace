@@ -14,6 +14,7 @@ const inventoryRoutes = require('./inventory');
 const inventoryReceiptRoutes = require('./inventoryReceipts');
 const contractRoutes = require('./contracts');
 const contractCacheService = require('../services/ContractCacheService');
+const { createApiErrorResponse, createApiSuccessResponse } = require('../shared/contracts/api');
 
 const router = express.Router();
 
@@ -24,13 +25,15 @@ router.use('/orders', orderRoutes);
 router.get('/contracts', async (req, res) => {
     try {
         const result = await contractCacheService.listContracts(req.query);
+        // Preserve the legacy top-level rows/total shape until contract history
+        // consumers are migrated to a unified { success, data } envelope.
         res.json({
             success: true,
             ...result
         });
     } catch (e) {
         console.error('List cached contracts failed', e);
-        res.status(500).json({ success: false, error: e.message });
+        res.status(500).json(createApiErrorResponse('INTERNAL_ERROR', { message: e.message }));
     }
 });
 router.use('/contracts', contractRoutes);
@@ -62,11 +65,10 @@ router.use(
         },
         onError: (err, req, res) => {
             console.error('代理错误:', err.message);
-            res.status(502).json({
-                success: false,
-                error: 'ERP 服务器连接失败',
-                message: err.message
-            });
+            res.status(502).json(createApiErrorResponse('ERP_PROXY_FAILED', {
+                message: err.message,
+                details: 'ERP 服务器连接失败'
+            }));
         }
     })
 );

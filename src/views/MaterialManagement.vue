@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,60 +11,21 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { api } from '@/lib/api';
 import { Search, Plus, Edit2 } from 'lucide-vue-next';
+import { useMaterialManagementPageState } from '@/features/materials/composables/useMaterialManagementPageState';
 
-interface Material {
-  id: number;
-  code: string;
-  name: string;
-  model: string;
-  supplier: string;
-  unit: string;
-  price: number;
-  category: string;
-}
-
-const materials = ref<Material[]>([]);
-const loading = ref(false);
-const searchQuery = ref('');
-const isEditDialogOpen = ref(false);
-const editingMaterial = ref<Partial<Material>>({});
-
-const fetchMaterials = async () => {
-  loading.value = true;
-  try {
-    const res = await api.get<Material[]>('/materials', {
-      params: { q: searchQuery.value }
-    });
-    materials.value = res;
-  } catch (e) {
-    console.error(e);
-  } finally {
-    loading.value = false;
-  }
-};
-
-const handleEdit = (material: Material) => {
-  editingMaterial.value = { ...material };
-  isEditDialogOpen.value = true;
-};
-
-const handleSave = async () => {
-  try {
-    if (editingMaterial.value.id) {
-      await api.put(`/materials/${editingMaterial.value.id}`, editingMaterial.value);
-    } else {
-      await api.post('/materials', editingMaterial.value);
-    }
-    isEditDialogOpen.value = false;
-    fetchMaterials();
-  } catch (e) {
-    console.error(e);
-  }
-};
-
-onMounted(fetchMaterials);
+const {
+  materials,
+  loading,
+  searchQuery,
+  isEditDialogOpen,
+  editingMaterial,
+  dialogTitle,
+  fetchMaterials,
+  openCreateDialog,
+  openEditDialog,
+  saveMaterial,
+} = useMaterialManagementPageState();
 </script>
 
 <template>
@@ -75,7 +35,7 @@ onMounted(fetchMaterials);
         <h2 class="text-3xl font-semibold tracking-tight">物料管理</h2>
         <p class="text-muted-foreground mt-1">维护系统基础物料信息、价格与供应商。</p>
       </div>
-      <Button @click="() => { editingMaterial = {}; isEditDialogOpen = true; }">
+      <Button @click="openCreateDialog">
         <Plus class="mr-2 h-4 w-4" /> 新增物料
       </Button>
     </div>
@@ -113,7 +73,7 @@ onMounted(fetchMaterials);
               <td class="px-6 py-4 text-muted-foreground">{{ mat.supplier }}</td>
               <td class="px-6 py-4 text-emerald-600 font-semibold">¥{{ mat.price }}</td>
               <td class="px-6 py-4">
-                <Button variant="ghost" size="sm" @click="handleEdit(mat)">
+                <Button variant="ghost" size="sm" @click="openEditDialog(mat)">
                   <Edit2 class="h-4 w-4" />
                 </Button>
               </td>
@@ -129,7 +89,7 @@ onMounted(fetchMaterials);
     <Dialog :open="isEditDialogOpen" @update:open="isEditDialogOpen = $event">
       <DialogContent class="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{{ editingMaterial.id ? '编辑物料' : '新增物料' }}</DialogTitle>
+          <DialogTitle>{{ dialogTitle }}</DialogTitle>
           <DialogDescription>
             请完善物料的基础信息。
           </DialogDescription>
@@ -157,7 +117,7 @@ onMounted(fetchMaterials);
           </div>
         </div>
         <DialogFooter>
-          <Button type="submit" @click="handleSave">保存</Button>
+          <Button type="submit" @click="saveMaterial">保存</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

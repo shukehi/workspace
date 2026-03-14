@@ -116,8 +116,8 @@ test('frontend mapping validator: handle validator validates keywords/thickness/
 
   assert.ok(issues.some((item) => item.path === 'defaultSupplier'));
   assert.ok(issues.some((item) => item.path === 'doubleKeywords[0]' && item.code === 'duplicate'));
-  assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].supplier'));
-  assert.ok(issues.some((item) => item.path === 'mappings["拉手A"].vendorName'));
+  assert.ok(issues.every((item) => item.path !== 'mappings["拉手A"].supplier'));
+  assert.ok(issues.every((item) => item.path !== 'mappings["拉手A"].vendorName'));
   assert.ok(issues.every((item) => item.path !== 'mappings["拉手A"].materialCode'));
 
   const materialCodeIssues = validateHandleMapping({
@@ -136,7 +136,7 @@ test('frontend mapping validator: handle validator validates keywords/thickness/
       拉手B: { supplier: '供应商A', vendorName: '拉手名称', materialCode: '   ' },
     },
   });
-  assert.ok(materialCodeIssues.some((item) => item.path === 'mappings["拉手B"].materialCode'));
+  assert.ok(materialCodeIssues.every((item) => item.path !== 'mappings["拉手B"].materialCode'));
 });
 
 test('frontend mapping validator: lock validator detects normalized conflicts and missing fields', () => {

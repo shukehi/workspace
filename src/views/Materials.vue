@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useSourceStore } from '@/stores/useSourceStore';
 import DataTable from '@/components/data-table/DataTable.vue';
 import { rawColumns, cylinderColumns, forkColumns, packagingColumns } from '@/components/materials/MaterialColumns';
 import { Card, CardContent } from '@/components/ui/card';
+import { useMaterialsPageState } from '@/features/materials/composables/useMaterialsPageState';
 
 const store = useSourceStore();
-const activeTab = ref('raw');
+const { activeTab, tabs, setActiveTab } = useMaterialsPageState();
 </script>
 
 <template>
@@ -26,13 +26,13 @@ const activeTab = ref('raw');
     <div v-else class="flex-1 flex flex-col gap-4 min-h-0">
       <div class="inline-flex gap-1 rounded-md border bg-background p-1 w-fit">
         <button
-          v-for="tab in [{k:'raw', l:'原材料'}, {k:'hardware', l:'五金配件'}, {k:'packaging', l:'包装材料'}]"
-          :key="tab.k"
-          @click="activeTab = tab.k"
+          v-for="tab in tabs"
+          :key="tab.key"
+          @click="setActiveTab(tab.key)"
           class="px-3 py-1.5 text-sm rounded-sm transition-colors"
-          :class="activeTab === tab.k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
+          :class="activeTab === tab.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
         >
-          {{ tab.l }}
+          {{ tab.label }}
         </button>
       </div>
 

@@ -82,7 +82,7 @@ function buildSnapshotResponse() {
   };
 }
 
-test('print document e2e: preview shows sales department label instead of full customer name', async () => {
+test('print document e2e: preview shows full customer name while pdf mode uses sales department label', async () => {
   const devServer = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(PORT)], {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -118,7 +118,7 @@ test('print document e2e: preview shows sales department label instead of full c
     );
 
     await page.waitForFunction(() => document.body.innerText.includes('客户名称:'));
-    await page.waitForFunction(() => document.body.innerText.includes('三部'));
+    await page.waitForFunction(() => document.body.innerText.includes('外贸马其顿Orient（三部）'));
 
     const customerText = await page.evaluate(() => {
       const labels = Array.from(document.querySelectorAll('label'));
@@ -128,8 +128,7 @@ test('print document e2e: preview shows sales department label instead of full c
       return container ? container.innerText.replace(/\s+/g, ' ').trim() : '';
     });
 
-    assert.match(customerText, /客户名称:\s*三部/);
-    assert.doesNotMatch(customerText, /外贸马其顿Orient（三部）/);
+    assert.match(customerText, /客户名称:\s*外贸马其顿Orient（三部）/);
   } finally {
     if (browser) {
       await browser.close();
