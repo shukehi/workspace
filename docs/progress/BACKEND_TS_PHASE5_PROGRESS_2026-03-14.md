@@ -27,6 +27,8 @@
    - `server/services/inventory/inventory.service.ts`
 6. 已完成第三步第二小步：
    - `server/services/inventory/inventory-receipt.service.ts`
+7. 已完成第四步：
+   - `server/services/orders/order.stockin.ts`
 
 ## 3. 当前约束
 
@@ -44,3 +46,5 @@
 1. `tests/formula-validator.test.js`
 2. `tests/formula-workflow.test.js`
 3. `npm run type-check:server`
+4. `tests/inventory-route.test.js`
+5. `tests/order-service.test.js`
