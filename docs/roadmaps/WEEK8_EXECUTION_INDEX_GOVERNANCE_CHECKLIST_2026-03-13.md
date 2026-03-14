@@ -60,7 +60,10 @@ Week 8
   - 已在 `tests/governance-boundary-guard.test.js` 补 compatibility shell allowlist 与“单行转发” guard
   - `docs/README.md` 已加入 compatibility shell 退场清单与新功能落位指南入口
   - 已执行统一验收：`npm run type-check`、`npm run build`、`npm test`
-  - governance 文档类 smoke / 团队使用记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：核对 `docs/README.md`，确认 roadmap、governance、progress 三类入口均可直接定位本轮治理文档
+  - 2026-03-13 smoke：核对 `.github/pull_request_template.md`，确认请求校验、错误结构、副作用边界、compatibility shell 退场计划等检查项已写入 PR 模板
+  - 2026-03-13 smoke：核对 `docs/governance/FEATURE_PLACEMENT_GUIDE_2026-03-13.md` 与 `docs/governance/COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md`，确认落位规则和 compatibility shell 名单与当前代码一致
+  - 2026-03-13 smoke：执行 `node --test tests/governance-boundary-guard.test.js` 通过；当前 compatibility shell 实际文件内容仍是单行转发：`OrderService.js`、`InventoryReceiptService.js`、`FormulaService.js`
 ```
 
 ## 4. 本周退出标准
@@ -323,6 +326,27 @@ Week 8
 - [x] PR 检查项可用于日常评审
 - [x] 结构守护规则至少覆盖关键倒退风险
 - [ ] `git status --short` 仅包含预期文档/守护改动
+
+本轮已记录的 smoke：
+
+1. Docs entry points
+   - `docs/README.md` 中可直接定位 governance、roadmaps、progress 三类入口
+   - 本轮关键入口已可搜索到：总索引、总蓝图、任务拆解、compatibility shell 清单、feature placement guide、阶段总结
+2. PR template / governance consistency
+   - `.github/pull_request_template.md` 已包含：
+     - request validation impact
+     - browser/runtime side-effect boundary
+     - legacy / compatibility retirement plan
+     - affected write APIs validation / error shape check
+3. Compatibility shell consistency
+   - 文档登记名单与代码一致：
+     - `server/services/OrderService.js`
+     - `server/services/InventoryReceiptService.js`
+     - `server/services/FormulaService.js`
+   - 三个顶层壳文件当前仍保持单行转发
+4. Guard
+   - `node --test tests/governance-boundary-guard.test.js` 通过
+   - 说明 governance 文本与结构守护当前没有脱节
 
 ## 7. 第八周不做的事
 

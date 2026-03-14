@@ -14,11 +14,11 @@ What remains is week-specific smoke evidence.
 
 ## 2. Week 1 - Procurement
 
-- [ ] Open Procurement page and verify route query sync for filter / pagination / keyword changes.
-- [ ] Verify edit / preview switching still works.
-- [ ] Verify status labels render correctly after shared constant migration.
-- [ ] Verify print preview and export entry are still usable.
-- [ ] Record smoke result in [WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md).
+- [x] Open Procurement page and verify route query sync for filter / pagination / keyword changes.
+- [x] Verify edit / preview switching still works.
+- [x] Verify status labels render correctly after shared constant migration.
+- [x] Verify print preview and export entry are still usable.
+- [x] Record smoke result in [WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md).
 
 ## 3. Week 2 - Order Backend Split
 
@@ -74,10 +74,10 @@ What remains is week-specific smoke evidence.
 
 ## 9. Week 8 - Governance
 
-- [ ] Verify docs entry points are enough for a new contributor to find roadmap / governance / placement guidance.
-- [ ] Verify PR template and governance docs are mutually consistent.
-- [ ] Verify compatibility shell retirement list matches current codebase.
-- [ ] Record smoke / usage result in [WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md).
+- [x] Verify docs entry points are enough for a new contributor to find roadmap / governance / placement guidance.
+- [x] Verify PR template and governance docs are mutually consistent.
+- [x] Verify compatibility shell retirement list matches current codebase.
+- [x] Record smoke / usage result in [WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md).
 
 ## 10. Completion Rule
 
