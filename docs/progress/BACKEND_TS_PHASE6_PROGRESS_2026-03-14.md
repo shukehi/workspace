@@ -36,6 +36,13 @@
    - `server/services/materials/material.repository.ts` (新建 Repository)
    - `server/services/MaterialService.ts` (TS 迁移 + 注入)
    - 注：实现了 [精确 -> 别名 -> 模糊] 三级智能匹配梯度，解决了 SQL 注入风险及数据一致性问题。
+8. 已完成第五步 (错误处理架构解耦)：
+   - `server/app/errors/errorResolverRegistry.ts` (新建注册中心)
+   - `server/app/errors/init.ts` (初始化入口)
+   - 重构了 `normalizeError.ts` 及各领域 `.errors.ts` 文件。
+9. 已完成第六步 (服务导出规范化)：
+   - 为各业务域建立了标准的 `index.ts` 导出。
+   - 通过桥接文件保持了 CJS 路径兼容。
 
 ## 3. 当前约束
 ... (保持不变)

@@ -12,6 +12,10 @@ const path = require('path');
 const config = require('./config');
 const routes = require('./routes');
 const { initDB, sequelize } = require('./models');
+const { initErrorSystem } = require('./app/errors/init');
+
+// 初始化错误处理系统策略
+initErrorSystem();
 
 const app = express();
 

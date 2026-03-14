@@ -48,18 +48,19 @@
     *   回归验证了 `materials-workflow` 和 `formula-lifecycle` 相关测试。
 
 
-### 阶段三：架构模式解耦与导出一致性（可维护性增强）
+### 阶段三：架构模式解耦与导出一致性（可维护性增强） [DONE]
 **目标**：重构巨型单体逻辑，统一服务层的导出风格。
 
-**优化步骤**：
-1.  **错误处理解耦 (Strategy Pattern)**：
-    *   重构 `server/app/errors/normalizeError.ts`。
-    *   引入错误转换注册中心（Registry），允许各业务域（如 `orders`, `inventory`）通过插件方式注册其特定的错误转换逻辑。
-    *   消除 `normalizeError.ts` 中跨领域的 `switch-case` 耦合。
-2.  **服务导出规范化**：
-    *   清理 `FormulaService.js`、`OrderService.js` 等转发层文件。
-    *   在每个子目录（如 `services/orders/`）建立标准的 `index.ts`，作为该领域的唯一出口。
-    *   **统一单例模式**：全量对齐为 `export const xxxService = new XxxService();` 或纯函数集合。
+**已执行步骤**：
+1.  **错误处理解耦 (Strategy Pattern)**： [DONE]
+    *   引入了 `ErrorResolverRegistry` 注册中心，支持基于领域（Orders, Inventory）的动态错误解析。
+    *   实现了自动初始化机制（Lazy Init），确保在测试和生产环境下逻辑均能自动激活。
+    *   加固了属性提取逻辑，解决了 Error 对象不可枚举属性导致的 `details` 丢失问题。
+2.  **服务导出规范化**： [DONE]
+    *   为 `orders`, `inventory`, `formulas` 建立了标准的 `index.ts` 导出入口。
+    *   通过 `.ts` 兼容性桥接文件（`OrderService.ts` 等）保持了对现有 CJS `require` 路径的向下兼容。
+3.  **代码精简**： [DONE]
+    *   精简了核心 `normalizeError.ts` 的逻辑，实现了真正的关注点分离。
 
 ### 阶段四：API 边界加固（长期演进）
 **目标**：打通控制器（Controller）与路由（Route）的类型链路。
