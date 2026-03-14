@@ -55,7 +55,10 @@ Week 4
   - 已新增 `server/services/inventory/inventory.{mapper,repository,service}.js`，`inventory.controller.js` 已改为消费 service
   - 已执行 `node --test tests/inventory-route.test.js`、`node --test tests/order-service.test.js`、`node --test tests/inventory-view-guard.test.js`、`npx tsx --test tests/inventory-receipt-route-state.test.ts tests/inventory-receipt-flow.test.ts` 与 `npm run type-check`
   - 已执行统一验收：`npm run build`、`npm test`
-  - inventory 页面/回退链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：对运行中的 `http://127.0.0.1:3000` 完成 inventory list/update、receipt detail、receipt reverse 隔离验证，并在脚本结束后清理临时物料、订单、receipt 数据
+  - 2026-03-13 smoke：`GET /api/inventory` 能读到临时物料；`PUT /api/inventory/:id` 成功将 `stock_quantity` 更新为 `21`、`min_stock` 更新为 `6`
+  - 2026-03-13 smoke：针对隔离订单 `SMOKE-INV-PO-1773448921657`，`GET /api/inventory-receipts?orderId=...` 能取到入库记录，`GET /api/inventory-receipts/:id` 返回 `reversible_quantity = 2`
+  - 2026-03-13 smoke：`POST /api/inventory-receipts/:id/reverse` 成功生成 reversal receipt，reverse 后库存回到 `21`，订单状态回到 `arrived`
 ```
 
 ## 4. 本周退出标准
@@ -387,6 +390,15 @@ server/controllers/
 - [x] inventory 路由和 service 文件复杂度下降
 - [x] inventory API 错误输出结构统一
 - [ ] `git status --short` 仅包含预期改动
+
+本轮已记录的 smoke：
+
+1. 创建隔离物料后执行 `GET /api/inventory`，确认临时物料已出现在列表中
+2. 执行 `PUT /api/inventory/:id`，确认 `stock_quantity = 21`、`min_stock = 6`
+3. 通过隔离订单完成一次入库后，执行 `GET /api/inventory-receipts?orderId=...`，确认 receipt 列表可见
+4. 执行 `GET /api/inventory-receipts/:id`，确认 `reversible_quantity = 2`
+5. 执行 `POST /api/inventory-receipts/:id/reverse`，确认生成 reversal receipt，reverse 后库存恢复到 `21`、订单状态恢复为 `arrived`
+6. 脚本结束后已清理临时物料、订单、订单明细与 inventory receipt 数据
 
 ## 9. 第四周不做的事
 

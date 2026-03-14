@@ -38,12 +38,12 @@ What remains is week-specific smoke evidence.
 
 ## 5. Week 4 - Inventory Domain
 
-- [ ] Verify inventory list load.
-- [ ] Verify inventory update flow.
-- [ ] Verify inventory receipt detail flow.
-- [ ] Verify inventory receipt reverse flow.
-- [ ] Verify stock-in to inventory linkage with one realistic case.
-- [ ] Record smoke result in [WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md).
+- [x] Verify inventory list load.
+- [x] Verify inventory update flow.
+- [x] Verify inventory receipt detail flow.
+- [x] Verify inventory receipt reverse flow.
+- [x] Verify stock-in to inventory linkage with one realistic case.
+- [x] Record smoke result in [WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md).
 
 ## 6. Week 5 - Shared Mappings Core
 
