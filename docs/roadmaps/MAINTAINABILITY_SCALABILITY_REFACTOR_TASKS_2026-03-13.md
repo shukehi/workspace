@@ -337,6 +337,13 @@
 - [ ] 清理“来源分析配置”和“材料目录配置”语义混用
 - [ ] 如果仍保留兼容入口，明确它只是过渡路径
 
+当前已完成的首批落地：
+
+1. 已新增 `src/features/materials/composables/useMaterialsPageState.ts`，`src/views/Materials.vue` 已将 tab 状态下沉到页面状态 composable。
+2. 已新增 `src/features/materials/composables/useMaterialManagementPageState.ts`，`src/views/MaterialManagement.vue` 已将列表加载、搜索、编辑弹窗与保存流程下沉到页面状态 composable。
+3. 已新增 `tests/materials-page-state.test.ts` 与 `tests/material-management-page-state.test.ts`，锁定 tab 切换与物料管理页面状态行为。
+4. 目前 `MaterialManagement.vue` 仍直接调用 `/materials` API，后续如果继续推进，再单独抽 `api/normalizer`，不与本轮页面状态收敛混做。
+
 ### 9.3 本周额外约束
 
 - [ ] 不把问题重新表述为“页面太大”；核心是 runtime 依赖链和配置来源不清

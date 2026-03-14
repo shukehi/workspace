@@ -55,11 +55,14 @@ Week 7
   - `src/services/sourceAnalysisConfig.ts` 已改为只消费 loader 暴露的 source-analysis 入口，不再手工编排 `loadAll + refresh* + get*`
   - 已新增 `src/features/source-analysis/composables/useSourcePageState.ts`，`src/views/Source.vue` 已将合同输入、长文本模式与表格列装配下沉到页面状态 composable
   - 已新增 `src/features/source-analysis/services/sourceOrderWorkflow.ts`，`src/stores/useSourceStore.ts` 已将合同加载、历史合同读取、分析重算与 snapshot rehydrate 下沉到 workflow service
+  - 已新增 `src/features/materials/composables/useMaterialsPageState.ts` 与 `useMaterialManagementPageState.ts`
+  - `src/views/Materials.vue` 已将 tab 状态下沉到 materials composable，`src/views/MaterialManagement.vue` 已将列表加载、搜索、编辑弹窗和保存流程下沉到页面状态 composable
   - 已补 `tests/source-analysis-runtime.test.ts`
   - 已补 `tests/source-contract-service.test.ts` 与 `tests/source-order-snapshot.test.ts`
   - 已补 `tests/config-loader-mapping.test.ts` 的 source-analysis loader 边界测试
   - 已补 `tests/source-page-state.test.ts` 与 `tests/source-store-workflow.test.ts`
-  - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/source-page-state.test.ts`、`tests/source-store-workflow.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
+  - 已补 `tests/materials-page-state.test.ts` 与 `tests/material-management-page-state.test.ts`
+  - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/source-page-state.test.ts`、`tests/source-store-workflow.test.ts`、`tests/materials-page-state.test.ts`、`tests/material-management-page-state.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
 ```
 
 ## 4. 本周退出标准
@@ -194,8 +197,8 @@ server/services/material-catalog/
 
 建议迁移内容：
 
-- [ ] 列表加载与搜索
-- [ ] 表单弹窗/编辑状态
+- [x] 列表加载与搜索（当前已落 `useMaterialManagementPageState.ts`）
+- [x] 表单弹窗/编辑状态（当前已落 `useMaterialManagementPageState.ts`）
 - [ ] payload normalize
 - [ ] material catalog 与 materials 表数据的页面交互边界
 
