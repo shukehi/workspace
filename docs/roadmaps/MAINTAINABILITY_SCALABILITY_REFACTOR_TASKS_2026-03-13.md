@@ -370,15 +370,21 @@
 
 ### 10.2 自动守护
 
-- [ ] 为结构边界补 guard test 或等价自动检查
-- [ ] 对浏览器副作用 allowlist、legacy route 使用、兼容入口退场条件建立最小保护
+- [x] 为结构边界补 guard test 或等价自动检查
+- [x] 对浏览器副作用 allowlist、legacy route 使用、兼容入口退场条件建立最小保护
 - [ ] 如果新增请求校验规范，补对应 guard 或 route 测试
 
 ### 10.3 兼容壳与 legacy 路径盘点
 
-- [ ] 盘点 compatibility shell 文件和 legacy 路径
-- [ ] 标记哪些可立即删除，哪些必须继续保留
-- [ ] 对继续保留的兼容层写清退场条件和最晚处理阶段
+- [x] 盘点 compatibility shell 文件和 legacy 路径
+- [x] 标记哪些可立即删除，哪些必须继续保留
+- [x] 对继续保留的兼容层写清退场条件和最晚处理阶段
+
+当前已完成的首批落地：
+
+1. 已新增 `docs/governance/COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md`，盘点当前仍保留的 `OrderService.js`、`InventoryReceiptService.js`、`FormulaService.js` compatibility shell。
+2. 已为每个 compatibility shell 写明保留原因、退场条件和最晚处理阶段。
+3. 已补 `tests/governance-boundary-guard.test.js`，冻结 compatibility shell allowlist，并校验这些文件继续保持“单行转发”形态。
 
 建议 PR 拆分：
 

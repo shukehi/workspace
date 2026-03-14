@@ -72,6 +72,7 @@ test('governance guard: prompt and window lifecycle side-effects stay inside the
     [
       'src/components/procurement/EditOrderDialog.vue',
       'src/components/source/ContractHistoryDialog.vue',
+      'src/features/formulas/composables/useDirtyBeforeUnload.ts',
       'src/features/formulas/composables/useFormulaManager.ts',
       'src/views/PrintDocument.vue',
       'src/views/Procurement.vue',
@@ -84,7 +85,7 @@ test('governance guard: localStorage access stays inside the reviewed allowlist'
     rgFiles('(window\\.)?localStorage', ['src']).sort(),
     [
       'src/features/procurement/sheetWidthResolver.ts',
-      'src/stores/useSourceStore.ts',
+      'src/features/source-analysis/services/sourceOrderSnapshot.ts',
       'src/views/Inventory.vue',
     ],
   );
@@ -99,4 +100,32 @@ test('governance guard: download anchor creation stays inside the reviewed allow
       'src/stores/useProcurementStore.ts',
     ],
   );
+});
+
+test('governance guard: compatibility shell files stay inside the reviewed allowlist', () => {
+  assert.deepEqual(
+    rgFiles('^module\\.exports = require\\(', ['server/services']).sort(),
+    [
+      'server/services/FormulaService.js',
+      'server/services/InventoryReceiptService.js',
+      'server/services/OrderService.js',
+      'server/services/orders/index.js',
+    ],
+  );
+});
+
+test('governance guard: top-level compatibility shell files remain one-line forwarders', () => {
+  const expected = {
+    'server/services/OrderService.js': "module.exports = require('./orders');",
+    'server/services/InventoryReceiptService.js': "module.exports = require('./inventory').inventoryReceiptService;",
+    'server/services/FormulaService.js': "module.exports = require('./formulas');",
+  };
+
+  for (const [path, content] of Object.entries(expected)) {
+    assert.equal(
+      read(path).trim(),
+      content,
+      `Compatibility shell changed shape unexpectedly: ${path}`,
+    );
+  }
 });

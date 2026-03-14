@@ -10,7 +10,7 @@
 > - `docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md`
 > - `docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`
-> 状态：todo
+> 状态：in_progress
 > 目标：将前七周的重构路线沉淀为团队可执行的统一索引，并把关键结构约束升级为工程规范，避免后续新增功能再次绕开已建立的模式。
 
 ## 1. 第八周范围
@@ -42,7 +42,7 @@
 ```text
 Week 8
 - Owner: TBD
-- Status: pending
+- Status: in_progress
 - Start Date:
 - Target Date:
 - Exit Criteria:
@@ -54,6 +54,10 @@ Week 8
 - Blocking:
 - PR / Issue:
 - Notes:
+  - 已新增 `docs/governance/COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md`
+  - 已盘点当前 compatibility shell：`server/services/OrderService.js`、`server/services/InventoryReceiptService.js`、`server/services/FormulaService.js`
+  - 已在 `tests/governance-boundary-guard.test.js` 补 compatibility shell allowlist 与“单行转发” guard
+  - `docs/README.md` 已加入 compatibility shell 退场清单入口
 ```
 
 ## 4. 本周退出标准
@@ -106,9 +110,9 @@ Week 8
 
 建议动作：
 
-- [ ] 在 `roadmaps` 区域加入本轮重构总蓝图、任务拆解、周计划索引
-- [ ] 按“总方案 -> 任务拆解 -> 周计划”顺序排列
-- [ ] 保持现有文档分层风格一致
+- [x] 在 `roadmaps` 区域加入本轮重构总蓝图、任务拆解、周计划索引
+- [x] 按“总方案 -> 任务拆解 -> 周计划”顺序排列
+- [x] 保持现有文档分层风格一致
 
 验收：
 
