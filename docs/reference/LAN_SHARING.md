@@ -39,7 +39,7 @@ npm run dev:lan
 行为说明：
 
 - `npm run dev:lan` 仍然是 Vite 开发模式，只是将监听地址开放到局域网
-- `npm run server:lan` 使用 Node 原生 `--watch`，修改后端代码后会自动重启
+- `npm run server:lan` 使用 `tsx watch`，修改后端代码后会自动重启，并允许逐步加载后端 `.ts` 模块
 - 同事访问前端时，`/api/*` 和 `/data/*` 仍由 Vite 代理到你本机的 `3000` 端口
 - 你改动代码时，本机和同事页面都会看到最新结果
 
