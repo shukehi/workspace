@@ -64,13 +64,13 @@ What remains is week-specific smoke evidence.
 
 ## 8. Week 7 - Source Analysis And Materials
 
-- [ ] Verify Source page contract load.
-- [ ] Verify Source page history contract rehydrate.
-- [ ] Verify Source page analysis recompute.
-- [ ] Verify Source page snapshot restore after refresh.
-- [ ] Verify Materials page navigation/tab state.
-- [ ] Verify MaterialManagement search / edit / save flow.
-- [ ] Record smoke result in [WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md).
+- [x] Verify Source page contract load.
+- [x] Verify Source page history contract rehydrate.
+- [x] Verify Source page analysis recompute.
+- [x] Verify Source page snapshot restore after refresh.
+- [x] Verify Materials page navigation/tab state.
+- [x] Verify MaterialManagement search / edit / save flow.
+- [x] Record smoke result in [WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md).
 
 ## 9. Week 8 - Governance
 

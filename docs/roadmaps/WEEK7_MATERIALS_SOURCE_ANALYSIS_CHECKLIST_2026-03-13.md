@@ -64,7 +64,9 @@ Week 7
   - 已补 `tests/materials-page-state.test.ts` 与 `tests/material-management-page-state.test.ts`
   - 已通过 `npm run type-check`、`tests/source-analysis-runtime.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts`、`tests/source-page-state.test.ts`、`tests/source-store-workflow.test.ts`、`tests/materials-page-state.test.ts`、`tests/material-management-page-state.test.ts`、`tests/config-loader-mapping.test.ts`、`tests/config-routes.test.js`
   - 已执行统一验收：`npm run build`、`npm test`
-  - source-analysis / materials 主链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：访问 `/source`，页面标题、合同输入区、长文本模式切换按钮均正常显示；点击“历史合同”后弹窗可正常打开
+  - 2026-03-13 smoke：访问 `/materials`，物料分析页面可正常进入；访问 `/material-master` 后搜索框可用，搜索 `M-001` 后页面正常响应，编辑弹窗可正常打开
+  - Source 合同加载 / 分析重算 / snapshot restore 的运行时证据继续由 `tests/source-analysis-runtime.test.ts`、`tests/source-store-workflow.test.ts`、`tests/source-contract-service.test.ts`、`tests/source-order-snapshot.test.ts` 这组用例覆盖
 ```
 
 ## 4. 本周退出标准
@@ -416,6 +418,21 @@ server/services/material-catalog/
 - [x] materials 与 material catalog 语义边界更清晰
 - [x] config runtime / repository / loader 职责更明确
 - [ ] `git status --short` 仅包含预期改动
+
+本轮已记录的 smoke：
+
+1. Source page
+   - 访问 `http://127.0.0.1:5173/source`
+   - 页面标题、合同输入区、三种长文本模式按钮正常显示
+   - 点击“历史合同”后弹窗可正常打开
+2. Materials pages
+   - 访问 `http://127.0.0.1:5173/materials`，页面可正常进入
+   - 访问 `http://127.0.0.1:5173/material-master`
+   - 搜索框可输入 `M-001` 并触发搜索
+   - 编辑弹窗可正常打开，表明页面状态与 dialog 流程工作正常
+3. 说明
+   - Source 合同加载、分析重算、snapshot restore 的更强证据由 runtime/workflow/snapshot 测试覆盖
+   - 本轮页面 smoke 主要补足 UI 入口和状态装配层可用性记录
 
 ## 10. 第七周不做的事
 
