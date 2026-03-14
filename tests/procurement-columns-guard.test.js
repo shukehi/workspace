@@ -30,7 +30,7 @@ test('procurement columns guard: detail table shows customer name instead of amo
   assert.match(content, /actions\.onExportPdf\(order\)/);
   assert.match(content, /title:\s*'查看入库记录'/);
   assert.match(content, /actions\.onViewReceipts\(order\)/);
-  assert.match(content, /arrived:\s*\{\s*label:\s*'已到货'/);
+  assert.match(content, /arrived:\s*\{\s*label:\s*ORDER_STATUS_LABELS\.arrived/);
   assert.match(content, /status !== 'completed'/);
   assert.match(content, /title:\s*'开始采购'/);
   assert.match(content, /actions\.onStatusUpdate\(order,\s*'processing'\)/);
