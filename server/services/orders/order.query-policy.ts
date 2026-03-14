@@ -1,15 +1,19 @@
+export {};
+
 const { ORDER_PENDING_STATUSES } = require('../../shared/constants/order');
 
-function normalizeQueryText(value) {
+type PlainRecord = Record<string, any>;
+
+function normalizeQueryText(value: unknown): string {
     if (value === undefined || value === null) return '';
     return String(value).trim();
 }
 
-function isPendingOrderStatus(status) {
+function isPendingOrderStatus(status: string): boolean {
     return ORDER_PENDING_STATUSES.includes(status);
 }
 
-function resolveBackendPrintCategory(category) {
+function resolveBackendPrintCategory(category: unknown): string {
     const raw = String(category || '').toLowerCase();
     if (raw === 'packaging' || raw.includes('包装')) return 'packaging';
     if (raw === 'cylinder' || raw.includes('锁芯')) return 'cylinder';
@@ -20,9 +24,9 @@ function resolveBackendPrintCategory(category) {
     return 'packaging';
 }
 
-function resolveBackendOrderRiskLevel(order) {
+function resolveBackendOrderRiskLevel(order: PlainRecord): 'high' | 'medium' | null {
     const items = Array.isArray(order?.items) ? order.items : [];
-    const hasHighRisk = items.some((item) => {
+    const hasHighRisk = items.some((item: PlainRecord) => {
         const supplier = String(item?.supplier || '');
         const type = String(item?.type || item?.name || '');
         const remark = String(item?.remark || '');
@@ -32,7 +36,7 @@ function resolveBackendOrderRiskLevel(order) {
     });
     if (hasHighRisk) return 'high';
 
-    const hasMediumRisk = items.some((item) => {
+    const hasMediumRisk = items.some((item: PlainRecord) => {
         const type = String(item?.type || item?.name || '');
         const remark = String(item?.remark || '');
         return type.includes('待确认')
@@ -43,7 +47,7 @@ function resolveBackendOrderRiskLevel(order) {
     return null;
 }
 
-function filterOrders(orders, query = {}) {
+function filterOrders(orders: PlainRecord[], query: PlainRecord = {}): PlainRecord[] {
     const status = normalizeQueryText(query.status);
     const category = normalizeQueryText(query.category);
     const risk = normalizeQueryText(query.risk);
@@ -81,7 +85,7 @@ function filterOrders(orders, query = {}) {
         if (keyword) {
             const matches = String(order.order_no || '').toLowerCase().includes(keyword)
                 || String(order.supplier || '').toLowerCase().includes(keyword)
-                || (Array.isArray(order.items) && order.items.some((item) => `${item.name || ''}${item.model || ''}`.toLowerCase().includes(keyword)));
+                || (Array.isArray(order.items) && order.items.some((item: PlainRecord) => `${item.name || ''}${item.model || ''}`.toLowerCase().includes(keyword)));
             if (!matches) return false;
         }
 
@@ -89,7 +93,7 @@ function filterOrders(orders, query = {}) {
     });
 }
 
-function buildOrderSummary(orders) {
+function buildOrderSummary(orders: PlainRecord[]) {
     const totalAmount = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
     const pendingCount = orders.filter((order) => isPendingOrderStatus(order.status)).length;
     const completedCount = orders.filter((order) => order.status === 'completed').length;
@@ -99,10 +103,10 @@ function buildOrderSummary(orders) {
     return { totalAmount, pendingCount, completedCount, todayCount };
 }
 
-function buildOrderFacets(orders) {
-    const statusCounts = { ALL: orders.length };
-    const categoryCounts = { ALL: orders.length };
-    const riskCounts = { ALL: orders.length, RISK: 0, MANUAL: 0 };
+function buildOrderFacets(orders: PlainRecord[]) {
+    const statusCounts: Record<string, number> = { ALL: orders.length };
+    const categoryCounts: Record<string, number> = { ALL: orders.length };
+    const riskCounts: Record<string, number> = { ALL: orders.length, RISK: 0, MANUAL: 0 };
 
     orders.forEach((order) => {
         statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;

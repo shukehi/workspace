@@ -1,4 +1,8 @@
-function toRevisionMeta(revision) {
+export {};
+
+type PlainRecord = Record<string, any>;
+
+function toRevisionMeta(revision: PlainRecord) {
     return {
         id: revision.id,
         revision: revision.revision,
@@ -9,7 +13,7 @@ function toRevisionMeta(revision) {
     };
 }
 
-function toSummary(definition) {
+function toSummary(definition: PlainRecord) {
     return {
         id: definition.id,
         formulaKey: definition.formula_key,
@@ -20,7 +24,7 @@ function toSummary(definition) {
     };
 }
 
-function toDetail(definition, payload) {
+function toDetail(definition: PlainRecord, payload: { bom: unknown[] }) {
     return {
         id: definition.id,
         formulaKey: definition.formula_key,
@@ -32,8 +36,12 @@ function toDetail(definition, payload) {
     };
 }
 
-function toPublishedMap(definitions, latestPublishedByFormulaId, parsePayload) {
-    const mapping = {};
+function toPublishedMap(
+    definitions: PlainRecord[],
+    latestPublishedByFormulaId: Map<number, PlainRecord>,
+    parsePayload: (payloadJson: string) => PlainRecord,
+) {
+    const mapping: Record<string, { displayName: string; bom: unknown[] }> = {};
     for (const definition of definitions) {
         const revision = latestPublishedByFormulaId.get(definition.id);
         if (!revision) continue;

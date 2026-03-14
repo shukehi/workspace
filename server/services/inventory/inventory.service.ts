@@ -1,14 +1,21 @@
+export {};
+
 const AppError = require('../../app/errors/AppError');
 const ERROR_CODES = require('../../app/errors/errorCodes');
 const repository = require('./inventory.repository');
 const { toInventoryItem } = require('./inventory.mapper');
+
+type InventoryPayload = {
+  stock_quantity: number | string;
+  min_stock?: number | string;
+};
 
 async function listInventory() {
   const materials = await repository.listMaterials();
   return materials.map(toInventoryItem);
 }
 
-async function updateInventoryItem(id, payload) {
+async function updateInventoryItem(id: number | string, payload: InventoryPayload) {
   const material = await repository.findMaterialById(Number(id));
   if (!material) {
     throw new AppError({

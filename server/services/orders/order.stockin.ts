@@ -1,17 +1,39 @@
-function assertOrderReadyForStockIn(order, normalizeStatus, InvalidStatusTransitionError) {
+export {};
+
+type PlainRecord = Record<string, any>;
+
+type StockInDeps = {
+    inventoryReceiptService: {
+        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction: unknown) => Promise<{ receiptItems?: PlainRecord[] }>;
+    };
+    MissingMaterialError: new (materialId?: string) => Error;
+    resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;
+    ReceivedQuantityExceededError: new (itemId: number, orderedQuantity: number, nextReceived: number) => Error;
+};
+
+function assertOrderReadyForStockIn(
+    order: PlainRecord | null | undefined,
+    normalizeStatus: (status: unknown, fallback?: string) => string,
+    InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error,
+): void {
     const currentStatus = normalizeStatus(order?.status);
     if (currentStatus !== 'arrived') {
         throw new InvalidStatusTransitionError(currentStatus, 'completed');
     }
 }
 
-async function createReceiptItemsFromOrder(order, data, transaction, deps) {
+async function createReceiptItemsFromOrder(
+    order: PlainRecord,
+    data: PlainRecord,
+    transaction: unknown,
+    deps: Pick<StockInDeps, 'inventoryReceiptService' | 'MissingMaterialError'>,
+): Promise<PlainRecord[]> {
     const { inventoryReceiptService, MissingMaterialError } = deps;
 
     try {
         const created = await inventoryReceiptService.createFromOrder(order, data, transaction);
         return Array.isArray(created?.receiptItems) ? created.receiptItems : [];
-    } catch (error) {
+    } catch (error: any) {
         if (error?.code === 'MATERIAL_NOT_FOUND') {
             throw new MissingMaterialError(error.materialId);
         }
@@ -19,9 +41,14 @@ async function createReceiptItemsFromOrder(order, data, transaction, deps) {
     }
 }
 
-async function syncStockInReceiptItems(order, receiptItems, transaction, deps) {
+async function syncStockInReceiptItems(
+    order: PlainRecord,
+    receiptItems: PlainRecord[],
+    transaction: unknown,
+    deps: Pick<StockInDeps, 'resolveOrderedQuantity' | 'ReceivedQuantityExceededError'>,
+): Promise<Map<number, PlainRecord>> {
     const { resolveOrderedQuantity, ReceivedQuantityExceededError } = deps;
-    const updatesByOrderItemId = new Map();
+    const updatesByOrderItemId = new Map<number, PlainRecord>();
 
     for (const receiptItem of receiptItems) {
         const item = receiptItem.orderItem;
@@ -40,7 +67,11 @@ async function syncStockInReceiptItems(order, receiptItems, transaction, deps) {
     return updatesByOrderItemId;
 }
 
-function areAllOrderItemsReceived(orderItems, updatesByOrderItemId, resolveOrderedQuantity) {
+function areAllOrderItemsReceived(
+    orderItems: PlainRecord[] | null | undefined,
+    updatesByOrderItemId: Map<number, PlainRecord>,
+    resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number,
+): boolean {
     return (orderItems || []).every((item) => {
         const candidate = updatesByOrderItemId.get(Number(item.id)) || item;
         const orderedQuantity = resolveOrderedQuantity(candidate.ordered_quantity, candidate.quantity);
@@ -49,7 +80,12 @@ function areAllOrderItemsReceived(orderItems, updatesByOrderItemId, resolveOrder
     });
 }
 
-function buildStockInOrderUpdate(order, data, allReceived, normalizeOrderRemark) {
+function buildStockInOrderUpdate(
+    order: PlainRecord,
+    data: PlainRecord,
+    allReceived: boolean,
+    normalizeOrderRemark: (remark: unknown) => string,
+): PlainRecord {
     const nextStockedInAt = data.stocked_in_at || new Date().toISOString();
 
     return {

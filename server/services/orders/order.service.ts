@@ -1,3 +1,5 @@
+export {};
+
 const { Op } = require('sequelize');
 const { sequelize } = require('../../models');
 const inventoryReceiptService = require('../InventoryReceiptService');
@@ -40,13 +42,23 @@ const {
     ReceivedQuantityExceededError,
 } = require('./order.errors');
 
-function normalizeOrderRemark(remark) {
+type PlainRecord = Record<string, any>;
+
+function normalizeOrderRemark(remark: unknown): string {
     if (remark === undefined || remark === null) return '';
     return String(remark);
 }
 
 class OrderService {
-    async reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }, transaction) {
+    DuplicateOrderError?: typeof DuplicateOrderError;
+    InvalidStatusTransitionError?: typeof InvalidStatusTransitionError;
+    MissingMaterialError?: typeof MissingMaterialError;
+    OrderEditLockedError?: typeof OrderEditLockedError;
+    ReceivedQuantityExceededError?: typeof ReceivedQuantityExceededError;
+    buildOrderDedupeKey?: typeof buildOrderDedupeKey;
+    toDuplicateOrderSummary?: typeof toDuplicateOrderSummary;
+
+    async reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) {
         if (!sourceContractCode || !dedupeKey || !orderId) return null;
         try {
             return await orderRepository.createIdempotencyKey({
@@ -56,7 +68,7 @@ class OrderService {
                 order_id: orderId,
                 active: true,
             }, transaction);
-        } catch (error) {
+        } catch (error: any) {
             const message = String(error?.message || '');
             const isUnique = error?.name === 'SequelizeUniqueConstraintError'
                 || message.includes('UNIQUE constraint failed')
@@ -71,7 +83,7 @@ class OrderService {
         }
     }
 
-    async releaseIdempotencyKeys(orderId, transaction) {
+    async releaseIdempotencyKeys(orderId: number, transaction: unknown) {
         await orderRepository.updateActiveIdempotencyKeysByOrderId(
             orderId,
             { active: false },
@@ -79,7 +91,7 @@ class OrderService {
         );
     }
 
-    async syncActiveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }, transaction) {
+    async syncActiveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) {
         if (!sourceContractCode || !dedupeKey || !orderId) return 0;
         const [updated] = await orderRepository.updateScopedIdempotencyKeysByOrderId(
             orderId,
@@ -98,8 +110,8 @@ class OrderService {
         return 1;
     }
 
-    async getAllOrders(category) {
-        const where = {};
+    async getAllOrders(category?: string) {
+        const where: PlainRecord = {};
         if (typeof category === 'string' && category.trim()) {
             where.category = category.trim();
         }
@@ -107,9 +119,9 @@ class OrderService {
         const orders = await orderRepository.findAllOrdersWithItems(where);
 
         const invalidOrders = orders
-            .map((order, index) => ({ order, index }))
-            .filter(({ order }) => !order || !order.created_at)
-            .map(({ order, index }) => normalizeOrderForLog(order, index));
+            .map((order: PlainRecord, index: number) => ({ order, index }))
+            .filter(({ order }: { order: PlainRecord }) => !order || !order.created_at)
+            .map(({ order, index }: { order: PlainRecord; index: number }) => normalizeOrderForLog(order, index));
 
         if (invalidOrders.length > 0) {
             console.warn('[OrderService] getAllOrders found records with missing created_at:', invalidOrders);
@@ -118,7 +130,7 @@ class OrderService {
         return orders.map(serializeOrder);
     }
 
-    async getPaginatedOrders(query = {}) {
+    async getPaginatedOrders(query: PlainRecord = {}) {
         const orders = await this.getAllOrders();
         const filteredOrders = filterOrders(orders, query);
         const page = Math.max(1, Number(query.page) || 1);
@@ -136,19 +148,19 @@ class OrderService {
         };
     }
 
-    async getOrderById(id) {
+    async getOrderById(id: number | string) {
         const order = await orderRepository.findOrderByIdWithItems(id);
         return serializeOrder(order);
     }
 
-    async findDuplicateAutoOrder(data, transaction, options = {}) {
+    async findDuplicateAutoOrder(data: PlainRecord, transaction: unknown, options: PlainRecord = {}) {
         const sourceContractCode = resolveSourceContractCode(data);
         const dedupeKey = normalizeDedupeText(data?.dedupe_key) || buildOrderDedupeKey(data);
         const excludeId = Number(options.excludeId);
 
         if (!sourceContractCode || !dedupeKey) return null;
 
-        const where = {
+        const where: PlainRecord = {
             source_contract_code: sourceContractCode,
             status: { [Op.ne]: 'cancelled' }
         };
@@ -158,7 +170,7 @@ class OrderService {
 
         const candidates = await orderRepository.findAllOrdersWithItems(where, transaction);
 
-        const matched = candidates.find((candidate) => {
+        const matched = candidates.find((candidate: PlainRecord) => {
             const persisted = serializeOrder(candidate);
             const candidateKey = normalizeDedupeText(candidate.dedupe_key) || buildOrderDedupeKey(persisted);
             return candidateKey === dedupeKey;
@@ -167,13 +179,13 @@ class OrderService {
         return matched ? serializeOrder(matched) : null;
     }
 
-    async createOrder(data) {
+    async createOrder(data: PlainRecord) {
         const transaction = await sequelize.transaction();
         try {
             const sourceContractCode = resolveSourceContractCode(data);
             const metadata = normalizeMetadata(data.metadata);
             const normalizedStatus = normalizeStatus(data.status, 'draft');
-            const normalizedData = {
+            const normalizedData: PlainRecord = {
                 ...data,
                 source_contract_code: sourceContractCode,
                 metadata,
@@ -213,7 +225,7 @@ class OrderService {
             }, transaction);
 
             if (normalizedData.items && normalizedData.items.length > 0) {
-                const items = normalizedData.items.map(item => ({
+                const items = normalizedData.items.map((item: PlainRecord) => ({
                     ...normalizeOrderItemForPersistence(item),
                     id: undefined,
                     order_id: order.id
@@ -246,7 +258,7 @@ class OrderService {
         }
     }
 
-    async updateOrder(id, data) {
+    async updateOrder(id: number | string, data: PlainRecord) {
         const transaction = await sequelize.transaction();
         try {
             const order = await orderRepository.findOrderById(id, transaction);
@@ -296,7 +308,7 @@ class OrderService {
                 await this.reserveIdempotencyKey({
                     sourceContractCode: nextSourceContractCode,
                     dedupeKey: nextDedupeKey,
-                    orderId: id
+                    orderId: Number(id)
                 }, transaction);
             }
 
@@ -322,7 +334,7 @@ class OrderService {
             }
 
             if (data.items) {
-                const items = data.items.map(item => ({
+                const items = data.items.map((item: PlainRecord) => ({
                     ...normalizeOrderItemForPersistence(item),
                     id: undefined,
                     order_id: id
@@ -332,12 +344,12 @@ class OrderService {
 
             if (isAutoOrder) {
                 if (nextStatus === 'cancelled') {
-                    await this.releaseIdempotencyKeys(id, transaction);
+                    await this.releaseIdempotencyKeys(Number(id), transaction);
                 } else if (!statusTransition.startsWith('cancelled->')) {
                     await this.syncActiveIdempotencyKey({
                         sourceContractCode: nextSourceContractCode,
                         dedupeKey: nextDedupeKey,
-                        orderId: id
+                        orderId: Number(id)
                     }, transaction);
                 }
             }
@@ -362,7 +374,7 @@ class OrderService {
         }
     }
 
-    async deleteOrder(id) {
+    async deleteOrder(id: number | string) {
         const parsedId = Number(id);
         if (!Number.isInteger(parsedId) || parsedId <= 0) {
             throw new Error('INVALID_ID');
@@ -377,7 +389,7 @@ class OrderService {
                 const deleted = await orderRepository.destroyOrderById(parsedId, transaction);
                 await transaction.commit();
                 return deleted;
-            } catch (error) {
+            } catch (error: any) {
                 await transaction.rollback();
                 const isBusy = error && (error.name === 'SequelizeTimeoutError' || String(error.message || '').includes('SQLITE_BUSY'));
                 if (isBusy && attempt < maxAttempts) {
@@ -389,7 +401,7 @@ class OrderService {
         }
     }
 
-    async markArrived(id, data = {}) {
+    async markArrived(id: number | string, data: PlainRecord = {}) {
         const payload = {
             ...data,
             status: 'arrived',
@@ -398,7 +410,7 @@ class OrderService {
         return await this.updateOrder(id, payload);
     }
 
-    async stockInOrder(id, data = {}) {
+    async stockInOrder(id: number | string, data: PlainRecord = {}) {
         const transaction = await sequelize.transaction();
         try {
             const order = await orderRepository.findOrderByIdWithItems(id, transaction);
