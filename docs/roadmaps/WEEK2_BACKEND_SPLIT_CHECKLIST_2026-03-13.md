@@ -45,7 +45,10 @@ Week 2
   - `server/services/OrderService.js` 已降级为兼容壳，转发到 `server/services/orders/index.js`
   - 已执行 `node --test tests/order-service.test.js`、`node --test tests/order-routes.test.js`、`node --test tests/inventory-route.test.js`
   - 已执行统一验收：`npm run type-check`、`npm run build`、`npm test`
-  - 订单主链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：使用本地运行中的 `http://127.0.0.1:3000/api/orders` 走通三条隔离链路，并在脚本结束后清理临时订单与物料
+  - 2026-03-13 smoke：链路一 `draft -> submitted` 更新成功，订单 `SMOKE-PO-UPDATE-1773448481603` 返回 `submitted`
+  - 2026-03-13 smoke：链路二 `processing -> arrive -> stock-in` 成功，订单 `SMOKE-PO-FLOW-1773448481603` 依次返回 `arrived`、`completed`，且 `received_quantity = 2`
+  - 2026-03-13 smoke：链路三 `draft -> delete` 成功，订单 `SMOKE-PO-DELETE-1773448481603` 删除返回成功
 ```
 
 ## 4. 本周退出标准
@@ -468,6 +471,14 @@ server/services/orders/
 - [x] `node --test tests/order-service.test.js`
 - [x] `node --test tests/order-routes.test.js`
 - [x] `node --test tests/inventory-route.test.js`
+
+本轮已记录的 smoke：
+
+1. 创建隔离订单 `SMOKE-PO-UPDATE-1773448481603`，执行 `PUT /api/orders/:id` 将状态从 `draft` 更新为 `submitted`
+2. 创建隔离订单 `SMOKE-PO-FLOW-1773448481603`，执行 `POST /api/orders/:id/arrive` 后得到 `arrived`
+3. 对同一订单执行 `POST /api/orders/:id/stock-in`，结果进入 `completed`，并确认 `received_quantity = 2`
+4. 创建隔离订单 `SMOKE-PO-DELETE-1773448481603`，执行 `DELETE /api/orders/:id` 成功
+5. 脚本结束后已清理临时订单、订单明细与临时物料，不保留脏数据
 
 ## 9. 第二周不做的事
 

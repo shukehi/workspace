@@ -22,12 +22,12 @@ What remains is week-specific smoke evidence.
 
 ## 3. Week 2 - Order Backend Split
 
-- [ ] Run create order main path.
-- [ ] Run update order main path.
-- [ ] Run arrive / stock-in main path.
-- [ ] Run cancel or delete path.
+- [x] Run create order main path.
+- [x] Run update order main path.
+- [x] Run arrive / stock-in main path.
+- [x] Run cancel or delete path.
 - [ ] Verify duplicate-order / idempotency behavior on at least one realistic sample.
-- [ ] Record smoke result in [WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md).
+- [x] Record smoke result in [WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md).
 
 ## 4. Week 3 - Controller / Error / Validation
 

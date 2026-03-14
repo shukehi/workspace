@@ -47,7 +47,8 @@ Week 1
   - 已跑 `npm test`
   - 已跑 Procurement/共享契约/API 兼容性定向测试
   - 已跑 `tests/order-routes.test.js` 和 `tests/api-contracts-route-shape.test.js`
-  - Procurement 主链路 smoke 记录仍待补齐，因此本周继续保留 `in_progress`
+  - 2026-03-13 smoke：访问 `/procurement`，点击“已到货”后 URL 正确同步到 `?status=arrived`；在搜索框输入“忠恒”后 URL 正确同步到 `?status=arrived&search=%E5%BF%A0%E6%81%92`，列表收敛到单条匹配订单
+  - 2026-03-13 smoke：从筛选结果进入“查看/打印”，预览弹窗正常打开，客户名称、供应商、明细表格、立即打印与导出 PDF 入口均正常显示
 ```
 
 ## 4. 本周退出标准
@@ -398,7 +399,7 @@ Week 1
 - [x] `npm run type-check`
 - [x] `npm test`
 - [x] `npm run build`
-- [ ] Procurement 页面手工验证通过
+- [x] Procurement 页面手工验证通过
 - [x] URL query 与筛选行为保持一致
 - [x] 无新增业务规则变更
 - [ ] `git status --short` 仅包含预期文件
@@ -409,6 +410,13 @@ Week 1
 2. `npx tsx --test tests/api-contract-compat.test.ts tests/shared-contracts.test.ts tests/procurement-store-normalize.test.ts tests/procurement-order-summary.test.ts tests/procurement-route-query.test.ts tests/procurement-page-state.test.ts`
 3. `node --test tests/order-routes.test.js`
 4. `node --test tests/api-contracts-route-shape.test.js`
+
+本轮已记录的 smoke：
+
+1. 访问 `http://127.0.0.1:5173/procurement`
+2. 点击“已到货”，确认 URL 变为 `?status=arrived`
+3. 输入“忠恒”，确认 URL 变为 `?status=arrived&search=%E5%BF%A0%E6%81%92`，且结果收敛到单条匹配订单
+4. 点击“查看/打印”，确认预览弹窗正常打开，客户名称、供应商、明细表格、立即打印与导出 PDF 入口均可见
 
 ## 7. 本周不做的事
 
