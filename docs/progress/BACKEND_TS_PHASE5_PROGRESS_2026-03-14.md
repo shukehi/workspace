@@ -29,6 +29,10 @@
    - `server/services/inventory/inventory-receipt.service.ts`
 7. 已完成第四步：
    - `server/services/orders/order.stockin.ts`
+8. 已完成第五步：
+   - `server/services/orders/order.query-policy.ts`
+   - `server/services/orders/order.errors.ts`
+   - `server/services/orders/order.service.ts`
 
 ## 3. 当前约束
 
@@ -38,6 +42,7 @@
 2. 不顺手改 route / controller
 3. 不修改数据库 schema
 4. 不扩大到新的高副作用模块
+5. 订单主编排迁移时，保持现有行为和导出结构不变
 
 ## 4. 当前验证
 
@@ -48,3 +53,4 @@
 3. `npm run type-check:server`
 4. `tests/inventory-route.test.js`
 5. `tests/order-service.test.js`
+6. `tests/order-routes.test.js`
