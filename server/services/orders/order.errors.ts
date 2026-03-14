@@ -4,14 +4,8 @@ import AppError from '../../app/errors/AppError';
 import { toDuplicateOrderSummary } from './order.mapper';
 
 /**
- * 辅助函数：安全提取错误对象中的业务细节属性
- * 避开原生 Error 对象不可枚举属性(message, stack等)的干扰
+ * 重复订单错误
  */
-const extractErrorDetails = (err: any) => {
-    const { message, stack, name, code, ...details } = err;
-    return details;
-};
-
 export class DuplicateOrderError extends Error {
     code: string = API_ERROR_CODES.DUPLICATE_ORDER;
     existingOrder: any;
@@ -22,6 +16,9 @@ export class DuplicateOrderError extends Error {
     }
 }
 
+/**
+ * 物料缺失错误
+ */
 export class MissingMaterialError extends Error {
     code: string = API_ERROR_CODES.MATERIAL_NOT_FOUND;
     materialId?: string;
@@ -32,6 +29,9 @@ export class MissingMaterialError extends Error {
     }
 }
 
+/**
+ * 入库数量超限错误
+ */
 export class ReceivedQuantityExceededError extends Error {
     code: string = API_ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED;
     orderItemId: number;
@@ -47,7 +47,7 @@ export class ReceivedQuantityExceededError extends Error {
 }
 
 /**
- * 订单领域错误处理器 (加固版)
+ * 订单领域错误处理器 (最高标准显式映射版)
  */
 export const orderErrorResolver = (error: any): AppError | null => {
     if (!error?.code) return null;
@@ -64,14 +64,20 @@ export const orderErrorResolver = (error: any): AppError | null => {
         return new AppError({
             code: ERROR_CODES.INVALID_STATUS_TRANSITION,
             status: 400,
-            details: extractErrorDetails(error),
+            details: {
+                fromStatus: error.fromStatus,
+                toStatus: error.toStatus,
+            },
             originalError: error,
         });
     case ERROR_CODES.ORDER_EDIT_LOCKED:
         return new AppError({
             code: ERROR_CODES.ORDER_EDIT_LOCKED,
             status: 400,
-            details: extractErrorDetails(error),
+            details: {
+                status: error.status,
+                fields: error.fields,
+            },
             originalError: error,
         });
     case ERROR_CODES.MATERIAL_NOT_FOUND:
@@ -85,7 +91,11 @@ export const orderErrorResolver = (error: any): AppError | null => {
         return new AppError({
             code: ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED,
             status: 400,
-            details: extractErrorDetails(error),
+            details: {
+                orderItemId: error.orderItemId,
+                orderedQuantity: error.orderedQuantity,
+                nextReceivedQuantity: error.nextReceivedQuantity,
+            },
             originalError: error,
         });
     case ERROR_CODES.ORDER_NOT_FOUND:

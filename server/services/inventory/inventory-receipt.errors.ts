@@ -11,7 +11,7 @@ export function createReceiptError(code: string, extra: Record<string, unknown> 
     return error;
 }
 
-// ... (省略中间的 Error 类定义，保持与之前一致)
+// ... (省略 Error 类定义)
 
 export class ReceiptReverseNotAllowedError extends Error {
     code: string = ERROR_CODES.RECEIPT_REVERSE_NOT_ALLOWED;
@@ -54,16 +54,10 @@ export class ReverseQuantityExceededError extends Error {
 }
 
 /**
- * 库存/入库领域错误处理器 (终极稳健版)
+ * 库存/入库领域错误处理器 (最高标准显式映射版)
  */
 export const inventoryErrorResolver = (error: any): AppError | null => {
     if (!error?.code) return null;
-
-    // 辅助函数：安全提取自定义属性，避开 Error 不可枚举属性的陷阱
-    const extractDetails = (err: any) => {
-        const { message, stack, name, code, ...details } = err;
-        return details;
-    };
 
     switch (error.code) {
     case ERROR_CODES.RECEIPT_NOT_FOUND:
@@ -80,7 +74,7 @@ export const inventoryErrorResolver = (error: any): AppError | null => {
         return new AppError({
             code: error.code,
             status: 400,
-            details: extractDetails(error),
+            details: { receiptId: error.receiptId },
             originalError: error,
         });
     case ERROR_CODES.REVERSE_QUANTITY_EXCEEDED:
@@ -104,7 +98,11 @@ export const inventoryErrorResolver = (error: any): AppError | null => {
         return new AppError({
             code: error.code,
             status: 400,
-            details: extractDetails(error),
+            details: {
+                materialId: error.materialId,
+                orderItemId: error.orderItemId,
+                itemKey: error.itemKey,
+            },
             originalError: error,
         });
     default:
