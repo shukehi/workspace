@@ -26,6 +26,6 @@ export const CONFIG_ENDPOINTS = {
   MATERIAL_CATALOG: {
     path: '/config/material-catalog',
     profile: 'material-catalog',
-    basePath: '/config/material-catalog'
+    basePath: '/config'
   }
 } as const;
