@@ -1,4 +1,4 @@
-export {};
+export { };
 
 const { buildOrderItemKey } = require('../orderItemKey');
 
@@ -45,11 +45,23 @@ export function serializeOrderItem(item: any): any {
  */
 export function normalizeOrderItemForPersistence(item: any): any {
     return {
-        category: item.category,
-        model: item.model,
-        code: item.code,
-        specification: item.specification,
+        material_id: item.material_id ?? null,
+        name: item.name || item.type || item.model || item.internal_name || '',
+        supplier: item.supplier ?? null,
+        internal_name: item.internal_name ?? null,
+        external_name: item.external_name ?? null,
+        type: item.type ?? null,
+        spec: item.spec ?? null,
+        mb: item.mb ?? null,
+        eccentricity: item.eccentricity ?? null,
+        model: item.model ?? null,
+        quantity: Number(item.quantity ?? 0),
         ordered_quantity: resolveOrderedQuantity(item),
+        quantity_left: item.quantity_left != null ? Number(item.quantity_left) : null,
+        quantity_right: item.quantity_right != null ? Number(item.quantity_right) : null,
+        unit: item.unit ?? null,
+        price: item.price != null ? Number(item.price) : 0,
+        remark: item.remark ?? null,
     };
 }
 
