@@ -30,13 +30,25 @@ export function serializeOrderItem(item: any): any {
     return {
         id: item.id,
         order_item_key: item.order_item_key || buildOrderItemKey(item),
-        category: item.category,
-        model: item.model,
-        code: item.code,
-        specification: item.specification,
+        // --- 完整物料信息 ---
+        material_id: item.material_id ?? null,
+        name: item.name ?? null,
+        supplier: item.supplier ?? null,
+        internal_name: item.internal_name ?? null,
+        external_name: item.external_name ?? null,
+        type: item.type ?? null,
+        spec: item.spec ?? null,
+        mb: item.mb ?? null,
+        eccentricity: item.eccentricity ?? null,
+        model: item.model ?? null,
+        quantity: Number(item.quantity ?? 0),
         ordered_quantity: resolveOrderedQuantity(item),
-        received_quantity: Number(item.received_quantity || 0),
-        status: item.status,
+        received_quantity: Number(item.received_quantity ?? 0),
+        quantity_left: item.quantity_left != null ? Number(item.quantity_left) : null,
+        quantity_right: item.quantity_right != null ? Number(item.quantity_right) : null,
+        unit: item.unit ?? null,
+        price: item.price != null ? Number(item.price) : 0,
+        remark: item.remark ?? null,
     };
 }
 
@@ -76,9 +88,18 @@ export function serializeOrder(order: any): any {
         category: order.category,
         supplier: order.supplier,
         source_contract_code: order.source_contract_code,
+        remark: order.remark ?? '',
+        metadata: order.metadata ?? {},
         items: Array.isArray(order.items) ? order.items.map(serializeOrderItem) : [],
         created_at: normalizeDateField(order.created_at),
         updated_at: normalizeDateField(order.updated_at),
+        delivery_date: normalizeDateField(order.delivery_date),
+        arrived_at: normalizeDateField(order.arrived_at),
+        arrived_by: order.arrived_by ?? null,
+        arrived_remark: order.arrived_remark ?? '',
+        stocked_in_at: normalizeDateField(order.stocked_in_at),
+        stocked_in_by: order.stocked_in_by ?? null,
+        stocked_in_remark: order.stocked_in_remark ?? '',
     };
 }
 
