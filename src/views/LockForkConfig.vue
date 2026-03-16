@@ -169,7 +169,7 @@ onMounted(editor.load);
             <Input v-model="(row as any)[f]" />
           </template>
         </ConfigTable>
-      </CardContent>
+      </CardContent></Card>
     </div>
 
     <div v-show="activeTab === 'edges'">
