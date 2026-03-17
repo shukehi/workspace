@@ -27,11 +27,11 @@ export const useProcurementStore = defineStore('procurement', () => {
     const loading = ref(false);
     const ordersTotal = ref(0);
     const ordersPage = ref(1);
-    const ordersPageSize = ref(20);
+    const ordersPageSize = ref(50);
     const serverPaginationEnabled = ref(false);
     const query = ref<ProcurementOrderQuery>({
         page: 1,
-        pageSize: 20,
+        pageSize: 50,
     });
     const summarySnapshot = ref<ProcurementOrderSummary>({
         totalAmount: 0,

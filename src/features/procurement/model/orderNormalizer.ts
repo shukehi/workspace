@@ -16,7 +16,7 @@ export function isValidOrder(order: any): order is Order {
   return !!order
     && typeof order === 'object'
     && typeof order.order_no === 'string'
-    && typeof order.created_at === 'string';
+    && (typeof order.created_at === 'string' || order.id != null);
 }
 
 export function normalizeOrderPayload(payload: any): Order | null {
@@ -33,9 +33,16 @@ export function normalizeOrderPayload(payload: any): Order | null {
       candidate.created_at ?? candidate.createdAt ?? candidate.updated_at ?? candidate.updatedAt,
     );
 
+    if (!createdAt) {
+      console.warn('[orderNormalizer] order missing created_at, using fallback:', {
+        id: candidate.id,
+        order_no: candidate.order_no,
+      });
+    }
+
     candidate = {
       ...candidate,
-      created_at: createdAt,
+      created_at: createdAt ?? new Date(0).toISOString(),
       total_amount: Number.isFinite(Number(candidate.total_amount)) ? Number(candidate.total_amount) : 0,
       items: Array.isArray(candidate.items) ? candidate.items : [],
     };

@@ -40,7 +40,7 @@ export function useProcurementRouteQuery<
   state: ProcurementRouteState<TStatus, TCategory, TRisk>,
 ) {
   const procurementPage = ref(clampInt(route.query.page, 1, 1));
-  const procurementPageSize = ref(clampInt(route.query.pageSize, 20, 10, 200));
+  const procurementPageSize = ref(clampInt(route.query.pageSize, 50, 10, 200));
 
   function syncSearchQueryFromRoute() {
     const orderNo = readQueryValue(route.query.orderNo);
@@ -57,7 +57,7 @@ export function useProcurementRouteQuery<
     state.activeCreatedDate.value = readQueryValue(route.query.createdDate);
     state.searchQuery.value = readQueryValue(route.query.search) || readQueryValue(route.query.orderNo);
     procurementPage.value = clampInt(route.query.page, 1, 1);
-    procurementPageSize.value = clampInt(route.query.pageSize, 20, 10, 200);
+    procurementPageSize.value = clampInt(route.query.pageSize, 50, 10, 200);
   }
 
   function updateProcurementRouteQuery() {
@@ -82,7 +82,7 @@ export function useProcurementRouteQuery<
     if (procurementPage.value > 1) nextQuery.page = String(procurementPage.value);
     else delete nextQuery.page;
 
-    if (procurementPageSize.value !== 20) nextQuery.pageSize = String(procurementPageSize.value);
+    if (procurementPageSize.value !== 50) nextQuery.pageSize = String(procurementPageSize.value);
     else delete nextQuery.pageSize;
 
     router.replace({ query: nextQuery }).catch(() => undefined);

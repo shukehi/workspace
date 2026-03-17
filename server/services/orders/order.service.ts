@@ -134,7 +134,7 @@ class OrderService {
         const orders = await this.getAllOrders();
         const filteredOrders = filterOrders(orders, query);
         const page = Math.max(1, Number(query.page) || 1);
-        const pageSize = Math.min(200, Math.max(10, Number(query.pageSize) || 20));
+        const pageSize = Math.min(200, Math.max(10, Number(query.pageSize) || 50));
         const start = (page - 1) * pageSize;
         const rows = filteredOrders.slice(start, start + pageSize);
 
