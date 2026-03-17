@@ -58,6 +58,15 @@ async function updateOrder(req, res) {
     );
 }
 
+async function updateOrderStatus(req, res) {
+    const id = ensureOrderId(req.params.id);
+    const { status } = req.body || {};
+    return sendSuccess(
+        res,
+        await orderService.updateOrder(id, { status })
+    );
+}
+
 async function arriveOrder(req, res) {
     return sendSuccess(
         res,
@@ -94,6 +103,7 @@ module.exports = {
     getOrder,
     createOrder,
     updateOrder,
+    updateOrderStatus,
     arriveOrder,
     stockInOrder,
     deleteOrder,

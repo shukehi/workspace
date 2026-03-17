@@ -1,4 +1,4 @@
-export {};
+export { };
 
 interface ValidationIssue {
     field: string;
@@ -122,6 +122,18 @@ function validateOrderArriveBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
+function validateOrderStatusBody(body: unknown): ValidationIssue[] {
+    const issues = validateObjectBody(body);
+    if (issues.length > 0) return issues;
+
+    const payload = body as UnknownRecord;
+    if (!payload.status || typeof payload.status !== 'string' || !(payload.status as string).trim()) {
+        issues.push(createIssue('status', 'status is required and must be a non-empty string'));
+    }
+
+    return issues;
+}
+
 function validateOrderStockInBody(body: unknown): ValidationIssue[] {
     const issues = validateObjectBody(body);
     if (issues.length > 0) return issues;
@@ -142,4 +154,5 @@ module.exports = {
     validateOrderUpdateBody,
     validateOrderArriveBody,
     validateOrderStockInBody,
+    validateOrderStatusBody,
 };
