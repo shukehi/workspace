@@ -27,7 +27,9 @@ module.exports = {
 
     // CORS 配置
     cors: {
-        origin: process.env.CORS_ORIGIN || '*',
+        origin: process.env.CORS_ORIGIN
+            ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
+            : 'http://localhost:5173',
         credentials: true
     }
 };
