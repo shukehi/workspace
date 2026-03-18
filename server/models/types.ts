@@ -219,6 +219,70 @@ export interface OrderWithItemsAttributes extends OrderAttributes {
     items?: OrderItemAttributes[];
 }
 
+/**
+ * 订单列表查询参数（GET /api/orders query string）
+ */
+export interface OrderListQuery {
+    page?: string | number;
+    pageSize?: string | number;
+    status?: string;
+    category?: string;
+    supplier?: string;
+    orderNo?: string;
+    createdDate?: string;
+    startDate?: string;
+    endDate?: string;
+    /** 关键字搜索（匹配订单号、品目名称等） */
+    keyword?: string;
+    /** 风险等级筛选 */
+    risk?: string;
+}
+
+/**
+ * 创建订单的输入参数（POST /api/orders body）
+ */
+export interface OrderCreateInput {
+    order_no: string;
+    supplier?: string | null;
+    source_contract_code?: string | null;
+    category?: string | null;
+    status?: string;
+    remark?: string;
+    metadata?: OrderMetadata;
+    created_at?: string | Date;
+    delivery_date?: string | Date | null;
+    arrived_at?: string | Date | null;
+    arrived_by?: string | null;
+    arrived_remark?: string;
+    stocked_in_at?: string | Date | null;
+    stocked_in_by?: string | null;
+    stocked_in_remark?: string;
+    /** 订单品目列表 */
+    items?: Record<string, unknown>[];
+}
+
+/**
+ * 更新订单的输入参数（PUT /api/orders/:id body）
+ */
+export interface OrderUpdateInput {
+    supplier?: string | null;
+    source_contract_code?: string | null;
+    category?: string | null;
+    status?: string;
+    remark?: string;
+    metadata?: OrderMetadata | Record<string, unknown>;
+    created_at?: string | Date;
+    delivery_date?: string | Date | null;
+    arrived_at?: string | Date | null;
+    arrived_by?: string | null;
+    arrived_remark?: string;
+    stocked_in_at?: string | Date | null;
+    stocked_in_by?: string | null;
+    stocked_in_remark?: string;
+    /** 更新品目列表（传入则整体替换） */
+    items?: Record<string, unknown>[];
+}
+
 export interface InventoryReceiptWithOrderAttributes extends InventoryReceiptAttributes {
     order?: OrderAttributes;
 }
