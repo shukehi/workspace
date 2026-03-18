@@ -2,6 +2,7 @@ export {};
 
 import type { OrderListQuery, OrderCreateInput, OrderUpdateInput } from '../../models/types';
 
+const { createPaginationResponse } = require('../../shared/contracts/pagination');
 const { Op } = require('sequelize');
 const { sequelize } = require('../../models');
 const { inventoryReceiptService } = require('../inventory');
@@ -147,14 +148,14 @@ class OrderService {
         const start = (page - 1) * pageSize;
         const rows = filteredOrders.slice(start, start + pageSize);
 
-        return {
+        return createPaginationResponse({
             rows,
             total: filteredOrders.length,
             page,
             pageSize,
             summary: buildOrderSummary(filteredOrders),
-            facets: buildOrderFacets(filteredOrders)
-        };
+            facets: buildOrderFacets(filteredOrders),
+        });
     }
 
     async getOrderById(id: number | string) {
