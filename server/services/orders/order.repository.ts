@@ -81,6 +81,24 @@ async function findAllOrdersWithItems(
     });
 }
 
+async function findOrdersPaginated(
+    where: LooseWhere,
+    page: number,
+    pageSize: number,
+    transaction?: LooseTransaction,
+): Promise<{ rows: OrderWithItemsAttributes[]; count: number }> {
+    const { count, rows } = await Order.findAndCountAll({
+        where,
+        include: ORDER_ITEM_INCLUDE,
+        order: [['created_at', 'DESC']],
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        distinct: true,
+        transaction,
+    });
+    return { rows, count };
+}
+
 async function findOrderByIdWithItems(
     id: number | string,
     transaction?: LooseTransaction,
@@ -170,10 +188,7 @@ function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
         }
     }
 
-    const category = query.category ? String(query.category).trim() : '';
-    if (category && category !== 'ALL') {
-        where.category = category;
-    }
+    // category requires Chinese↔English normalization (handled by filterOrders in memory)
 
     const supplier = query.supplier ? String(query.supplier).trim() : '';
     if (supplier) {
@@ -205,6 +220,7 @@ function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
 
 module.exports = {
     buildSimpleWhereFromQuery,
+    findOrdersPaginated,
     createIdempotencyKey,
     findActiveIdempotencyKey,
     updateActiveIdempotencyKeysByOrderId,

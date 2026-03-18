@@ -137,10 +137,17 @@ class OrderService {
         const page = Math.max(1, Number(query.page) || 1);
         const pageSize = Math.min(200, Math.max(10, Number(query.pageSize) || 50));
 
-        // 将简单条件（status、createdDate、orderNo）推到数据库层过滤，
-        // 大幅减少从 DB 返回的记录数。复杂条件（risk、keyword 含 item 搜索、
-        // category 归一化）保留由 filterOrders 在内存中处理。
+        // 将简单条件（status、supplier、orderNo、日期范围）推到数据库层过滤，
+        // 减少从 DB 返回的记录数。
+        // category 需要中英文归一化，保留由 filterOrders 在内存中处理。
+        // risk / keyword（含 item 内容搜索）无法下推，也保留内存处理。
         const dbWhere = orderRepository.buildSimpleWhereFromQuery(query);
+
+        // 加载全量 DB 过滤结果用于 facets / summary / total 计算。
+        // category 归一化（中英文映射）及 risk / keyword（含 item 内容搜索）
+        // 由 filterOrders 在内存中处理，因此必须先加载全量再 slice。
+        // findOrdersPaginated 已在 repository 层提供 DB-level LIMIT/OFFSET 支持，
+        // 待 facets 拆分为独立聚合查询后可替换本处的全量加载。
         const dbOrders = await orderRepository.findAllOrdersWithItems(dbWhere);
         const serialized = dbOrders.map(serializeOrder);
 

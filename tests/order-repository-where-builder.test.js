@@ -59,9 +59,9 @@ test('buildSimpleWhereFromQuery: status=PENDING → Op.in with pending statuses'
     assert.deepEqual(where.status[Op.in], ORDER_PENDING_STATUSES);
 });
 
-test('buildSimpleWhereFromQuery: category=lock → exact match', () => {
+test('buildSimpleWhereFromQuery: category (any value) → not added to where (Chinese mapping handled by filterOrders)', () => {
     const where = buildSimpleWhereFromQuery({ category: 'lock' });
-    assert.equal(where.category, 'lock');
+    assert.ok(!('category' in where));
 });
 
 test('buildSimpleWhereFromQuery: category=ALL → no category clause', () => {
@@ -109,7 +109,7 @@ test('buildSimpleWhereFromQuery: whitespace-only values → ignored', () => {
     assert.deepEqual(where, {});
 });
 
-test('buildSimpleWhereFromQuery: multiple filters combined', () => {
+test('buildSimpleWhereFromQuery: multiple filters combined (category excluded, handled by filterOrders)', () => {
     const where = buildSimpleWhereFromQuery({
         status: 'completed',
         category: 'cylinder',
@@ -117,7 +117,7 @@ test('buildSimpleWhereFromQuery: multiple filters combined', () => {
         orderNo: 'PO-001',
     });
     assert.equal(where.status, 'completed');
-    assert.equal(where.category, 'cylinder');
+    assert.ok(!('category' in where));
     assert.equal(where.supplier[Op.like], '%ABC%');
     assert.equal(where.order_no[Op.like], '%PO-001%');
 });
