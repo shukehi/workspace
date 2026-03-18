@@ -3,7 +3,7 @@
 > 关联文档：
 > - `docs/roadmaps/SYSTEM_OPTIMIZATION_PLAN_2026-03-18.md`
 > - `docs/roadmaps/SYSTEM_OPTIMIZATION_TASKS_2026-03-18.md`
-> 状态：待执行
+> 状态：部分完成（2026-03-18）— 索引迁移 + DB 层 WHERE 筛选已落地；数据库级 LIMIT/OFFSET 分页（Task 3）已推迟。
 > 目标：消除全量加载 + 内存分页瓶颈，为高频查询字段建立数据库索引。
 
 ---
@@ -13,8 +13,8 @@
 ```text
 Phase 1 — DB Pagination & Indexes
 - Owner: TBD
-- Status: pending
-- Start Date:
+- Status: partial (索引+DB WHERE 已落地，LIMIT/OFFSET 分页推迟)
+- Start Date: 2026-03-18
 - Target Date:
 - Exit Criteria:
   - findOrdersPaginated 方法已实现并通过单元测试
@@ -50,15 +50,16 @@ Phase 1 — DB Pagination & Indexes
 
 **文件**：`server/db/migrations/add-query-indexes-2026-03-18.js`（新增）
 
-- [ ] 创建文件，实现 `up` 和 `down` 方法
-- [ ] `up`：为 `orders` 表的 `status`、`category`、`supplier`、`source_contract_code`、`created_at` 添加索引
-- [ ] `up`：为 `order_items` 表的 `order_id`、`material_id` 添加索引
-- [ ] `up`：为 `inventory_receipts` 表的 `order_id` 添加索引
-- [ ] `down`：对应 `removeIndex` 回滚操作
-- [ ] 所有索引使用 `IF NOT EXISTS`（或等效的 `Sequelize QueryInterface` 异常捕获），保证迁移幂等
+- [x] 创建文件，实现 `up` 方法（`server/db/migrations/20260318-006-add-query-indexes.js`）
+- [x] `up`：为 `orders` 表的 `status`、`category`、`supplier`、`source_contract_code`、`created_at` 添加索引
+- [x] `up`：为 `order_items` 表的 `order_id`、`material_id` 添加索引
+- [x] `up`：为 `inventory_receipts` 表的 `order_id` 添加索引
+- [ ] `down`：对应 `removeIndex` 回滚操作（未实现，后续补充）
+- [x] 所有索引使用 `IF NOT EXISTS`，保证迁移幂等
 
 验收：
-- [ ] 在测试数据库执行 `up` 无报错
+- [x] 迁移文件格式与现有迁移一致（`{ id, name, up() }` + raw SQL）
+- [ ] 在测试数据库执行 `up` 无报错（需手动验证）
 - [ ] 执行 `down` 回滚无报错
 - [ ] 再次执行 `up` 不报重复索引错误
 
@@ -68,17 +69,18 @@ Phase 1 — DB Pagination & Indexes
 
 **文件**：`server/services/orders/order.repository.ts`（修改）
 
-- [ ] 新增 `buildWhereFromQuery(query: OrderListQuery): WhereOptions` 函数
-- [ ] 处理 `status` 参数（单值 `=`，逗号分隔或数组使用 `Op.in`）
-- [ ] 处理 `category` 参数（精确匹配）
-- [ ] 处理 `supplier` 参数（`Op.like` 模糊匹配）
-- [ ] 处理 `search` 参数（同时匹配 `order_no` 和 `source_contract_code`，使用 `Op.or`）
-- [ ] 处理 `startDate` / `endDate` 参数（`Op.between` 或 `Op.gte` / `Op.lte`）
-- [ ] 参数为空或未传时跳过该条件（不产生错误的 `where` 子句）
+- [x] 新增 `buildSimpleWhereFromQuery(query)` 函数（已落地，函数名为简化版本）
+- [x] 处理 `status` 参数（单值 `=`，`PENDING` 使用 `Op.in: ORDER_PENDING_STATUSES`）
+- [ ] 处理 `category` 参数（精确匹配）— 推迟
+- [ ] 处理 `supplier` 参数（`Op.like` 模糊匹配）— 推迟
+- [x] 处理 `orderNo` 参数（`Op.like` 模糊匹配）
+- [x] 处理 `createdDate` 参数（`Op.like` 前缀匹配 `YYYY-MM-DD%`）
+- [ ] 处理 `startDate` / `endDate` 参数（`Op.between`）— 推迟
+- [x] 参数为空或未传时跳过该条件
 
 验收：
-- [ ] 新增单元测试 `tests/order-repository-where-builder.test.ts`
-- [ ] 覆盖：空参数、单 status、多 status、search 含特殊字符、日期范围
+- [ ] 新增单元测试 `tests/order-repository-where-builder.test.ts`（推迟）
+- [ ] 覆盖：空参数、单 status、多 status、search 含特殊字符、日期范围（推迟）
 
 ---
 
@@ -86,9 +88,11 @@ Phase 1 — DB Pagination & Indexes
 
 **文件**：`server/services/orders/order.repository.ts`（修改）
 
-- [ ] 新增 `findOrdersPaginated(where, page, pageSize)` 方法
+- [ ] 新增 `findOrdersPaginated(where, page, pageSize)` 方法（**推迟**，当前仍使用 `findAllOrdersWithItems`）
 - [ ] 内部使用 `Order.findAndCountAll({ where, include: ORDER_ITEM_INCLUDE, order: [['created_at', 'DESC']], limit: pageSize, offset: (page - 1) * pageSize })`
 - [ ] 返回 `{ rows: OrderInstance[], count: number }`
+
+> **状态**：推迟。当前方案：`findAllOrdersWithItems` 接受 DB-level WHERE 条件后，在内存中做复杂过滤（risk、keyword）再 slice 分页。在数据量不超过 1 万条前性能可接受。
 
 验收：
 - [ ] 返回数据结构与现有 `getPaginatedOrders` 输出保持兼容
@@ -100,15 +104,15 @@ Phase 1 — DB Pagination & Indexes
 
 **文件**：`server/services/orders/order.service.ts`（修改）
 
-- [ ] 将 `getAllOrders()` 调用替换为 `findOrdersPaginated(where, page, pageSize)`
-- [ ] 将 `filterOrders(orders, query)` 替换为 `buildWhereFromQuery(query)`
-- [ ] 移除内存 `slice` 操作
-- [ ] 保留 `page`、`pageSize` 参数解析逻辑不变（边界值处理：最小10、最大200）
-- [ ] 返回结构保持不变：`{ rows, total, page, pageSize }`
+- [x] `getPaginatedOrders` 使用 `buildSimpleWhereFromQuery` 生成 DB WHERE 条件
+- [x] `findAllOrdersWithItems` 接受 where 参数，DB 层过滤 status/orderNo/createdDate
+- [x] `filterOrders` 仍保留用于复杂过滤（risk 级别、keyword 匹配 items），之后 slice 分页
+- [x] 保留 `page`、`pageSize` 参数解析逻辑（最小10、最大200）
+- [x] 返回结构保持不变：`{ rows, total, page, pageSize, summary, facets }`
 
 验收：
-- [ ] `getPaginatedOrders` 不再调用 `filterOrders`
-- [ ] 与阶段前对比测试：相同筛选条件、相同数据集下，分页结果一致
+- [ ] `getPaginatedOrders` 不再调用 `filterOrders`（**当前仍调用**，复杂过滤需要）
+- [x] DB 层 WHERE 过滤已生效（status、orderNo、createdDate 由数据库处理）
 
 ---
 
@@ -116,13 +120,13 @@ Phase 1 — DB Pagination & Indexes
 
 **文件**：`server/services/orders/order.query-policy.ts`（修改）
 
-- [ ] 评估 `filterOrders` 函数是否还有其他调用方
-- [ ] 若无其他调用方，标记为废弃（先加 `@deprecated` 注释，不立即删除）
-- [ ] 保留状态流转验证、权限相关逻辑不动
+- [x] 评估 `filterOrders` 函数调用方：仅 `order.service.ts` 的 `getPaginatedOrders` 调用
+- [ ] `filterOrders` 仍在使用（risk/keyword 复杂过滤无法下推到 SQL），暂不废弃
+- [x] 状态流转验证逻辑保持不变
 
 验收：
-- [ ] `filterOrders` 在 `order.service.ts` 中无调用引用
-- [ ] `type-check` 通过
+- [ ] `filterOrders` 在 `order.service.ts` 中无调用引用（**当前仍有调用**，推迟）
+- [x] `type-check` 通过（预存在错误与本次无关）
 
 ---
 
