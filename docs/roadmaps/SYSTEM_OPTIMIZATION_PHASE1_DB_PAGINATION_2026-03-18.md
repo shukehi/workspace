@@ -3,7 +3,7 @@
 > 关联文档：
 > - `docs/roadmaps/SYSTEM_OPTIMIZATION_PLAN_2026-03-18.md`
 > - `docs/roadmaps/SYSTEM_OPTIMIZATION_TASKS_2026-03-18.md`
-> 状态：部分完成（2026-03-18）— 索引迁移 + DB 层 WHERE 筛选已落地；数据库级 LIMIT/OFFSET 分页（Task 3）已推迟。
+> 状态：部分完成（2026-03-18）— 索引迁移 + DB 层 WHERE 筛选 + findOrdersPaginated 已落地；服务层因 facets 依赖全量结果仍使用 findAllOrdersWithItems，LIMIT/OFFSET 暂未在 service 层激活。
 > 目标：消除全量加载 + 内存分页瓶颈，为高频查询字段建立数据库索引。
 
 ---
@@ -88,15 +88,15 @@ Phase 1 — DB Pagination & Indexes
 
 **文件**：`server/services/orders/order.repository.ts`（修改）
 
-- [ ] 新增 `findOrdersPaginated(where, page, pageSize)` 方法（**推迟**，当前仍使用 `findAllOrdersWithItems`）
-- [ ] 内部使用 `Order.findAndCountAll({ where, include: ORDER_ITEM_INCLUDE, order: [['created_at', 'DESC']], limit: pageSize, offset: (page - 1) * pageSize })`
-- [ ] 返回 `{ rows: OrderInstance[], count: number }`
+- [x] 新增 `findOrdersPaginated(where, page, pageSize)` 方法
+- [x] 内部使用 `Order.findAndCountAll({ where, include: ORDER_ITEM_INCLUDE, order: [['created_at', 'DESC']], limit: pageSize, offset: (page - 1) * pageSize, distinct: true })`
+- [x] 返回 `{ rows: OrderInstance[], count: number }`
 
-> **状态**：推迟。当前方案：`findAllOrdersWithItems` 接受 DB-level WHERE 条件后，在内存中做复杂过滤（risk、keyword）再 slice 分页。在数据量不超过 1 万条前性能可接受。
+> **状态**：repository 层已实现。service 层仍使用 `findAllOrdersWithItems` 加载全量结果，原因：`buildOrderFacets` / `buildOrderSummary` 需要全部过滤后的行，而 `filterOrders`（category 映射、risk、keyword）无法下推到 SQL。待 facets 拆分为独立聚合查询后，service 层可改为 `findOrdersPaginated`。
 
 验收：
-- [ ] 返回数据结构与现有 `getPaginatedOrders` 输出保持兼容
-- [ ] 翻页边界（第一页/最后一页/超出范围）行为正确
+- [x] `tests/order-repository-paginated.test.js` 4 个用例全部通过（LIMIT/OFFSET 切片、尾页、where 传参、distinct）
+- [ ] 翻页边界集成验证（需 service 层激活后测试）
 
 ---
 
