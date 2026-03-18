@@ -2,13 +2,14 @@ const config = require('../../config');
 const { createApiErrorResponse } = require('../../shared/contracts/api');
 const ERROR_CODES = require('../errors/errorCodes');
 const normalizeError = require('../errors/normalizeError');
+const { logger } = require('../logger');
 
 function errorHandler(err, req, res, next) {
     const normalized = normalizeError(err);
     const original = normalized.originalError || err;
 
     if (normalized.status >= 500) {
-        console.error('服务器错误:', original);
+        logger.error({ err: original, method: req.method, url: req.url }, '服务器错误');
     }
 
     if (normalized.code === ERROR_CODES.INTERNAL_ERROR) {

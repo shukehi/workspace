@@ -47,6 +47,17 @@
 1. `roadmaps/` 下同时包含进行中计划、已完成阶段计划和历史阶段文档。
 2. 阅读前请先看每份文档顶部的状态说明，不要仅凭目录判断其是否仍代表当前依据。
 
+最新优化计划（2026-03-18 系统审查）：
+
+- [SYSTEM_OPTIMIZATION_PLAN_2026-03-18.md](/Users/aries/Dve/workspace/docs/roadmaps/SYSTEM_OPTIMIZATION_PLAN_2026-03-18.md)
+  — 主文档：全系统架构审查，13 项优化点含优先级排序
+- [SYSTEM_OPTIMIZATION_TASKS_2026-03-18.md](/Users/aries/Dve/workspace/docs/roadmaps/SYSTEM_OPTIMIZATION_TASKS_2026-03-18.md)
+  — 任务附录：6 个阶段的文件级任务拆解与 PR 粒度建议
+- [SYSTEM_OPTIMIZATION_PHASE1_DB_PAGINATION_2026-03-18.md](/Users/aries/Dve/workspace/docs/roadmaps/SYSTEM_OPTIMIZATION_PHASE1_DB_PAGINATION_2026-03-18.md)
+  — 阶段一执行清单：数据库索引 + 分页查询改造（P1-1、P1-3）
+- [SYSTEM_OPTIMIZATION_PHASE2_CORS_AUTH_2026-03-18.md](/Users/aries/Dve/workspace/docs/roadmaps/SYSTEM_OPTIMIZATION_PHASE2_CORS_AUTH_2026-03-18.md)
+  — 阶段二/三执行清单：CORS 修复 + API Key 认证（P1-2、P1-4）
+
 本轮结构治理主入口：
 
 1. 总索引：`REFACTOR_EXECUTION_INDEX_2026-03-13.md`
