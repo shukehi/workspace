@@ -10,8 +10,12 @@ const configDataRoutes = require('./configData');
 const formulasConfigRoutes = require('./formulasConfig');
 const mappingsConfigRoutes = require('./mappingsConfig');
 const materialsConfigRoutes = require('./materialsConfig');
+const { apiKeyAuth } = require('../app/middleware/apiKeyAuth');
 
 const router = express.Router();
+
+// API Key 认证 — 对所有 /api 前缀路由生效
+router.use(config.api.prefix, apiKeyAuth);
 
 // Config Data 路由
 router.use('/api/config/formulas', formulasConfigRoutes);
