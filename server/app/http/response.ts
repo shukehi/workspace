@@ -15,9 +15,11 @@ export interface ApiResponse<T = any> {
 
 /**
  * 发送成功响应
+ * 统一包裹为 { success: true, data } 结构。
+ * 前端 normalizeApiEnvelope 会自动解包 data 字段。
  */
 export function sendSuccess(res: Response, data: unknown, status = 200) {
-    return res.status(status).json(data);
+    return res.status(status).json({ success: true, data });
 }
 
 /**

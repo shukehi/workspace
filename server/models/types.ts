@@ -94,6 +94,7 @@ export interface OrderCreationAttributes {
 export interface OrderItemAttributes {
     id: number;
     order_id: number;
+    /** 物料编码，关联 materials 表 */
     material_id?: string | null;
     name: string;
     supplier?: string | null;
@@ -104,10 +105,29 @@ export interface OrderItemAttributes {
     mb?: string | null;
     eccentricity?: string | null;
     model?: string | null;
+    /**
+     * 计划采购数量（含左右开合计）。
+     * 读取时优先使用 ordered_quantity，不存在时回退到 quantity（见 resolveOrderedQuantity）。
+     */
     quantity: number;
+    /**
+     * 实际下单数量，由前端或 BOM 计算后写入。
+     * 与 quantity 区别：quantity 为初始请求数，ordered_quantity 为最终确认的下单数。
+     * 若两者相同可只维护 quantity，ordered_quantity 可为 0（由 resolveOrderedQuantity 回退处理）。
+     */
     ordered_quantity: number;
+    /** 已入库（收货）数量，由入库操作累加写入 */
     received_quantity: number;
+    /**
+     * 左开门锁数量（仅锁具类订单使用）。
+     * 锁具按开门方向拆分为左开和右开，对应采购单打印列 qtyLeft。
+     * 非锁具类订单此字段为 null。
+     */
     quantity_left?: number | null;
+    /**
+     * 右开门锁数量（仅锁具类订单使用）。
+     * 对应采购单打印列 qtyRight。非锁具类订单此字段为 null。
+     */
     quantity_right?: number | null;
     unit?: string | null;
     price: number;
