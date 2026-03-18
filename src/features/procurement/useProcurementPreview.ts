@@ -4,6 +4,7 @@ import { ORDER_STATUS_LABELS } from '@/shared/constants/order';
 import { resolveProcurementCategoryLabel, type PrintMode } from '@/features/procurement/docModel';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 import { useOrderActions } from '@/features/procurement/composables/useOrderActions';
+export { hasValidDeliveryDate } from '@/features/procurement/orderRules';
 
 type ToastFn = (payload: {
   title: string;
@@ -24,6 +25,8 @@ export function createProcurementPreview(options: {
   order: Ref<Order | null>;
   open: Ref<boolean>;
   toast: ToastFn;
+  apiClient?: Parameters<typeof useOrderActions>[0]['apiClient'];
+  browser?: Parameters<typeof useOrderActions>[0]['browser'];
 }) {
   const snapshotId = ref('');
   const printMode = ref<PrintMode>('signature');
@@ -33,7 +36,9 @@ export function createProcurementPreview(options: {
   ];
 
   const actions = useOrderActions({
-    toast: options.toast
+    toast: options.toast,
+    apiClient: options.apiClient,
+    browser: options.browser,
   });
 
   const orderCategoryLabel = computed(() => resolveOrderCategoryLabel(options.order.value));

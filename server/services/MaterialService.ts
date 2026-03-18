@@ -70,17 +70,22 @@ export class MaterialService {
     async findSmartMatch(rawName: string, transaction?: Transaction): Promise<MaterialAttributes | null> {
         if (!rawName) return null;
 
-        // 1. 第一优先级：精确匹配 (Code, Model, Name)
-        const exactMatch = await MaterialRepository.findOneExact(rawName, transaction);
-        if (exactMatch) return exactMatch.get({ plain: true });
+        try {
+            // 1. 第一优先级：精确匹配 (Code, Model, Name)
+            const exactMatch = await MaterialRepository.findOneExact(rawName, transaction);
+            if (exactMatch) return exactMatch.get({ plain: true });
 
-        // 2. 第二优先级：别名匹配 (Alias Match)
-        const aliasMatch = await MaterialRepository.findByAlias(rawName, transaction);
-        if (aliasMatch) return aliasMatch.get({ plain: true });
+            // 2. 第二优先级：别名匹配 (Alias Match)
+            const aliasMatch = await MaterialRepository.findByAlias(rawName, transaction);
+            if (aliasMatch) return aliasMatch.get({ plain: true });
 
-        // 3. 第三优先级：模糊保底匹配 (Fuzzy Match)
-        const fuzzyMatch = await MaterialRepository.findFuzzy(rawName, transaction);
-        return fuzzyMatch ? fuzzyMatch.get({ plain: true }) : null;
+            // 3. 第三优先级：模糊保底匹配 (Fuzzy Match)
+            const fuzzyMatch = await MaterialRepository.findFuzzy(rawName, transaction);
+            return fuzzyMatch ? fuzzyMatch.get({ plain: true }) : null;
+        } catch {
+            // DB not ready or table missing — degrade gracefully
+            return null;
+        }
     }
 }
 

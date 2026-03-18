@@ -5,14 +5,40 @@ import { ORDER_STATUS_LABELS } from '@/shared/constants/order';
 import { validateForPrinting, buildPrintPayload } from '../orderRules';
 import { buildPurchaseOrderPdfFilename } from '../pdfFilename';
 
+type ApiClient = {
+  post: <T = unknown>(url: string, data?: unknown) => Promise<T>;
+  put?: (url: string, data?: unknown) => Promise<unknown>;
+  downloadPDF: (url: string, data: unknown, filename: string) => Promise<void>;
+};
+
+type BrowserEnv = {
+  confirm: (message?: string) => boolean;
+  open: (url?: string | URL, target?: string, features?: string) => Window | null;
+};
+
 export type OrderActionOptions = {
   toast: (payload: { title: string; description?: string; variant?: 'default' | 'destructive' | 'success' }) => void;
   onRefresh?: () => Promise<void>;
   onClearSelection?: () => void;
+  /** Injected API client (for tests). Falls back to the global `api` module. */
+  apiClient?: ApiClient;
+  /** Injected browser env (for tests). Falls back to `window`. */
+  browser?: BrowserEnv;
 };
 
 export function useOrderActions(options: OrderActionOptions) {
   const isActionInProgress = ref(false);
+
+  // Resolve injected or real deps
+  const apiClient: ApiClient = options.apiClient ?? {
+    post: (url, data) => api.post(url, data) as Promise<any>,
+    put: (url, data) => api.put(url, data) as Promise<any>,
+    downloadPDF: (url, data, filename) => api.downloadPDF(url, data, filename),
+  };
+  const browser: BrowserEnv = options.browser ?? {
+    confirm: (msg) => window.confirm(msg),
+    open: (url, target, features) => window.open(url, target, features),
+  };
 
   /**
    * 状态更新逻辑封装
@@ -20,7 +46,7 @@ export function useOrderActions(options: OrderActionOptions) {
   async function updateStatus(order: Order, status: Order['status']) {
     try {
       isActionInProgress.value = true;
-      await api.put(`/orders/${order.id}/status`, { status });
+      await (apiClient.put ?? api.put.bind(api))(`/orders/${order.id}/status`, { status });
       await options.onRefresh?.();
       options.toast({
         title: '状态更新成功',
@@ -43,7 +69,7 @@ export function useOrderActions(options: OrderActionOptions) {
    */
   async function createSnapshot(order: Order, printMode: string = 'signature') {
     const payload = buildPrintPayload(order, printMode);
-    const result = await api.post<{ snapshotId?: string }>('/print/snapshots', payload);
+    const result = await apiClient.post<{ snapshotId?: string }>('/print/snapshots', payload);
     const snapshotId = String(result?.snapshotId || '').trim();
     if (!snapshotId) {
       throw new Error('快照创建失败');
@@ -57,11 +83,11 @@ export function useOrderActions(options: OrderActionOptions) {
   async function performPrint(order: Order, printMode: string = 'signature') {
     const validation = validateForPrinting(order);
     if (!validation.canProceed) return;
-    if (validation.needsConfirm && !window.confirm(validation.message)) return;
+    if (validation.needsConfirm && !browser.confirm(validation.message)) return;
 
     try {
       const id = await createSnapshot(order, printMode);
-      window.open(
+      browser.open(
         `/print-document?snapshotId=${encodeURIComponent(id)}&printMode=${printMode}&autoPrint=1&t=${Date.now()}`,
         '_blank',
         'noopener,noreferrer'
@@ -78,13 +104,13 @@ export function useOrderActions(options: OrderActionOptions) {
   async function performExportPdf(order: Order, printMode: string = 'signature') {
     const validation = validateForPrinting(order);
     if (!validation.canProceed) return;
-    if (validation.needsConfirm && !window.confirm(validation.message)) return;
+    if (validation.needsConfirm && !browser.confirm(validation.message)) return;
 
     try {
       isActionInProgress.value = true;
       const filename = buildPurchaseOrderPdfFilename(order);
       const id = await createSnapshot(order, printMode);
-      await api.downloadPDF('/pdf/generate', {
+      await apiClient.downloadPDF('/pdf/generate', {
         poNumber: order.order_no,
         snapshotId: id,
         printMode,
@@ -109,7 +135,7 @@ export function useOrderActions(options: OrderActionOptions) {
   async function markArrived(order: Order) {
     try {
       isActionInProgress.value = true;
-      await api.put(`/orders/${order.id}/mark-arrived`, {
+      await (apiClient.put ?? api.put.bind(api))(`/orders/${order.id}/mark-arrived`, {
         arrived_at: new Date().toISOString(),
       });
       await options.onRefresh?.();
