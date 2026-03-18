@@ -1,7 +1,7 @@
 const AppError = require('../app/errors/AppError');
 const ERROR_CODES = require('../app/errors/errorCodes');
 const { sendSuccess } = require('../app/http/response');
-const inventoryReceiptService = require('../services/InventoryReceiptService');
+const { inventoryReceiptService } = require('../services/inventory');
 
 function ensureReceiptId(value) {
     const raw = String(value || '').trim();

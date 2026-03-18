@@ -7,7 +7,7 @@ const TEST_DB = path.join('/tmp', 'order-search-order-service.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
 const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models');
-const orderService = require('../server/services/OrderService');
+const orderService = require('../server/services/orders');
 
 const createdOrderIds = [];
 

@@ -10,7 +10,7 @@ process.env.DB_STORAGE = TEST_DB;
 const { sequelize, Material, Order, OrderItem } = require('../server/models');
 const inventoryRoutes = require('../server/routes/inventory');
 const inventoryReceiptRoutes = require('../server/routes/inventoryReceipts');
-const orderService = require('../server/services/OrderService');
+const orderService = require('../server/services/orders');
 
 const createdMaterialIds = [];
 let server;

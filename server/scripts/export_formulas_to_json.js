@@ -1,6 +1,6 @@
 const fs = require('fs');
 const sequelize = require('../config/database');
-const FormulaService = require('../services/FormulaService');
+const FormulaService = require('../services/formulas');
 const { initDB } = require('../models');
 const { RUNTIME_FILES, ensureProjectDirs } = require('../config/paths');
 

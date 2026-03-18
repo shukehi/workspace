@@ -1,7 +1,7 @@
 const AppError = require('../app/errors/AppError');
 const ERROR_CODES = require('../app/errors/errorCodes');
 const { sendSuccess } = require('../app/http/response');
-const orderService = require('../services/OrderService');
+const orderService = require('../services/orders');
 
 function ensureOrderId(value) {
     const raw = String(value || '').trim();

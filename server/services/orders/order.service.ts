@@ -1,8 +1,10 @@
 export {};
 
+import type { OrderListQuery, OrderCreateInput, OrderUpdateInput } from '../../models/types';
+
 const { Op } = require('sequelize');
 const { sequelize } = require('../../models');
-const inventoryReceiptService = require('../InventoryReceiptService');
+const { inventoryReceiptService } = require('../inventory');
 const orderRepository = require('./order.repository');
 const {
     assertEditableOrderFields,
@@ -130,7 +132,7 @@ class OrderService {
         return orders.map(serializeOrder);
     }
 
-    async getPaginatedOrders(query: PlainRecord = {}) {
+    async getPaginatedOrders(query: OrderListQuery = {}) {
         const page = Math.max(1, Number(query.page) || 1);
         const pageSize = Math.min(200, Math.max(10, Number(query.pageSize) || 50));
 
@@ -186,7 +188,7 @@ class OrderService {
         return matched ? serializeOrder(matched) : null;
     }
 
-    async createOrder(data: PlainRecord) {
+    async createOrder(data: OrderCreateInput) {
         const transaction = await sequelize.transaction();
         try {
             const sourceContractCode = resolveSourceContractCode(data);
@@ -265,7 +267,7 @@ class OrderService {
         }
     }
 
-    async updateOrder(id: number | string, data: PlainRecord) {
+    async updateOrder(id: number | string, data: OrderUpdateInput) {
         const transaction = await sequelize.transaction();
         try {
             const order = await orderRepository.findOrderById(id, transaction);
