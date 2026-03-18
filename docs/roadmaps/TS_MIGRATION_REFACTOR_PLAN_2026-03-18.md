@@ -23,6 +23,13 @@
 | index.js | 1 | 111 | — | 入口，最后迁移 |
 | **合计** | **49** | **3,183** | — | — |
 
+### ⚠️ 已有 TS 文件的隐性问题（核查发现）
+| 问题类型 | 实际数量 | 说明 |
+|----------|----------|------|
+| `module.exports` / `export {}` 混用 | **38 个 TS 文件**，84 处 | 遍及 orders/inventory/formulas/mappings/materials/errors |
+| TS 文件内 `require()` 调用 | **119 处** | 几乎所有 service 文件 |
+| `.test.js` 待迁移 | **33 个**测试文件 | 无对应的 .test.ts |
+
 ---
 
 ## 二、核心原则
@@ -55,29 +62,111 @@ JS 原始代码 → 翻译成 TS（保持原结构）→ 之后再重构
 这些问题存在于现有 TS 文件中，每天都在制造隐患：
 
 ### 3.1 修复模块系统混用（🔴 Critical）
-**问题：** 所有 `server/services/orders/*.ts` 文件顶部有 `export {}` 占位符，
-底部又用 `module.exports = X`，TypeScript 编译器无法正确进行类型检查。
+**问题：** 所有已有 TS 文件顶部有 `export {}` 占位符，底部又用 `module.exports = X`，
+同时内部混用 `require()` 代替 `import`。核查发现共 **38 个 TS 文件、84 处混用、119 处 require()**。
 
-**受影响文件：**
+**修复策略：按模块分批处理，每批验证测试通过后提交**
+
+**批次一：错误处理基础（4 文件，优先，其他模块依赖它）**
+- `server/app/errors/AppError.ts`
+- `server/app/errors/errorCodes.ts`
+- `server/app/errors/init.ts`
+- `server/app/errors/normalizeError.ts`
+
+**批次二：Orders 模块（9 文件）**
 - `server/services/orders/order.service.ts`
 - `server/services/orders/order.mapper.ts`
 - `server/services/orders/order.repository.ts`
 - `server/services/orders/order.policy.ts`
 - `server/services/orders/order.query-policy.ts`
 - `server/services/orders/order.dedupe.ts`
-- `server/app/errors/AppError.ts`
+- `server/services/orders/order.stockin.ts`
+- `server/services/orders/order.errors.ts`
+- `server/services/orders/index.ts`
+- `server/services/orderItemKey.ts` ← 遗漏项，已补充
 
-**修复方式：**
+**批次三：Inventory 模块（10 文件）**
+- `server/services/inventory/inventory.service.ts`
+- `server/services/inventory/inventory.mapper.ts`
+- `server/services/inventory/inventory.repository.ts`
+- `server/services/inventory/inventory-receipt.service.ts`
+- `server/services/inventory/inventory-receipt.mapper.ts`
+- `server/services/inventory/inventory-receipt.policy.ts`
+- `server/services/inventory/inventory-receipt.query-policy.ts`
+- `server/services/inventory/inventory-receipt.repository.ts`
+- `server/services/inventory/inventory-receipt.errors.ts`
+- `server/services/inventory/index.ts`
+
+**批次四：Formulas 模块（5 文件）**
+- `server/services/formulas/formula.mapper.ts`
+- `server/services/formulas/formula.repository.ts`
+- `server/services/formulas/formula.validator.ts`
+- `server/services/formulas/formula.workflow.ts`
+- `server/services/formulas/index.ts`
+
+**批次五：Mappings / Materials 模块（8 文件）**
+- `server/services/mappings/mapping.constants.ts`
+- `server/services/mappings/mapping.mapper.ts`
+- `server/services/mappings/mapping.repository.ts`
+- `server/services/mappings/mapping.validator.ts`
+- `server/services/mappings/mapping.workflow.ts`
+- `server/services/materials/material.repository.ts`
+- `server/services/materials/materialCatalog.repository.ts`
+- `server/services/materials/materialCatalog.workflow.ts`
+
+**批次六：MaterialService（1 文件）**
+- `server/services/MaterialService.ts` ← 遗漏项，已补充
+
+**修复方式（每个文件相同模式）：**
 ```typescript
-// 删除底部的 module.exports = X 和顶部的 export {}
-// 改为标准 ES6 命名导出或默认导出
-export default orderService;
-export { serializeOrder, normalizeOrderItemForPersistence };
+// ① 删除顶部 export {}
+// ② 删除底部 module.exports = X
+// ③ 改为 ES6 命名导出 / 默认导出
+// ④ 将文件内 require() 替换为 import
+
+// 前（错误）
+export {};
+const { Op } = require('sequelize');
+// ...
+module.exports = { findAllOrders, buildSimpleWhereFromQuery };
+
+// 后（正确）
+import { Op } from 'sequelize';
+// ...
+export { findAllOrders, buildSimpleWhereFromQuery };
 ```
 
-**估时：** 2 小时
+**估时：** ~~2 小时~~ → **8 小时**（38 文件 × 平均 12 分钟，含批次测试验证）
 
-### 3.2 前端大文件重构（🟠 High）
+### 3.2 tsconfig.server.json 配置（🔴 迁移前必做）
+**问题：** `tsconfig.server.json` 未设置 `allowJs: true`，在 JS/TS 混合期间
+编译器无法解析被 TS 文件 `import` 的 `.js` 文件，会出现类型找不到的错误。
+
+**修复：**
+```json
+// tsconfig.server.json
+{
+  "compilerOptions": {
+    "allowJs": true,          ← 添加，允许混合 JS/TS
+    "checkJs": false,         ← 添加，不对 JS 文件强制类型检查（迁移期间）
+    "resolveJsonModule": true
+  }
+}
+```
+
+**迁移完成后**（全部 JS 文件迁移完）：
+```json
+{
+  "compilerOptions": {
+    "allowJs": false,   ← 恢复，强制纯 TS
+    "checkJs": false    ← 可移除
+  }
+}
+```
+
+**估时：** 10 分钟
+
+### 3.3 前端大文件重构（🟠 High）
 这些文件已经是 TS，架构问题现在可以直接处理：
 
 #### Procurement.vue（348 行）— 提取两个 composable
@@ -390,6 +479,49 @@ src/views/Procurement.vue          ← 目标 <150 行（仅模板 + 组合调�
 
 ---
 
+### Phase 5.5：测试文件迁移（穿插在 Phase 4–5 之间）
+
+**背景：** 现有 33 个 `.test.js` 文件（均使用 `--require tsx/cjs` 运行，支持 TS require）。
+测试迁移采用**跟随原则**：某模块的源码迁移完成后，同批次迁移对应的测试文件。
+
+**迁移分组：**
+
+| 测试文件 | 对应源码模块 | 迁移时机 |
+|----------|-------------|----------|
+| `order-service.test.js` | orders 模块 | Phase 3.1 完成后 |
+| `order-routes.test.js` | order.controller + route | Phase 4-A 完成后 |
+| `inventory-route.test.js` | inventory controller + route | Phase 4-B 完成后 |
+| `inventory-view-guard.test.js` | inventory 视图 | Phase 4-B 完成后 |
+| `formula-validator.test.js` | formulas 模块 | Phase 3.1 批次四后 |
+| `formula-workflow.test.js` | formulas 模块 | Phase 3.1 批次四后 |
+| `mapping-routes.test.js` | mappings controller + route | Phase 4 完成后 |
+| `mapping-repository.test.js` | mappings 模块 | Phase 3.1 批次五后 |
+| `mapping-server-validator.test.js` | mappings 模块 | Phase 3.1 批次五后 |
+| `mapping-workflow.test.js` | mappings 模块 | Phase 3.1 批次五后 |
+| `contract-cache-service.test.js` | ContractCacheService | Phase 3.C 后 |
+| `config-routes.test.js` | configData route | Phase 5-12 后 |
+| `api-contracts-route-shape.test.js` | api router | Phase 5-13 后 |
+| `db-migrations.test.js` | migrate.js | Phase 6 后（或保持 JS） |
+| 其余 guard/shape 测试（~18 个）| 前端文件/规范检查 | 按需迁移（低优先级） |
+
+**测试文件迁移标准：**
+- 将 `const test = require('node:test')` → `import test from 'node:test'`
+- 将 `const assert = require('node:assert/strict')` → `import assert from 'node:assert/strict'`
+- 将服务器模块 `require()` → `import`
+- 加必要的类型标注（参数类型、mock 对象类型）
+- 迁移后运行 `npx tsx --test tests/xxx.test.ts` 验证通过
+
+**估时：** 每个测试文件约 30–60 分钟，共约 **20 小时**（可与 Phase 4/5 并行）
+
+**可保持 JS 的测试文件（规范守卫类，无需强类型）：**
+- `governance-boundary-guard.test.js` — 文件系统检查，保持 JS 更轻量
+- `procurement-layout-guard.test.js` — 同上
+- `procurement-columns-guard.test.js` — 同上
+- `print-style-guard.test.js` — 同上
+- `source-table-layout-guard.test.js` — 同上
+
+---
+
 ### Phase 6：入口文件迁移（最后）
 | 文件 | 目标 | 重构要点 | 估时 |
 |------|------|----------|------|
@@ -445,17 +577,24 @@ throw new AppError(OrderErrorCode.NOT_FOUND, { id });
 
 ## 七、工时汇总
 
-| Phase | 描述 | 估时 |
-|-------|------|------|
-| Phase 0 | 立即修复（现有 TS 问题） | 8h |
-| Phase 1 | 基础设施迁移（middleware/config/logger） | 4h |
-| Phase 2 | Model 层补全 | 1h |
-| Phase 3 | Service 层迁移 | 7h |
-| Phase 4 | Controller 层迁移 | 4h |
-| Phase 5 | Route 层迁移 | 16h |
-| Phase 6 | 入口文件迁移 | 1h |
-| Phase 7 | TS 专项优化 | 16h |
-| **总计** | | **~57h（约 7–8 个工作日）** |
+| Phase | 描述 | 原估时 | 修正估时 |
+|-------|------|--------|----------|
+| Phase 0 | 立即修复（模块系统 + tsconfig + 前端重构） | 8h | **16h** |
+| ↳ 3.1 | 38 个 TS 文件修复 module.exports + require() | 2h | **8h** |
+| ↳ 3.2 | tsconfig.server.json allowJs | — | **0.2h** |
+| ↳ 3.3/3.4 | Procurement.vue 两个 composable + Store 错误处理 | 6h | **6h** |
+| Phase 1 | 基础设施迁移（middleware/config/logger） | 4h | **4h** |
+| Phase 2 | Model 层补全（ErpContract） | 1h | **1h** |
+| Phase 3 | Service 层迁移（renderBaseUrl/erpService/PDF/Cache/mapping.adapter） | 7h | **7h** |
+| Phase 4 | Controller 层迁移（3 个 controller） | 4h | **4h** |
+| Phase 5 | Route 层迁移（14 个路由文件） | 16h | **16h** |
+| Phase 5.5 | 测试文件迁移（28 个 .test.js → .test.ts） | — | **20h** |
+| Phase 6 | 入口文件迁移（server/index.ts） | 1h | **1h** |
+| Phase 7 | TS 专项优化（Zod/强类型/共享常量等） | 16h | **16h** |
+| **总计** | | ~~57h~~ | **~85h（约 10–11 个工作日）** |
+
+> **注：** Phase 5.5（测试迁移）可与 Phase 4/5 并行执行，实际日历时间不增加。
+> 若 guard 类测试保持 JS，可减少约 5h。
 
 ---
 
@@ -495,13 +634,58 @@ npx tsx --test "tests/**/*.test.ts"
 迁移完成后，在此更新各文件状态：
 
 ### Phase 0（立即修复）
-- [ ] order.service.ts — 修复 module.exports
-- [ ] order.mapper.ts — 修复 module.exports
-- [ ] order.repository.ts — 修复 module.exports
-- [ ] order.policy.ts — 修复 module.exports
-- [ ] order.query-policy.ts — 修复 module.exports
-- [ ] order.dedupe.ts — 修复 module.exports
-- [ ] AppError.ts — 修复 module.exports
+**tsconfig（先做）**
+- [ ] tsconfig.server.json — 添加 `allowJs: true`, `checkJs: false`
+
+**批次一：错误处理基础（4 文件）**
+- [ ] server/app/errors/AppError.ts
+- [ ] server/app/errors/errorCodes.ts
+- [ ] server/app/errors/init.ts
+- [ ] server/app/errors/normalizeError.ts
+
+**批次二：Orders 模块（10 文件）**
+- [ ] server/services/orders/order.service.ts
+- [ ] server/services/orders/order.mapper.ts
+- [ ] server/services/orders/order.repository.ts
+- [ ] server/services/orders/order.policy.ts
+- [ ] server/services/orders/order.query-policy.ts
+- [ ] server/services/orders/order.dedupe.ts
+- [ ] server/services/orders/order.stockin.ts
+- [ ] server/services/orders/order.errors.ts
+- [ ] server/services/orders/index.ts
+- [ ] server/services/orderItemKey.ts
+
+**批次三：Inventory 模块（10 文件）**
+- [ ] server/services/inventory/inventory.service.ts
+- [ ] server/services/inventory/inventory.mapper.ts
+- [ ] server/services/inventory/inventory.repository.ts
+- [ ] server/services/inventory/inventory-receipt.service.ts
+- [ ] server/services/inventory/inventory-receipt.mapper.ts
+- [ ] server/services/inventory/inventory-receipt.policy.ts
+- [ ] server/services/inventory/inventory-receipt.query-policy.ts
+- [ ] server/services/inventory/inventory-receipt.repository.ts
+- [ ] server/services/inventory/inventory-receipt.errors.ts
+- [ ] server/services/inventory/index.ts
+
+**批次四：Formulas 模块（5 文件）**
+- [ ] server/services/formulas/formula.mapper.ts
+- [ ] server/services/formulas/formula.repository.ts
+- [ ] server/services/formulas/formula.validator.ts
+- [ ] server/services/formulas/formula.workflow.ts
+- [ ] server/services/formulas/index.ts
+
+**批次五：Mappings / Materials 模块（9 文件）**
+- [ ] server/services/mappings/mapping.constants.ts
+- [ ] server/services/mappings/mapping.mapper.ts
+- [ ] server/services/mappings/mapping.repository.ts
+- [ ] server/services/mappings/mapping.validator.ts
+- [ ] server/services/mappings/mapping.workflow.ts
+- [ ] server/services/materials/material.repository.ts
+- [ ] server/services/materials/materialCatalog.repository.ts
+- [ ] server/services/materials/materialCatalog.workflow.ts
+- [ ] server/services/MaterialService.ts
+
+**前端重构**
 - [ ] Procurement.vue — 提取 useStockInQueue
 - [ ] Procurement.vue — 提取 useProcurementBulkActions
 - [ ] useProcurementStore.ts — 统一错误处理
@@ -552,6 +736,38 @@ npx tsx --test "tests/**/*.test.ts"
 ### Phase 6（Entry）
 - [ ] server/index.ts
 
+### Phase 5.5（测试文件迁移，与 Phase 4/5 并行）
+**跟随原模块迁移，源码完成后同批次处理**
+- [ ] order-service.test.js → .test.ts（Orders 模块完成后）
+- [ ] order-routes.test.js → .test.ts（order controller 完成后）
+- [ ] order-repository-paginated.test.js → .test.ts
+- [ ] order-repository-where-builder.test.js → .test.ts
+- [ ] inventory-route.test.js → .test.ts
+- [ ] formula-validator.test.js → .test.ts
+- [ ] formula-workflow.test.js → .test.ts
+- [ ] mapping-routes.test.js → .test.ts
+- [ ] mapping-repository.test.js → .test.ts
+- [ ] mapping-server-validator.test.js → .test.ts
+- [ ] mapping-workflow.test.js → .test.ts
+- [ ] materials-workflow.test.js → .test.ts
+- [ ] contract-cache-service.test.js → .test.ts
+- [ ] config-routes.test.js → .test.ts
+- [ ] api-contracts-route-shape.test.js → .test.ts
+- [ ] db-migrations.test.js → .test.ts（可选，保持 JS 亦可）
+- [ ] print-snapshot-route.test.js → .test.ts
+- [ ] print-snapshot-store.test.js → .test.ts
+- [ ] pdf-route.test.js → .test.ts
+
+**以下 guard 类测试保持 JS（无需迁移）：**
+- governance-boundary-guard.test.js
+- procurement-layout-guard.test.js
+- procurement-columns-guard.test.js
+- print-style-guard.test.js
+- source-table-layout-guard.test.js
+- legacy-renderer-guard.test.js
+- inventory-view-guard.test.js
+- repository-structure-guard.test.js
+
 ### Phase 7（TS 专项优化）
 - [ ] LooseWhere → 强类型 WHERE clause
 - [ ] 环境变量 Zod schema
@@ -559,7 +775,8 @@ npx tsx --test "tests/**/*.test.ts"
 - [ ] 品类常量前后端共享
 - [ ] total_amount DB 持久化
 - [ ] Zod 请求体 schema
+- [ ] tsconfig.server.json 移除 `allowJs`（全部迁移后）
 
 ---
 
-*文档版本：v1.0 | 制定于 2026-03-18*
+*文档版本：v1.1 | 制定于 2026-03-18 | 核查修订于 2026-03-18*
