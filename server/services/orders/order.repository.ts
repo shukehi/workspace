@@ -8,7 +8,9 @@ import type {
     OrderWithItemsAttributes,
 } from '../../models/types';
 
+const { Op } = require('sequelize');
 const { Order, OrderItem, OrderIdempotencyKey } = require('../../models');
+const { ORDER_PENDING_STATUSES } = require('../../shared/constants/order');
 
 type LooseTransaction = unknown;
 type LooseWhere = Record<string, unknown>;
@@ -151,7 +153,38 @@ async function destroyOrderById(
     return await Order.destroy({ where: { id: orderId }, transaction });
 }
 
+/**
+ * 将请求查询参数转换为可直接传入 Sequelize where 子句的对象。
+ * 只处理可以安全推到数据库的简单条件（status、createdDate、orderNo）。
+ * 复杂条件（risk、keyword 含 item 内容、category 归一化）保留在内存过滤层处理。
+ */
+function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
+    const where: LooseWhere = {};
+
+    const status = query.status ? String(query.status).trim() : '';
+    if (status && status !== 'ALL') {
+        if (status === 'PENDING') {
+            where.status = { [Op.in]: ORDER_PENDING_STATUSES };
+        } else {
+            where.status = status;
+        }
+    }
+
+    const createdDate = query.createdDate ? String(query.createdDate).trim() : '';
+    if (createdDate && /^\d{4}-\d{2}-\d{2}$/.test(createdDate)) {
+        where.created_at = { [Op.like]: `${createdDate}%` };
+    }
+
+    const orderNo = query.orderNo ? String(query.orderNo).trim() : '';
+    if (orderNo) {
+        where.order_no = { [Op.like]: `%${orderNo}%` };
+    }
+
+    return where;
+}
+
 module.exports = {
+    buildSimpleWhereFromQuery,
     createIdempotencyKey,
     findActiveIdempotencyKey,
     updateActiveIdempotencyKeysByOrderId,

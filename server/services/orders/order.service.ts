@@ -131,10 +131,17 @@ class OrderService {
     }
 
     async getPaginatedOrders(query: PlainRecord = {}) {
-        const orders = await this.getAllOrders();
-        const filteredOrders = filterOrders(orders, query);
         const page = Math.max(1, Number(query.page) || 1);
         const pageSize = Math.min(200, Math.max(10, Number(query.pageSize) || 50));
+
+        // 将简单条件（status、createdDate、orderNo）推到数据库层过滤，
+        // 大幅减少从 DB 返回的记录数。复杂条件（risk、keyword 含 item 搜索、
+        // category 归一化）保留由 filterOrders 在内存中处理。
+        const dbWhere = orderRepository.buildSimpleWhereFromQuery(query);
+        const dbOrders = await orderRepository.findAllOrdersWithItems(dbWhere);
+        const serialized = dbOrders.map(serializeOrder);
+
+        const filteredOrders = filterOrders(serialized, query);
         const start = (page - 1) * pageSize;
         const rows = filteredOrders.slice(start, start + pageSize);
 
