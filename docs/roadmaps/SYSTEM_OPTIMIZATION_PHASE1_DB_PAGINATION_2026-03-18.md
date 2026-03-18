@@ -71,16 +71,16 @@ Phase 1 — DB Pagination & Indexes
 
 - [x] 新增 `buildSimpleWhereFromQuery(query)` 函数（已落地，函数名为简化版本）
 - [x] 处理 `status` 参数（单值 `=`，`PENDING` 使用 `Op.in: ORDER_PENDING_STATUSES`）
-- [ ] 处理 `category` 参数（精确匹配）— 推迟
-- [ ] 处理 `supplier` 参数（`Op.like` 模糊匹配）— 推迟
+- [x] 处理 `category` 参数（精确匹配）
+- [x] 处理 `supplier` 参数（`Op.like` 模糊匹配）
 - [x] 处理 `orderNo` 参数（`Op.like` 模糊匹配）
 - [x] 处理 `createdDate` 参数（`Op.like` 前缀匹配 `YYYY-MM-DD%`）
-- [ ] 处理 `startDate` / `endDate` 参数（`Op.between`）— 推迟
+- [x] 处理 `startDate` / `endDate` 参数（`Op.between` / `Op.gte` / `Op.lte`）
 - [x] 参数为空或未传时跳过该条件
 
 验收：
-- [ ] 新增单元测试 `tests/order-repository-where-builder.test.ts`（推迟）
-- [ ] 覆盖：空参数、单 status、多 status、search 含特殊字符、日期范围（推迟）
+- [x] 新增单元测试 `tests/order-repository-where-builder.test.js`（15个用例，全部通过）
+- [x] 覆盖：空参数、status（单值/PENDING/ALL）、category、supplier、orderNo、createdDate、日期范围（startDate/endDate）、空白值、多参数组合
 
 ---
 

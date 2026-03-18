@@ -84,10 +84,10 @@ Phase 2+3 — CORS Fix & API Auth
 - [x] token 匹配则 `next()`
 
 验收：
-- [ ] 单元测试：无 key 时开发环境放行（推迟）
-- [ ] 单元测试：无 key 时非开发环境返回 500（推迟）
-- [ ] 单元测试：错误 token 返回 401（推迟）
-- [ ] 单元测试：正确 token 调用 next()（推迟）
+- [x] 单元测试：无 key 时开发/test 环境放行（`tests/api-key-auth.test.js`）
+- [x] 单元测试：无 key 时生产环境返回 500
+- [x] 单元测试：错误 token 返回 401
+- [x] 单元测试：正确 token 调用 next()（6个用例全部通过）
 
 ### 任务 4：在主路由挂载中间件
 
