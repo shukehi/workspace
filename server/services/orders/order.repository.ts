@@ -8,7 +8,9 @@ import type {
     OrderWithItemsAttributes,
 } from '../../models/types';
 
+const { Op } = require('sequelize');
 const { Order, OrderItem, OrderIdempotencyKey } = require('../../models');
+const { ORDER_PENDING_STATUSES } = require('../../shared/constants/order');
 
 type LooseTransaction = unknown;
 type LooseWhere = Record<string, unknown>;
@@ -77,6 +79,24 @@ async function findAllOrdersWithItems(
         order: [['created_at', 'DESC']],
         transaction
     });
+}
+
+async function findOrdersPaginated(
+    where: LooseWhere,
+    page: number,
+    pageSize: number,
+    transaction?: LooseTransaction,
+): Promise<{ rows: OrderWithItemsAttributes[]; count: number }> {
+    const { count, rows } = await Order.findAndCountAll({
+        where,
+        include: ORDER_ITEM_INCLUDE,
+        order: [['created_at', 'DESC']],
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        distinct: true,
+        transaction,
+    });
+    return { rows, count };
 }
 
 async function findOrderByIdWithItems(
@@ -151,7 +171,56 @@ async function destroyOrderById(
     return await Order.destroy({ where: { id: orderId }, transaction });
 }
 
+/**
+ * 将请求查询参数转换为可直接传入 Sequelize where 子句的对象。
+ * 只处理可以安全推到数据库的简单条件。
+ * 复杂条件（risk、keyword 含 item 内容）保留在内存过滤层处理。
+ */
+function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
+    const where: LooseWhere = {};
+
+    const status = query.status ? String(query.status).trim() : '';
+    if (status && status !== 'ALL') {
+        if (status === 'PENDING') {
+            where.status = { [Op.in]: ORDER_PENDING_STATUSES };
+        } else {
+            where.status = status;
+        }
+    }
+
+    // category requires Chinese↔English normalization (handled by filterOrders in memory)
+
+    const supplier = query.supplier ? String(query.supplier).trim() : '';
+    if (supplier) {
+        where.supplier = { [Op.like]: `%${supplier}%` };
+    }
+
+    const createdDate = query.createdDate ? String(query.createdDate).trim() : '';
+    if (createdDate && /^\d{4}-\d{2}-\d{2}$/.test(createdDate)) {
+        where.created_at = { [Op.like]: `${createdDate}%` };
+    }
+
+    const startDate = query.startDate ? String(query.startDate).trim() : '';
+    const endDate = query.endDate ? String(query.endDate).trim() : '';
+    if (startDate && endDate) {
+        where.created_at = { [Op.between]: [`${startDate} 00:00:00`, `${endDate} 23:59:59`] };
+    } else if (startDate) {
+        where.created_at = { [Op.gte]: `${startDate} 00:00:00` };
+    } else if (endDate) {
+        where.created_at = { [Op.lte]: `${endDate} 23:59:59` };
+    }
+
+    const orderNo = query.orderNo ? String(query.orderNo).trim() : '';
+    if (orderNo) {
+        where.order_no = { [Op.like]: `%${orderNo}%` };
+    }
+
+    return where;
+}
+
 module.exports = {
+    buildSimpleWhereFromQuery,
+    findOrdersPaginated,
     createIdempotencyKey,
     findActiveIdempotencyKey,
     updateActiveIdempotencyKeysByOrderId,

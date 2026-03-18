@@ -8,7 +8,6 @@ const {
     validateInventoryReceiptListQuery,
     validateInventoryReceiptReverseBody,
 } = require('../validators/inventory-receipt.validators');
-const inventoryReceiptService = require('../services/InventoryReceiptService');
 
 const router = express.Router();
 

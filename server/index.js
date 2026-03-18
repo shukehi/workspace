@@ -12,6 +12,11 @@ const path = require('path');
 const config = require('./config');
 const routes = require('./routes');
 const { initDB, sequelize } = require('./models');
+const { initErrorSystem } = require('./app/errors/init');
+const { logger } = require('./app/logger');
+
+// 初始化错误处理系统策略
+initErrorSystem();
 
 const app = express();
 
@@ -26,13 +31,11 @@ app.use(express.json({ limit: '50mb' }));
 // 解析 URL 编码的请求体
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// 请求日志（开发环境）
-if (config.server.env === 'development') {
-    app.use((req, res, next) => {
-        console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-        next();
-    });
-}
+// 请求日志（全环境，生产输出 JSON，开发输出格式化文本）
+app.use((req, res, next) => {
+    logger.info({ method: req.method, url: req.url }, 'request');
+    next();
+});
 
 // ==================== 静态文件服务 ====================
 
@@ -55,7 +58,7 @@ app.get('*', (req, res) => {
 
 // 全局错误处理中间件
 app.use((err, req, res, next) => {
-    console.error('服务器错误:', err);
+    logger.error({ err }, '服务器未捕获错误');
     res.status(500).json({
         success: false,
         error: '服务器内部错误',
@@ -75,20 +78,13 @@ async function startServer() {
 
         // 启动 HTTP 服务器
         app.listen(config.server.port, () => {
-            console.log('='.repeat(60));
-            console.log(`✅ 服务器运行中: http://localhost:${config.server.port}`);
-            console.log(`📌 运行环境: ${config.server.env}`);
-            console.log('='.repeat(60));
-            console.log('📋 可用的功能:');
-            console.log(`  - 系统控制台: http://localhost:${config.server.port}/`);
-            console.log('\n📡 API 端点:');
-            console.log(`  - ${config.api.prefix}${config.api.endpoints.orderDetail} - 查询订单详情（代理到 ERP）`);
-            console.log('\n🔧 配置信息:');
-            console.log(`  - ERP 服务器: ${config.erp.baseUrl}`);
-            console.log('='.repeat(60));
+            logger.info(
+                { port: config.server.port, env: config.server.env, erp: config.erp.baseUrl },
+                '服务器已启动'
+            );
         });
     } catch (error) {
-        console.error('❌ 服务器启动失败:', error);
+        logger.error({ err: error }, '服务器启动失败');
         process.exit(1);
     }
 }
@@ -97,13 +93,13 @@ async function startServer() {
 
 // 优雅关闭
 process.on('SIGTERM', async () => {
-    console.log('\n收到 SIGTERM 信号，正在关闭服务器...');
+    logger.info('收到 SIGTERM 信号，正在关闭服务器...');
     await sequelize.close();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-    console.log('\n收到 SIGINT 信号，正在关闭服务器...');
+    logger.info('收到 SIGINT 信号，正在关闭服务器...');
     await sequelize.close();
     process.exit(0);
 });

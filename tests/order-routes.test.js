@@ -14,6 +14,10 @@ const orderRoutes = require('../server/routes/order');
 let server;
 let baseUrl;
 
+function getBody(raw) {
+  return raw?.data !== undefined ? raw.data : raw;
+}
+
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '5mb' }));
@@ -64,7 +68,7 @@ test('POST /api/orders returns normalized plain order payload with created_at an
   });
 
   assert.equal(res.status, 200);
-  const body = await res.json();
+  const body = getBody(await res.json());
   assert.equal(typeof body.id, 'number');
   assert.equal(body.order_no, 'ROUTE-PO-001');
   assert.equal(body.created_at, createdAt);
@@ -99,7 +103,7 @@ test('POST /api/orders ignores client supplied receipt progress fields', async (
   });
 
   assert.equal(res.status, 200);
-  const body = await res.json();
+  const body = getBody(await res.json());
   assert.equal(body.items[0].ordered_quantity, 3);
   assert.equal(body.items[0].received_quantity, 0);
 });
@@ -127,7 +131,7 @@ test('PUT /api/orders/:id keeps normalized order payload shape', async () => {
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const updatedAt = '2026-03-06T08:12:00.000Z';
   const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
@@ -140,7 +144,7 @@ test('PUT /api/orders/:id keeps normalized order payload shape', async () => {
   });
 
   assert.equal(updateRes.status, 200);
-  const updated = await updateRes.json();
+  const updated = getBody(await updateRes.json());
   assert.equal(updated.id, created.id);
   assert.equal(updated.status, 'submitted');
   assert.equal(updated.created_at, updatedAt);
@@ -171,7 +175,7 @@ test('POST /api/orders/:id/arrive marks processing order as arrived', async () =
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const arriveRes = await fetch(`${baseUrl}/api/orders/${created.id}/arrive`, {
     method: 'POST',
@@ -184,7 +188,7 @@ test('POST /api/orders/:id/arrive marks processing order as arrived', async () =
   });
 
   assert.equal(arriveRes.status, 200);
-  const arrived = await arriveRes.json();
+  const arrived = getBody(await arriveRes.json());
   assert.equal(arrived.status, 'arrived');
   assert.equal(arrived.arrived_by, '采购员A');
   assert.equal(arrived.arrived_at, '2026-03-12T08:14:00.000Z');
@@ -222,7 +226,7 @@ test('GET /api/orders returns paginated rows when page query is provided', async
 
   const res = await fetch(`${baseUrl}/api/orders?page=1&pageSize=10&status=arrived`);
   assert.equal(res.status, 200);
-  const body = await res.json();
+  const body = getBody(await res.json());
 
   assert.equal(Array.isArray(body.rows), true);
   assert.equal(body.rows.length >= 1, true);
@@ -268,7 +272,7 @@ test('PUT /api/orders/:id rejects invalid status transition', async () => {
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
     method: 'PUT',
@@ -393,7 +397,7 @@ test('PUT /api/orders/:id rejects detail edits for arrived orders', async () => 
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
     method: 'PUT',
@@ -449,7 +453,7 @@ test('POST /api/orders/:id/stock-in updates inventory and completes order', asyn
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
     method: 'POST',
@@ -462,7 +466,7 @@ test('POST /api/orders/:id/stock-in updates inventory and completes order', asyn
   });
 
   assert.equal(stockInRes.status, 200);
-  const stockedIn = await stockInRes.json();
+  const stockedIn = getBody(await stockInRes.json());
   assert.equal(stockedIn.status, 'completed');
   assert.equal(stockedIn.stocked_in_by, '仓管A');
   assert.equal(stockedIn.stocked_in_at, '2026-03-12T08:17:00.000Z');
@@ -522,7 +526,7 @@ test('POST /api/orders/:id/stock-in supports explicit partial receipt items', as
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const firstStockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
     method: 'POST',
@@ -541,7 +545,7 @@ test('POST /api/orders/:id/stock-in supports explicit partial receipt items', as
   });
 
   assert.equal(firstStockInRes.status, 200);
-  const firstBody = await firstStockInRes.json();
+  const firstBody = getBody(await firstStockInRes.json());
   assert.equal(firstBody.status, 'arrived');
   assert.equal(firstBody.items[0].received_quantity, 1);
   assert.equal(firstBody.items[1].received_quantity, 0);
@@ -570,7 +574,7 @@ test('POST /api/orders/:id/stock-in supports explicit partial receipt items', as
   });
 
   assert.equal(finalStockInRes.status, 200);
-  const finalBody = await finalStockInRes.json();
+  const finalBody = getBody(await finalStockInRes.json());
   assert.equal(finalBody.status, 'completed');
   assert.equal(finalBody.items[0].received_quantity, 3);
   assert.equal(finalBody.items[1].received_quantity, 2);
@@ -608,7 +612,7 @@ test('POST /api/orders/:id/stock-in falls back to quantity when ordered_quantity
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   await sequelize.models.OrderItem.update(
     { ordered_quantity: 0, received_quantity: 0 },
@@ -625,7 +629,7 @@ test('POST /api/orders/:id/stock-in falls back to quantity when ordered_quantity
   });
 
   assert.equal(stockInRes.status, 200);
-  const stockedIn = await stockInRes.json();
+  const stockedIn = getBody(await stockInRes.json());
   assert.equal(stockedIn.status, 'completed');
   assert.equal(stockedIn.items[0].ordered_quantity, 24);
   assert.equal(stockedIn.items[0].received_quantity, 24);
@@ -663,7 +667,7 @@ test('POST /api/orders/:id/stock-in rejects explicit empty receipt items', async
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
     method: 'POST',
@@ -693,7 +697,7 @@ test('POST /api/orders/:id/stock-in rejects arrived orders without items', async
       items: [],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
     method: 'POST',
@@ -741,7 +745,7 @@ test('POST /api/orders/:id/stock-in rejects received quantity overflow', async (
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   await sequelize.models.OrderItem.update(
     { ordered_quantity: 2, received_quantity: 2 },
@@ -803,7 +807,7 @@ test('POST /api/orders/:id/stock-in rejects explicit item key mismatch', async (
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
     method: 'POST',
@@ -856,7 +860,7 @@ test('POST /api/orders/:id/stock-in accepts legacy item key format after materia
       ],
     }),
   });
-  const created = await createRes.json();
+  const created = getBody(await createRes.json());
 
   const stockInRes = await fetch(`${baseUrl}/api/orders/${created.id}/stock-in`, {
     method: 'POST',
@@ -873,7 +877,7 @@ test('POST /api/orders/:id/stock-in accepts legacy item key format after materia
   });
 
   assert.equal(stockInRes.status, 200);
-  const body = await stockInRes.json();
+  const body = getBody(await stockInRes.json());
   assert.equal(body.items[0].received_quantity, 1);
 });
 

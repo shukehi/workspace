@@ -5,19 +5,6 @@ export function createRowId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function decodeIssuePathKey(raw: string): string {
-  const text = String(raw || '').trim();
-  if (!text) return '';
-  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
-    try {
-      return String(JSON.parse(text));
-    } catch {
-      return text.slice(1, -1);
-    }
-  }
-  return text;
-}
-
 export async function scrollToFirstIssueElement(primarySelector: string, fallbackSelector?: string) {
   const primary = document.querySelector(primarySelector) as HTMLElement | null;
   if (primary) {

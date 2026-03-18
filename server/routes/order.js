@@ -11,6 +11,7 @@ const {
     validateOrderListQuery,
     validateOrderStockInBody,
     validateOrderUpdateBody,
+    validateOrderStatusBody,
 } = require('../validators/order.validators');
 
 // GET /api/orders
@@ -27,6 +28,13 @@ router.put(
     '/:id',
     validateRequest({ params: validateOrderIdParams, body: validateOrderUpdateBody }),
     asyncHandler(orderController.updateOrder)
+);
+
+// PUT /api/orders/:id/status
+router.put(
+    '/:id/status',
+    validateRequest({ params: validateOrderIdParams, body: validateOrderStatusBody }),
+    asyncHandler(orderController.updateOrderStatus)
 );
 
 // POST /api/orders/:id/arrive

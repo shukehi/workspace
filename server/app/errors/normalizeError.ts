@@ -1,103 +1,40 @@
-export {};
-
-const AppError = require('./AppError');
-const ERROR_CODES = require('./errorCodes');
-const { toDuplicateOrderSummary } = require('../../services/orders/order.mapper');
+import AppError from './AppError';
+import ERROR_CODES from './errorCodes';
+import { errorResolverRegistry } from './errorResolverRegistry';
 
 type PlainRecord = Record<string, any>;
 
-function fromKnownCode(error: PlainRecord) {
-    switch (error?.code) {
-    case ERROR_CODES.DUPLICATE_ORDER:
-        return new AppError({
-            code: ERROR_CODES.DUPLICATE_ORDER,
-            status: 409,
-            details: { existingOrder: toDuplicateOrderSummary(error.existingOrder) },
-            originalError: error,
-        });
-    case ERROR_CODES.INVALID_STATUS_TRANSITION:
-        return new AppError({
-            code: ERROR_CODES.INVALID_STATUS_TRANSITION,
-            status: 400,
-            details: {
-                fromStatus: error.fromStatus,
-                toStatus: error.toStatus,
-            },
-            originalError: error,
-        });
-    case ERROR_CODES.ORDER_EDIT_LOCKED:
-        return new AppError({
-            code: ERROR_CODES.ORDER_EDIT_LOCKED,
-            status: 400,
-            details: {
-                status: error.status,
-                fields: error.fields,
-            },
-            originalError: error,
-        });
-    case ERROR_CODES.MATERIAL_NOT_FOUND:
-        return new AppError({
-            code: ERROR_CODES.MATERIAL_NOT_FOUND,
-            status: 400,
-            details: { materialId: error.materialId },
-            originalError: error,
-        });
-    case ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED:
-        return new AppError({
-            code: ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED,
-            status: 400,
-            details: {
-                orderItemId: error.orderItemId,
-                orderedQuantity: error.orderedQuantity,
-                nextReceivedQuantity: error.nextReceivedQuantity,
-            },
-            originalError: error,
-        });
-    case ERROR_CODES.RECEIPT_NOT_FOUND:
-        return new AppError({
-            code: ERROR_CODES.RECEIPT_NOT_FOUND,
-            status: 404,
-            originalError: error,
-        });
-    case ERROR_CODES.RECEIPT_REVERSE_NOT_ALLOWED:
-    case ERROR_CODES.RECEIPT_ALREADY_REVERSED:
-    case ERROR_CODES.RECEIPT_ALREADY_FULLY_REVERSED:
-    case ERROR_CODES.REVERSE_REASON_REQUIRED:
-    case ERROR_CODES.INVALID_RECEIPT_DATE:
-    case ERROR_CODES.ORDER_NOT_FOUND:
-        return new AppError({
-            code: error.code,
-            status: 400,
-            originalError: error,
-        });
-    case ERROR_CODES.REVERSE_QUANTITY_EXCEEDED:
-        return new AppError({
-            code: ERROR_CODES.REVERSE_QUANTITY_EXCEEDED,
-            status: 400,
-            details: {
-                reversibleQuantity: error.reversibleQuantity,
-                requestedQuantity: error.requestedQuantity,
-            },
-            originalError: error,
-        });
-    case ERROR_CODES.MATERIAL_ID_REQUIRED:
-    case ERROR_CODES.INVALID_RECEIPT_QUANTITY:
-    case ERROR_CODES.ORDER_ITEMS_REQUIRED:
-    case ERROR_CODES.ORDER_ITEM_ID_REQUIRED:
-    case ERROR_CODES.RECEIPT_ITEM_KEY_REQUIRED:
-    case ERROR_CODES.DUPLICATE_RECEIPT_ITEM:
-    case ERROR_CODES.ORDER_ITEM_NOT_FOUND:
-    case ERROR_CODES.ORDER_ITEM_KEY_MISMATCH:
-        return new AppError({
-            code: error.code,
-            status: 400,
-            originalError: error,
-        });
+// 标记是否已经初始化过领域处理器，防止在 normalizeError 内部产生循环引用
+let isInitialized = false;
+
+/**
+ * 确保领域错误处理器已加载 (懒加载机制)
+ * 解决测试环境不经过 server/index.js 启动的问题
+ */
+function ensureInitialized() {
+    if (isInitialized) return;
+    isInitialized = true;
+    try {
+        // 使用 require 动态引入以避免顶层循环依赖
+        const { initErrorSystem } = require('./init');
+        initErrorSystem();
+    } catch (e) {
+        console.error('[normalizeError] Failed to auto-initialize error system:', e);
+    }
+}
+
+/**
+ * 基础通用错误解析 (作为保底)
+ */
+function fromGenericCode(error: PlainRecord): AppError | null {
+    if (!error?.code) return null;
+
+    switch (error.code) {
     case ERROR_CODES.INVALID_ID:
         return new AppError({
             code: ERROR_CODES.INVALID_ID,
             status: 400,
-            message: 'Invalid order id',
+            message: 'Invalid order id', // 恢复原有的特定消息
             details: { message: 'Invalid order id' },
             originalError: error,
         });
@@ -114,19 +51,34 @@ function fromKnownCode(error: PlainRecord) {
     }
 }
 
-function normalizeError(error: unknown) {
+/**
+ * 标准化未知错误为标准 AppError
+ * 该函数通过 errorResolverRegistry 实现业务领域的完全解耦
+ */
+export function normalizeError(error: unknown): AppError {
     if (error instanceof AppError) return error;
 
-    const known = fromKnownCode((error || {}) as PlainRecord);
-    if (known) return known;
+    const errorRecord = (error || {}) as PlainRecord;
 
-    if ((error as PlainRecord)?.name === 'SequelizeValidationError') {
+    // 自动确保领域策略已注册
+    ensureInitialized();
+
+    // 1. 尝试通过业务域注册中心解析
+    const domainResolved = errorResolverRegistry.resolve(errorRecord);
+    if (domainResolved) return domainResolved;
+
+    // 2. 尝试通用解析
+    const genericResolved = fromGenericCode(errorRecord);
+    if (genericResolved) return genericResolved;
+
+    // 3. 处理 Sequelize 校验错误 (底层 ORM 行为，保留在核心层)
+    if (errorRecord?.name === 'SequelizeValidationError') {
         return new AppError({
             code: ERROR_CODES.VALIDATION_ERROR,
             status: 400,
             details: {
-                issues: Array.isArray((error as PlainRecord).errors)
-                    ? (error as PlainRecord).errors.map((item: PlainRecord) => ({
+                issues: Array.isArray(errorRecord.errors)
+                    ? errorRecord.errors.map((item: PlainRecord) => ({
                         message: item.message,
                         path: item.path,
                     }))
@@ -136,13 +88,15 @@ function normalizeError(error: unknown) {
         });
     }
 
+    // 4. 默认回退到内部服务器错误 (500)
     return new AppError({
         code: ERROR_CODES.INTERNAL_ERROR,
         status: 500,
-        message: (error as PlainRecord)?.message || ERROR_CODES.INTERNAL_ERROR,
+        message: errorRecord?.message || ERROR_CODES.INTERNAL_ERROR,
         expose: false,
         originalError: error,
     });
 }
 
 module.exports = normalizeError;
+export default normalizeError;

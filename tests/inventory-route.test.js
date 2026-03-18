@@ -10,7 +10,11 @@ process.env.DB_STORAGE = TEST_DB;
 const { sequelize, Material, Order, OrderItem } = require('../server/models');
 const inventoryRoutes = require('../server/routes/inventory');
 const inventoryReceiptRoutes = require('../server/routes/inventoryReceipts');
-const orderService = require('../server/services/OrderService');
+const orderService = require('../server/services/orders');
+
+function getBody(raw) {
+  return raw?.data !== undefined ? raw.data : raw;
+}
 
 const createdMaterialIds = [];
 let server;
@@ -57,7 +61,7 @@ test('GET /api/inventory and PUT /api/inventory/:id', async () => {
 
   const listRes = await fetch(`${baseUrl}/api/inventory`);
   assert.equal(listRes.status, 200);
-  const list = await listRes.json();
+  const list = getBody(await listRes.json());
 
   const found = list.find((x) => x.id === material.id);
   assert.ok(found);
@@ -71,7 +75,7 @@ test('GET /api/inventory and PUT /api/inventory/:id', async () => {
   });
 
   assert.equal(updateRes.status, 200);
-  const updated = await updateRes.json();
+  const updated = getBody(await updateRes.json());
   assert.equal(updated.stock_quantity, 99);
   assert.equal(updated.min_stock, 20);
 });
@@ -144,7 +148,7 @@ test('GET /api/inventory-receipts returns stock-in records', async () => {
 
   const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
   assert.equal(listRes.status, 200);
-  const payload = await listRes.json();
+  const payload = getBody(await listRes.json());
   assert.equal(payload.total, 1);
   assert.equal(payload.page, 1);
   assert.equal(payload.rows.length, 1);
@@ -211,12 +215,12 @@ test('GET /api/inventory-receipts/:id returns single receipt detail', async () =
   });
 
   const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  const listPayload = await listRes.json();
+  const listPayload = getBody(await listRes.json());
   const receipt = listPayload.rows[0];
 
   const detailRes = await fetch(`${baseUrl}/api/inventory-receipts/${receipt.id}`);
   assert.equal(detailRes.status, 200);
-  const detail = await detailRes.json();
+  const detail = getBody(await detailRes.json());
   assert.equal(detail.id, receipt.id);
   assert.equal(detail.order_no, order.order_no);
   assert.equal(detail.reversible_quantity, 2);
@@ -259,7 +263,7 @@ test('POST /api/inventory-receipts/:id/reverse reverts stock and order status', 
   });
 
   const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  const payload = await listRes.json();
+  const payload = getBody(await listRes.json());
   const originalReceipt = payload.rows.find((item) => item.direction !== 'reversal');
   assert.ok(originalReceipt);
 
@@ -275,7 +279,7 @@ test('POST /api/inventory-receipts/:id/reverse reverts stock and order status', 
   });
 
   assert.equal(reverseRes.status, 200);
-  const reversed = await reverseRes.json();
+  const reversed = getBody(await reverseRes.json());
   assert.equal(reversed.direction, 'reversal');
   assert.equal(reversed.source_receipt_id, originalReceipt.id);
   assert.equal(reversed.reverse_reason, 'entry_error');
@@ -325,7 +329,7 @@ test('POST /api/inventory-receipts/:id/reverse supports partial reversal and blo
   });
 
   let listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  let payload = await listRes.json();
+  let payload = getBody(await listRes.json());
   const originalReceipt = payload.rows.find((item) => item.direction !== 'reversal');
   assert.equal(originalReceipt.reversible_quantity, 4);
 
@@ -339,11 +343,11 @@ test('POST /api/inventory-receipts/:id/reverse supports partial reversal and blo
     })
   });
   assert.equal(firstReverseRes.status, 200);
-  const firstReversal = await firstReverseRes.json();
+  const firstReversal = getBody(await firstReverseRes.json());
   assert.equal(firstReversal.quantity, -1);
 
   listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  payload = await listRes.json();
+  payload = getBody(await listRes.json());
   const refreshedOriginal = payload.rows.find((item) => item.id === originalReceipt.id);
   assert.equal(refreshedOriginal.reversed_quantity, 1);
   assert.equal(refreshedOriginal.reversible_quantity, 3);
@@ -400,7 +404,7 @@ test('POST /api/inventory-receipts/:id/reverse requires reverse reason', async (
   });
 
   const listRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
-  const payload = await listRes.json();
+  const payload = getBody(await listRes.json());
   const originalReceipt = payload.rows.find((item) => item.direction !== 'reversal');
 
   const reverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt.id}/reverse`, {
@@ -469,7 +473,7 @@ test('GET /api/inventory-receipts keeps reversal stats correct under pagination 
   });
 
   const initialListRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}&direction=in&page=1&pageSize=1`);
-  const initialPayload = await initialListRes.json();
+  const initialPayload = getBody(await initialListRes.json());
   const originalReceipt = initialPayload.rows[0];
   assert.equal(originalReceipt.reversible_quantity, 4);
 
@@ -486,7 +490,7 @@ test('GET /api/inventory-receipts keeps reversal stats correct under pagination 
 
   const pagedRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}&direction=in&page=1&pageSize=1`);
   assert.equal(pagedRes.status, 200);
-  const pagedPayload = await pagedRes.json();
+  const pagedPayload = getBody(await pagedRes.json());
   assert.equal(pagedPayload.total, 1);
   assert.equal(pagedPayload.rows.length, 1);
   assert.equal(pagedPayload.rows[0].reversed_quantity, 1);

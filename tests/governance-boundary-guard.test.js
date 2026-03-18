@@ -66,7 +66,8 @@ test('governance guard: PR checklist keeps core review questions', () => {
 });
 
 test('governance guard: prompt and window lifecycle side-effects stay inside the reviewed allowlist', () => {
-  // Freeze current debt while Week 6/7 work moves these concerns into explicit adapters.
+  // Freeze current debt while browser-side-effect refactor continues.
+  // Updated 2026-03-18: window.confirm moved from Procurement.vue into useOrderActions composable.
   assert.deepEqual(
     rgFiles('window\\.(confirm|prompt|open|onbeforeunload)', ['src']).sort(),
     [
@@ -74,8 +75,8 @@ test('governance guard: prompt and window lifecycle side-effects stay inside the
       'src/components/source/ContractHistoryDialog.vue',
       'src/features/formulas/composables/useDirtyBeforeUnload.ts',
       'src/features/formulas/composables/useFormulaManager.ts',
+      'src/features/procurement/composables/useOrderActions.ts',
       'src/views/PrintDocument.vue',
-      'src/views/Procurement.vue',
     ],
   );
 });
@@ -103,29 +104,26 @@ test('governance guard: download anchor creation stays inside the reviewed allow
 });
 
 test('governance guard: compatibility shell files stay inside the reviewed allowlist', () => {
+  // OrderService.ts, InventoryReceiptService.ts, FormulaService.ts all retired 2026-03-18.
+  // No top-level service files use `module.exports = require(` pattern anymore.
   assert.deepEqual(
     rgFiles('^module\\.exports = require\\(', ['server/services']).sort(),
-    [
-      'server/services/FormulaService.js',
-      'server/services/InventoryReceiptService.js',
-      'server/services/OrderService.js',
-      'server/services/orders/index.js',
-    ],
+    [],
   );
 });
 
-test('governance guard: top-level compatibility shell files remain one-line forwarders', () => {
-  const expected = {
-    'server/services/OrderService.js': "module.exports = require('./orders');",
-    'server/services/InventoryReceiptService.js': "module.exports = require('./inventory').inventoryReceiptService;",
-    'server/services/FormulaService.js': "module.exports = require('./formulas');",
-  };
-
-  for (const [path, content] of Object.entries(expected)) {
-    assert.equal(
-      read(path).trim(),
-      content,
-      `Compatibility shell changed shape unexpectedly: ${path}`,
+test('governance guard: top-level compatibility shell files have been fully retired', () => {
+  const retiredShells = [
+    'server/services/OrderService.ts',
+    'server/services/InventoryReceiptService.ts',
+    'server/services/FormulaService.ts',
+  ];
+  const fs = require('node:fs');
+  const path = require('node:path');
+  for (const shellPath of retiredShells) {
+    assert.ok(
+      !fs.existsSync(path.join(ROOT, shellPath)),
+      `Compatibility shell should be gone but still exists: ${shellPath}`,
     );
   }
 });

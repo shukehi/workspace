@@ -1,10 +1,13 @@
-export {};
+export { };
 
 const { buildOrderItemKey } = require('../orderItemKey');
 
 type PlainRecord = Record<string, any>;
 
-function normalizeDateField(value: unknown): string | null {
+/**
+ * 标准化日期字段
+ */
+export function normalizeDateField(value: unknown): string | null {
     if (value === undefined || value === null || value === '') return null;
     if (value instanceof Date) return value.toISOString();
 
@@ -13,69 +16,125 @@ function normalizeDateField(value: unknown): string | null {
     return parsed.toISOString();
 }
 
-function resolveOrderedQuantity(rawOrderedQuantity: unknown, rawQuantity: unknown): number {
-    const orderedQuantity = Number(rawOrderedQuantity);
-    if (Number.isFinite(orderedQuantity) && orderedQuantity > 0) {
-        return orderedQuantity;
+/**
+ * 解析订单项数量。
+ * 支持两种调用形式：
+ *   resolveOrderedQuantity(item)                  — 传整个 item 对象
+ *   resolveOrderedQuantity(orderedQty, quantity)   — 传两个数值（StockInDeps 签名）
+ */
+export function resolveOrderedQuantity(itemOrOrderedQty: any, rawQuantity?: unknown): number {
+    if (rawQuantity !== undefined) {
+        const orderedQty = Number(itemOrOrderedQty);
+        if (Number.isFinite(orderedQty) && orderedQty > 0) return orderedQty;
+        const qty = Number(rawQuantity);
+        if (Number.isFinite(qty) && qty > 0) return qty;
+        return 0;
     }
-    const quantity = Number(rawQuantity);
-    if (Number.isFinite(quantity) && quantity > 0) {
-        return quantity;
-    }
-    return 0;
+    return Number(itemOrOrderedQty.ordered_quantity || itemOrOrderedQty.quantity || 0);
 }
 
-function serializeOrderItem(item: any): any {
-    if (!item) return item;
-    const plain: PlainRecord = typeof item.get === 'function' ? item.get({ plain: true }) : { ...item };
+/**
+ * 序列化订单项
+ */
+export function serializeOrderItem(item: any): any {
+    const itemKey = item.order_item_key || buildOrderItemKey(item);
     return {
-        ...plain,
-        item_key: buildOrderItemKey(plain),
-        quantity: Number(plain.quantity || 0),
-        ordered_quantity: resolveOrderedQuantity(plain.ordered_quantity, plain.quantity),
-        received_quantity: Number(plain.received_quantity || 0)
+        id: item.id,
+        order_item_key: itemKey,
+        item_key: itemKey,
+        // --- 完整物料信息 ---
+        material_id: item.material_id ?? null,
+        name: item.name ?? null,
+        supplier: item.supplier ?? null,
+        internal_name: item.internal_name ?? null,
+        external_name: item.external_name ?? null,
+        type: item.type ?? null,
+        spec: item.spec ?? null,
+        mb: item.mb ?? null,
+        eccentricity: item.eccentricity ?? null,
+        model: item.model ?? null,
+        quantity: Number(item.quantity ?? 0),
+        ordered_quantity: resolveOrderedQuantity(item),
+        received_quantity: Number(item.received_quantity ?? 0),
+        quantity_left: item.quantity_left != null ? Number(item.quantity_left) : null,
+        quantity_right: item.quantity_right != null ? Number(item.quantity_right) : null,
+        unit: item.unit ?? null,
+        price: item.price != null ? Number(item.price) : 0,
+        remark: item.remark ?? null,
     };
 }
 
-function normalizeOrderItemForPersistence(item: PlainRecord = {}): PlainRecord {
-    const quantity = Number(item.quantity || 0);
+/**
+ * 标准化订单项持久化数据
+ */
+export function normalizeOrderItemForPersistence(item: any): any {
     return {
-        ...item,
-        quantity,
-        ordered_quantity: quantity,
-        received_quantity: 0
+        material_id: item.material_id ?? null,
+        name: item.name || item.type || item.model || item.internal_name || '',
+        supplier: item.supplier ?? null,
+        internal_name: item.internal_name ?? null,
+        external_name: item.external_name ?? null,
+        type: item.type ?? null,
+        spec: item.spec ?? null,
+        mb: item.mb ?? null,
+        eccentricity: item.eccentricity ?? null,
+        model: item.model ?? null,
+        quantity: Number(item.quantity ?? 0),
+        ordered_quantity: Number(item.quantity ?? 0),  // enforce = quantity on creation; ignore client-supplied value
+        quantity_left: item.quantity_left != null ? Number(item.quantity_left) : null,
+        quantity_right: item.quantity_right != null ? Number(item.quantity_right) : null,
+        unit: item.unit ?? null,
+        price: item.price != null ? Number(item.price) : 0,
+        remark: item.remark ?? null,
     };
 }
 
-function serializeOrder(order: any): any {
+/**
+ * 序列化订单主表
+ */
+export function serializeOrder(order: any): any {
     if (!order) return null;
-
-    const plain: PlainRecord = typeof order.get === 'function'
-        ? order.get({ plain: true })
-        : { ...order };
-
     return {
-        ...plain,
-        total_amount: Number.isFinite(Number(plain.total_amount)) ? Number(plain.total_amount) : 0,
-        created_at: normalizeDateField(plain.created_at) || new Date().toISOString(),
-        updated_at: normalizeDateField(plain.updated_at),
-        delivery_date: normalizeDateField(plain.delivery_date),
-        arrived_at: normalizeDateField(plain.arrived_at),
-        stocked_in_at: normalizeDateField(plain.stocked_in_at),
-        items: Array.isArray(plain.items) ? plain.items.map(serializeOrderItem) : []
+        id: order.id,
+        order_no: order.order_no,
+        status: order.status,
+        category: order.category,
+        supplier: order.supplier,
+        source_contract_code: order.source_contract_code,
+        remark: order.remark ?? '',
+        metadata: order.metadata ?? {},
+        items: Array.isArray(order.items) ? order.items.map(serializeOrderItem) : [],
+        total_amount: Array.isArray(order.items)
+            ? order.items.reduce((sum: number, item: any) => sum + Number(item.price ?? 0) * Number(item.quantity ?? 0), 0)
+            : 0,
+        created_at: normalizeDateField(order.created_at),
+        updated_at: normalizeDateField(order.updated_at),
+        delivery_date: normalizeDateField(order.delivery_date),
+        arrived_at: normalizeDateField(order.arrived_at),
+        arrived_by: order.arrived_by ?? null,
+        arrived_remark: order.arrived_remark ?? '',
+        stocked_in_at: normalizeDateField(order.stocked_in_at),
+        stocked_in_by: order.stocked_in_by ?? null,
+        stocked_in_remark: order.stocked_in_remark ?? '',
+        dedupe_key: order.dedupe_key ?? null,
     };
 }
 
-function normalizeOrderForLog(order: PlainRecord | null | undefined, index: number): PlainRecord {
+/**
+ * 标准化用于日志的订单简报
+ */
+export function normalizeOrderForLog(order: any): any {
     return {
-        index,
-        id: order?.id,
-        order_no: order?.order_no,
-        created_at: order?.created_at
+        id: order.id,
+        order_no: order.order_no,
+        status: order.status,
     };
 }
 
-function toDuplicateOrderSummary(order: PlainRecord | null | undefined): PlainRecord | null {
+/**
+ * 转换为重复订单摘要
+ */
+export function toDuplicateOrderSummary(order: any): any {
     if (!order) return null;
     return {
         id: order.id,

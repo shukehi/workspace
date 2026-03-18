@@ -22,16 +22,19 @@ import type {
 } from '@/types/order';
 
 export const useProcurementStore = defineStore('procurement', () => {
+    // AbortController for cancelling in-flight fetchOrders requests on rapid filter changes
+    let fetchOrdersController: AbortController | null = null;
+
     // State
     const purchaseOrders = ref<Order[]>([]);
     const loading = ref(false);
     const ordersTotal = ref(0);
     const ordersPage = ref(1);
-    const ordersPageSize = ref(20);
+    const ordersPageSize = ref(50);
     const serverPaginationEnabled = ref(false);
     const query = ref<ProcurementOrderQuery>({
         page: 1,
-        pageSize: 20,
+        pageSize: 50,
     });
     const summarySnapshot = ref<ProcurementOrderSummary>({
         totalAmount: 0,
@@ -56,6 +59,11 @@ export const useProcurementStore = defineStore('procurement', () => {
 
     // Actions
     async function fetchOrders(nextQuery?: ProcurementOrderQuery) {
+        // Cancel any in-flight request triggered by a previous filter change
+        fetchOrdersController?.abort();
+        fetchOrdersController = new AbortController();
+        const signal = fetchOrdersController.signal;
+
         loading.value = true;
         try {
             if (nextQuery) {
@@ -68,6 +76,7 @@ export const useProcurementStore = defineStore('procurement', () => {
             if (nextQuery) {
                 const res = await api.get<ProcurementOrderListResponse>('/orders', {
                     params: query.value,
+                    signal,
                 });
                 const normalized = normalizeOrderListPayload(res);
                 if (!normalized) {
@@ -84,7 +93,7 @@ export const useProcurementStore = defineStore('procurement', () => {
                 return;
             }
 
-            const res = await api.get<Order[]>('/orders');
+            const res = await api.get<Order[]>('/orders', { signal });
             logInvalidOrders('GET /orders', Array.isArray(res) ? res : []);
             const normalizedOrders = Array.isArray(res) ? res.filter(isValidOrder) : [];
             purchaseOrders.value = normalizedOrders;
@@ -94,7 +103,12 @@ export const useProcurementStore = defineStore('procurement', () => {
             summarySnapshot.value = buildSummaryFromOrders(normalizedOrders);
             facetCounts.value = buildFacetCountsFromOrders(normalizedOrders);
             serverPaginationEnabled.value = false;
-        } catch (e) {
+        } catch (e: unknown) {
+            // Ignore cancellation errors — they are intentional, not failures
+            if (e && typeof e === 'object' && 'name' in e) {
+                const name = (e as { name: string }).name;
+                if (name === 'AbortError' || name === 'CanceledError') return;
+            }
             console.error('Failed to fetch orders', e);
         } finally {
             loading.value = false;

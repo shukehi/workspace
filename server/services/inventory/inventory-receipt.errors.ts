@@ -1,59 +1,114 @@
-export {};
+import ERROR_CODES from '../../app/errors/errorCodes';
+import AppError from '../../app/errors/AppError';
 
-function createReceiptError(code: string, extra: Record<string, unknown> = {}) {
-    const error = new Error(code) as Error & Record<string, unknown>;
+/**
+ * 基础工厂方法 (兼容旧代码)
+ */
+export function createReceiptError(code: string, extra: Record<string, unknown> = {}) {
+    const error = new Error(code) as Error & Record<string, any>;
     error.code = code;
     Object.assign(error, extra);
     return error;
 }
 
-class ReceiptReverseNotAllowedError extends Error {
-    code: string;
-    receiptId: number | string;
+// ... (省略 Error 类定义)
 
+export class ReceiptReverseNotAllowedError extends Error {
+    code: string = ERROR_CODES.RECEIPT_REVERSE_NOT_ALLOWED;
+    receiptId: number | string;
     constructor(receiptId: number | string) {
         super('RECEIPT_REVERSE_NOT_ALLOWED');
-        this.code = 'RECEIPT_REVERSE_NOT_ALLOWED';
         this.receiptId = receiptId;
     }
 }
 
-class ReceiptAlreadyReversedError extends Error {
-    code: string;
+export class ReceiptAlreadyReversedError extends Error {
+    code: string = ERROR_CODES.RECEIPT_ALREADY_REVERSED;
     receiptId: number | string;
-
     constructor(receiptId: number | string) {
         super('RECEIPT_ALREADY_REVERSED');
-        this.code = 'RECEIPT_ALREADY_REVERSED';
         this.receiptId = receiptId;
     }
 }
 
-class ReceiptAlreadyFullyReversedError extends Error {
-    code: string;
+export class ReceiptAlreadyFullyReversedError extends Error {
+    code: string = ERROR_CODES.RECEIPT_ALREADY_FULLY_REVERSED;
     receiptId: number | string;
-
     constructor(receiptId: number | string) {
         super('RECEIPT_ALREADY_FULLY_REVERSED');
-        this.code = 'RECEIPT_ALREADY_FULLY_REVERSED';
         this.receiptId = receiptId;
     }
 }
 
-class ReverseQuantityExceededError extends Error {
-    code: string;
+export class ReverseQuantityExceededError extends Error {
+    code: string = ERROR_CODES.REVERSE_QUANTITY_EXCEEDED;
     receiptId: number | string;
     reversibleQuantity: number;
     requestedQuantity: number;
-
     constructor(receiptId: number | string, reversibleQuantity: number, requestedQuantity: number) {
         super('REVERSE_QUANTITY_EXCEEDED');
-        this.code = 'REVERSE_QUANTITY_EXCEEDED';
         this.receiptId = receiptId;
         this.reversibleQuantity = reversibleQuantity;
         this.requestedQuantity = requestedQuantity;
     }
 }
+
+/**
+ * 库存/入库领域错误处理器 (最高标准显式映射版)
+ */
+export const inventoryErrorResolver = (error: any): AppError | null => {
+    if (!error?.code) return null;
+
+    switch (error.code) {
+    case ERROR_CODES.RECEIPT_NOT_FOUND:
+        return new AppError({
+            code: ERROR_CODES.RECEIPT_NOT_FOUND,
+            status: 404,
+            originalError: error,
+        });
+    case ERROR_CODES.RECEIPT_REVERSE_NOT_ALLOWED:
+    case ERROR_CODES.RECEIPT_ALREADY_REVERSED:
+    case ERROR_CODES.RECEIPT_ALREADY_FULLY_REVERSED:
+    case ERROR_CODES.REVERSE_REASON_REQUIRED:
+    case ERROR_CODES.INVALID_RECEIPT_DATE:
+        return new AppError({
+            code: error.code,
+            status: 400,
+            details: { receiptId: error.receiptId },
+            originalError: error,
+        });
+    case ERROR_CODES.REVERSE_QUANTITY_EXCEEDED:
+        return new AppError({
+            code: ERROR_CODES.REVERSE_QUANTITY_EXCEEDED,
+            status: 400,
+            details: {
+                reversibleQuantity: error.reversibleQuantity,
+                requestedQuantity: error.requestedQuantity,
+            },
+            originalError: error,
+        });
+    case ERROR_CODES.MATERIAL_ID_REQUIRED:
+    case ERROR_CODES.INVALID_RECEIPT_QUANTITY:
+    case ERROR_CODES.ORDER_ITEMS_REQUIRED:
+    case ERROR_CODES.ORDER_ITEM_ID_REQUIRED:
+    case ERROR_CODES.RECEIPT_ITEM_KEY_REQUIRED:
+    case ERROR_CODES.DUPLICATE_RECEIPT_ITEM:
+    case ERROR_CODES.ORDER_ITEM_NOT_FOUND:
+    case ERROR_CODES.ORDER_ITEM_KEY_MISMATCH:
+        return new AppError({
+            code: error.code,
+            status: 400,
+            details: {
+                materialId: error.materialId,
+                orderItemId: error.orderItemId,
+                itemKey: error.itemKey,
+            },
+            originalError: error,
+        });
+    default:
+        return null;
+    }
+};
 
 module.exports = {
     createReceiptError,
@@ -61,4 +116,5 @@ module.exports = {
     ReceiptAlreadyReversedError,
     ReceiptAlreadyFullyReversedError,
     ReverseQuantityExceededError,
+    inventoryErrorResolver,
 };

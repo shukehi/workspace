@@ -94,6 +94,7 @@ export interface OrderCreationAttributes {
 export interface OrderItemAttributes {
     id: number;
     order_id: number;
+    /** 物料编码，关联 materials 表 */
     material_id?: string | null;
     name: string;
     supplier?: string | null;
@@ -104,10 +105,29 @@ export interface OrderItemAttributes {
     mb?: string | null;
     eccentricity?: string | null;
     model?: string | null;
+    /**
+     * 计划采购数量（含左右开合计）。
+     * 读取时优先使用 ordered_quantity，不存在时回退到 quantity（见 resolveOrderedQuantity）。
+     */
     quantity: number;
+    /**
+     * 实际下单数量，由前端或 BOM 计算后写入。
+     * 与 quantity 区别：quantity 为初始请求数，ordered_quantity 为最终确认的下单数。
+     * 若两者相同可只维护 quantity，ordered_quantity 可为 0（由 resolveOrderedQuantity 回退处理）。
+     */
     ordered_quantity: number;
+    /** 已入库（收货）数量，由入库操作累加写入 */
     received_quantity: number;
+    /**
+     * 左开门锁数量（仅锁具类订单使用）。
+     * 锁具按开门方向拆分为左开和右开，对应采购单打印列 qtyLeft。
+     * 非锁具类订单此字段为 null。
+     */
     quantity_left?: number | null;
+    /**
+     * 右开门锁数量（仅锁具类订单使用）。
+     * 对应采购单打印列 qtyRight。非锁具类订单此字段为 null。
+     */
     quantity_right?: number | null;
     unit?: string | null;
     price: number;
@@ -197,6 +217,70 @@ export interface OrderIdempotencyKeyCreationAttributes {
 
 export interface OrderWithItemsAttributes extends OrderAttributes {
     items?: OrderItemAttributes[];
+}
+
+/**
+ * 订单列表查询参数（GET /api/orders query string）
+ */
+export interface OrderListQuery {
+    page?: string | number;
+    pageSize?: string | number;
+    status?: string;
+    category?: string;
+    supplier?: string;
+    orderNo?: string;
+    createdDate?: string;
+    startDate?: string;
+    endDate?: string;
+    /** 关键字搜索（匹配订单号、品目名称等） */
+    keyword?: string;
+    /** 风险等级筛选 */
+    risk?: string;
+}
+
+/**
+ * 创建订单的输入参数（POST /api/orders body）
+ */
+export interface OrderCreateInput {
+    order_no: string;
+    supplier?: string | null;
+    source_contract_code?: string | null;
+    category?: string | null;
+    status?: string;
+    remark?: string;
+    metadata?: OrderMetadata;
+    created_at?: string | Date;
+    delivery_date?: string | Date | null;
+    arrived_at?: string | Date | null;
+    arrived_by?: string | null;
+    arrived_remark?: string;
+    stocked_in_at?: string | Date | null;
+    stocked_in_by?: string | null;
+    stocked_in_remark?: string;
+    /** 订单品目列表 */
+    items?: Record<string, unknown>[];
+}
+
+/**
+ * 更新订单的输入参数（PUT /api/orders/:id body）
+ */
+export interface OrderUpdateInput {
+    supplier?: string | null;
+    source_contract_code?: string | null;
+    category?: string | null;
+    status?: string;
+    remark?: string;
+    metadata?: OrderMetadata | Record<string, unknown>;
+    created_at?: string | Date;
+    delivery_date?: string | Date | null;
+    arrived_at?: string | Date | null;
+    arrived_by?: string | null;
+    arrived_remark?: string;
+    stocked_in_at?: string | Date | null;
+    stocked_in_by?: string | null;
+    stocked_in_remark?: string;
+    /** 更新品目列表（传入则整体替换） */
+    items?: Record<string, unknown>[];
 }
 
 export interface InventoryReceiptWithOrderAttributes extends InventoryReceiptAttributes {

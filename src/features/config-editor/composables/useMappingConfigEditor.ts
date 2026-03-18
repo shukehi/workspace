@@ -6,6 +6,7 @@ import type { MappingValidationIssue } from '@/types/mapping';
 type MappingConfigEditorOptions<T> = {
   endpoint: string;
   workflowProfileCode?: string;
+  workflowBasePath?: string; // 新增：支持自定义 API 路径
   loadErrorDescription: string;
   saveSuccessDescription: string;
   getPayload: () => T;
@@ -51,7 +52,7 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
     serverIssues.value = [];
     try {
       if (options.workflowProfileCode) {
-        const res = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode);
+        const res = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode, options.workflowBasePath);
         latestRevision.value = res.latestRevision;
         draftRevision.value = res.draftRevision;
         publishedRevision.value = res.publishedRevision;
@@ -83,7 +84,7 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
     serverIssues.value = [];
     try {
       const res = options.workflowProfileCode
-        ? await mappingConfigApi.saveWorkflow<T>(options.workflowProfileCode, payload.value, latestRevision.value)
+        ? await mappingConfigApi.saveWorkflow<T>(options.workflowProfileCode, payload.value, latestRevision.value, options.workflowBasePath)
         : await mappingConfigApi.save<T>(options.endpoint, payload.value);
       if (!res.ok) {
         serverIssues.value = res.errors || [];
@@ -94,7 +95,7 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
       options.resetWithPayload(res.data || payload.value);
       await options.refreshRuntime();
       if (options.workflowProfileCode) {
-        const refreshed = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode);
+        const refreshed = await mappingConfigApi.loadWorkflow<T>(options.workflowProfileCode, options.workflowBasePath);
         latestRevision.value = refreshed.latestRevision;
         draftRevision.value = refreshed.draftRevision;
         publishedRevision.value = refreshed.publishedRevision;
