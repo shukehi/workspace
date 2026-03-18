@@ -124,6 +124,7 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
       '20260313-003-add-inventory-receipt-columns',
       '20260313-004-add-material-columns',
       '20260313-005-add-order-idempotency-columns-and-index',
+      '20260318-006-add-query-indexes',
     ]);
   } finally {
     await sequelize.close();

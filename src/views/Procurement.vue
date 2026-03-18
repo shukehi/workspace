@@ -26,6 +26,8 @@ import { useProcurementRouteQuery } from '@/features/procurement/composables/use
 import { useOrderActions } from '@/features/procurement/composables/useOrderActions';
 import { SIGNALS } from '@/shared/constants/storage';
 
+const PROCUREMENT_REFRESH_SIGNAL_KEY = SIGNALS.PROCUREMENT_REFRESH;
+
 const store = useProcurementStore();
 const { toast } = useToastStore();
 const route = useRoute();
@@ -36,6 +38,7 @@ const stockInDialogOpen = ref(false);
 const stockInSaving = ref(false);
 const stockInQueue = ref<Order[]>([]);
 const stockInQueueIndex = ref(0);
+const stockInQueueCompletedCount = ref(0);
 
 const {
   activeStatus, activeCategory, activeRiskFilter, activeCreatedDate,
@@ -94,7 +97,7 @@ const handleViewReceipts = async (order: Order) => {
 
 const openStockInDialog = (order: Order) => {
   if (!hasRemainingStockInItems(order)) {
-    toast({ title: '没有可继续入库的明细', description: `订单 ${order.order_no} 已全部入库`, variant: 'destructive' });
+    toast({ title: '当前订单没有可继续入库的明细', description: `订单 ${order.order_no} 已全部入库`, variant: 'destructive' });
     return;
   }
   stockInOrder.value = order;
@@ -104,11 +107,12 @@ const openStockInDialog = (order: Order) => {
 const openStockInQueue = (orders: Order[]) => {
   const queue = orders.filter((order) => hasRemainingStockInItems(order));
   if (queue.length === 0) {
-    toast({ title: '没有可继续入库的明细', description: '所选订单均已全部入库', variant: 'destructive' });
+    toast({ title: '当前订单没有可继续入库的明细', description: '所选订单均已全部入库', variant: 'destructive' });
     return;
   }
   stockInQueue.value = queue;
   stockInQueueIndex.value = 0;
+  stockInQueueCompletedCount.value = 0;
   stockInOrder.value = queue[0];
   stockInDialogOpen.value = true;
 };
@@ -118,6 +122,7 @@ function resetStockInFlow() {
   stockInOrder.value = null;
   stockInQueue.value = [];
   stockInQueueIndex.value = 0;
+  stockInQueueCompletedCount.value = 0;
 }
 
 function handleStockInDialogOpenChange(open: boolean) {
@@ -138,6 +143,8 @@ const handleStockInOrder = async (payload?: any) => {
     const queueActive = stockInQueue.value.length > 1;
     const hasNext = queueActive && stockInQueueIndex.value < stockInQueue.value.length - 1;
 
+    if (isCompleted) stockInQueueCompletedCount.value += 1;
+
     if (hasNext) {
       await loadProcurementOrders();
       stockInQueueIndex.value += 1;
@@ -148,7 +155,18 @@ const handleStockInOrder = async (payload?: any) => {
 
     if (queueActive) clearSelection();
     await loadProcurementOrders();
-    toast({ title: queueActive ? '批量入库完成' : (isCompleted ? '入库完成' : '部分入库成功'), variant: 'success' });
+
+    const completedCount = queueActive ? stockInQueueCompletedCount.value : 0;
+    const pendingCount = queueActive ? stockInQueue.value.length - completedCount : 0;
+    toast({
+      title: queueActive
+        ? (pendingCount > 0 ? '批量入库流程已完成' : '批量入库已完成')
+        : (isCompleted ? '入库完成' : '部分入库成功'),
+      description: queueActive && pendingCount > 0
+        ? `${completedCount} 张已完成入库，${pendingCount} 张仍有明细待入库`
+        : undefined,
+      variant: 'success',
+    });
     resetStockInFlow();
   } catch (error: any) {
     const errorCode = String(error?.response?.data?.error || '');
@@ -166,17 +184,53 @@ const handleBulkDelete = () => {
 const canBulkSubmit = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'draft'));
 const canBulkProcess = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'submitted'));
 const canBulkArrive = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'processing'));
-const canBulkStockIn = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'arrived' && hasRemainingStockInItems(o)));
+const canBulkStockIn = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(order => order.status === 'arrived' && hasRemainingStockInItems(order)));
 const canBulkRestoreDraft = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'cancelled'));
 
 const handleBulkStatusUpdate = async (status: Order['status']) => {
   const count = selectedRows.value.length;
+  if (status === 'submitted' && !canBulkSubmit.value) {
+    toast({ title: `当前所选订单不能批量设为${ORDER_STATUS_LABELS.submitted}`, variant: 'destructive' });
+    return;
+  }
+  if (status === 'processing' && !canBulkProcess.value) {
+    toast({ title: `当前所选订单不能批量设为${ORDER_STATUS_LABELS.processing}`, variant: 'destructive' });
+    return;
+  }
+  if (status === 'draft' && !canBulkRestoreDraft.value) {
+    toast({ title: `当前所选订单不能批量设为${ORDER_STATUS_LABELS.draft}`, variant: 'destructive' });
+    return;
+  }
   try {
     await store.bulkUpdateStatus(selectedRows.value.map(o => o.id), status);
     await loadProcurementOrders();
     clearSelection();
     toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${ORDER_STATUS_LABELS[status]}`, variant: 'success' });
   } catch { toast({ title: '操作失败', variant: 'destructive' }); }
+};
+
+const handleBulkArrive = async () => {
+  if (!canBulkArrive.value) {
+    toast({ title: '当前所选订单不能批量登记到货', variant: 'destructive' });
+    return;
+  }
+  const orders = [...selectedRows.value];
+  let successCount = 0;
+  for (const o of orders) {
+    try {
+      await store.markOrderArrived(o.id, { arrived_at: new Date().toISOString() });
+      successCount++;
+    } catch { /* individual errors handled below */ }
+  }
+  await loadProcurementOrders();
+  if (successCount < orders.length && successCount > 0) {
+    toast({ title: '批量到货部分完成', description: `${successCount} / ${orders.length} 张订单登记成功`, variant: 'warning' });
+  } else if (successCount === orders.length) {
+    clearSelection();
+    toast({ title: '批量登记到货完成', variant: 'success' });
+  } else {
+    toast({ title: '批量登记到货失败', variant: 'destructive' });
+  }
 };
 
 const columns = createColumns({
@@ -212,7 +266,7 @@ watch([procurementPage, procurementPageSize], () => updateProcurementRouteQuery(
 onBeforeUnmount(() => window.removeEventListener('storage', handleProcurementRefreshSignal));
 
 function handleProcurementRefreshSignal(e: StorageEvent) {
-  if (e.key === SIGNALS.PROCUREMENT_REFRESH && e.newValue) loadProcurementOrders().catch(() => undefined);
+  if (e.key === PROCUREMENT_REFRESH_SIGNAL_KEY && e.newValue) loadProcurementOrders().catch(() => undefined);
 }
 </script>
 
@@ -271,6 +325,7 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
           :columns="columns" :data="filteredOrders" :loading="store.loading" :enable-selection="true"
           :toolbar="false" :empty-text="tableEmptyText" :table-min-width="1240"
           :manual-pagination="store.serverPaginationEnabled" :page="store.ordersPage" :page-size="store.ordersPageSize" :total="store.ordersTotal"
+          :page-size-options="[20, 50, 100]"
           density="compact"
           @page-change="procurementPage = $event" @page-size-change="procurementPageSize = $event" @selection-change="onSelectionChange"
         />
@@ -280,7 +335,7 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
     <ProcurementBulkActionBar
       :selected-count="selectedRows.length"
       :can-submit="canBulkSubmit" :can-process="canBulkProcess" :can-arrive="canBulkArrive" :can-stock-in="canBulkStockIn" :can-restore-draft="canBulkRestoreDraft"
-      @status="handleBulkStatusUpdate" @arrive="() => selectedRows.forEach(o => actions.markArrived(o))" @stock-in="openStockInQueue(selectedRows)" @export="handleExport" @delete="handleBulkDelete" @clear="clearSelection"
+      @status="handleBulkStatusUpdate" @arrive="handleBulkArrive" @stock-in="openStockInQueue(selectedRows)" @export="handleExport" @delete="handleBulkDelete" @clear="clearSelection"
     />
 
     <EditOrderDialog v-model:open="isEditDialogOpen" :order="selectedOrder" :mode="editDialogMode" @saved="loadProcurementOrders()" @draft-change="syncDraftForPreview" @preview="previewDraft" />

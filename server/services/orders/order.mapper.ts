@@ -17,19 +17,31 @@ export function normalizeDateField(value: unknown): string | null {
 }
 
 /**
- * 解析订单项数量
+ * 解析订单项数量。
+ * 支持两种调用形式：
+ *   resolveOrderedQuantity(item)                  — 传整个 item 对象
+ *   resolveOrderedQuantity(orderedQty, quantity)   — 传两个数值（StockInDeps 签名）
  */
-export function resolveOrderedQuantity(item: any): number {
-    return Number(item.ordered_quantity || item.quantity || 0);
+export function resolveOrderedQuantity(itemOrOrderedQty: any, rawQuantity?: unknown): number {
+    if (rawQuantity !== undefined) {
+        const orderedQty = Number(itemOrOrderedQty);
+        if (Number.isFinite(orderedQty) && orderedQty > 0) return orderedQty;
+        const qty = Number(rawQuantity);
+        if (Number.isFinite(qty) && qty > 0) return qty;
+        return 0;
+    }
+    return Number(itemOrOrderedQty.ordered_quantity || itemOrOrderedQty.quantity || 0);
 }
 
 /**
  * 序列化订单项
  */
 export function serializeOrderItem(item: any): any {
+    const itemKey = item.order_item_key || buildOrderItemKey(item);
     return {
         id: item.id,
-        order_item_key: item.order_item_key || buildOrderItemKey(item),
+        order_item_key: itemKey,
+        item_key: itemKey,
         // --- 完整物料信息 ---
         material_id: item.material_id ?? null,
         name: item.name ?? null,
@@ -68,7 +80,7 @@ export function normalizeOrderItemForPersistence(item: any): any {
         eccentricity: item.eccentricity ?? null,
         model: item.model ?? null,
         quantity: Number(item.quantity ?? 0),
-        ordered_quantity: resolveOrderedQuantity(item),
+        ordered_quantity: Number(item.quantity ?? 0),  // enforce = quantity on creation; ignore client-supplied value
         quantity_left: item.quantity_left != null ? Number(item.quantity_left) : null,
         quantity_right: item.quantity_right != null ? Number(item.quantity_right) : null,
         unit: item.unit ?? null,
@@ -81,6 +93,7 @@ export function normalizeOrderItemForPersistence(item: any): any {
  * 序列化订单主表
  */
 export function serializeOrder(order: any): any {
+    if (!order) return null;
     return {
         id: order.id,
         order_no: order.order_no,
@@ -91,6 +104,9 @@ export function serializeOrder(order: any): any {
         remark: order.remark ?? '',
         metadata: order.metadata ?? {},
         items: Array.isArray(order.items) ? order.items.map(serializeOrderItem) : [],
+        total_amount: Array.isArray(order.items)
+            ? order.items.reduce((sum: number, item: any) => sum + Number(item.price ?? 0) * Number(item.quantity ?? 0), 0)
+            : 0,
         created_at: normalizeDateField(order.created_at),
         updated_at: normalizeDateField(order.updated_at),
         delivery_date: normalizeDateField(order.delivery_date),
@@ -100,6 +116,7 @@ export function serializeOrder(order: any): any {
         stocked_in_at: normalizeDateField(order.stocked_in_at),
         stocked_in_by: order.stocked_in_by ?? null,
         stocked_in_remark: order.stocked_in_remark ?? '',
+        dedupe_key: order.dedupe_key ?? null,
     };
 }
 

@@ -16,4 +16,14 @@ module.exports = {
         // inventory_receipts — 关联查询
         await sequelize.query(`CREATE INDEX IF NOT EXISTS idx_inventory_receipts_order_id ON inventory_receipts(order_id)`);
     },
+    async down({ sequelize }) {
+        await sequelize.query(`DROP INDEX IF EXISTS idx_orders_status`);
+        await sequelize.query(`DROP INDEX IF EXISTS idx_orders_category`);
+        await sequelize.query(`DROP INDEX IF EXISTS idx_orders_supplier`);
+        await sequelize.query(`DROP INDEX IF EXISTS idx_orders_source_contract_code`);
+        await sequelize.query(`DROP INDEX IF EXISTS idx_orders_created_at`);
+        await sequelize.query(`DROP INDEX IF EXISTS idx_order_items_order_id`);
+        await sequelize.query(`DROP INDEX IF EXISTS idx_order_items_material_id`);
+        await sequelize.query(`DROP INDEX IF EXISTS idx_inventory_receipts_order_id`);
+    },
 };

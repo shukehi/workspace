@@ -29,6 +29,7 @@ const source = ref<PrintSourcePayload | null>(null);
 
 const embedded = computed(() => route.query.embedded === '1' || window.self !== window.top);
 const autoPrintRequested = computed(() => route.query.autoPrint === '1');
+const customerNameDisplay = computed(() => route.query.pdf === '1' ? 'salesDepartment' : 'full');
 const modeLabels: Record<PrintMode, string> = {
   signature: '签字版',
   compact: '简洁版',
@@ -44,6 +45,10 @@ const previewWidthState = computed(() => {
 });
 
 const printColumnWidths = computed(() => fitPrintColumnWidths(previewWidthState.value.widths));
+
+function closeAutoPrintWindow() {
+  window.close();
+}
 
 async function loadSource() {
   try {
@@ -69,6 +74,7 @@ async function loadSource() {
     document.title = source.value.order?.order_no ? `${source.value.order.order_no} - ${PROCUREMENT_DOCUMENT_TITLE}` : PROCUREMENT_DOCUMENT_TITLE;
 
     if (autoPrintRequested.value) {
+      window.addEventListener('afterprint', closeAutoPrintWindow);
       setTimeout(() => window.print(), 350);
     }
   } catch (e: any) {
@@ -121,13 +127,17 @@ async function exportPdf() {
   }
 }
 
+onBeforeUnmount(() => {
+  window.removeEventListener('afterprint', closeAutoPrintWindow);
+});
+
 watch(() => [route.query.snapshotId, route.query.orderId], () => loadSource());
 onMounted(loadSource);
 </script>
 
 <template>
-  <div class="print-document-container min-h-screen bg-slate-50/50 print:bg-white print:p-0" :class="{ 'pb-20': !embedded }">
-    <div v-if="!embedded" class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between shadow-sm print:hidden">
+  <div class="print-document-shell print-document-container min-h-screen bg-slate-50/50 print:bg-white print:p-0" :class="{ 'pb-20': !embedded }">
+    <div v-if="!embedded" class="controls-bar sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between shadow-sm print:hidden">
       <div class="flex items-center gap-4">
         <h1 class="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-md">
           {{ source?.order?.order_no || '打印文档' }}
@@ -163,11 +173,12 @@ onMounted(loadSource);
         <button @click="loadSource" class="text-sm font-bold text-rose-700 hover:underline">尝试重新加载</button>
       </div>
       <div v-else-if="source?.order" class="bg-white shadow-[0_0_40px_rgba(0,0,0,0.03)] border border-slate-100 print:shadow-none print:border-0 rounded-sm overflow-hidden">
-        <OrderSheetView 
-          :order="source.order" 
+        <OrderSheetView
+          :order="source.order"
           mode="preview"
-          :column-widths="printColumnWidths" 
+          :column-widths="printColumnWidths"
           :default-widths="previewWidthState.defaults"
+          :customer-name-display="customerNameDisplay"
         />
       </div>
     </div>
