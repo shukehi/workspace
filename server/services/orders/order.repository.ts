@@ -155,8 +155,8 @@ async function destroyOrderById(
 
 /**
  * 将请求查询参数转换为可直接传入 Sequelize where 子句的对象。
- * 只处理可以安全推到数据库的简单条件（status、createdDate、orderNo）。
- * 复杂条件（risk、keyword 含 item 内容、category 归一化）保留在内存过滤层处理。
+ * 只处理可以安全推到数据库的简单条件。
+ * 复杂条件（risk、keyword 含 item 内容）保留在内存过滤层处理。
  */
 function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
     const where: LooseWhere = {};
@@ -170,9 +170,29 @@ function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
         }
     }
 
+    const category = query.category ? String(query.category).trim() : '';
+    if (category && category !== 'ALL') {
+        where.category = category;
+    }
+
+    const supplier = query.supplier ? String(query.supplier).trim() : '';
+    if (supplier) {
+        where.supplier = { [Op.like]: `%${supplier}%` };
+    }
+
     const createdDate = query.createdDate ? String(query.createdDate).trim() : '';
     if (createdDate && /^\d{4}-\d{2}-\d{2}$/.test(createdDate)) {
         where.created_at = { [Op.like]: `${createdDate}%` };
+    }
+
+    const startDate = query.startDate ? String(query.startDate).trim() : '';
+    const endDate = query.endDate ? String(query.endDate).trim() : '';
+    if (startDate && endDate) {
+        where.created_at = { [Op.between]: [`${startDate} 00:00:00`, `${endDate} 23:59:59`] };
+    } else if (startDate) {
+        where.created_at = { [Op.gte]: `${startDate} 00:00:00` };
+    } else if (endDate) {
+        where.created_at = { [Op.lte]: `${endDate} 23:59:59` };
     }
 
     const orderNo = query.orderNo ? String(query.orderNo).trim() : '';
