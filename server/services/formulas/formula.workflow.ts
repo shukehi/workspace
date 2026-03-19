@@ -3,6 +3,7 @@ import type {
     FormulaDefinitionAttributes,
     FormulaRevisionAttributes,
 } from '../../models/types';
+import type { PlainRecord } from '../../shared/types';
 
 import FormulaRepository from './formula.repository';
 import { Op } from 'sequelize';
@@ -15,7 +16,7 @@ type FormulaError = {
 };
 
 type FormulaWorkflowResult =
-    | { ok: true; [key: string]: unknown }
+    | { ok: true; revision?: PlainRecord | null; definition?: PlainRecord | null }
     | { ok: false; status: number; errors: FormulaError[]; latestRevision?: number | null };
 
 const VALID_STATES = new Set(['draft', 'published', 'archived']);
