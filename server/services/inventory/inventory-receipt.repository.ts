@@ -35,10 +35,10 @@ export async function findMaterialForItem(
 
     let material: any = null;
     if (code) {
-        material = await Material.findOne({ where: { code }, transaction: transaction as any });
+        material = await Material.findOne({ where: { code }, transaction: transaction ?? null });
     }
     if (!material && numericId) {
-        material = await Material.findByPk(numericId, { transaction: transaction as any });
+        material = await Material.findByPk(numericId, { transaction: transaction ?? null });
     }
     if (!material) {
         throw createReceiptError('MATERIAL_NOT_FOUND', { materialId: code || String(numericId) });
@@ -55,7 +55,7 @@ export async function listReversalReceipts(
             source_receipt_id: sourceReceiptId,
             direction: 'reversal',
         },
-        transaction: transaction as any,
+        transaction: transaction ?? null,
     });
 }
 
@@ -63,7 +63,7 @@ export async function findReceiptById(
     receiptId: number,
     transaction?: LooseTransaction,
 ): Promise<any> {
-    return await InventoryReceipt.findByPk(receiptId, { transaction: transaction as any });
+    return await InventoryReceipt.findByPk(receiptId, { transaction: transaction ?? null });
 }
 
 export async function findOrderWithItems(
@@ -72,7 +72,7 @@ export async function findOrderWithItems(
 ): Promise<any> {
     return await Order.findByPk(orderId, {
         include: [{ model: OrderItem, as: 'items' }],
-        transaction: transaction as any,
+        transaction: transaction ?? null,
     });
 }
 
@@ -80,7 +80,7 @@ export async function createReceipt(
     payload: InventoryReceiptCreationAttributes,
     transaction?: LooseTransaction,
 ): Promise<any> {
-    return await InventoryReceipt.create(payload, { transaction: transaction as any });
+    return await InventoryReceipt.create(payload, { transaction: transaction ?? null });
 }
 
 export async function findReceiptsAndCount({

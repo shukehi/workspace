@@ -20,7 +20,7 @@ function ensureReceiptId(value: unknown): string {
 }
 
 export async function listReceipts(req: Request, res: Response): Promise<void> {
-    sendSuccess(res, await inventoryReceiptService.list(req.query as any || {}));
+    sendSuccess(res, await inventoryReceiptService.list(req.query));
 }
 
 export async function getReceipt(req: Request, res: Response): Promise<void> {

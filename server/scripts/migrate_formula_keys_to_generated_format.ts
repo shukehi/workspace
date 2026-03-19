@@ -1,5 +1,6 @@
 // Script: run with tsx
 import sequelize from '../config/database';
+import type { PlainRecord } from '../shared/types';
 import { initDB, FormulaDefinition, FormulaRevision } from '../models';
 
 function formatDateYYYYMMDD(input: Date | string = new Date()): string {
@@ -15,10 +16,10 @@ async function migrate(): Promise<void> {
     await initDB();
 
     await sequelize.transaction(async (transaction) => {
-        const definitions = await (FormulaDefinition as any).findAll({
+        const definitions = (await FormulaDefinition.findAll({
             order: [['created_at', 'ASC'], ['id', 'ASC']],
             transaction
-        });
+        })) as PlainRecord[];
 
         if (definitions.length === 0) {
             console.log('No formulas found, nothing to migrate.');
@@ -42,7 +43,7 @@ async function migrate(): Promise<void> {
 
         // Two-phase update to avoid unique-index collisions during key rewrites.
         for (const definition of definitions) {
-            await (FormulaDefinition as any).update(
+            await FormulaDefinition.update(
                 { formula_key: `TMP_FKEY_${definition.id}` },
                 { where: { id: definition.id }, transaction }
             );
@@ -50,16 +51,16 @@ async function migrate(): Promise<void> {
 
         for (const definition of definitions) {
             const mapping = keyMappingByFormulaId.get(definition.id)!;
-            await (FormulaDefinition as any).update(
+            await FormulaDefinition.update(
                 { formula_key: mapping.newKey },
                 { where: { id: definition.id }, transaction }
             );
         }
 
-        const revisions = await (FormulaRevision as any).findAll({
+        const revisions = (await FormulaRevision.findAll({
             attributes: ['id', 'formula_id', 'payload_json'],
             transaction
-        });
+        })) as PlainRecord[];
 
         let updatedRevisions = 0;
         for (const revision of revisions) {
@@ -74,7 +75,7 @@ async function migrate(): Promise<void> {
             }
 
             payload['formulaKey'] = mapping.newKey;
-            await (FormulaRevision as any).update(
+            await FormulaRevision.update(
                 { payload_json: JSON.stringify(payload) },
                 { where: { id: revision.id }, transaction }
             );

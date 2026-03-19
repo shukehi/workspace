@@ -433,7 +433,7 @@ class OrderService {
             assertOrderReadyForStockIn(order, normalizeStatus, InvalidStatusTransitionError);
 
             const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
-                inventoryReceiptService: inventoryReceiptService as any,
+                inventoryReceiptService: inventoryReceiptService,
                 MissingMaterialError,
             });
 

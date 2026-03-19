@@ -40,7 +40,7 @@ export async function generatePurchaseOrderPDF(options?: PdfGenerationOptions): 
         console.log(`🔗 Render source: ${renderUrl}`);
 
         browser = await puppeteer.launch({
-            headless: 'new' as any,
+            headless: 'new' as unknown as boolean, // Puppeteer ≥21 'new' headless mode; type def still says boolean
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',

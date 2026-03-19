@@ -193,7 +193,7 @@ export function validateHandleMapping(value: unknown): MappingIssue[] {
     }
 
     ['5', '7', '9', '10'].forEach((thickness) => {
-        if (!(adapted.thicknessAccessoryPacks as any)[thickness]) {
+        if (!(adapted.thicknessAccessoryPacks as Record<string, unknown>)[thickness]) {
             issues.push(createIssue(`thicknessAccessoryPacks[${quotePathSegment(thickness)}]`, 'required', `${thickness}cm 配件包不能为空`));
         }
     });

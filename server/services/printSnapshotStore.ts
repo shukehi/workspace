@@ -71,7 +71,7 @@ export function createSnapshot(payload: unknown, ttlMs: number = SNAPSHOT_TTL_MS
     const payloadBytes = estimatePayloadBytes(payload);
     if (!Number.isFinite(payloadBytes) || payloadBytes > MAX_SNAPSHOT_PAYLOAD_BYTES) {
         const error: NodeJS.ErrnoException = new Error('Snapshot payload too large');
-        (error as any).code = 'SNAPSHOT_PAYLOAD_TOO_LARGE';
+        error.code = 'SNAPSHOT_PAYLOAD_TOO_LARGE';
         throw error;
     }
 

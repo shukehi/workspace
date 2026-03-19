@@ -1,8 +1,9 @@
+import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
 
 type StockInDeps = {
     inventoryReceiptService: {
-        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction: unknown) => Promise<{ receiptItems?: PlainRecord[] }>;
+        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction?: Transaction | null) => Promise<{ receiptItems?: PlainRecord[] }>;
     };
     MissingMaterialError: new (materialId?: string) => Error;
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;

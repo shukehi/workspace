@@ -137,8 +137,8 @@ export async function updateOrderCreatedAt(
     transaction?: LooseTransaction,
 ): Promise<any> {
     return await Order.update(
-        { created_at: createdAt as any },
-        { where: { id }, transaction, silent: true } as any
+        { created_at: new Date(createdAt) },
+        { where: { id }, transaction: transaction ?? undefined, silent: true }
     );
 }
 

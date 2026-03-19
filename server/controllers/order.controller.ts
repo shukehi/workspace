@@ -3,6 +3,7 @@ import AppError from '../app/errors/AppError';
 import ERROR_CODES from '../app/errors/errorCodes';
 import { sendSuccess } from '../app/http/response';
 import orderService from '../services/orders';
+import type { OrderListQuery } from '../models/types';
 
 function ensureOrderId(value: unknown): string {
     const raw = String(value || '').trim();
@@ -26,14 +27,14 @@ export async function listOrders(req: Request, res: Response): Promise<void> {
         'createdDate',
         'keyword',
         'orderNo'
-    ].some((key) => (req.query as any)[key] !== undefined);
+    ].some((key) => req.query[key] !== undefined);
 
     if (hasPaginationQuery) {
-        sendSuccess(res, await orderService.getPaginatedOrders(req.query as any || {}));
+        sendSuccess(res, await orderService.getPaginatedOrders(req.query as OrderListQuery));
         return;
     }
 
-    sendSuccess(res, await orderService.getAllOrders((req.query as any).category));
+    sendSuccess(res, await orderService.getAllOrders(req.query['category'] as string | undefined));
 }
 
 export async function getOrder(req: Request, res: Response): Promise<void> {

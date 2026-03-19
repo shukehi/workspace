@@ -4,7 +4,8 @@ interface RequestLike {
     headers?: {
         origin?: string;
         referer?: string;
-        [key: string]: string | undefined;
+        // Allow string[] to be compatible with IncomingHttpHeaders
+        [key: string]: string | string[] | undefined;
     };
     socket?: {
         localPort?: number;
@@ -46,7 +47,7 @@ export function resolveRenderBaseUrl(req?: RequestLike): string {
     }
 
     const socketPort = Number(req?.socket?.localPort || 0);
-    const fallbackPort = Number((config as any)?.server?.port || 3000);
+    const fallbackPort = Number(config?.server?.port || 3000);
     const port = socketPort > 0 ? socketPort : fallbackPort;
     return `http://127.0.0.1:${port}`;
 }

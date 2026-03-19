@@ -43,7 +43,7 @@ async function backfillOrderItemMaterialIds(): Promise<void> {
     try {
         await sequelize.authenticate();
 
-        const orders = await (Order as any).findAll({
+        const orders = (await Order.findAll({
             include: [{
                 model: OrderItem,
                 as: 'items',
@@ -56,8 +56,8 @@ async function backfillOrderItemMaterialIds(): Promise<void> {
                 },
                 required: true
             }],
-            order: [['created_at', 'DESC']]
-        });
+            order: [["created_at", "DESC"]]
+        })) as import("../shared/types").PlainRecord[];
 
         const autoOrders = orders.filter((order: any) => order?.metadata?.order_source === 'auto');
 
@@ -65,7 +65,7 @@ async function backfillOrderItemMaterialIds(): Promise<void> {
         let skippedItems = 0;
 
         for (const order of autoOrders) {
-            for (const item of (order.items || []) as any[]) {
+            for (const item of (order["items"] || []) as PlainRecord[]) {
                 const materialId = resolveMaterialId(order.category, item);
                 if (!materialId) {
                     skippedItems += 1;

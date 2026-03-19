@@ -211,7 +211,7 @@ export async function createFormula({
                     if (bomValidation.errors.length > 0) {
                         return { ok: false, status: 422, errors: bomValidation.errors };
                     }
-                    normalizedBom = bomValidation.bom as any;
+                    normalizedBom = bomValidation.bom as PlainRecord[];
                 }
 
                 const exists = await FormulaRepository.findDefinitionByKey(targetFormulaKey, transaction);
@@ -319,7 +319,7 @@ export async function updateDraft(
         if (bomValidation.errors.length > 0) {
             return { ok: false, status: 422, errors: bomValidation.errors };
         }
-        normalizedBom = bomValidation.bom as any;
+        normalizedBom = bomValidation.bom as PlainRecord[];
 
         const nextRevisionNumber = latest.revision + 1;
         const nextRevision = await FormulaRepository.createRevision({
@@ -378,7 +378,7 @@ export async function publish(formulaKey: string, { fromRevision, changeNote, op
         if (bomValidation.errors.length > 0) {
             return { ok: false, status: 422, errors: bomValidation.errors };
         }
-        const resolvedBom = bomValidation.bom as any;
+        const resolvedBom = bomValidation.bom as PlainRecord[];
 
         const latest = await FormulaRepository.findLatestRevision(definition.id, transaction);
         const nextRevisionNumber = (latest?.revision || 0) + 1;

@@ -3,6 +3,7 @@ import fs from 'fs';
 import sequelize from '../config/database';
 import { initDB, FormulaDefinition, FormulaRevision, FormulaAuditLog } from '../models';
 import { CONFIG_FILES } from '../config/paths';
+import type { PlainRecord } from '../shared/types';
 
 const FORMULAS_FILE = CONFIG_FILES.colorFormulas;
 
@@ -25,7 +26,7 @@ async function migrate(): Promise<void> {
 
     await sequelize.transaction(async (tx) => {
         for (const [formulaKey, value] of entries) {
-            const exists = await (FormulaDefinition as any).findOne({
+            const exists = await FormulaDefinition.findOne({
                 where: { formula_key: formulaKey },
                 transaction: tx
             });
@@ -34,15 +35,16 @@ async function migrate(): Promise<void> {
                 continue;
             }
 
-            const displayName = String((value as any)?.displayName || formulaKey);
-            const bom = Array.isArray((value as any)?.bom) ? (value as any).bom : [];
+            const legacyValue = value as PlainRecord;
+            const displayName = String(legacyValue?.['displayName'] || formulaKey);
+            const bom = Array.isArray(legacyValue?.['bom']) ? legacyValue['bom'] : [];
             const payload = JSON.stringify({
                 formulaKey,
                 displayName,
                 bom
             });
 
-            const definition = await (FormulaDefinition as any).create({
+            const definition = await FormulaDefinition.create({
                 formula_key: formulaKey,
                 display_name: displayName,
                 category: '',
@@ -50,8 +52,8 @@ async function migrate(): Promise<void> {
                 active_revision: 1
             }, { transaction: tx });
 
-            await (FormulaRevision as any).create({
-                formula_id: definition.id,
+            await FormulaRevision.create({
+                formula_id: (definition as unknown as PlainRecord)['id'] as number,
                 revision: 1,
                 state: 'published',
                 payload_json: payload,
@@ -59,8 +61,8 @@ async function migrate(): Promise<void> {
                 created_by: 'migration-script'
             }, { transaction: tx });
 
-            await (FormulaAuditLog as any).create({
-                formula_id: definition.id,
+            await FormulaAuditLog.create({
+                formula_id: (definition as unknown as PlainRecord)['id'] as number,
                 action: 'create',
                 from_revision: null,
                 to_revision: 1,

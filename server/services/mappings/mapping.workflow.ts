@@ -5,6 +5,7 @@ import { AUDIT_ACTIONS, PROFILE_STATUSES, REVISION_STATES, SCHEMA_VERSION, getPr
 import { parsePayload, serializePayload, validateMappingPayload, validateProfileCode } from './mapping.validator';
 import { toDetail, toRevisionMeta, toSummary, toAuditLog } from './mapping.mapper';
 import type { PlainRecord } from '../../shared/types';
+import type { MappingProfileCode } from '../../models/types';
 
 interface WorkflowIssue {
     path: string;
@@ -72,7 +73,7 @@ export async function ensureProfile(profileCode: unknown, transaction?: Transact
     if (profile) return profile;
 
     profile = await MappingRepository.createProfile({
-        profile_code: normalizedProfileCode as any,
+        profile_code: normalizedProfileCode as MappingProfileCode,
         display_name: getProfileDisplayName(normalizedProfileCode),
         status: PROFILE_STATUSES.ACTIVE,
         active_revision: null

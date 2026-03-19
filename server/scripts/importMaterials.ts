@@ -34,15 +34,16 @@ async function importMaterials(): Promise<void> {
     let count = 0;
     for (const mat of materials) {
         try {
-            const [record, created] = await (Material as any).findOrCreate({
+            const [record, created] = await Material.findOrCreate({
                 where: { code: mat.code },
                 defaults: mat
             });
 
             if (!created) {
+                const r = record as unknown as Record<string, any>;
                 await record.update({
-                    price: record.price || mat.price,
-                    supplier: record.supplier || mat.supplier
+                    price: r['price'] || mat.price,
+                    supplier: r['supplier'] || mat.supplier
                 });
             }
             count++;
