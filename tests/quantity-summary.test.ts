@@ -57,6 +57,7 @@ test('computeDocPageQuantitySummary: packaging row summary', () => {
     orderDate: '',
     deliveryDate: '',
     supplier: '',
+    orderRemark: '',
     internalName: '',
     externalName: '',
     columns: [],

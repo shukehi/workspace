@@ -40,10 +40,10 @@ test('bulkUpdateStatus replaces updated orders with normalized payloads so statu
     metadata: { customer_name: '客户A' },
   }) as any;
 
-  api.get = async () => {
+  api.get = (async () => {
     getCalled = true;
     return [];
-  };
+  }) as any;
 
   try {
     await store.bulkUpdateStatus([1], 'draft');

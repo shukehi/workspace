@@ -16,6 +16,7 @@ const sampleOrder: Order = {
   items: [
     {
       id: 1,
+      material_id: '',
       name: '外门板',
       model: 'A-100',
       spec: '',

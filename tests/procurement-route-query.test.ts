@@ -21,7 +21,7 @@ test('useProcurementRouteQuery syncs route state and builds request query', () =
     replace: async (payload: { query: Record<string, unknown> }) => {
       replaceCalls.push(payload);
     },
-  };
+  } as any;
 
   const activeStatus = ref('ALL');
   const activeCategory = ref('ALL');

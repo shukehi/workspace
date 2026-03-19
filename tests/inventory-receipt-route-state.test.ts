@@ -26,7 +26,7 @@ test('useInventoryReceiptRouteState syncs route state and builds receipt fetch p
     replace: async (payload: { query: Record<string, unknown> }) => {
       replaceCalls.push(payload);
     },
-  };
+  } as any;
 
   const state = useInventoryReceiptRouteState(route, router, {
     activeTab,

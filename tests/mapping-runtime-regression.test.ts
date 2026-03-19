@@ -26,7 +26,7 @@ function toComparableGroups(groups: any[]) {
     supplierName: group.supplierName,
     category: group.category,
     itemCount: Array.isArray(group.items) ? group.items.length : 0,
-    items: (Array.isArray(group.items) ? group.items : []).map((item) => {
+    items: (Array.isArray(group.items) ? group.items : []).map((item: any) => {
       if (group.category === '包装') {
         return {
           supplier: item.supplier,

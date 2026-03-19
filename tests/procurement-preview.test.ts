@@ -62,7 +62,7 @@ test('createProcurementPreview creates snapshot, prints, and exports pdf', async
       toasts.push(payload);
     },
     apiClient: {
-      post: async () => ({ snapshotId: 'snapshot-1' }),
+      post: async () => ({ snapshotId: 'snapshot-1' }) as any,
       downloadPDF: async (url, data, filename) => {
         downloads.push({ url, data, filename });
       },

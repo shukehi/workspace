@@ -13,20 +13,18 @@ import {
   validateLockForkMapping as validateLockForkMappingFront
 } from '../../src/services/mappings/mappingValidator';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const {
-  adaptPackagingMapping: adaptPackagingMappingBack,
-  adaptCylinderMapping: adaptCylinderMappingBack,
-  adaptLockMapping: adaptLockMappingBack,
-  adaptLockForkMapping: adaptLockForkMappingBack
-} = require('../../server/services/mappings/mapping.adapter');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const {
-  validatePackagingMapping: validatePackagingMappingBack,
-  validateCylinderMapping: validateCylinderMappingBack,
-  validateLockMapping: validateLockMappingBack,
-  validateLockForkMapping: validateLockForkMappingBack
-} = require('../../server/services/mappings/mapping.validator');
+import {
+  adaptPackagingMapping as adaptPackagingMappingBack,
+  adaptCylinderMapping as adaptCylinderMappingBack,
+  adaptLockMapping as adaptLockMappingBack,
+  adaptLockForkMapping as adaptLockForkMappingBack
+} from '../../server/services/mappings/mapping.adapter';
+import {
+  validatePackagingMapping as validatePackagingMappingBack,
+  validateCylinderMapping as validateCylinderMappingBack,
+  validateLockMapping as validateLockMappingBack,
+  validateLockForkMapping as validateLockForkMappingBack
+} from '../../server/services/mappings/mapping.validator';
 
 const packagingSamples: unknown[] = [
   {

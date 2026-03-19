@@ -2,16 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ORDER_PENDING_STATUSES, ORDER_STATUSES } from '../src/shared/constants/order';
 import { API_ERROR_CODES } from '../src/shared/constants/api';
-
-const {
-  ORDER_STATUSES: SERVER_ORDER_STATUSES,
-  ORDER_PENDING_STATUSES: SERVER_ORDER_PENDING_STATUSES,
-} = require('../server/shared/constants/order');
-const {
-  API_ERROR_CODES: SERVER_API_ERROR_CODES,
+import {
+  ORDER_STATUSES as SERVER_ORDER_STATUSES,
+  ORDER_PENDING_STATUSES as SERVER_ORDER_PENDING_STATUSES,
+} from '../server/shared/constants/order';
+import {
+  API_ERROR_CODES as SERVER_API_ERROR_CODES,
   createApiErrorResponse,
   createApiSuccessResponse,
-} = require('../server/shared/contracts/api');
+} from '../server/shared/contracts/api';
 
 test('shared contracts: frontend and backend order status lists stay aligned', () => {
   assert.deepEqual(ORDER_STATUSES, SERVER_ORDER_STATUSES);

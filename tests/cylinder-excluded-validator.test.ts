@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateCylinderMapping as validateFront } from '../src/services/mappings/mappingValidator';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { validateCylinderMapping: validateBack } = require('../server/services/mappings/mapping.validator');
+import { validateCylinderMapping as validateBack } from '../server/services/mappings/mapping.validator';
 
 test('validateCylinderMapping rejects normalized duplicate excludedCylinders', () => {
   const payload = {
