@@ -92,7 +92,7 @@ router.post('/generate', async (req: Request, res: Response) => {
                 });
                 return;
             }
-            snapshotPayload = (snapshot as any).payload;
+            snapshotPayload = snapshot.payload;
         } else if (order && typeof order === 'object') {
             let created: { snapshotId: string; payload: any } | null = null;
             try {
@@ -155,7 +155,7 @@ router.post('/generate', async (req: Request, res: Response) => {
         });
 
         const mode = String(printMode || snapshotPayload?.printMode || 'signature').trim() || 'signature';
-        const baseUrl = resolveRenderBaseUrl(req as any);
+        const baseUrl = resolveRenderBaseUrl(req);
 
         const params = new URLSearchParams();
         params.set('printMode', mode);
@@ -199,6 +199,3 @@ router.post('/generate', async (req: Request, res: Response) => {
 });
 
 export default router;
-
-// CJS interop: ensure require() returns the router directly
-module.exports = router;

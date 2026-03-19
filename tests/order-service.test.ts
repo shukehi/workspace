@@ -7,7 +7,7 @@ const TEST_DB = path.join('/tmp', 'order-search-order-service.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
 const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models') as typeof import('../server/models');
-const orderService = require('../server/services/orders') as typeof import('../server/services/orders').default;
+const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
 import type { MaterialInstance, InventoryReceiptInstance, OrderInstance } from '../server/models';
 import type { OrderCreateInput, OrderUpdateInput } from '../server/models/types';
 

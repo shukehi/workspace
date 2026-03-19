@@ -13,7 +13,7 @@ import materialRoutes from './material';
 import inventoryRoutes from './inventory';
 import inventoryReceiptRoutes from './inventoryReceipts';
 import contractRoutes from './contracts';
-import contractCacheService from '../services/ContractCacheService';
+import contractCacheService, { type ListContractsQuery } from '../services/ContractCacheService';
 import { createApiErrorResponse } from '../shared/contracts/api';
 
 const router: Router = Router();
@@ -24,7 +24,7 @@ const router: Router = Router();
 router.use('/orders', orderRoutes);
 router.get('/contracts', async (req: Request, res: Response) => {
     try {
-        const result = await contractCacheService.listContracts(req.query as any);
+        const result = await contractCacheService.listContracts(req.query as ListContractsQuery);
         // Preserve the legacy top-level rows/total shape until contract history
         // consumers are migrated to a unified { success, data } envelope.
         res.json({

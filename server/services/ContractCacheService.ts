@@ -27,7 +27,7 @@ interface RawContract {
     [key: string]: unknown;
 }
 
-interface ListContractsQuery {
+export interface ListContractsQuery {
     page?: string | number;
     pageSize?: string | number;
     code?: string;
@@ -66,7 +66,7 @@ class ContractCacheService {
             return { status: 'created', contract: created };
         }
 
-        const status = (existing as any).payload_hash === payloadHash ? 'unchanged' : 'updated';
+        const status = existing.get('payload_hash') === payloadHash ? 'unchanged' : 'updated';
         await existing.update({
             customer_name: rc.customerName || null,
             order_date: rc.orderDate || null,
@@ -137,6 +137,3 @@ class ContractCacheService {
 
 const contractCacheService = new ContractCacheService();
 export default contractCacheService;
-
-// CJS interop: ensure require() returns the service directly
-module.exports = contractCacheService;

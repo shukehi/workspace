@@ -26,6 +26,3 @@ router.put(
 router.use(errorHandler);
 
 export default router;
-
-// CJS interop: ensure require() returns the router directly
-module.exports = router;

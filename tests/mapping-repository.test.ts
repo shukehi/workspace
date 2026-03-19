@@ -16,7 +16,7 @@ const {
   MappingUnmatchedEvent,
 } = require('../server/models') as typeof import('../server/models');
 import type { MappingUnmatchedEventInstance } from '../server/models';
-const MappingRepository = require('../server/services/mappings/mapping.repository') as typeof import('../server/services/mappings/mapping.repository').default;
+const MappingRepository = (require('../server/services/mappings/mapping.repository') as typeof import('../server/services/mappings/mapping.repository')).default;
 const {
   PROFILE_CODES,
   REVISION_STATES,

@@ -1,4 +1,4 @@
-import type { Transaction } from 'sequelize';
+import type { Transaction, FindOptions } from 'sequelize';
 import type {
     MappingAuditLogAttributes,
     MappingAuditLogCreationAttributes,
@@ -50,20 +50,14 @@ class MappingRepository {
         { where = {}, limit, offset }: ProfileListQuery = {},
         transaction?: Transaction,
     ): Promise<any[]> {
-        const query: {
-            where: Record<string, unknown>;
-            order: string[][];
-            transaction?: Transaction;
-            limit?: number;
-            offset?: number;
-        } = {
+        const query: FindOptions<MappingProfileAttributes> = {
             where,
-            order: [['profile_code', 'ASC']] as any,
+            order: [['profile_code', 'ASC']],
             ...txOpts(transaction)
         };
         if (limit !== undefined) query.limit = limit;
         if (offset !== undefined) query.offset = offset;
-        return MappingProfile.findAll(query as any);
+        return MappingProfile.findAll(query);
     }
 
     static async listRevisionsByProfileId(
@@ -211,6 +205,3 @@ class MappingRepository {
 }
 
 export default MappingRepository;
-
-// CJS interop: ensure require() returns the repository directly
-module.exports = MappingRepository;

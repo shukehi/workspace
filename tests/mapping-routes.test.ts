@@ -9,7 +9,7 @@ import type { Router } from 'express'
 const tempDbPath = path.join(os.tmpdir(), `mapping-routes-${Date.now()}.sqlite`);
 process.env.DB_STORAGE = tempDbPath;
 
-const mappingsConfigRoutes = require('../server/routes/mappingsConfig') as Router;
+const mappingsConfigRoutes = (require('../server/routes/mappingsConfig') as { default: Router }).default;
 const { initDB, sequelize } = require('../server/models') as typeof import('../server/models');
 const { PROFILE_CODES } = require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
 

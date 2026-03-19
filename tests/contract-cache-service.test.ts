@@ -7,7 +7,7 @@ const TEST_DB = path.join('/tmp', 'order-search-contract-cache.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
 const { sequelize, ErpContract } = require('../server/models') as typeof import('../server/models');
-const contractCacheService = require('../server/services/ContractCacheService') as typeof import('../server/services/ContractCacheService').default;
+const contractCacheService = (require('../server/services/ContractCacheService') as typeof import('../server/services/ContractCacheService')).default;
 
 const TEST_CODE = `C-${Date.now()}`;
 

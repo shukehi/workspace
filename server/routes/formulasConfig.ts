@@ -49,22 +49,22 @@ router.post('/', async (req: Request, res: Response) => {
             displayName: String(req.body?.displayName || '').trim(),
             bom: Array.isArray(req.body?.bom) ? req.body.bom : [],
             changeNote: req.body?.changeNote,
-            operator: FormulaService.operatorFromRequest(req as any)
+            operator: FormulaService.operatorFromRequest(req)
         });
         if (!result.ok) {
             res.status(result.status).json({ success: false, errors: result.errors || [] });
             return;
         }
-        const def = result.definition as any;
+        const def = result.definition ?? {};
         res.status(201).json({
             success: true,
             formula: {
-                formulaKey: def.formula_key,
-                displayName: def.display_name,
-                status: def.status,
-                activeRevision: def.active_revision
+                formulaKey: def['formula_key'],
+                displayName: def['display_name'],
+                status: def['status'],
+                activeRevision: def['active_revision']
             },
-            revision: FormulaService.toRevisionMeta(result.revision as any)
+            revision: FormulaService.toRevisionMeta(result.revision ?? {})
         });
     } catch (error) {
         console.error('Error creating formula:', error);
@@ -80,7 +80,7 @@ router.put('/:formulaKey/draft', async (req: Request, res: Response) => {
             displayName: req.body?.displayName,
             bom: Array.isArray(req.body?.bom) ? req.body.bom : [],
             changeNote: req.body?.changeNote,
-            operator: FormulaService.operatorFromRequest(req as any)
+            operator: FormulaService.operatorFromRequest(req)
         });
         if (!result.ok) {
             res.status(result.status).json({
@@ -90,7 +90,7 @@ router.put('/:formulaKey/draft', async (req: Request, res: Response) => {
             });
             return;
         }
-        res.json({ success: true, revision: FormulaService.toRevisionMeta(result.revision as any) });
+        res.json({ success: true, revision: FormulaService.toRevisionMeta(result.revision ?? {}) });
     } catch (error) {
         console.error('Error updating formula draft:', error);
         res.status(500).json({ success: false, error: 'Failed to update formula draft' });
@@ -102,13 +102,13 @@ router.post('/:formulaKey/publish', async (req: Request, res: Response) => {
         const result = await FormulaService.publish(req.params.formulaKey, {
             fromRevision: req.body?.fromRevision,
             changeNote: req.body?.changeNote,
-            operator: FormulaService.operatorFromRequest(req as any)
+            operator: FormulaService.operatorFromRequest(req)
         });
         if (!result.ok) {
             res.status(result.status).json({ success: false, errors: result.errors || [] });
             return;
         }
-        res.json({ success: true, revision: FormulaService.toRevisionMeta(result.revision as any) });
+        res.json({ success: true, revision: FormulaService.toRevisionMeta(result.revision ?? {}) });
     } catch (error) {
         console.error('Error publishing formula:', error);
         res.status(500).json({ success: false, error: 'Failed to publish formula' });
@@ -119,7 +119,7 @@ router.post('/:formulaKey/archive', async (req: Request, res: Response) => {
     try {
         const result = await FormulaService.archive(req.params.formulaKey, {
             reason: req.body?.reason,
-            operator: FormulaService.operatorFromRequest(req as any)
+            operator: FormulaService.operatorFromRequest(req)
         });
         if (!result.ok) {
             res.status(result.status).json({ success: false, errors: result.errors || [] });
@@ -137,7 +137,7 @@ router.post('/:formulaKey/rollback', async (req: Request, res: Response) => {
         const result = await FormulaService.rollback(req.params.formulaKey, {
             targetRevision: req.body?.targetRevision,
             reason: req.body?.reason,
-            operator: FormulaService.operatorFromRequest(req as any)
+            operator: FormulaService.operatorFromRequest(req)
         });
         if (!result.ok) {
             res.status(result.status).json({ success: false, errors: result.errors || [] });
@@ -179,6 +179,3 @@ router.get('/:formulaKey/revisions', async (req: Request, res: Response) => {
 });
 
 export default router;
-
-// CJS interop: ensure require() returns the router directly
-module.exports = router;

@@ -9,7 +9,7 @@ process.env.DB_STORAGE = tempDbPath;
 
 const { initDB, sequelize, Material } = require('../server/models') as typeof import('../server/models');
 const FormulaWorkflow = require('../server/services/formulas') as typeof import('../server/services/formulas');
-const FormulaRepository = require('../server/services/formulas/formula.repository') as typeof import('../server/services/formulas/formula.repository').default;
+const FormulaRepository = (require('../server/services/formulas/formula.repository') as typeof import('../server/services/formulas/formula.repository')).default;
 
 test.before(async () => {
   await initDB();

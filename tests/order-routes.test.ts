@@ -11,7 +11,7 @@ process.env.DB_STORAGE = tempDbPath;
 
 const { initDB, sequelize, Material } = require('../server/models') as typeof import('../server/models');
 import type { MaterialInstance } from '../server/models';
-const orderRoutes = require('../server/routes/order') as Router;
+const orderRoutes = (require('../server/routes/order') as { default: Router }).default;
 
 let server: ReturnType<ReturnType<typeof express>['listen']>
 let baseUrl: string

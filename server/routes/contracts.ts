@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import contractCacheService from '../services/ContractCacheService';
+import contractCacheService, { type ListContractsQuery } from '../services/ContractCacheService';
 
 const router: Router = Router();
 
@@ -13,7 +13,7 @@ function isSqliteReadonlyError(err: any): boolean {
 // GET /api/contracts
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const result = await contractCacheService.listContracts(req.query as any);
+        const result = await contractCacheService.listContracts(req.query as ListContractsQuery);
         res.json({
             success: true,
             ...result

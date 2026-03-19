@@ -179,6 +179,3 @@ class FormulaRepository {
 }
 
 export default FormulaRepository;
-
-// CJS interop: ensure require() returns the repository directly
-module.exports = FormulaRepository;

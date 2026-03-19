@@ -170,6 +170,3 @@ router.get('/:type/audit-logs', async (req: Request, res: Response) => {
 });
 
 export default router;
-
-// CJS interop: ensure require() returns the router directly
-module.exports = router;

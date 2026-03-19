@@ -10,9 +10,9 @@ process.env.DB_STORAGE = TEST_DB;
 
 const { sequelize, Material, Order, OrderItem } = require('../server/models') as typeof import('../server/models');
 import type { MaterialInstance } from '../server/models';
-const inventoryRoutes = require('../server/routes/inventory') as Router;
-const inventoryReceiptRoutes = require('../server/routes/inventoryReceipts') as Router;
-const orderService = require('../server/services/orders') as typeof import('../server/services/orders').default;
+const inventoryRoutes = (require('../server/routes/inventory') as { default: Router }).default;
+const inventoryReceiptRoutes = (require('../server/routes/inventoryReceipts') as { default: Router }).default;
+const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
 
 function getBody(raw: Record<string, unknown>) {
   return raw?.data !== undefined ? raw.data : raw;

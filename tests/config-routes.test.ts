@@ -9,9 +9,9 @@ import type { Router } from 'express'
 const tempDbPath = path.join(os.tmpdir(), `formula-routes-${Date.now()}.sqlite`);
 process.env.DB_STORAGE = tempDbPath;
 
-const configRoutes = require('../server/routes/configData') as Router;
-const formulasConfigRoutes = require('../server/routes/formulasConfig') as Router;
-const materialsConfigRoutes = require('../server/routes/materialsConfig') as Router;
+const configRoutes = (require('../server/routes/configData') as { default: Router }).default;
+const formulasConfigRoutes = (require('../server/routes/formulasConfig') as { default: Router }).default;
+const materialsConfigRoutes = (require('../server/routes/materialsConfig') as { default: Router }).default;
 const MappingService = require('../server/services/mappings') as typeof import('../server/services/mappings');
 const { CONFIG_FILES, ensureProjectDirs } = require('../server/config/paths') as typeof import('../server/config/paths');
 const { initDB, sequelize, Material } = require('../server/models') as typeof import('../server/models');
