@@ -5,8 +5,8 @@ import type {
     FormulaAuditLogCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const FormulaAuditLog: ModelDefined<FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes> = sequelize.define('FormulaAuditLog', {
     id: {
@@ -46,4 +46,4 @@ const FormulaAuditLog: ModelDefined<FormulaAuditLogAttributes, FormulaAuditLogCr
     updatedAt: false
 });
 
-module.exports = FormulaAuditLog;
+export default FormulaAuditLog;

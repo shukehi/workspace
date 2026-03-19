@@ -4,8 +4,8 @@ import type {
     MaterialCatalogRevisionCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const MaterialCatalogRevision: ModelDefined<MaterialCatalogRevisionAttributes, MaterialCatalogRevisionCreationAttributes> = sequelize.define('MaterialCatalogRevision', {
     id: {
@@ -56,4 +56,4 @@ const MaterialCatalogRevision: ModelDefined<MaterialCatalogRevisionAttributes, M
     ]
 });
 
-module.exports = MaterialCatalogRevision;
+export default MaterialCatalogRevision;

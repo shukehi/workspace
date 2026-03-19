@@ -8,9 +8,3 @@ export {
     inventoryService,
     inventoryReceiptService,
 };
-
-// 兼容现有 CommonJS 引用
-module.exports = {
-    inventoryService,
-    inventoryReceiptService,
-};

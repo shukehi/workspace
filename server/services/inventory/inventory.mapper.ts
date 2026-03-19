@@ -1,6 +1,4 @@
-export {};
-
-function toInventoryItem(material: Record<string, any>) {
+export function toInventoryItem(material: Record<string, any>) {
   return {
     id: Number(material.id),
     category: material.category || 'Uncategorized',
@@ -14,6 +12,3 @@ function toInventoryItem(material: Record<string, any>) {
   };
 }
 
-module.exports = {
-  toInventoryItem,
-};

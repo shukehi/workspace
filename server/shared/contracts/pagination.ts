@@ -1,4 +1,4 @@
-interface PaginationResponse<T> {
+export interface PaginationResponse<T> {
     rows: T[];
     total: number;
     page: number;
@@ -16,7 +16,7 @@ interface PaginationResponseInput<T> {
     facets?: unknown;
 }
 
-function createPaginationResponse<T>({
+export function createPaginationResponse<T>({
     rows = [],
     total = 0,
     page = 1,
@@ -34,6 +34,4 @@ function createPaginationResponse<T>({
     };
 }
 
-module.exports = {
-    createPaginationResponse,
-};
+// 兼容 CommonJS 消费方

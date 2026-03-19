@@ -1,11 +1,9 @@
-export {};
-
-const { ORDER_STATUSES, ORDER_PENDING_STATUSES } = require('../../shared/constants/order');
-const { API_ERROR_CODES } = require('../../shared/contracts/api');
+import { ORDER_STATUSES, ORDER_PENDING_STATUSES } from '../../shared/constants/order';
+import { API_ERROR_CODES } from '../../shared/contracts/api';
 
 type OrderStatus = string;
 
-class InvalidStatusTransitionError extends Error {
+export class InvalidStatusTransitionError extends Error {
     code: string;
     fromStatus: string;
     toStatus: string;
@@ -19,7 +17,7 @@ class InvalidStatusTransitionError extends Error {
     }
 }
 
-class OrderEditLockedError extends Error {
+export class OrderEditLockedError extends Error {
     code: string;
     status: string;
     fields: string[];
@@ -33,7 +31,7 @@ class OrderEditLockedError extends Error {
     }
 }
 
-const ALLOWED_STATUS_TRANSITIONS: Record<string, Set<string>> = {
+export const ALLOWED_STATUS_TRANSITIONS: Record<string, Set<string>> = {
     draft: new Set(['draft', 'submitted', 'cancelled']),
     submitted: new Set(['submitted', 'processing', 'cancelled']),
     processing: new Set(['processing', 'arrived', 'cancelled']),
@@ -42,7 +40,7 @@ const ALLOWED_STATUS_TRANSITIONS: Record<string, Set<string>> = {
     cancelled: new Set(['cancelled', 'draft', 'submitted', 'processing', 'arrived', 'completed'])
 };
 
-const ARRIVED_EDITABLE_FIELDS = new Set([
+export const ARRIVED_EDITABLE_FIELDS = new Set([
     'status',
     'remark',
     'delivery_date',
@@ -54,7 +52,7 @@ const ARRIVED_EDITABLE_FIELDS = new Set([
     'stocked_in_remark'
 ]);
 
-const COMPLETED_EDITABLE_FIELDS = new Set([
+export const COMPLETED_EDITABLE_FIELDS = new Set([
     'status',
     'remark',
     'delivery_date',
@@ -63,21 +61,21 @@ const COMPLETED_EDITABLE_FIELDS = new Set([
     'stocked_in_remark'
 ]);
 
-function normalizeStatusValue(status: unknown): string {
+export function normalizeStatusValue(status: unknown): string {
     if (status === undefined || status === null) return '';
     return String(status).trim();
 }
 
-function normalizeStatus(status: unknown, fallback: OrderStatus = 'draft'): OrderStatus {
+export function normalizeStatus(status: unknown, fallback: OrderStatus = 'draft'): OrderStatus {
     const raw = normalizeStatusValue(status);
     if (!raw) return fallback;
-    if (!ORDER_STATUSES.includes(raw)) {
+    if (!(ORDER_STATUSES as readonly string[]).includes(raw)) {
         throw new InvalidStatusTransitionError('unknown', raw);
     }
     return raw;
 }
 
-function assertValidStatusTransition(fromStatus: unknown, toStatus: unknown): OrderStatus {
+export function assertValidStatusTransition(fromStatus: unknown, toStatus: unknown): OrderStatus {
     const normalizedFrom = normalizeStatus(fromStatus);
     const normalizedTo = normalizeStatus(toStatus, normalizedFrom);
     const allowed = ALLOWED_STATUS_TRANSITIONS[normalizedFrom];
@@ -87,7 +85,7 @@ function assertValidStatusTransition(fromStatus: unknown, toStatus: unknown): Or
     return normalizedTo;
 }
 
-function assertEditableOrderFields(order: { status?: unknown } | null | undefined, data: Record<string, unknown> = {}): void {
+export function assertEditableOrderFields(order: { status?: unknown } | null | undefined, data: Record<string, unknown> = {}): void {
     const currentStatus = normalizeStatus(order?.status);
     if (!['arrived', 'completed'].includes(currentStatus)) return;
 
@@ -101,20 +99,7 @@ function assertEditableOrderFields(order: { status?: unknown } | null | undefine
     }
 }
 
-function isPendingOrderStatus(status: string): boolean {
-    return ORDER_PENDING_STATUSES.includes(status);
+export function isPendingOrderStatus(status: string): boolean {
+    return (ORDER_PENDING_STATUSES as readonly string[]).includes(status);
 }
 
-module.exports = {
-    ORDER_STATUSES,
-    ORDER_PENDING_STATUSES,
-    ALLOWED_STATUS_TRANSITIONS,
-    ARRIVED_EDITABLE_FIELDS,
-    COMPLETED_EDITABLE_FIELDS,
-    InvalidStatusTransitionError,
-    OrderEditLockedError,
-    normalizeStatus,
-    assertValidStatusTransition,
-    assertEditableOrderFields,
-    isPendingOrderStatus,
-};

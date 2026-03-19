@@ -1,3 +1,4 @@
+import type { Transaction } from 'sequelize';
 import type {
     OrderAttributes,
     OrderCreationAttributes,
@@ -8,27 +9,27 @@ import type {
     OrderWithItemsAttributes,
 } from '../../models/types';
 
-const { Op } = require('sequelize');
-const { Order, OrderItem, OrderIdempotencyKey } = require('../../models');
-const { ORDER_PENDING_STATUSES } = require('../../shared/constants/order');
+import { Op } from 'sequelize';
+import { Order, OrderItem, OrderIdempotencyKey } from '../../models';
+import { ORDER_PENDING_STATUSES } from '../../shared/constants/order';
 
-type LooseTransaction = unknown;
+type LooseTransaction = Transaction | undefined;
 type LooseWhere = Record<string, unknown>;
 
 const ORDER_ITEM_INCLUDE = [{ model: OrderItem, as: 'items' }];
 
-async function createIdempotencyKey(
+export async function createIdempotencyKey(
     values: OrderIdempotencyKeyCreationAttributes,
     transaction?: LooseTransaction,
-): Promise<OrderIdempotencyKeyAttributes> {
+): Promise<any> {
     return await OrderIdempotencyKey.create(values, { transaction });
 }
 
-async function findActiveIdempotencyKey(
+export async function findActiveIdempotencyKey(
     scope: string,
     dedupeKey: string,
     transaction?: LooseTransaction,
-): Promise<OrderIdempotencyKeyAttributes | null> {
+): Promise<any> {
     return await OrderIdempotencyKey.findOne({
         where: {
             scope,
@@ -39,40 +40,40 @@ async function findActiveIdempotencyKey(
     });
 }
 
-async function updateActiveIdempotencyKeysByOrderId(
+export async function updateActiveIdempotencyKeysByOrderId(
     orderId: number,
     values: Partial<OrderIdempotencyKeyAttributes>,
     transaction?: LooseTransaction,
-): Promise<[number]> {
+): Promise<any> {
     return await OrderIdempotencyKey.update(values, {
         where: { order_id: orderId, active: true },
         transaction
     });
 }
 
-async function updateScopedIdempotencyKeysByOrderId(
+export async function updateScopedIdempotencyKeysByOrderId(
     orderId: number,
     scope: string,
     values: Partial<OrderIdempotencyKeyAttributes>,
     transaction?: LooseTransaction,
-): Promise<[number]> {
+): Promise<any> {
     return await OrderIdempotencyKey.update(values, {
         where: { order_id: orderId, scope },
         transaction
     });
 }
 
-async function destroyIdempotencyKeysByOrderId(
+export async function destroyIdempotencyKeysByOrderId(
     orderId: number,
     transaction?: LooseTransaction,
 ): Promise<number> {
     return await OrderIdempotencyKey.destroy({ where: { order_id: orderId }, transaction });
 }
 
-async function findAllOrdersWithItems(
+export async function findAllOrdersWithItems(
     where: LooseWhere = {},
     transaction?: LooseTransaction,
-): Promise<OrderWithItemsAttributes[]> {
+): Promise<any[]> {
     return await Order.findAll({
         where,
         include: ORDER_ITEM_INCLUDE,
@@ -81,12 +82,12 @@ async function findAllOrdersWithItems(
     });
 }
 
-async function findOrdersPaginated(
+export async function findOrdersPaginated(
     where: LooseWhere,
     page: number,
     pageSize: number,
     transaction?: LooseTransaction,
-): Promise<{ rows: OrderWithItemsAttributes[]; count: number }> {
+): Promise<any> {
     const { count, rows } = await Order.findAndCountAll({
         where,
         include: ORDER_ITEM_INCLUDE,
@@ -99,72 +100,72 @@ async function findOrdersPaginated(
     return { rows, count };
 }
 
-async function findOrderByIdWithItems(
+export async function findOrderByIdWithItems(
     id: number | string,
     transaction?: LooseTransaction,
-): Promise<OrderWithItemsAttributes | null> {
+): Promise<any> {
     return await Order.findByPk(id, {
         include: ORDER_ITEM_INCLUDE,
         transaction
     });
 }
 
-async function findOrderById(
+export async function findOrderById(
     id: number | string,
     transaction?: LooseTransaction,
-): Promise<OrderAttributes | null> {
+): Promise<any> {
     return await Order.findByPk(id, { transaction });
 }
 
-async function createOrder(
+export async function createOrder(
     values: OrderCreationAttributes,
     transaction?: LooseTransaction,
-): Promise<OrderAttributes> {
+): Promise<any> {
     return await Order.create(values, { transaction });
 }
 
-async function bulkCreateOrderItems(
+export async function bulkCreateOrderItems(
     items: OrderItemCreationAttributes[],
     transaction?: LooseTransaction,
-): Promise<OrderItemAttributes[]> {
+): Promise<any[]> {
     return await OrderItem.bulkCreate(items, { transaction });
 }
 
-async function updateOrderCreatedAt(
+export async function updateOrderCreatedAt(
     id: number,
     createdAt: Date | string,
     transaction?: LooseTransaction,
-): Promise<[number]> {
+): Promise<any> {
     return await Order.update(
-        { created_at: createdAt },
-        { where: { id }, transaction, silent: true }
+        { created_at: createdAt as any },
+        { where: { id }, transaction, silent: true } as any
     );
 }
 
-async function replaceOrderItems(
+export async function replaceOrderItems(
     orderId: number,
     items: OrderItemCreationAttributes[],
     transaction?: LooseTransaction,
-): Promise<OrderItemAttributes[]> {
+): Promise<any[]> {
     await OrderItem.destroy({ where: { order_id: orderId }, transaction });
     return await OrderItem.bulkCreate(items, { transaction });
 }
 
-async function findOrderItemsByOrderId(
+export async function findOrderItemsByOrderId(
     orderId: number,
     transaction?: LooseTransaction,
-): Promise<OrderItemAttributes[]> {
+): Promise<any[]> {
     return await OrderItem.findAll({ where: { order_id: orderId }, transaction });
 }
 
-async function destroyOrderItemsByOrderId(
+export async function destroyOrderItemsByOrderId(
     orderId: number,
     transaction?: LooseTransaction,
 ): Promise<number> {
     return await OrderItem.destroy({ where: { order_id: orderId }, transaction });
 }
 
-async function destroyOrderById(
+export async function destroyOrderById(
     orderId: number,
     transaction?: LooseTransaction,
 ): Promise<number> {
@@ -176,7 +177,7 @@ async function destroyOrderById(
  * 只处理可以安全推到数据库的简单条件。
  * 复杂条件（risk、keyword 含 item 内容）保留在内存过滤层处理。
  */
-function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
+export function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
     const where: LooseWhere = {};
 
     const status = query.status ? String(query.status).trim() : '';
@@ -218,22 +219,3 @@ function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
     return where;
 }
 
-module.exports = {
-    buildSimpleWhereFromQuery,
-    findOrdersPaginated,
-    createIdempotencyKey,
-    findActiveIdempotencyKey,
-    updateActiveIdempotencyKeysByOrderId,
-    updateScopedIdempotencyKeysByOrderId,
-    destroyIdempotencyKeysByOrderId,
-    findAllOrdersWithItems,
-    findOrderByIdWithItems,
-    findOrderById,
-    createOrder,
-    bulkCreateOrderItems,
-    updateOrderCreatedAt,
-    replaceOrderItems,
-    findOrderItemsByOrderId,
-    destroyOrderItemsByOrderId,
-    destroyOrderById,
-};

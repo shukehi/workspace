@@ -1,5 +1,3 @@
-export {};
-
 interface ValidationIssue {
     field: string;
     message: string;
@@ -7,21 +5,21 @@ interface ValidationIssue {
 
 type UnknownRecord = Record<string, unknown>;
 
-function createIssue(field: string, message: string): ValidationIssue {
+export function createIssue(field: string, message: string): ValidationIssue {
     return { field, message };
 }
 
-function isPlainObject(value: unknown): value is UnknownRecord {
+export function isPlainObject(value: unknown): value is UnknownRecord {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function pushIfPresentIsNotString(issues: ValidationIssue[], source: UnknownRecord, field: string): void {
+export function pushIfPresentIsNotString(issues: ValidationIssue[], source: UnknownRecord, field: string): void {
     if (source[field] !== undefined && source[field] !== null && typeof source[field] !== 'string') {
         issues.push(createIssue(field, `${field} must be a string`));
     }
 }
 
-function pushIfPresentIsNotPositiveInteger(issues: ValidationIssue[], source: UnknownRecord, field: string): void {
+export function pushIfPresentIsNotPositiveInteger(issues: ValidationIssue[], source: UnknownRecord, field: string): void {
     if (source[field] === undefined) return;
     const raw = String(source[field]).trim();
     const numeric = Number(raw);
@@ -30,7 +28,7 @@ function pushIfPresentIsNotPositiveInteger(issues: ValidationIssue[], source: Un
     }
 }
 
-function pushIfPresentIsNotPositiveNumber(issues: ValidationIssue[], source: UnknownRecord, field: string): void {
+export function pushIfPresentIsNotPositiveNumber(issues: ValidationIssue[], source: UnknownRecord, field: string): void {
     if (source[field] === undefined || source[field] === null || source[field] === '') return;
     const numeric = Number(source[field]);
     if (!Number.isFinite(numeric) || numeric <= 0) {
@@ -38,7 +36,7 @@ function pushIfPresentIsNotPositiveNumber(issues: ValidationIssue[], source: Unk
     }
 }
 
-function validateInventoryReceiptIdParams(params: UnknownRecord = {}): ValidationIssue[] {
+export function validateInventoryReceiptIdParams(params: UnknownRecord = {}): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     pushIfPresentIsNotPositiveInteger(issues, params, 'id');
     if (params.id === undefined || params.id === null || String(params.id).trim() === '') {
@@ -47,7 +45,7 @@ function validateInventoryReceiptIdParams(params: UnknownRecord = {}): Validatio
     return issues;
 }
 
-function validateInventoryReceiptListQuery(query: UnknownRecord = {}): ValidationIssue[] {
+export function validateInventoryReceiptListQuery(query: UnknownRecord = {}): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     pushIfPresentIsNotPositiveInteger(issues, query, 'orderId');
     pushIfPresentIsNotPositiveInteger(issues, query, 'page');
@@ -59,7 +57,7 @@ function validateInventoryReceiptListQuery(query: UnknownRecord = {}): Validatio
     return issues;
 }
 
-function validateInventoryReceiptReverseBody(body: unknown): ValidationIssue[] {
+export function validateInventoryReceiptReverseBody(body: unknown): ValidationIssue[] {
     if (!isPlainObject(body)) {
         return [createIssue('$', 'Request body must be an object')];
     }
@@ -74,8 +72,3 @@ function validateInventoryReceiptReverseBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
-module.exports = {
-    validateInventoryReceiptIdParams,
-    validateInventoryReceiptListQuery,
-    validateInventoryReceiptReverseBody,
-};

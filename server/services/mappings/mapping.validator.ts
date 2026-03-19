@@ -1,17 +1,8 @@
-export {};
+import { adaptHandleMapping } from './mapping.adapter';
+import { PROFILE_CODE_LIST } from './mapping.constants';
+import { validatePackagingMapping, validateCylinderMapping, validateLockMapping, validateLockForkMapping } from '../../../shared/mappings/mapping-validator-core.mjs';
 
-const {
-    adaptHandleMapping,
-} = require('./mapping.adapter');
-const { PROFILE_CODE_LIST } = require('./mapping.constants');
-const sharedMappingValidatorCore = require('../../../shared/mappings/mapping-validator-core.mjs');
-
-const {
-    validatePackagingMapping,
-    validateCylinderMapping,
-    validateLockMapping,
-    validateLockForkMapping,
-} = sharedMappingValidatorCore;
+export { validatePackagingMapping, validateCylinderMapping, validateLockMapping, validateLockForkMapping };
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -21,29 +12,29 @@ interface MappingIssue {
     message: string;
 }
 
-function asRecord(value: unknown): UnknownRecord {
+export function asRecord(value: unknown): UnknownRecord {
     return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : {};
 }
 
-function toTrimmedString(value: unknown): string {
+export function toTrimmedString(value: unknown): string {
     if (typeof value === 'string') return value.trim();
     if (value === null || value === undefined) return '';
     return String(value).trim();
 }
 
-function isPlainObject(value: unknown): value is UnknownRecord {
+export function isPlainObject(value: unknown): value is UnknownRecord {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function quotePathSegment(segment: string): string {
+export function quotePathSegment(segment: string): string {
     return JSON.stringify(segment);
 }
 
-function createIssue(path: string, code: string, message: string): MappingIssue {
+export function createIssue(path: string, code: string, message: string): MappingIssue {
     return { path, code, message };
 }
 
-function normalizeHandleMappingKey(input: unknown): string {
+export function normalizeHandleMappingKey(input: unknown): string {
     return String(input || '')
         .trim()
         .toLowerCase()
@@ -52,9 +43,9 @@ function normalizeHandleMappingKey(input: unknown): string {
         .replace(/\s+/g, '');
 }
 
-function validateProfileCode(profileCode: unknown): MappingIssue[] {
+export function validateProfileCode(profileCode: unknown): MappingIssue[] {
     const normalized = String(profileCode || '').trim();
-    if (PROFILE_CODE_LIST.includes(normalized)) return [];
+    if ((PROFILE_CODE_LIST as readonly string[]).includes(normalized)) return [];
     return [{
         path: 'profileCode',
         code: 'unsupported-profile',
@@ -62,7 +53,7 @@ function validateProfileCode(profileCode: unknown): MappingIssue[] {
     }];
 }
 
-function parsePayload(payloadText: unknown): UnknownRecord {
+export function parsePayload(payloadText: unknown): UnknownRecord {
     try {
         const parsed = JSON.parse(String(payloadText || '{}'));
         return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as UnknownRecord : {};
@@ -71,14 +62,14 @@ function parsePayload(payloadText: unknown): UnknownRecord {
     }
 }
 
-function serializePayload(payload: unknown): string {
+export function serializePayload(payload: unknown): string {
     const normalized = payload && typeof payload === 'object' && !Array.isArray(payload)
         ? payload
         : {};
     return JSON.stringify(normalized);
 }
 
-function validateHandleMapping(value: unknown): MappingIssue[] {
+export function validateHandleMapping(value: unknown): MappingIssue[] {
     const issues: MappingIssue[] = [];
 
     if (!isPlainObject(value)) {
@@ -202,7 +193,7 @@ function validateHandleMapping(value: unknown): MappingIssue[] {
     }
 
     ['5', '7', '9', '10'].forEach((thickness) => {
-        if (!adapted.thicknessAccessoryPacks[thickness]) {
+        if (!(adapted.thicknessAccessoryPacks as any)[thickness]) {
             issues.push(createIssue(`thicknessAccessoryPacks[${quotePathSegment(thickness)}]`, 'required', `${thickness}cm 配件包不能为空`));
         }
     });
@@ -255,7 +246,7 @@ function validateHandleMapping(value: unknown): MappingIssue[] {
     return issues;
 }
 
-function validateMappingPayload(profileCode: unknown, payload: unknown): MappingIssue[] {
+export function validateMappingPayload(profileCode: unknown, payload: unknown): MappingIssue[] {
     const normalizedProfileCode = String(profileCode || '').trim();
     const profileCodeErrors = validateProfileCode(normalizedProfileCode);
     if (profileCodeErrors.length > 0) return profileCodeErrors;
@@ -282,14 +273,3 @@ function validateMappingPayload(profileCode: unknown, payload: unknown): Mapping
     }];
 }
 
-module.exports = {
-    validatePackagingMapping,
-    validateCylinderMapping,
-    validateLockMapping,
-    validateLockForkMapping,
-    validateHandleMapping,
-    validateMappingPayload,
-    validateProfileCode,
-    parsePayload,
-    serializePayload
-};

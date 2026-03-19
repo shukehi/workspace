@@ -5,8 +5,8 @@ import type {
     FormulaDefinitionCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const FormulaDefinition: ModelDefined<FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes> = sequelize.define('FormulaDefinition', {
     id: {
@@ -44,4 +44,4 @@ const FormulaDefinition: ModelDefined<FormulaDefinitionAttributes, FormulaDefini
     updatedAt: 'updated_at'
 });
 
-module.exports = FormulaDefinition;
+export default FormulaDefinition;

@@ -1,8 +1,5 @@
-export { };
-
-const { buildOrderItemKey } = require('../orderItemKey');
-
-type PlainRecord = Record<string, any>;
+import { buildOrderItemKey } from '../orderItemKey';
+import type { PlainRecord } from '../../shared/types';
 
 /**
  * 标准化日期字段
@@ -146,12 +143,3 @@ export function toDuplicateOrderSummary(order: any): any {
     };
 }
 
-module.exports = {
-    normalizeDateField,
-    resolveOrderedQuantity,
-    serializeOrderItem,
-    normalizeOrderItemForPersistence,
-    serializeOrder,
-    normalizeOrderForLog,
-    toDuplicateOrderSummary,
-};

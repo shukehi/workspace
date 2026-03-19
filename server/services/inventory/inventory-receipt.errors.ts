@@ -110,11 +110,3 @@ export const inventoryErrorResolver = (error: any): AppError | null => {
     }
 };
 
-module.exports = {
-    createReceiptError,
-    ReceiptReverseNotAllowedError,
-    ReceiptAlreadyReversedError,
-    ReceiptAlreadyFullyReversedError,
-    ReverseQuantityExceededError,
-    inventoryErrorResolver,
-};

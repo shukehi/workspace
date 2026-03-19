@@ -29,7 +29,3 @@ export function sendCreated(res: Response, data: unknown) {
     return sendSuccess(res, data, 201);
 }
 
-module.exports = {
-    sendSuccess,
-    sendCreated,
-};

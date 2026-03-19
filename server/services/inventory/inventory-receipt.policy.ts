@@ -1,17 +1,9 @@
-export {};
+import { buildOrderItemKey, buildLegacyOrderItemKey } from '../orderItemKey';
+import { createReceiptError } from './inventory-receipt.errors';
+import { normalizeReceiptQuantity, resolveOrderedQuantity } from './inventory-receipt.mapper';
+import type { PlainRecord } from '../../shared/types';
 
-const { buildOrderItemKey, buildLegacyOrderItemKey } = require('../orderItemKey');
-const {
-  createReceiptError,
-} = require('./inventory-receipt.errors');
-const {
-  normalizeReceiptQuantity,
-  resolveOrderedQuantity,
-} = require('./inventory-receipt.mapper');
-
-type PlainRecord = Record<string, any>;
-
-function resolveReceiptOrderItems(order: PlainRecord | null | undefined, payload: PlainRecord = {}) {
+export function resolveReceiptOrderItems(order: PlainRecord | null | undefined, payload: PlainRecord = {}) {
   const orderItems = Array.isArray(order?.items) ? order.items : [];
   if (orderItems.length === 0) {
     throw createReceiptError('ORDER_ITEMS_REQUIRED');
@@ -77,6 +69,3 @@ function resolveReceiptOrderItems(order: PlainRecord | null | undefined, payload
   });
 }
 
-module.exports = {
-  resolveReceiptOrderItems,
-};

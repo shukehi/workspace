@@ -5,8 +5,8 @@ import type {
     OrderIdempotencyKeyCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const OrderIdempotencyKey: ModelDefined<OrderIdempotencyKeyAttributes, OrderIdempotencyKeyCreationAttributes> = sequelize.define('OrderIdempotencyKey', {
     id: {
@@ -43,4 +43,4 @@ const OrderIdempotencyKey: ModelDefined<OrderIdempotencyKeyAttributes, OrderIdem
     updatedAt: 'updated_at'
 });
 
-module.exports = OrderIdempotencyKey;
+export default OrderIdempotencyKey;

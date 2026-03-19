@@ -1,9 +1,7 @@
-export {};
-
-const AppError = require('../../app/errors/AppError');
-const ERROR_CODES = require('../../app/errors/errorCodes');
-const repository = require('./inventory.repository');
-const { toInventoryItem } = require('./inventory.mapper');
+import AppError from '../../app/errors/AppError';
+import ERROR_CODES from '../../app/errors/errorCodes';
+import * as repository from './inventory.repository';
+import { toInventoryItem } from './inventory.mapper';
 
 type InventoryPayload = {
   stock_quantity: number | string;
@@ -37,7 +35,6 @@ async function updateInventoryItem(id: number | string, payload: InventoryPayloa
   return toInventoryItem(material);
 }
 
-module.exports = {
-  listInventory,
-  updateInventoryItem,
-};
+const inventoryService = { listInventory, updateInventoryItem };
+
+export default inventoryService;

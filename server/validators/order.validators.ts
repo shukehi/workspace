@@ -15,7 +15,7 @@ function isPlainObject(value: unknown): value is UnknownRecord {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function validateOrderIdParams(params: UnknownRecord = {}): ValidationIssue[] {
+export function validateOrderIdParams(params: UnknownRecord = {}): ValidationIssue[] {
     const value = String(params.id || '').trim();
     if (!value) {
         return [createIssue('id', 'Order id is required')];
@@ -57,7 +57,7 @@ function pushIfPresentIsNotString(issues: ValidationIssue[], source: UnknownReco
     }
 }
 
-function validateOrderListQuery(query: UnknownRecord = {}): ValidationIssue[] {
+export function validateOrderListQuery(query: UnknownRecord = {}): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     pushIfPresentIsNotNumericString(issues, query, 'page');
     pushIfPresentIsNotNumericString(issues, query, 'pageSize');
@@ -70,7 +70,7 @@ function validateOrderListQuery(query: UnknownRecord = {}): ValidationIssue[] {
     return issues;
 }
 
-function validateOrderCreateBody(body: unknown): ValidationIssue[] {
+export function validateOrderCreateBody(body: unknown): ValidationIssue[] {
     const issues = validateObjectBody(body);
     if (issues.length > 0) return issues;
 
@@ -87,7 +87,7 @@ function validateOrderCreateBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
-function validateOrderUpdateBody(body: unknown): ValidationIssue[] {
+export function validateOrderUpdateBody(body: unknown): ValidationIssue[] {
     const issues = validateObjectBody(body);
     if (issues.length > 0) return issues;
 
@@ -109,7 +109,7 @@ function validateOrderUpdateBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
-function validateOrderArriveBody(body: unknown): ValidationIssue[] {
+export function validateOrderArriveBody(body: unknown): ValidationIssue[] {
     const issues = validateObjectBody(body);
     if (issues.length > 0) return issues;
 
@@ -122,7 +122,7 @@ function validateOrderArriveBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
-function validateOrderStatusBody(body: unknown): ValidationIssue[] {
+export function validateOrderStatusBody(body: unknown): ValidationIssue[] {
     const issues = validateObjectBody(body);
     if (issues.length > 0) return issues;
 
@@ -134,7 +134,7 @@ function validateOrderStatusBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
-function validateOrderStockInBody(body: unknown): ValidationIssue[] {
+export function validateOrderStockInBody(body: unknown): ValidationIssue[] {
     const issues = validateObjectBody(body);
     if (issues.length > 0) return issues;
 
@@ -147,12 +147,3 @@ function validateOrderStockInBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
-module.exports = {
-    validateOrderListQuery,
-    validateOrderIdParams,
-    validateOrderCreateBody,
-    validateOrderUpdateBody,
-    validateOrderArriveBody,
-    validateOrderStockInBody,
-    validateOrderStatusBody,
-};

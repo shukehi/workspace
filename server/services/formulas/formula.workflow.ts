@@ -1,26 +1,13 @@
-export {};
-
+import type { Transaction } from 'sequelize';
 import type {
     FormulaDefinitionAttributes,
     FormulaRevisionAttributes,
 } from '../../models/types';
 
-const FormulaRepository = require('./formula.repository');
-const { Op } = require('sequelize');
-const {
-    filterMeaningfulBomRows,
-    normalizeBom,
-    parsePayload,
-    serializePayload,
-    validateBaseFields,
-    validateBomRows
-} = require('./formula.validator');
-const {
-    toDetail,
-    toPublishedMap,
-    toRevisionMeta,
-    toSummary
-} = require('./formula.mapper');
+import FormulaRepository from './formula.repository';
+import { Op } from 'sequelize';
+import { filterMeaningfulBomRows, normalizeBom, parsePayload, serializePayload, validateBaseFields, validateBomRows } from './formula.validator';
+import { toDetail, toPublishedMap, toRevisionMeta, toSummary } from './formula.mapper';
 
 type FormulaError = {
     field: string;
@@ -33,7 +20,7 @@ type FormulaWorkflowResult =
 
 const VALID_STATES = new Set(['draft', 'published', 'archived']);
 
-function operatorFromRequest(req?: { headers?: Record<string, unknown> }): string {
+export function operatorFromRequest(req?: { headers?: Record<string, unknown> }): string {
     const fromHeader = req?.headers?.['x-operator'] || req?.headers?.['x-user'];
     return String(fromHeader || 'system-admin');
 }
@@ -47,7 +34,7 @@ function formatDateYYYYMMDD(input: Date | string | number = new Date()): string 
     return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
 }
 
-async function generateNextFormulaKey(transaction: unknown, dateInput: Date | string | number = new Date()): Promise<string> {
+async function generateNextFormulaKey(transaction: Transaction | undefined, dateInput: Date | string | number = new Date()): Promise<string> {
     const datePart = formatDateYYYYMMDD(dateInput);
     const prefix = `F${datePart}-`;
     const rows = await FormulaRepository.listDefinitionKeysByPrefix(prefix, transaction);
@@ -144,7 +131,7 @@ async function validateAndResolveBomWithMaterials(bom: unknown[]): Promise<{ bom
     return { bom: resolvedBom, errors: missingErrors };
 }
 
-async function listFormulas({ keyword = '', status = '', page = 1, pageSize = 20 } = {}) {
+export async function listFormulas({ keyword = '', status = '', page = 1, pageSize = 20 } = {}) {
     const where: Record<string | symbol, unknown> = {};
     if (status && VALID_STATES.has(status)) where.status = status;
     if (keyword) {
@@ -172,7 +159,7 @@ async function listFormulas({ keyword = '', status = '', page = 1, pageSize = 20
     };
 }
 
-async function getFormulaDetail(formulaKey: string) {
+export async function getFormulaDetail(formulaKey: string) {
     const definition = await FormulaRepository.findDefinitionByKey(formulaKey);
     if (!definition) return null;
 
@@ -192,7 +179,7 @@ async function getFormulaDetail(formulaKey: string) {
     };
 }
 
-async function createFormula({
+export async function createFormula({
     displayName,
     bom,
     changeNote,
@@ -207,7 +194,7 @@ async function createFormula({
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-            return await FormulaRepository.withTransaction(async (transaction: unknown) => {
+            return await FormulaRepository.withTransaction(async (transaction: Transaction | undefined) => {
                 const generatedFormulaKey = await generateNextFormulaKey(transaction);
                 const targetFormulaKey = String(generatedFormulaKey || '').trim();
                 const targetDisplayName = String(displayName || '').trim();
@@ -223,7 +210,7 @@ async function createFormula({
                     if (bomValidation.errors.length > 0) {
                         return { ok: false, status: 422, errors: bomValidation.errors };
                     }
-                    normalizedBom = bomValidation.bom;
+                    normalizedBom = bomValidation.bom as any;
                 }
 
                 const exists = await FormulaRepository.findDefinitionByKey(targetFormulaKey, transaction);
@@ -280,7 +267,7 @@ async function createFormula({
     return { ok: false, status: 409, errors: [{ field: 'formulaKey', message: '系统编码冲突，请重试' }] };
 }
 
-async function updateDraft(
+export async function updateDraft(
     formulaKey: string,
     {
         revision,
@@ -297,7 +284,7 @@ async function updateDraft(
         operator?: string;
     }
 ): Promise<FormulaWorkflowResult> {
-    return FormulaRepository.withTransaction(async (transaction: unknown) => {
+    return FormulaRepository.withTransaction(async (transaction: Transaction | undefined) => {
         const definition = await FormulaRepository.findDefinitionByKey(formulaKey, transaction);
         if (!definition) {
             return { ok: false, status: 404, errors: [{ field: 'formulaKey', message: '配方不存在' }] };
@@ -331,7 +318,7 @@ async function updateDraft(
         if (bomValidation.errors.length > 0) {
             return { ok: false, status: 422, errors: bomValidation.errors };
         }
-        normalizedBom = bomValidation.bom;
+        normalizedBom = bomValidation.bom as any;
 
         const nextRevisionNumber = latest.revision + 1;
         const nextRevision = await FormulaRepository.createRevision({
@@ -365,8 +352,8 @@ async function updateDraft(
     });
 }
 
-async function publish(formulaKey: string, { fromRevision, changeNote, operator }: { fromRevision: number; changeNote?: string; operator?: string }): Promise<FormulaWorkflowResult> {
-    return FormulaRepository.withTransaction(async (transaction: unknown) => {
+export async function publish(formulaKey: string, { fromRevision, changeNote, operator }: { fromRevision: number; changeNote?: string; operator?: string }): Promise<FormulaWorkflowResult> {
+    return FormulaRepository.withTransaction(async (transaction: Transaction | undefined) => {
         const definition = await FormulaRepository.findDefinitionByKey(formulaKey, transaction);
         if (!definition) {
             return { ok: false, status: 404, errors: [{ field: 'formulaKey', message: '配方不存在' }] };
@@ -390,7 +377,7 @@ async function publish(formulaKey: string, { fromRevision, changeNote, operator 
         if (bomValidation.errors.length > 0) {
             return { ok: false, status: 422, errors: bomValidation.errors };
         }
-        const resolvedBom = bomValidation.bom;
+        const resolvedBom = bomValidation.bom as any;
 
         const latest = await FormulaRepository.findLatestRevision(definition.id, transaction);
         const nextRevisionNumber = (latest?.revision || 0) + 1;
@@ -427,8 +414,8 @@ async function publish(formulaKey: string, { fromRevision, changeNote, operator 
     });
 }
 
-async function archive(formulaKey: string, { reason, operator }: { reason?: string; operator?: string }): Promise<FormulaWorkflowResult> {
-    return FormulaRepository.withTransaction(async (transaction: unknown) => {
+export async function archive(formulaKey: string, { reason, operator }: { reason?: string; operator?: string }): Promise<FormulaWorkflowResult> {
+    return FormulaRepository.withTransaction(async (transaction: Transaction | undefined) => {
         const definition = await FormulaRepository.findDefinitionByKey(formulaKey, transaction);
         if (!definition) {
             return { ok: false, status: 404, errors: [{ field: 'formulaKey', message: '配方不存在' }] };
@@ -451,8 +438,8 @@ async function archive(formulaKey: string, { reason, operator }: { reason?: stri
     });
 }
 
-async function rollback(formulaKey: string, { targetRevision, reason, operator }: { targetRevision: number; reason?: string; operator?: string }): Promise<FormulaWorkflowResult> {
-    return FormulaRepository.withTransaction(async (transaction: unknown) => {
+export async function rollback(formulaKey: string, { targetRevision, reason, operator }: { targetRevision: number; reason?: string; operator?: string }): Promise<FormulaWorkflowResult> {
+    return FormulaRepository.withTransaction(async (transaction: Transaction | undefined) => {
         const definition = await FormulaRepository.findDefinitionByKey(formulaKey, transaction);
         if (!definition) {
             return { ok: false, status: 404, errors: [{ field: 'formulaKey', message: '配方不存在' }] };
@@ -493,8 +480,8 @@ async function rollback(formulaKey: string, { targetRevision, reason, operator }
     });
 }
 
-async function remove(formulaKey: string): Promise<FormulaWorkflowResult> {
-    return FormulaRepository.withTransaction(async (transaction: unknown) => {
+export async function remove(formulaKey: string): Promise<FormulaWorkflowResult> {
+    return FormulaRepository.withTransaction(async (transaction: Transaction | undefined) => {
         const definition = await FormulaRepository.findDefinitionByKey(formulaKey, transaction);
         if (!definition) {
             return { ok: false, status: 404, errors: [{ field: 'formulaKey', message: '配方不存在' }] };
@@ -508,7 +495,7 @@ async function remove(formulaKey: string): Promise<FormulaWorkflowResult> {
     });
 }
 
-async function listRevisions(formulaKey: string) {
+export async function listRevisions(formulaKey: string) {
     const definition = await FormulaRepository.findDefinitionByKey(formulaKey);
     if (!definition) return null;
 
@@ -516,7 +503,7 @@ async function listRevisions(formulaKey: string) {
     return revisions.map(toRevisionMeta);
 }
 
-async function getPublishedFormulasMap() {
+export async function getPublishedFormulasMap() {
     const definitions = await FormulaRepository.listDefinitionsByStatuses(['published']) as FormulaDefinitionAttributes[];
     if (!definitions.length) return {};
 
@@ -532,17 +519,3 @@ async function getPublishedFormulasMap() {
     return toPublishedMap(definitions, latestPublishedByFormulaId, parsePayload);
 }
 
-module.exports = {
-    operatorFromRequest,
-    toRevisionMeta,
-    listFormulas,
-    getFormulaDetail,
-    createFormula,
-    updateDraft,
-    publish,
-    archive,
-    rollback,
-    remove,
-    listRevisions,
-    getPublishedFormulasMap
-};

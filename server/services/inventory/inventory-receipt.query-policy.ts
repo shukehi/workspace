@@ -1,10 +1,8 @@
-export {};
-
-const { Op } = require('sequelize');
+import { Op } from 'sequelize';
 
 type QueryInput = Record<string, unknown>;
 
-function buildInventoryReceiptListQuery(query: QueryInput = {}) {
+export function buildInventoryReceiptListQuery(query: QueryInput = {}) {
   const where: Record<string | symbol, unknown> = {};
 
   if (query.orderId) where.order_id = Number(query.orderId);
@@ -38,6 +36,3 @@ function buildInventoryReceiptListQuery(query: QueryInput = {}) {
   };
 }
 
-module.exports = {
-  buildInventoryReceiptListQuery,
-};

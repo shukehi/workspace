@@ -1,8 +1,7 @@
 import AppError from './AppError';
 import ERROR_CODES from './errorCodes';
 import { errorResolverRegistry } from './errorResolverRegistry';
-
-type PlainRecord = Record<string, any>;
+import type { PlainRecord } from '../../shared/types';
 
 // 标记是否已经初始化过领域处理器，防止在 normalizeError 内部产生循环引用
 let isInitialized = false;
@@ -98,5 +97,4 @@ export function normalizeError(error: unknown): AppError {
     });
 }
 
-module.exports = normalizeError;
 export default normalizeError;

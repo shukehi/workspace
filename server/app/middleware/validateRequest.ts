@@ -65,6 +65,3 @@ export function validateRequest(validators: ValidatorsMap = {}) {
         return next();
     };
 }
-
-module.exports = validateRequest;
-export default validateRequest;

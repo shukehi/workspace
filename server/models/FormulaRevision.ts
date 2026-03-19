@@ -5,8 +5,8 @@ import type {
     FormulaRevisionCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const FormulaRevision: ModelDefined<FormulaRevisionAttributes, FormulaRevisionCreationAttributes> = sequelize.define('FormulaRevision', {
     id: {
@@ -53,4 +53,4 @@ const FormulaRevision: ModelDefined<FormulaRevisionAttributes, FormulaRevisionCr
     ]
 });
 
-module.exports = FormulaRevision;
+export default FormulaRevision;

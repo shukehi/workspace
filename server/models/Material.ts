@@ -5,8 +5,8 @@ import type {
     MaterialCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const Material: ModelDefined<MaterialAttributes, MaterialCreationAttributes> = sequelize.define('Material', {
     id: {
@@ -64,4 +64,4 @@ const Material: ModelDefined<MaterialAttributes, MaterialCreationAttributes> = s
     timestamps: true
 });
 
-module.exports = Material;
+export default Material;

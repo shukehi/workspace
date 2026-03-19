@@ -25,4 +25,3 @@ export function initErrorSystem() {
 }
 
 // 兼容 CommonJS
-module.exports = { initErrorSystem };

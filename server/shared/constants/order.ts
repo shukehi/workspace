@@ -1,4 +1,4 @@
-const ORDER_STATUSES = [
+export const ORDER_STATUSES = [
     'draft',
     'submitted',
     'processing',
@@ -7,16 +7,13 @@ const ORDER_STATUSES = [
     'cancelled',
 ] as const;
 
-type OrderStatus = typeof ORDER_STATUSES[number];
+export type OrderStatus = typeof ORDER_STATUSES[number];
 
-const ORDER_PENDING_STATUSES: readonly OrderStatus[] = [
+export const ORDER_PENDING_STATUSES: readonly OrderStatus[] = [
     'draft',
     'submitted',
     'processing',
     'arrived',
 ];
 
-module.exports = {
-    ORDER_STATUSES,
-    ORDER_PENDING_STATUSES,
-};
+// 兼容 CommonJS 消费方

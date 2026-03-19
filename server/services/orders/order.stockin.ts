@@ -1,6 +1,4 @@
-export {};
-
-type PlainRecord = Record<string, any>;
+import type { PlainRecord } from '../../shared/types';
 
 type StockInDeps = {
     inventoryReceiptService: {
@@ -11,7 +9,7 @@ type StockInDeps = {
     ReceivedQuantityExceededError: new (itemId: number, orderedQuantity: number, nextReceived: number) => Error;
 };
 
-function assertOrderReadyForStockIn(
+export function assertOrderReadyForStockIn(
     order: PlainRecord | null | undefined,
     normalizeStatus: (status: unknown, fallback?: string) => string,
     InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error,
@@ -22,7 +20,7 @@ function assertOrderReadyForStockIn(
     }
 }
 
-async function createReceiptItemsFromOrder(
+export async function createReceiptItemsFromOrder(
     order: PlainRecord,
     data: PlainRecord,
     transaction: unknown,
@@ -41,7 +39,7 @@ async function createReceiptItemsFromOrder(
     }
 }
 
-async function syncStockInReceiptItems(
+export async function syncStockInReceiptItems(
     order: PlainRecord,
     receiptItems: PlainRecord[],
     transaction: unknown,
@@ -67,7 +65,7 @@ async function syncStockInReceiptItems(
     return updatesByOrderItemId;
 }
 
-function areAllOrderItemsReceived(
+export function areAllOrderItemsReceived(
     orderItems: PlainRecord[] | null | undefined,
     updatesByOrderItemId: Map<number, PlainRecord>,
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number,
@@ -80,7 +78,7 @@ function areAllOrderItemsReceived(
     });
 }
 
-function buildStockInOrderUpdate(
+export function buildStockInOrderUpdate(
     order: PlainRecord,
     data: PlainRecord,
     allReceived: boolean,
@@ -100,10 +98,3 @@ function buildStockInOrderUpdate(
     };
 }
 
-module.exports = {
-    assertOrderReadyForStockIn,
-    createReceiptItemsFromOrder,
-    syncStockInReceiptItems,
-    areAllOrderItemsReceived,
-    buildStockInOrderUpdate,
-};

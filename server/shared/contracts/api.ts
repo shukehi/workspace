@@ -1,4 +1,4 @@
-const API_ERROR_CODES = {
+export const API_ERROR_CODES = {
     DUPLICATE_ORDER: 'DUPLICATE_ORDER',
     INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',
     ORDER_EDIT_LOCKED: 'ORDER_EDIT_LOCKED',
@@ -18,9 +18,9 @@ const API_ERROR_CODES = {
     ERP_PROXY_FAILED: 'ERP_PROXY_FAILED',
 } as const;
 
-type ApiErrorCode = typeof API_ERROR_CODES[keyof typeof API_ERROR_CODES];
+export type ApiErrorCode = typeof API_ERROR_CODES[keyof typeof API_ERROR_CODES];
 
-interface ApiSuccessResponse<T> {
+export interface ApiSuccessResponse<T> {
     success: true;
     data: T;
     message?: string;
@@ -28,11 +28,11 @@ interface ApiSuccessResponse<T> {
 
 type ApiErrorExtras = Record<string, unknown>;
 
-interface ApiErrorResponse extends ApiErrorExtras {
+export interface ApiErrorResponse extends ApiErrorExtras {
     error: ApiErrorCode;
 }
 
-function createApiSuccessResponse<T>(data: T, message?: string): ApiSuccessResponse<T> {
+export function createApiSuccessResponse<T>(data: T, message?: string): ApiSuccessResponse<T> {
     return {
         success: true,
         data,
@@ -40,15 +40,11 @@ function createApiSuccessResponse<T>(data: T, message?: string): ApiSuccessRespo
     };
 }
 
-function createApiErrorResponse(code: ApiErrorCode, extras: ApiErrorExtras = {}): ApiErrorResponse {
+export function createApiErrorResponse(code: ApiErrorCode, extras: ApiErrorExtras = {}): ApiErrorResponse {
     return {
         error: code,
         ...extras,
     };
 }
 
-module.exports = {
-    API_ERROR_CODES,
-    createApiSuccessResponse,
-    createApiErrorResponse,
-};
+// 兼容 CommonJS 消费方

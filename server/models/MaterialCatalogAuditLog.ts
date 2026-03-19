@@ -4,8 +4,8 @@ import type {
     MaterialCatalogAuditLogCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const MaterialCatalogAuditLog: ModelDefined<MaterialCatalogAuditLogAttributes, MaterialCatalogAuditLogCreationAttributes> = sequelize.define('MaterialCatalogAuditLog', {
     id: {
@@ -45,4 +45,4 @@ const MaterialCatalogAuditLog: ModelDefined<MaterialCatalogAuditLogAttributes, M
     updatedAt: false
 });
 
-module.exports = MaterialCatalogAuditLog;
+export default MaterialCatalogAuditLog;

@@ -1,12 +1,10 @@
-export {};
-
 type ReceiptLike = Record<string, any>;
 
 interface ReceiptError extends Error {
   code?: string;
 }
 
-function normalizeReceiptDate(value: unknown): string {
+export function normalizeReceiptDate(value: unknown): string {
   if (!value) return new Date().toISOString();
   const parsed = new Date(value as string | number | Date);
   if (Number.isNaN(parsed.getTime())) {
@@ -17,7 +15,7 @@ function normalizeReceiptDate(value: unknown): string {
   return parsed.toISOString();
 }
 
-function normalizeReceiptQuantity(value: unknown): number {
+export function normalizeReceiptQuantity(value: unknown): number {
   const quantity = Number(value);
   if (!Number.isFinite(quantity) || quantity <= 0) {
     const error: ReceiptError = new Error('INVALID_RECEIPT_QUANTITY');
@@ -27,12 +25,12 @@ function normalizeReceiptQuantity(value: unknown): number {
   return quantity;
 }
 
-function normalizeReverseQuantity(value: unknown): number | null {
+export function normalizeReverseQuantity(value: unknown): number | null {
   if (value === undefined || value === null || value === '') return null;
   return normalizeReceiptQuantity(value);
 }
 
-function resolveOrderedQuantity(rawOrderedQuantity: unknown, rawQuantity: unknown): number {
+export function resolveOrderedQuantity(rawOrderedQuantity: unknown, rawQuantity: unknown): number {
   const orderedQuantity = Number(rawOrderedQuantity);
   if (Number.isFinite(orderedQuantity) && orderedQuantity > 0) {
     return orderedQuantity;
@@ -44,7 +42,7 @@ function resolveOrderedQuantity(rawOrderedQuantity: unknown, rawQuantity: unknow
   return 0;
 }
 
-function resolveMaterialLookupCandidates(rawMaterialId: unknown): { code: string; numericId: number | null } {
+export function resolveMaterialLookupCandidates(rawMaterialId: unknown): { code: string; numericId: number | null } {
   const normalized = String(rawMaterialId || '').trim();
   if (!normalized) return { code: '', numericId: null };
   const numericId = Number(normalized);
@@ -54,7 +52,7 @@ function resolveMaterialLookupCandidates(rawMaterialId: unknown): { code: string
   };
 }
 
-function toPlainReceipt(receipt: any): ReceiptLike {
+export function toPlainReceipt(receipt: any): ReceiptLike {
   const plain: ReceiptLike = typeof receipt.get === 'function' ? receipt.get({ plain: true }) : { ...receipt };
   return {
     ...plain,
@@ -65,7 +63,7 @@ function toPlainReceipt(receipt: any): ReceiptLike {
   };
 }
 
-function computeReversalStats(receipt: ReceiptLike, reversalReceipts: ReceiptLike[]) {
+export function computeReversalStats(receipt: ReceiptLike, reversalReceipts: ReceiptLike[]) {
   const originalQuantity = Math.max(Number(receipt.quantity || 0), 0);
   const reversedQuantity = reversalReceipts.reduce(
     (sum, reversal) => sum + Math.abs(Number(reversal.quantity || 0)),
@@ -78,12 +76,3 @@ function computeReversalStats(receipt: ReceiptLike, reversalReceipts: ReceiptLik
   };
 }
 
-module.exports = {
-  normalizeReceiptDate,
-  normalizeReceiptQuantity,
-  normalizeReverseQuantity,
-  resolveOrderedQuantity,
-  resolveMaterialLookupCandidates,
-  toPlainReceipt,
-  computeReversalStats,
-};

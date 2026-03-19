@@ -4,12 +4,9 @@ import type {
     MappingProfileCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const {
-    PROFILE_CODE_LIST,
-    PROFILE_STATUSES
-} = require('../services/mappings/mapping.constants');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
+import { PROFILE_CODE_LIST, PROFILE_STATUSES } from '../services/mappings/mapping.constants';
 
 const MappingProfile: ModelDefined<MappingProfileAttributes, MappingProfileCreationAttributes> = sequelize.define('MappingProfile', {
     id: {
@@ -45,4 +42,4 @@ const MappingProfile: ModelDefined<MappingProfileAttributes, MappingProfileCreat
     updatedAt: 'updated_at'
 });
 
-module.exports = MappingProfile;
+export default MappingProfile;

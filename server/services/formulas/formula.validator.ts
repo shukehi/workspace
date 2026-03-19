@@ -1,5 +1,3 @@
-export {};
-
 type BomUsage = {
     single: number;
     double: number;
@@ -25,9 +23,9 @@ type ValidationError = {
     message: string;
 };
 
-const VALID_BOM_CATEGORIES = new Set(['转印纸', '油漆', '塑粉']);
+export const VALID_BOM_CATEGORIES = new Set(['转印纸', '油漆', '塑粉']);
 
-function normalizeBom(input: unknown): BomRow[] {
+export function normalizeBom(input: unknown): BomRow[] {
     if (!Array.isArray(input)) return [];
     return input.map((item: any) => ({
         materialId: String(item?.materialId || '').trim(),
@@ -42,7 +40,7 @@ function normalizeBom(input: unknown): BomRow[] {
     }));
 }
 
-function filterMeaningfulBomRows(bom: unknown): BomRow[] {
+export function filterMeaningfulBomRows(bom: unknown): BomRow[] {
     return normalizeBom(bom).filter((row) => {
         const hasUsage = Number(row?.usage?.single || 0) > 0
             || Number(row?.usage?.double || 0) > 0
@@ -51,7 +49,7 @@ function filterMeaningfulBomRows(bom: unknown): BomRow[] {
     });
 }
 
-function parsePayload(payloadText: unknown): FormulaPayload {
+export function parsePayload(payloadText: unknown): FormulaPayload {
     try {
         const parsed = JSON.parse(String(payloadText || '{}'));
         return {
@@ -64,7 +62,7 @@ function parsePayload(payloadText: unknown): FormulaPayload {
     }
 }
 
-function serializePayload({ formulaKey, displayName, bom }: Partial<FormulaPayload>): string {
+export function serializePayload({ formulaKey, displayName, bom }: Partial<FormulaPayload>): string {
     return JSON.stringify({
         formulaKey: String(formulaKey || '').trim(),
         displayName: String(displayName || '').trim(),
@@ -72,7 +70,7 @@ function serializePayload({ formulaKey, displayName, bom }: Partial<FormulaPaylo
     });
 }
 
-function validateBaseFields({ formulaKey, displayName }: Partial<FormulaPayload>): ValidationError[] {
+export function validateBaseFields({ formulaKey, displayName }: Partial<FormulaPayload>): ValidationError[] {
     const errors: ValidationError[] = [];
     if (!String(formulaKey || '').trim()) {
         errors.push({ field: 'formulaKey', message: '配方编码不能为空' });
@@ -83,7 +81,7 @@ function validateBaseFields({ formulaKey, displayName }: Partial<FormulaPayload>
     return errors;
 }
 
-function validateBomRows({
+export function validateBomRows({
     bom,
     allowEmptyBom = false,
     materialCodeSet = null
@@ -144,12 +142,3 @@ function validateBomRows({
     return errors;
 }
 
-module.exports = {
-    VALID_BOM_CATEGORIES,
-    normalizeBom,
-    filterMeaningfulBomRows,
-    parsePayload,
-    serializePayload,
-    validateBaseFields,
-    validateBomRows
-};
