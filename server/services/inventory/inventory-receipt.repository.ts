@@ -1,4 +1,5 @@
 import type {
+    InventoryReceiptAttributes,
     InventoryReceiptCreationAttributes,
 } from '../../models/types';
 import type {
@@ -8,15 +9,16 @@ import type {
 } from '../../models';
 
 import type { Transaction } from 'sequelize';
+import type { WhereOptions } from 'sequelize';
 import { InventoryReceipt, Material, Order, OrderItem } from '../../models';
 import { createReceiptError } from './inventory-receipt.errors';
 import { resolveMaterialLookupCandidates } from './inventory-receipt.mapper';
 
 type LooseTransaction = Transaction | null | undefined;
-type LooseWhere = Record<string, unknown>;
+type ReceiptWhere = WhereOptions<InventoryReceiptAttributes>;
 
 interface ReceiptListQuery {
-    where: LooseWhere;
+    where: ReceiptWhere;
     offset: number;
     pageSize: number;
 }
