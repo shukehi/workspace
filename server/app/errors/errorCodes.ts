@@ -17,5 +17,4 @@ export const ERROR_CODES = {
     ORDER_NOT_FOUND: 'ORDER_NOT_FOUND',
 } as const;
 
-module.exports = ERROR_CODES;
 export default ERROR_CODES;

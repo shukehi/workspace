@@ -9,14 +9,10 @@ import type {
     MaterialCatalogRevisionState,
 } from '../../models/types';
 
-const fs = require('fs');
-const sequelize = require('../../config/database');
-const {
-    MaterialCatalogProfile,
-    MaterialCatalogRevision,
-    MaterialCatalogAuditLog
-} = require('../../models');
-const { CONFIG_FILES } = require('../../config/paths');
+import fs from 'fs';
+import sequelize from '../../config/database';
+import { MaterialCatalogProfile, MaterialCatalogRevision, MaterialCatalogAuditLog } from '../../models';
+import { CONFIG_FILES } from '../../config/paths';
 
 function txOpts(transaction?: Transaction) {
     return transaction ? { transaction } : {};
@@ -30,7 +26,7 @@ class MaterialCatalogRepository {
     static async findProfileByCode(
         profileCode = 'materials',
         transaction?: Transaction,
-    ): Promise<MaterialCatalogProfileAttributes | null> {
+    ): Promise<any> {
         return MaterialCatalogProfile.findOne({
             where: { profile_code: profileCode },
             ...txOpts(transaction)
@@ -40,7 +36,7 @@ class MaterialCatalogRepository {
     static async createProfile(
         payload: MaterialCatalogProfileCreationAttributes,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogProfileAttributes> {
+    ): Promise<any> {
         return MaterialCatalogProfile.create(payload, txOpts(transaction));
     }
 
@@ -58,7 +54,7 @@ class MaterialCatalogRepository {
     static async findLatestRevision(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogRevisionAttributes | null> {
+    ): Promise<any> {
         return MaterialCatalogRevision.findOne({
             where: { profile_id: profileId },
             order: [['revision', 'DESC']],
@@ -69,7 +65,7 @@ class MaterialCatalogRepository {
     static async findDraftRevision(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogRevisionAttributes | null> {
+    ): Promise<any> {
         return MaterialCatalogRevision.findOne({
             where: { profile_id: profileId, state: 'draft' },
             order: [['revision', 'DESC']],
@@ -80,7 +76,7 @@ class MaterialCatalogRepository {
     static async findPublishedRevision(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogRevisionAttributes | null> {
+    ): Promise<any> {
         return MaterialCatalogRevision.findOne({
             where: { profile_id: profileId, state: 'published' },
             order: [['revision', 'DESC']],
@@ -92,7 +88,7 @@ class MaterialCatalogRepository {
         profileId: number,
         revision: number | string,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogRevisionAttributes | null> {
+    ): Promise<any> {
         return MaterialCatalogRevision.findOne({
             where: { profile_id: profileId, revision: Number(revision) },
             ...txOpts(transaction)
@@ -102,7 +98,7 @@ class MaterialCatalogRepository {
     static async listRevisions(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogRevisionAttributes[]> {
+    ): Promise<any[]> {
         return MaterialCatalogRevision.findAll({
             where: { profile_id: profileId },
             order: [['revision', 'DESC']],
@@ -113,7 +109,7 @@ class MaterialCatalogRepository {
     static async createRevision(
         payload: MaterialCatalogRevisionCreationAttributes,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogRevisionAttributes> {
+    ): Promise<any> {
         return MaterialCatalogRevision.create(payload, txOpts(transaction));
     }
 
@@ -134,14 +130,14 @@ class MaterialCatalogRepository {
     static async createAuditLog(
         payload: MaterialCatalogAuditLogCreationAttributes,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogAuditLogAttributes> {
+    ): Promise<any> {
         return MaterialCatalogAuditLog.create(payload, txOpts(transaction));
     }
 
     static async listAuditLogs(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MaterialCatalogAuditLogAttributes[]> {
+    ): Promise<any[]> {
         return MaterialCatalogAuditLog.findAll({
             where: { profile_id: profileId },
             order: [['id', 'DESC']],
@@ -165,4 +161,4 @@ class MaterialCatalogRepository {
     }
 }
 
-module.exports = MaterialCatalogRepository;
+export default MaterialCatalogRepository;

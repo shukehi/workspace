@@ -10,7 +10,7 @@ test('material management page state loads list, opens dialogs, and saves update
   try {
     const state = scope.run(() => useMaterialManagementPageState({
       api: {
-        async get(_url: string, options?: any) {
+        async get(_url: string, options?: any): Promise<any> {
           calls.push(`get:${options?.params?.q ?? ''}`);
           return [
             {

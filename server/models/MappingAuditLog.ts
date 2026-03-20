@@ -4,8 +4,8 @@ import type {
     MappingAuditLogCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const MappingAuditLog: ModelDefined<MappingAuditLogAttributes, MappingAuditLogCreationAttributes> = sequelize.define('MappingAuditLog', {
     id: {
@@ -45,4 +45,4 @@ const MappingAuditLog: ModelDefined<MappingAuditLogAttributes, MappingAuditLogCr
     updatedAt: false
 });
 
-module.exports = MappingAuditLog;
+export default MappingAuditLog;

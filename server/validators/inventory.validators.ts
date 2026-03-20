@@ -1,5 +1,3 @@
-export {};
-
 interface ValidationIssue {
     target: string;
     field: string;
@@ -8,15 +6,15 @@ interface ValidationIssue {
 
 type UnknownRecord = Record<string, unknown>;
 
-function createIssue(target: string, field: string, message: string): ValidationIssue {
+export function createIssue(target: string, field: string, message: string): ValidationIssue {
     return { target, field, message };
 }
 
-function isPlainObject(value: unknown): value is UnknownRecord {
+export function isPlainObject(value: unknown): value is UnknownRecord {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function validateInventoryIdParams(params?: UnknownRecord): ValidationIssue[] {
+export function validateInventoryIdParams(params?: UnknownRecord): ValidationIssue[] {
     const id = Number(params?.id);
     if (!Number.isInteger(id) || id <= 0) {
         return [createIssue('params', 'id', '库存物料 id 必须为正整数')];
@@ -24,7 +22,7 @@ function validateInventoryIdParams(params?: UnknownRecord): ValidationIssue[] {
     return [];
 }
 
-function validateInventoryUpdateBody(body: unknown): ValidationIssue[] {
+export function validateInventoryUpdateBody(body: unknown): ValidationIssue[] {
     if (!isPlainObject(body)) {
         return [createIssue('body', 'body', '请求体必须为对象')];
     }
@@ -42,7 +40,3 @@ function validateInventoryUpdateBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
-module.exports = {
-    validateInventoryIdParams,
-    validateInventoryUpdateBody,
-};

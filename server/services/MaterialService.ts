@@ -90,5 +90,4 @@ export class MaterialService {
 }
 
 const materialService = new MaterialService();
-module.exports = materialService;
 export default materialService;

@@ -3,11 +3,12 @@ import { refDebounced } from '@vueuse/core';
 import type {
   LocationQueryRaw,
   RouteLocationNormalizedLoaded,
-  Router,
 } from 'vue-router';
 
 type RouteLike = Pick<RouteLocationNormalizedLoaded, 'query'>;
-type RouterLike = Pick<Router, 'replace'>;
+interface RouterLike {
+  replace(to: { query: Record<string, unknown> }): Promise<unknown>;
+}
 type ReceiptDirectionFilter = 'ALL' | 'in' | 'reversal';
 
 type InventoryReceiptRouteStateOptions = {

@@ -8,5 +8,4 @@ export {
 };
 
 // 兼容现有 CommonJS 引用
-module.exports = orderService;
 export default orderService;

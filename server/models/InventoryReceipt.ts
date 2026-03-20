@@ -5,8 +5,8 @@ import type {
     InventoryReceiptCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const InventoryReceipt: ModelDefined<InventoryReceiptAttributes, InventoryReceiptCreationAttributes> = sequelize.define('InventoryReceipt', {
     id: {
@@ -80,4 +80,4 @@ const InventoryReceipt: ModelDefined<InventoryReceiptAttributes, InventoryReceip
     updatedAt: 'updated_at'
 });
 
-module.exports = InventoryReceipt;
+export default InventoryReceipt;

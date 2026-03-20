@@ -4,12 +4,9 @@ import type {
     MappingUnmatchedEventCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const {
-    PROFILE_CODE_LIST,
-    UNMATCHED_EVENT_STATUSES
-} = require('../services/mappings/mapping.constants');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
+import { PROFILE_CODE_LIST, UNMATCHED_EVENT_STATUSES } from '../services/mappings/mapping.constants';
 
 const MappingUnmatchedEvent: ModelDefined<MappingUnmatchedEventAttributes, MappingUnmatchedEventCreationAttributes> = sequelize.define('MappingUnmatchedEvent', {
     id: {
@@ -62,4 +59,4 @@ const MappingUnmatchedEvent: ModelDefined<MappingUnmatchedEventAttributes, Mappi
     ]
 });
 
-module.exports = MappingUnmatchedEvent;
+export default MappingUnmatchedEvent;

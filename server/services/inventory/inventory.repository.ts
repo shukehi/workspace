@@ -1,18 +1,14 @@
 import type { MaterialAttributes } from '../../models/types';
 
-const { Material } = require('../../models');
+import { Material } from '../../models';
 
-async function listMaterials(): Promise<MaterialAttributes[]> {
+export async function listMaterials(): Promise<any[]> {
     return await Material.findAll({
         order: [['updatedAt', 'DESC']],
     });
 }
 
-async function findMaterialById(id: number | string): Promise<MaterialAttributes | null> {
+export async function findMaterialById(id: number | string): Promise<any> {
     return await Material.findByPk(id);
 }
 
-module.exports = {
-    listMaterials,
-    findMaterialById,
-};

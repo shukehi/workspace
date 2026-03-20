@@ -1,4 +1,4 @@
-import type { Transaction } from 'sequelize';
+import type { Transaction, FindOptions } from 'sequelize';
 import type {
     MappingAuditLogAttributes,
     MappingAuditLogCreationAttributes,
@@ -9,14 +9,10 @@ import type {
     MappingRevisionState,
 } from '../../models/types';
 
-const { Op } = require('sequelize');
-const sequelize = require('../../config/database');
-const {
-    MappingProfile,
-    MappingRevision,
-    MappingAuditLog
-} = require('../../models');
-const { REVISION_STATES } = require('./mapping.constants');
+import { Op } from 'sequelize';
+import sequelize from '../../config/database';
+import { MappingProfile, MappingRevision, MappingAuditLog } from '../../models';
+import { REVISION_STATES } from './mapping.constants';
 
 function txOpts(transaction?: Transaction) {
     return transaction ? { transaction } : {};
@@ -36,7 +32,7 @@ class MappingRepository {
     static async findProfileByCode(
         profileCode: string,
         transaction?: Transaction,
-    ): Promise<MappingProfileAttributes | null> {
+    ): Promise<any> {
         return MappingProfile.findOne({
             where: { profile_code: profileCode },
             ...txOpts(transaction)
@@ -46,21 +42,15 @@ class MappingRepository {
     static async createProfile(
         payload: MappingProfileCreationAttributes,
         transaction?: Transaction,
-    ): Promise<MappingProfileAttributes> {
+    ): Promise<any> {
         return MappingProfile.create(payload, txOpts(transaction));
     }
 
     static async listProfiles(
         { where = {}, limit, offset }: ProfileListQuery = {},
         transaction?: Transaction,
-    ): Promise<MappingProfileAttributes[]> {
-        const query: {
-            where: Record<string, unknown>;
-            order: string[][];
-            transaction?: Transaction;
-            limit?: number;
-            offset?: number;
-        } = {
+    ): Promise<any[]> {
+        const query: FindOptions<MappingProfileAttributes> = {
             where,
             order: [['profile_code', 'ASC']],
             ...txOpts(transaction)
@@ -73,7 +63,7 @@ class MappingRepository {
     static async listRevisionsByProfileId(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MappingRevisionAttributes[]> {
+    ): Promise<any[]> {
         return MappingRevision.findAll({
             where: { profile_id: profileId },
             order: [['revision', 'DESC']],
@@ -85,7 +75,7 @@ class MappingRepository {
         profileId: number,
         revision: number | string,
         transaction?: Transaction,
-    ): Promise<MappingRevisionAttributes | null> {
+    ): Promise<any> {
         return MappingRevision.findOne({
             where: {
                 profile_id: profileId,
@@ -98,7 +88,7 @@ class MappingRepository {
     static async findLatestRevisionByProfileId(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MappingRevisionAttributes | null> {
+    ): Promise<any> {
         return MappingRevision.findOne({
             where: { profile_id: profileId },
             order: [['revision', 'DESC']],
@@ -109,7 +99,7 @@ class MappingRepository {
     static async findDraftRevisionByProfileId(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MappingRevisionAttributes | null> {
+    ): Promise<any> {
         return MappingRevision.findOne({
             where: {
                 profile_id: profileId,
@@ -123,7 +113,7 @@ class MappingRepository {
     static async findPublishedRevisionByProfileId(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MappingRevisionAttributes | null> {
+    ): Promise<any> {
         return MappingRevision.findOne({
             where: {
                 profile_id: profileId,
@@ -137,7 +127,7 @@ class MappingRepository {
     static async createRevision(
         payload: MappingRevisionCreationAttributes,
         transaction?: Transaction,
-    ): Promise<MappingRevisionAttributes> {
+    ): Promise<any> {
         return MappingRevision.create(payload, txOpts(transaction));
     }
 
@@ -183,14 +173,14 @@ class MappingRepository {
     static async createAuditLog(
         payload: MappingAuditLogCreationAttributes,
         transaction?: Transaction,
-    ): Promise<MappingAuditLogAttributes> {
+    ): Promise<any> {
         return MappingAuditLog.create(payload, txOpts(transaction));
     }
 
     static async listAuditLogsByProfileId(
         profileId: number,
         transaction?: Transaction,
-    ): Promise<MappingAuditLogAttributes[]> {
+    ): Promise<any[]> {
         return MappingAuditLog.findAll({
             where: { profile_id: profileId },
             order: [['created_at', 'DESC'], ['id', 'DESC']],
@@ -201,7 +191,7 @@ class MappingRepository {
     static async listPublishedRevisionsByProfileIds(
         profileIds: number[],
         transaction?: Transaction,
-    ): Promise<MappingRevisionAttributes[]> {
+    ): Promise<any[]> {
         if (!profileIds.length) return [];
         return MappingRevision.findAll({
             where: {
@@ -214,4 +204,4 @@ class MappingRepository {
     }
 }
 
-module.exports = MappingRepository;
+export default MappingRepository;

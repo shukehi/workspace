@@ -1,8 +1,6 @@
-export {};
+import type { PlainRecord } from '../../shared/types';
 
-type PlainRecord = Record<string, any>;
-
-function toSummary(profile: PlainRecord) {
+export function toSummary(profile: PlainRecord) {
     return {
         id: profile.id,
         profileCode: profile.profile_code,
@@ -13,7 +11,7 @@ function toSummary(profile: PlainRecord) {
     };
 }
 
-function toRevisionMeta(revision: PlainRecord) {
+export function toRevisionMeta(revision: PlainRecord) {
     return {
         id: revision.id,
         revision: revision.revision,
@@ -25,7 +23,7 @@ function toRevisionMeta(revision: PlainRecord) {
     };
 }
 
-function toDetail(profile: PlainRecord, options: PlainRecord = {}) {
+export function toDetail(profile: PlainRecord, options: PlainRecord = {}) {
     const {
         latestRevision = null,
         draftRevision = null,
@@ -44,7 +42,7 @@ function toDetail(profile: PlainRecord, options: PlainRecord = {}) {
     };
 }
 
-function toAuditLog(log: PlainRecord) {
+export function toAuditLog(log: PlainRecord) {
     let meta: PlainRecord = {};
     try {
         meta = log.meta_json ? JSON.parse(log.meta_json) : {};
@@ -63,9 +61,3 @@ function toAuditLog(log: PlainRecord) {
     };
 }
 
-module.exports = {
-    toSummary,
-    toRevisionMeta,
-    toDetail,
-    toAuditLog
-};

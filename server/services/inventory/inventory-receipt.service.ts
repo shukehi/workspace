@@ -1,25 +1,23 @@
-export {};
-
-const { sequelize } = require('../../models');
-const repository = require('./inventory-receipt.repository');
-const {
+import type { Transaction } from 'sequelize';
+import { sequelize } from '../../models';
+import * as repository from './inventory-receipt.repository';
+import {
   normalizeReceiptDate,
   normalizeReverseQuantity,
   resolveOrderedQuantity,
   toPlainReceipt,
   computeReversalStats,
-} = require('./inventory-receipt.mapper');
-const {
+} from './inventory-receipt.mapper';
+import {
   createReceiptError,
   ReceiptReverseNotAllowedError,
   ReceiptAlreadyReversedError,
   ReceiptAlreadyFullyReversedError,
   ReverseQuantityExceededError,
-} = require('./inventory-receipt.errors');
-const { resolveReceiptOrderItems } = require('./inventory-receipt.policy');
-const { buildInventoryReceiptListQuery } = require('./inventory-receipt.query-policy');
-
-type PlainRecord = Record<string, any>;
+} from './inventory-receipt.errors';
+import { resolveReceiptOrderItems } from './inventory-receipt.policy';
+import { buildInventoryReceiptListQuery } from './inventory-receipt.query-policy';
+import type { PlainRecord } from '../../shared/types';
 
 class InventoryReceiptService {
   ReceiptReverseNotAllowedError?: typeof ReceiptReverseNotAllowedError;
@@ -27,7 +25,7 @@ class InventoryReceiptService {
   ReceiptAlreadyFullyReversedError?: typeof ReceiptAlreadyFullyReversedError;
   ReverseQuantityExceededError?: typeof ReverseQuantityExceededError;
 
-  async createFromOrder(order: PlainRecord, payload: PlainRecord = {}, transaction?: unknown) {
+  async createFromOrder(order: PlainRecord, payload: PlainRecord = {}, transaction?: Transaction | null) {
     const receiptDate = normalizeReceiptDate(payload.stocked_in_at || payload.receipt_date);
     const operator = payload.operator ? String(payload.operator).trim() : '';
     const remark = payload.remark ? String(payload.remark) : '';
@@ -38,9 +36,9 @@ class InventoryReceiptService {
 
     const created = [];
     for (const receiptItem of receiptItems) {
-      const item = receiptItem.orderItem;
+      const item = receiptItem!.orderItem;
       const material = await repository.findMaterialForItem(item, transaction);
-      const quantity = receiptItem.quantity;
+      const quantity = receiptItem!.quantity;
 
       await material.update({
         stock_quantity: Number(material.stock_quantity || 0) + quantity,
@@ -74,7 +72,7 @@ class InventoryReceiptService {
   async reverseReceipt(receiptId: number | string, payload: PlainRecord = {}) {
     const transaction = await sequelize.transaction();
     try {
-      const receipt = await repository.findReceiptById(receiptId, transaction);
+      const receipt = await repository.findReceiptById(Number(receiptId), transaction);
       if (!receipt) {
         throw createReceiptError('RECEIPT_NOT_FOUND');
       }
@@ -246,4 +244,4 @@ service.ReceiptAlreadyReversedError = ReceiptAlreadyReversedError;
 service.ReceiptAlreadyFullyReversedError = ReceiptAlreadyFullyReversedError;
 service.ReverseQuantityExceededError = ReverseQuantityExceededError;
 
-module.exports = service;
+export default service;

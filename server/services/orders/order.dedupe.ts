@@ -1,25 +1,22 @@
-export {};
+import crypto from 'crypto';
+import type { PlainRecord } from '../../shared/types';
 
-const crypto = require('crypto');
-
-type PlainRecord = Record<string, any>;
-
-function normalizeDedupeText(value: unknown): string {
+export function normalizeDedupeText(value: unknown): string {
     if (value === undefined || value === null) return '';
     return String(value).trim();
 }
 
-function normalizeDedupeNumber(value: unknown): number {
+export function normalizeDedupeNumber(value: unknown): number {
     const parsed = Number(value);
     if (Number.isNaN(parsed)) return 0;
     return Number(parsed.toFixed(4));
 }
 
-function resolveSourceContractCode(data: PlainRecord | null | undefined, fallback = ''): string {
+export function resolveSourceContractCode(data: PlainRecord | null | undefined, fallback = ''): string {
     return normalizeDedupeText(data?.source_contract_code || data?.metadata?.source_contract_code || fallback);
 }
 
-function normalizeMetadata(data: PlainRecord | null | undefined, fallback: PlainRecord = {}): PlainRecord {
+export function normalizeMetadata(data: PlainRecord | null | undefined, fallback: PlainRecord = {}): PlainRecord {
     const next = data && typeof data === 'object' ? { ...data } : { ...fallback };
     const sourceContractCode = resolveSourceContractCode({ source_contract_code: next.source_contract_code, metadata: next });
     if (sourceContractCode) {
@@ -30,7 +27,7 @@ function normalizeMetadata(data: PlainRecord | null | undefined, fallback: Plain
     return next;
 }
 
-function serializeItemFingerprint(item: PlainRecord | null | undefined): PlainRecord {
+export function serializeItemFingerprint(item: PlainRecord | null | undefined): PlainRecord {
     return {
         supplier: normalizeDedupeText(item?.supplier),
         internal_name: normalizeDedupeText(item?.internal_name),
@@ -47,7 +44,7 @@ function serializeItemFingerprint(item: PlainRecord | null | undefined): PlainRe
     };
 }
 
-function buildOrderDedupePayload(data: PlainRecord | null | undefined): PlainRecord {
+export function buildOrderDedupePayload(data: PlainRecord | null | undefined): PlainRecord {
     const sourceContractCode = resolveSourceContractCode(data);
     const category = normalizeDedupeText(data?.category);
     const supplier = normalizeDedupeText(data?.supplier);
@@ -63,7 +60,7 @@ function buildOrderDedupePayload(data: PlainRecord | null | undefined): PlainRec
     };
 }
 
-function buildOrderDedupeKey(data: PlainRecord | null | undefined): string {
+export function buildOrderDedupeKey(data: PlainRecord | null | undefined): string {
     const payload = buildOrderDedupePayload(data);
     if (!payload.sourceContractCode || !payload.category || !payload.supplier || payload.items.length === 0) {
         return '';
@@ -75,12 +72,3 @@ function buildOrderDedupeKey(data: PlainRecord | null | undefined): string {
         .digest('hex');
 }
 
-module.exports = {
-    normalizeDedupeText,
-    normalizeDedupeNumber,
-    resolveSourceContractCode,
-    normalizeMetadata,
-    serializeItemFingerprint,
-    buildOrderDedupePayload,
-    buildOrderDedupeKey,
-};

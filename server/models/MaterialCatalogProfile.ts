@@ -4,8 +4,8 @@ import type {
     MaterialCatalogProfileCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const MaterialCatalogProfile: ModelDefined<MaterialCatalogProfileAttributes, MaterialCatalogProfileCreationAttributes> = sequelize.define('MaterialCatalogProfile', {
     id: {
@@ -40,4 +40,4 @@ const MaterialCatalogProfile: ModelDefined<MaterialCatalogProfileAttributes, Mat
     updatedAt: 'updated_at'
 });
 
-module.exports = MaterialCatalogProfile;
+export default MaterialCatalogProfile;

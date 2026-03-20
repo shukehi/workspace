@@ -4,12 +4,9 @@ import type {
     MappingRevisionCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const {
-    REVISION_STATES,
-    SCHEMA_VERSION
-} = require('../services/mappings/mapping.constants');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
+import { REVISION_STATES, SCHEMA_VERSION } from '../services/mappings/mapping.constants';
 
 const MappingRevision: ModelDefined<MappingRevisionAttributes, MappingRevisionCreationAttributes> = sequelize.define('MappingRevision', {
     id: {
@@ -65,4 +62,4 @@ const MappingRevision: ModelDefined<MappingRevisionAttributes, MappingRevisionCr
     ]
 });
 
-module.exports = MappingRevision;
+export default MappingRevision;

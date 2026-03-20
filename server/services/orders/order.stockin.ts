@@ -1,17 +1,16 @@
-export {};
-
-type PlainRecord = Record<string, any>;
+import type { Transaction } from 'sequelize';
+import type { PlainRecord } from '../../shared/types';
 
 type StockInDeps = {
     inventoryReceiptService: {
-        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction: unknown) => Promise<{ receiptItems?: PlainRecord[] }>;
+        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction?: Transaction | null) => Promise<{ receiptItems?: PlainRecord[] }>;
     };
     MissingMaterialError: new (materialId?: string) => Error;
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;
     ReceivedQuantityExceededError: new (itemId: number, orderedQuantity: number, nextReceived: number) => Error;
 };
 
-function assertOrderReadyForStockIn(
+export function assertOrderReadyForStockIn(
     order: PlainRecord | null | undefined,
     normalizeStatus: (status: unknown, fallback?: string) => string,
     InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error,
@@ -22,7 +21,7 @@ function assertOrderReadyForStockIn(
     }
 }
 
-async function createReceiptItemsFromOrder(
+export async function createReceiptItemsFromOrder(
     order: PlainRecord,
     data: PlainRecord,
     transaction: unknown,
@@ -41,7 +40,7 @@ async function createReceiptItemsFromOrder(
     }
 }
 
-async function syncStockInReceiptItems(
+export async function syncStockInReceiptItems(
     order: PlainRecord,
     receiptItems: PlainRecord[],
     transaction: unknown,
@@ -67,7 +66,7 @@ async function syncStockInReceiptItems(
     return updatesByOrderItemId;
 }
 
-function areAllOrderItemsReceived(
+export function areAllOrderItemsReceived(
     orderItems: PlainRecord[] | null | undefined,
     updatesByOrderItemId: Map<number, PlainRecord>,
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number,
@@ -80,7 +79,7 @@ function areAllOrderItemsReceived(
     });
 }
 
-function buildStockInOrderUpdate(
+export function buildStockInOrderUpdate(
     order: PlainRecord,
     data: PlainRecord,
     allReceived: boolean,
@@ -100,10 +99,3 @@ function buildStockInOrderUpdate(
     };
 }
 
-module.exports = {
-    assertOrderReadyForStockIn,
-    createReceiptItemsFromOrder,
-    syncStockInReceiptItems,
-    areAllOrderItemsReceived,
-    buildStockInOrderUpdate,
-};

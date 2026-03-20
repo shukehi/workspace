@@ -1,51 +1,48 @@
-export {};
-
 import type { OrderListQuery, OrderCreateInput, OrderUpdateInput } from '../../models/types';
-
-const { createPaginationResponse } = require('../../shared/contracts/pagination');
-const { Op } = require('sequelize');
-const { sequelize } = require('../../models');
-const { inventoryReceiptService } = require('../inventory');
-const orderRepository = require('./order.repository');
-const {
+import type { Transaction } from 'sequelize';
+import { createPaginationResponse } from '../../shared/contracts/pagination';
+import { Op } from 'sequelize';
+import { sequelize } from '../../models';
+import { inventoryReceiptService } from '../inventory';
+import * as orderRepository from './order.repository';
+import {
     assertEditableOrderFields,
     assertValidStatusTransition,
     normalizeStatus,
-} = require('./order.policy');
-const {
+} from './order.policy';
+import {
     buildOrderFacets,
     buildOrderSummary,
     filterOrders,
-} = require('./order.query-policy');
-const {
+} from './order.query-policy';
+import {
     normalizeOrderForLog,
     normalizeOrderItemForPersistence,
     resolveOrderedQuantity,
     serializeOrder,
     toDuplicateOrderSummary,
-} = require('./order.mapper');
-const {
+} from './order.mapper';
+import {
     buildOrderDedupeKey,
     normalizeDedupeText,
     normalizeMetadata,
     resolveSourceContractCode,
-} = require('./order.dedupe');
-const {
+} from './order.dedupe';
+import {
     areAllOrderItemsReceived,
     assertOrderReadyForStockIn,
     buildStockInOrderUpdate,
     createReceiptItemsFromOrder,
     syncStockInReceiptItems,
-} = require('./order.stockin');
-const {
+} from './order.stockin';
+import {
     DuplicateOrderError,
     InvalidStatusTransitionError,
     MissingMaterialError,
     OrderEditLockedError,
     ReceivedQuantityExceededError,
-} = require('./order.errors');
-
-type PlainRecord = Record<string, any>;
+} from './order.errors';
+import type { PlainRecord } from '../../shared/types';
 
 function normalizeOrderRemark(remark: unknown): string {
     if (remark === undefined || remark === null) return '';
@@ -61,7 +58,7 @@ class OrderService {
     buildOrderDedupeKey?: typeof buildOrderDedupeKey;
     toDuplicateOrderSummary?: typeof toDuplicateOrderSummary;
 
-    async reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) {
+    async reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: Transaction | undefined) {
         if (!sourceContractCode || !dedupeKey || !orderId) return null;
         try {
             return await orderRepository.createIdempotencyKey({
@@ -86,7 +83,7 @@ class OrderService {
         }
     }
 
-    async releaseIdempotencyKeys(orderId: number, transaction: unknown) {
+    async releaseIdempotencyKeys(orderId: number, transaction: Transaction | undefined) {
         await orderRepository.updateActiveIdempotencyKeysByOrderId(
             orderId,
             { active: false },
@@ -94,7 +91,7 @@ class OrderService {
         );
     }
 
-    async syncActiveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) {
+    async syncActiveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: Transaction | undefined) {
         if (!sourceContractCode || !dedupeKey || !orderId) return 0;
         const [updated] = await orderRepository.updateScopedIdempotencyKeysByOrderId(
             orderId,
@@ -124,7 +121,7 @@ class OrderService {
         const invalidOrders = orders
             .map((order: PlainRecord, index: number) => ({ order, index }))
             .filter(({ order }: { order: PlainRecord }) => !order || !order.created_at)
-            .map(({ order, index }: { order: PlainRecord; index: number }) => normalizeOrderForLog(order, index));
+            .map(({ order }: { order: PlainRecord; index: number }) => normalizeOrderForLog(order));
 
         if (invalidOrders.length > 0) {
             console.warn('[OrderService] getAllOrders found records with missing created_at:', invalidOrders);
@@ -141,7 +138,7 @@ class OrderService {
         // 减少从 DB 返回的记录数。
         // category 需要中英文归一化，保留由 filterOrders 在内存中处理。
         // risk / keyword（含 item 内容搜索）无法下推，也保留内存处理。
-        const dbWhere = orderRepository.buildSimpleWhereFromQuery(query);
+        const dbWhere = orderRepository.buildSimpleWhereFromQuery(query as Record<string, unknown>);
 
         // 加载全量 DB 过滤结果用于 facets / summary / total 计算。
         // category 归一化（中英文映射）及 risk / keyword（含 item 内容搜索）
@@ -170,7 +167,7 @@ class OrderService {
         return serializeOrder(order);
     }
 
-    async findDuplicateAutoOrder(data: PlainRecord, transaction: unknown, options: PlainRecord = {}) {
+    async findDuplicateAutoOrder(data: PlainRecord, transaction: Transaction | undefined, options: PlainRecord = {}) {
         const sourceContractCode = resolveSourceContractCode(data);
         const dedupeKey = normalizeDedupeText(data?.dedupe_key) || buildOrderDedupeKey(data);
         const excludeId = Number(options.excludeId);
@@ -280,7 +277,7 @@ class OrderService {
         try {
             const order = await orderRepository.findOrderById(id, transaction);
             if (!order) throw new Error('Order not found');
-            assertEditableOrderFields(order, data);
+            assertEditableOrderFields(order, data as Record<string, unknown>);
 
             const existing = await this.getOrderById(id);
             const nextMetadata = normalizeMetadata(
@@ -347,7 +344,7 @@ class OrderService {
             }, { transaction });
 
             if (data.created_at !== undefined) {
-                await orderRepository.updateOrderCreatedAt(id, nextCreatedAt, transaction);
+                await orderRepository.updateOrderCreatedAt(Number(id), nextCreatedAt, transaction);
             }
 
             if (data.items) {
@@ -356,7 +353,7 @@ class OrderService {
                     id: undefined,
                     order_id: id
                 }));
-                await orderRepository.replaceOrderItems(id, items, transaction);
+                await orderRepository.replaceOrderItems(Number(id), items, transaction);
             }
 
             if (isAutoOrder) {
@@ -383,7 +380,7 @@ class OrderService {
             return serializeOrder({
                 ...order.get({ plain: true }),
                 created_at: data.created_at !== undefined ? data.created_at : order.created_at,
-                items: Array.isArray(data.items) ? data.items : await orderRepository.findOrderItemsByOrderId(id)
+                items: Array.isArray(data.items) ? data.items : await orderRepository.findOrderItemsByOrderId(Number(id))
             });
         } catch (error) {
             await transaction.rollback();
@@ -436,7 +433,7 @@ class OrderService {
             assertOrderReadyForStockIn(order, normalizeStatus, InvalidStatusTransitionError);
 
             const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
-                inventoryReceiptService,
+                inventoryReceiptService: inventoryReceiptService,
                 MissingMaterialError,
             });
 
@@ -474,4 +471,4 @@ orderService.ReceivedQuantityExceededError = ReceivedQuantityExceededError;
 orderService.buildOrderDedupeKey = buildOrderDedupeKey;
 orderService.toDuplicateOrderSummary = toDuplicateOrderSummary;
 
-module.exports = orderService;
+export default orderService;

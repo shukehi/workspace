@@ -1,8 +1,6 @@
-export {};
+import type { PlainRecord } from '../../shared/types';
 
-type PlainRecord = Record<string, any>;
-
-function toRevisionMeta(revision: PlainRecord) {
+export function toRevisionMeta(revision: PlainRecord) {
     return {
         id: revision.id,
         revision: revision.revision,
@@ -13,7 +11,7 @@ function toRevisionMeta(revision: PlainRecord) {
     };
 }
 
-function toSummary(definition: PlainRecord) {
+export function toSummary(definition: PlainRecord) {
     return {
         id: definition.id,
         formulaKey: definition.formula_key,
@@ -24,7 +22,7 @@ function toSummary(definition: PlainRecord) {
     };
 }
 
-function toDetail(definition: PlainRecord, payload: { bom: unknown[] }) {
+export function toDetail(definition: PlainRecord, payload: { bom: unknown[] }) {
     return {
         id: definition.id,
         formulaKey: definition.formula_key,
@@ -36,7 +34,7 @@ function toDetail(definition: PlainRecord, payload: { bom: unknown[] }) {
     };
 }
 
-function toPublishedMap(
+export function toPublishedMap(
     definitions: PlainRecord[],
     latestPublishedByFormulaId: Map<number, PlainRecord>,
     parsePayload: (payloadJson: string) => PlainRecord,
@@ -59,9 +57,3 @@ function toPublishedMap(
     return mapping;
 }
 
-module.exports = {
-    toRevisionMeta,
-    toSummary,
-    toDetail,
-    toPublishedMap
-};

@@ -30,6 +30,36 @@ export class MissingMaterialError extends Error {
 }
 
 /**
+ * 状态流转非法错误
+ */
+export class InvalidStatusTransitionError extends Error {
+    code: string = API_ERROR_CODES.INVALID_STATUS_TRANSITION;
+    fromStatus: string;
+    toStatus: string;
+    constructor(fromStatus: string, toStatus: string) {
+        super(API_ERROR_CODES.INVALID_STATUS_TRANSITION);
+        this.name = 'InvalidStatusTransitionError';
+        this.fromStatus = fromStatus;
+        this.toStatus = toStatus;
+    }
+}
+
+/**
+ * 订单编辑锁定错误
+ */
+export class OrderEditLockedError extends Error {
+    code: string = API_ERROR_CODES.ORDER_EDIT_LOCKED;
+    status?: string;
+    fields?: string[];
+    constructor(status?: string, fields?: string[]) {
+        super(API_ERROR_CODES.ORDER_EDIT_LOCKED);
+        this.name = 'OrderEditLockedError';
+        this.status = status;
+        this.fields = fields;
+    }
+}
+
+/**
  * 入库数量超限错误
  */
 export class ReceivedQuantityExceededError extends Error {
@@ -109,9 +139,3 @@ export const orderErrorResolver = (error: any): AppError | null => {
     }
 };
 
-module.exports = {
-    DuplicateOrderError,
-    MissingMaterialError,
-    ReceivedQuantityExceededError,
-    orderErrorResolver,
-};

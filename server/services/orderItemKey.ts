@@ -1,5 +1,3 @@
-export {};
-
 type OrderItemLike = {
     material_id?: unknown;
     name?: unknown;
@@ -8,12 +6,12 @@ type OrderItemLike = {
     model?: unknown;
 };
 
-function normalizeKeyPart(value: unknown): string {
+export function normalizeKeyPart(value: unknown): string {
     if (value === undefined || value === null) return '';
     return String(value).trim();
 }
 
-function buildOrderItemKey(item: OrderItemLike = {}): string {
+export function buildOrderItemKey(item: OrderItemLike = {}): string {
     return [
         normalizeKeyPart(item.material_id),
         normalizeKeyPart(item.name || item.type),
@@ -21,7 +19,7 @@ function buildOrderItemKey(item: OrderItemLike = {}): string {
     ].join('|');
 }
 
-function buildLegacyOrderItemKey(item: OrderItemLike = {}): string {
+export function buildLegacyOrderItemKey(item: OrderItemLike = {}): string {
     return [
         '',
         normalizeKeyPart(item.name || item.type),
@@ -29,7 +27,3 @@ function buildLegacyOrderItemKey(item: OrderItemLike = {}): string {
     ].join('|');
 }
 
-module.exports = {
-    buildOrderItemKey,
-    buildLegacyOrderItemKey
-};

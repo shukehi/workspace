@@ -5,8 +5,8 @@ import type {
     OrderItemCreationAttributes,
 } from './types';
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database';
 
 const OrderItem: ModelDefined<OrderItemAttributes, OrderItemCreationAttributes> = sequelize.define('OrderItem', {
     id: {
@@ -97,4 +97,4 @@ const OrderItem: ModelDefined<OrderItemAttributes, OrderItemCreationAttributes> 
     timestamps: false
 });
 
-module.exports = OrderItem;
+export default OrderItem;

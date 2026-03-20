@@ -1,21 +1,55 @@
-const sequelize = require('../config/database');
-const Order = require('./Order');
-const OrderItem = require('./OrderItem');
-const OrderIdempotencyKey = require('./OrderIdempotencyKey');
-const InventoryReceipt = require('./InventoryReceipt');
-const Material = require('./Material');
-const MaterialCatalogProfile = require('./MaterialCatalogProfile');
-const MaterialCatalogRevision = require('./MaterialCatalogRevision');
-const MaterialCatalogAuditLog = require('./MaterialCatalogAuditLog');
-const ErpContract = require('./ErpContract');
-const FormulaDefinition = require('./FormulaDefinition');
-const FormulaRevision = require('./FormulaRevision');
-const FormulaAuditLog = require('./FormulaAuditLog');
-const MappingProfile = require('./MappingProfile');
-const MappingRevision = require('./MappingRevision');
-const MappingAuditLog = require('./MappingAuditLog');
-const MappingUnmatchedEvent = require('./MappingUnmatchedEvent');
-const { runMigrations } = require('../db/migrate');
+import sequelize from '../config/database';
+import Order from './Order';
+import OrderItem from './OrderItem';
+import OrderIdempotencyKey from './OrderIdempotencyKey';
+import InventoryReceipt from './InventoryReceipt';
+import Material from './Material';
+import MaterialCatalogProfile from './MaterialCatalogProfile';
+import MaterialCatalogRevision from './MaterialCatalogRevision';
+import MaterialCatalogAuditLog from './MaterialCatalogAuditLog';
+import ErpContract from './ErpContract';
+import FormulaDefinition from './FormulaDefinition';
+import FormulaRevision from './FormulaRevision';
+import FormulaAuditLog from './FormulaAuditLog';
+import MappingProfile from './MappingProfile';
+import MappingRevision from './MappingRevision';
+import MappingAuditLog from './MappingAuditLog';
+import MappingUnmatchedEvent from './MappingUnmatchedEvent';
+import { runMigrations } from '../db/migrate';
+import type { ModelInstance } from '../shared/types';
+import type {
+    MaterialAttributes, MaterialCreationAttributes,
+    OrderAttributes, OrderCreationAttributes,
+    OrderItemAttributes, OrderItemCreationAttributes,
+    OrderIdempotencyKeyAttributes, OrderIdempotencyKeyCreationAttributes,
+    InventoryReceiptAttributes, InventoryReceiptCreationAttributes,
+    FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes,
+    FormulaRevisionAttributes, FormulaRevisionCreationAttributes,
+    FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes,
+    MappingProfileAttributes, MappingProfileCreationAttributes,
+    MappingRevisionAttributes, MappingRevisionCreationAttributes,
+    MappingAuditLogAttributes, MappingAuditLogCreationAttributes,
+    MappingUnmatchedEventAttributes, MappingUnmatchedEventCreationAttributes,
+    MaterialCatalogProfileAttributes, MaterialCatalogProfileCreationAttributes,
+    MaterialCatalogRevisionAttributes, MaterialCatalogRevisionCreationAttributes,
+    MaterialCatalogAuditLogAttributes, MaterialCatalogAuditLogCreationAttributes,
+} from './types';
+
+export type MaterialInstance = ModelInstance<MaterialAttributes, MaterialCreationAttributes>;
+export type OrderInstance = ModelInstance<OrderAttributes, OrderCreationAttributes>;
+export type OrderItemInstance = ModelInstance<OrderItemAttributes, OrderItemCreationAttributes>;
+export type OrderIdempotencyKeyInstance = ModelInstance<OrderIdempotencyKeyAttributes, OrderIdempotencyKeyCreationAttributes>;
+export type InventoryReceiptInstance = ModelInstance<InventoryReceiptAttributes, InventoryReceiptCreationAttributes>;
+export type FormulaDefinitionInstance = ModelInstance<FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes>;
+export type FormulaRevisionInstance = ModelInstance<FormulaRevisionAttributes, FormulaRevisionCreationAttributes>;
+export type FormulaAuditLogInstance = ModelInstance<FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes>;
+export type MappingProfileInstance = ModelInstance<MappingProfileAttributes, MappingProfileCreationAttributes>;
+export type MappingRevisionInstance = ModelInstance<MappingRevisionAttributes, MappingRevisionCreationAttributes>;
+export type MappingAuditLogInstance = ModelInstance<MappingAuditLogAttributes, MappingAuditLogCreationAttributes>;
+export type MappingUnmatchedEventInstance = ModelInstance<MappingUnmatchedEventAttributes, MappingUnmatchedEventCreationAttributes>;
+export type MaterialCatalogProfileInstance = ModelInstance<MaterialCatalogProfileAttributes, MaterialCatalogProfileCreationAttributes>;
+export type MaterialCatalogRevisionInstance = ModelInstance<MaterialCatalogRevisionAttributes, MaterialCatalogRevisionCreationAttributes>;
+export type MaterialCatalogAuditLogInstance = ModelInstance<MaterialCatalogAuditLogAttributes, MaterialCatalogAuditLogCreationAttributes>;
 
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
@@ -51,7 +85,8 @@ const initDB = async () => {
     }
 };
 
-module.exports = {
+
+export {
     sequelize,
     initDB,
     Order,
@@ -71,3 +106,4 @@ module.exports = {
     MappingAuditLog,
     MappingUnmatchedEvent
 };
+
