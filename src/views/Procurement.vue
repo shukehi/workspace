@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, watch } from 'vue';
 import { refDebounced } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { useProcurementStore } from '@/stores/useProcurementStore';
@@ -14,16 +14,15 @@ import ProcurementPreviewModal from '@/components/procurement/ProcurementPreview
 import ProcurementStockInDialog from '@/components/procurement/ProcurementStockInDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { API_ERROR_CODES } from '@/shared/constants/api';
-import { ORDER_STATUS_LABELS } from '@/shared/constants/order';
 import { Plus, RefreshCcw, Download } from 'lucide-vue-next';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import type { Order } from '@/types/order';
 import { useProcurementDialogs } from '@/features/procurement/useProcurementDialogs';
 import { useProcurementPageState } from '@/features/procurement/useProcurementPageState';
-import { hasRemainingStockInItems } from '@/features/procurement/stockInEligibility';
 import { useProcurementRouteQuery } from '@/features/procurement/composables/useProcurementRouteQuery';
 import { useOrderActions } from '@/features/procurement/composables/useOrderActions';
+import { useStockInQueue } from '@/features/procurement/composables/useStockInQueue';
+import { useProcurementBulkActions } from '@/features/procurement/composables/useProcurementBulkActions';
 import { SIGNALS } from '@/shared/constants/storage';
 
 const PROCUREMENT_REFRESH_SIGNAL_KEY = SIGNALS.PROCUREMENT_REFRESH;
@@ -32,13 +31,6 @@ const store = useProcurementStore();
 const { toast } = useToastStore();
 const route = useRoute();
 const router = useRouter();
-
-const stockInOrder = ref<Order | null>(null);
-const stockInDialogOpen = ref(false);
-const stockInSaving = ref(false);
-const stockInQueue = ref<Order[]>([]);
-const stockInQueueIndex = ref(0);
-const stockInQueueCompletedCount = ref(0);
 
 const {
   activeStatus, activeCategory, activeRiskFilter, activeCreatedDate,
@@ -80,6 +72,17 @@ const {
   requestDelete, requestBulkDelete,
 } = useProcurementDialogs({ store, toast });
 
+const {
+  stockInOrder, stockInDialogOpen, stockInSaving, stockInQueue,
+  stockInQueueIndex, stockInQueueCompletedCount,
+  openStockInDialog, openStockInQueue, handleStockInDialogOpenChange, handleStockInOrder,
+} = useStockInQueue({ store, toast, loadOrders: loadProcurementOrders, clearSelection });
+
+const {
+  canBulkSubmit, canBulkProcess, canBulkArrive, canBulkStockIn, canBulkRestoreDraft,
+  handleBulkDelete, handleBulkStatusUpdate, handleBulkArrive,
+} = useProcurementBulkActions({ store, toast, selectedRows, loadOrders: loadProcurementOrders, clearSelection, requestBulkDelete });
+
 const handleExport = async () => {
   try {
     const dataToExport = selectedRows.value.length > 0 ? selectedRows.value : filteredOrders.value;
@@ -93,144 +96,6 @@ const handleExport = async () => {
 
 const handleViewReceipts = async (order: Order) => {
   await router.push({ name: 'inventory', query: { orderNo: order.order_no } });
-};
-
-const openStockInDialog = (order: Order) => {
-  if (!hasRemainingStockInItems(order)) {
-    toast({ title: '当前订单没有可继续入库的明细', description: `订单 ${order.order_no} 已全部入库`, variant: 'destructive' });
-    return;
-  }
-  stockInOrder.value = order;
-  stockInDialogOpen.value = true;
-};
-
-const openStockInQueue = (orders: Order[]) => {
-  const queue = orders.filter((order) => hasRemainingStockInItems(order));
-  if (queue.length === 0) {
-    toast({ title: '当前订单没有可继续入库的明细', description: '所选订单均已全部入库', variant: 'destructive' });
-    return;
-  }
-  stockInQueue.value = queue;
-  stockInQueueIndex.value = 0;
-  stockInQueueCompletedCount.value = 0;
-  stockInOrder.value = queue[0];
-  stockInDialogOpen.value = true;
-};
-
-function resetStockInFlow() {
-  stockInDialogOpen.value = false;
-  stockInOrder.value = null;
-  stockInQueue.value = [];
-  stockInQueueIndex.value = 0;
-  stockInQueueCompletedCount.value = 0;
-}
-
-function handleStockInDialogOpenChange(open: boolean) {
-  if (open) { stockInDialogOpen.value = true; return; }
-  if (stockInSaving.value) return;
-  const remaining = Math.max(stockInQueue.value.length - stockInQueueIndex.value, 0);
-  if (remaining > 0) toast({ title: '批量入库已中止', description: `仍有 ${remaining} 张订单未处理`, variant: 'destructive' });
-  resetStockInFlow();
-}
-
-const handleStockInOrder = async (payload?: any) => {
-  if (!stockInOrder.value) return;
-  const currentOrder = stockInOrder.value;
-  stockInSaving.value = true;
-  try {
-    const updated = await store.stockInOrder(currentOrder.id, payload || { stocked_in_at: new Date().toISOString() });
-    const isCompleted = updated.status === 'completed';
-    const queueActive = stockInQueue.value.length > 1;
-    const hasNext = queueActive && stockInQueueIndex.value < stockInQueue.value.length - 1;
-
-    if (isCompleted) stockInQueueCompletedCount.value += 1;
-
-    if (hasNext) {
-      await loadProcurementOrders();
-      stockInQueueIndex.value += 1;
-      stockInOrder.value = stockInQueue.value[stockInQueueIndex.value];
-      toast({ title: isCompleted ? '入库完成，进入下一单' : '部分入库成功，进入下一单', description: `已完成 ${stockInQueueIndex.value} / ${stockInQueue.value.length}`, variant: 'success' });
-      return;
-    }
-
-    if (queueActive) clearSelection();
-    await loadProcurementOrders();
-
-    const completedCount = queueActive ? stockInQueueCompletedCount.value : 0;
-    const pendingCount = queueActive ? stockInQueue.value.length - completedCount : 0;
-    toast({
-      title: queueActive
-        ? (pendingCount > 0 ? '批量入库流程已完成' : '批量入库已完成')
-        : (isCompleted ? '入库完成' : '部分入库成功'),
-      description: queueActive && pendingCount > 0
-        ? `${completedCount} 张已完成入库，${pendingCount} 张仍有明细待入库`
-        : undefined,
-      variant: 'success',
-    });
-    resetStockInFlow();
-  } catch (error: any) {
-    const errorCode = String(error?.response?.data?.error || '');
-    const msg = errorCode === API_ERROR_CODES.receivedQuantityExceeded ? '数量超过剩余待入库数' : '入库失败';
-    toast({ title: msg, variant: 'destructive' });
-  } finally {
-    stockInSaving.value = false;
-  }
-};
-
-const handleBulkDelete = () => {
-  requestBulkDelete(selectedRows.value, clearSelection);
-};
-
-const canBulkSubmit = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'draft'));
-const canBulkProcess = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'submitted'));
-const canBulkArrive = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'processing'));
-const canBulkStockIn = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(order => order.status === 'arrived' && hasRemainingStockInItems(order)));
-const canBulkRestoreDraft = computed(() => selectedRows.value.length > 0 && selectedRows.value.every(o => o.status === 'cancelled'));
-
-const handleBulkStatusUpdate = async (status: Order['status']) => {
-  const count = selectedRows.value.length;
-  if (status === 'submitted' && !canBulkSubmit.value) {
-    toast({ title: `当前所选订单不能批量设为${ORDER_STATUS_LABELS.submitted}`, variant: 'destructive' });
-    return;
-  }
-  if (status === 'processing' && !canBulkProcess.value) {
-    toast({ title: `当前所选订单不能批量设为${ORDER_STATUS_LABELS.processing}`, variant: 'destructive' });
-    return;
-  }
-  if (status === 'draft' && !canBulkRestoreDraft.value) {
-    toast({ title: `当前所选订单不能批量设为${ORDER_STATUS_LABELS.draft}`, variant: 'destructive' });
-    return;
-  }
-  try {
-    await store.bulkUpdateStatus(selectedRows.value.map(o => o.id), status);
-    await loadProcurementOrders();
-    clearSelection();
-    toast({ title: '批量更新成功', description: `${count} 张订单已设为 ${ORDER_STATUS_LABELS[status]}`, variant: 'success' });
-  } catch { toast({ title: '操作失败', variant: 'destructive' }); }
-};
-
-const handleBulkArrive = async () => {
-  if (!canBulkArrive.value) {
-    toast({ title: '当前所选订单不能批量登记到货', variant: 'destructive' });
-    return;
-  }
-  const orders = [...selectedRows.value];
-  let successCount = 0;
-  for (const o of orders) {
-    try {
-      await store.markOrderArrived(o.id, { arrived_at: new Date().toISOString() });
-      successCount++;
-    } catch { /* individual errors handled below */ }
-  }
-  await loadProcurementOrders();
-  if (successCount < orders.length && successCount > 0) {
-    toast({ title: '批量到货部分完成', description: `${successCount} / ${orders.length} 张订单登记成功`, variant: 'warning' });
-  } else if (successCount === orders.length) {
-    clearSelection();
-    toast({ title: '批量登记到货完成', variant: 'success' });
-  } else {
-    toast({ title: '批量登记到货失败', variant: 'destructive' });
-  }
 };
 
 const columns = createColumns({

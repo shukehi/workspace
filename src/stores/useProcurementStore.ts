@@ -109,7 +109,11 @@ export const useProcurementStore = defineStore('procurement', () => {
                 const name = (e as { name: string }).name;
                 if (name === 'AbortError' || name === 'CanceledError') return;
             }
-            console.error('Failed to fetch orders', e);
+            const msg = (e as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error
+                ?? (e as { message?: string })?.message
+                ?? '获取订单失败';
+            console.error('fetchOrders failed', { error: msg });
+            throw new Error(msg);
         } finally {
             loading.value = false;
         }
