@@ -39,6 +39,19 @@ const InventoryReceipt: ModelDefined<InventoryReceiptAttributes, InventoryReceip
         type: DataTypes.STRING,
         allowNull: true
     },
+    reverse_version: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    warehouse_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    location_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     material_id: {
         type: DataTypes.STRING,
         allowNull: false
@@ -77,7 +90,7 @@ const InventoryReceipt: ModelDefined<InventoryReceiptAttributes, InventoryReceip
     tableName: 'inventory_receipts',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
 });
 
 export default InventoryReceipt;

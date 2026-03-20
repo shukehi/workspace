@@ -57,6 +57,14 @@ function pushIfPresentIsNotString(issues: ValidationIssue[], source: UnknownReco
     }
 }
 
+function pushIfPresentIsNotPositiveIntegerValue(issues: ValidationIssue[], value: unknown, field: string): void {
+    if (value === undefined) return;
+    const numeric = Number(String(value).trim());
+    if (!Number.isInteger(numeric) || numeric <= 0) {
+        issues.push(createIssue(field, `${field} must be a positive integer`));
+    }
+}
+
 export function validateOrderListQuery(query: UnknownRecord = {}): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     pushIfPresentIsNotNumericString(issues, query, 'page');
@@ -67,6 +75,9 @@ export function validateOrderListQuery(query: UnknownRecord = {}): ValidationIss
     pushIfPresentIsNotString(issues, query, 'keyword');
     pushIfPresentIsNotString(issues, query, 'orderNo');
     pushIfPresentIsNotString(issues, query, 'category');
+    pushIfPresentIsNotString(issues, query, 'supplier');
+    pushIfPresentIsNotString(issues, query, 'startDate');
+    pushIfPresentIsNotString(issues, query, 'endDate');
     return issues;
 }
 
@@ -122,6 +133,26 @@ export function validateOrderArriveBody(body: unknown): ValidationIssue[] {
     return issues;
 }
 
+export function validateBulkOrderArriveBody(body: unknown): ValidationIssue[] {
+    const issues = validateObjectBody(body);
+    if (issues.length > 0) return issues;
+
+    const payload = body as UnknownRecord;
+    if (!Array.isArray(payload.ids) || payload.ids.length === 0) {
+        issues.push(createIssue('ids', 'ids must be a non-empty array'));
+    } else {
+        payload.ids.forEach((value, index) => {
+            pushIfPresentIsNotPositiveIntegerValue(issues, value, `ids[${index}]`);
+        });
+    }
+
+    pushIfPresentIsNotString(issues, payload, 'arrived_at');
+    pushIfPresentIsNotString(issues, payload, 'arrived_by');
+    pushIfPresentIsNotString(issues, payload, 'arrived_remark');
+
+    return issues;
+}
+
 export function validateOrderStatusBody(body: unknown): ValidationIssue[] {
     const issues = validateObjectBody(body);
     if (issues.length > 0) return issues;
@@ -143,7 +174,8 @@ export function validateOrderStockInBody(body: unknown): ValidationIssue[] {
     pushIfPresentIsNotString(issues, payload, 'operator');
     pushIfPresentIsNotString(issues, payload, 'remark');
     pushIfPresentIsNotArray(issues, payload, 'items');
+    pushIfPresentIsNotPositiveIntegerValue(issues, payload.warehouse_id, 'warehouse_id');
+    pushIfPresentIsNotPositiveIntegerValue(issues, payload.location_id, 'location_id');
 
     return issues;
 }
-

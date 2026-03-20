@@ -88,6 +88,7 @@
 
 阶段性总结、里程碑进度与结果沉淀。
 
+- [INVENTORY_OUTBOUND_LOCATION_RELEASE_2026-03-20.md](/Users/aries/Dve/workspace/docs/progress/INVENTORY_OUTBOUND_LOCATION_RELEASE_2026-03-20.md)
 - [BACKEND_TS_BATCH1_PROGRESS_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH1_PROGRESS_2026-03-13.md)
 - [BACKEND_TS_BATCH1_SUMMARY_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH1_SUMMARY_2026-03-13.md)
 - [BACKEND_TS_BATCH2_PROGRESS_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH2_PROGRESS_2026-03-13.md)

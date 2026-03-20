@@ -1,14 +1,14 @@
 import { ref, type Ref } from 'vue';
 import type {
   LocationQueryRaw,
+  Router,
   RouteLocationNormalizedLoaded,
+  RouteLocationRaw,
 } from 'vue-router';
 import type { ProcurementOrderQuery } from '@/types/order';
 
 type RouteLike = Pick<RouteLocationNormalizedLoaded, 'query'>;
-interface RouterLike {
-  replace(to: { query: Record<string, unknown> }): Promise<unknown>;
-}
+type RouterLike = Pick<Router, 'replace'>;
 
 type ProcurementRouteState<
   TStatus extends string,
@@ -86,7 +86,7 @@ export function useProcurementRouteQuery<
     if (procurementPageSize.value !== 20) nextQuery.pageSize = String(procurementPageSize.value);
     else delete nextQuery.pageSize;
 
-    router.replace({ query: nextQuery }).catch(() => undefined);
+    router.replace({ query: nextQuery } as RouteLocationRaw).catch(() => undefined);
   }
 
   function buildProcurementQuery(): ProcurementOrderQuery {

@@ -1,6 +1,19 @@
 import { adaptHandleMapping } from './mapping.adapter';
 import { PROFILE_CODE_LIST } from './mapping.constants';
-import { validatePackagingMapping, validateCylinderMapping, validateLockMapping, validateLockForkMapping } from '../../../shared/mappings/mapping-validator-core.mjs';
+
+type CoreMappingValidator = (value: unknown) => Array<{ path: string; code: string; message: string }>;
+
+const {
+    validatePackagingMapping,
+    validateCylinderMapping,
+    validateLockMapping,
+    validateLockForkMapping,
+} = require('../../../shared/mappings/mapping-validator-core.mjs') as {
+    validatePackagingMapping: CoreMappingValidator;
+    validateCylinderMapping: CoreMappingValidator;
+    validateLockMapping: CoreMappingValidator;
+    validateLockForkMapping: CoreMappingValidator;
+};
 
 export { validatePackagingMapping, validateCylinderMapping, validateLockMapping, validateLockForkMapping };
 
@@ -272,4 +285,3 @@ export function validateMappingPayload(profileCode: unknown, payload: unknown): 
         message: '不支持的 mapping profile code'
     }];
 }
-

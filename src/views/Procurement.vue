@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, watch } from 'vue';
 import { refDebounced } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { useProcurementStore } from '@/stores/useProcurementStore';
+import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useToastStore } from '@/stores/useToastStore';
 import DataTable from '@/components/data-table/DataTable.vue';
 import { createColumns } from '@/components/procurement/ProcurementColumns';
@@ -28,6 +29,7 @@ import { SIGNALS } from '@/shared/constants/storage';
 const PROCUREMENT_REFRESH_SIGNAL_KEY = SIGNALS.PROCUREMENT_REFRESH;
 
 const store = useProcurementStore();
+const inventoryStore = useInventoryStore();
 const { toast } = useToastStore();
 const route = useRoute();
 const router = useRouter();
@@ -114,6 +116,7 @@ onMounted(() => {
   syncProcurementFiltersFromRoute();
   syncSearchQueryFromRoute();
   loadProcurementOrders().catch(() => undefined);
+  inventoryStore.fetchInventoryLocations().catch(() => undefined);
   window.addEventListener('storage', handleProcurementRefreshSignal);
 });
 
@@ -205,7 +208,18 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
 
     <EditOrderDialog v-model:open="isEditDialogOpen" :order="selectedOrder" :mode="editDialogMode" @saved="loadProcurementOrders()" @draft-change="syncDraftForPreview" @preview="previewDraft" />
     <ProcurementPreviewModal v-model:open="isPreviewDialogOpen" :order="previewOrder" :can-edit="canEditOrder(previewOrder)" @edit="editFromPreview" />
-    <ProcurementStockInDialog :open="stockInDialogOpen" :order="stockInOrder" :saving="stockInSaving" :queue-index="stockInQueueIndex + 1" :queue-total="stockInQueue.length || 1" @update:open="handleStockInDialogOpenChange" @submit="handleStockInOrder" />
+    <ProcurementStockInDialog
+      :open="stockInDialogOpen"
+      :order="stockInOrder"
+      :saving="stockInSaving"
+      :queue-index="stockInQueueIndex + 1"
+      :queue-total="stockInQueue.length || 1"
+      :warehouses="inventoryStore.warehouses"
+      :locations="inventoryStore.activeLocations"
+      :locations-loading="inventoryStore.locationsLoading"
+      @update:open="handleStockInDialogOpenChange"
+      @submit="handleStockInOrder"
+    />
     <ConfirmDialog v-model:open="confirmState.show" :title="confirmState.title" :variant="confirmState.variant" :confirm-text="confirmState.confirmText" @confirm="confirmState.onConfirm">
       <div v-html="confirmState.message"></div>
     </ConfirmDialog>

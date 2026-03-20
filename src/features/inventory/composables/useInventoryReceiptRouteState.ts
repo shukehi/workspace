@@ -2,13 +2,13 @@ import { ref, watch, type Ref } from 'vue';
 import { refDebounced } from '@vueuse/core';
 import type {
   LocationQueryRaw,
+  Router,
   RouteLocationNormalizedLoaded,
+  RouteLocationRaw,
 } from 'vue-router';
 
 type RouteLike = Pick<RouteLocationNormalizedLoaded, 'query'>;
-interface RouterLike {
-  replace(to: { query: Record<string, unknown> }): Promise<unknown>;
-}
+type RouterLike = Pick<Router, 'replace'>;
 type ReceiptDirectionFilter = 'ALL' | 'in' | 'reversal';
 
 type InventoryReceiptRouteStateOptions = {
@@ -86,7 +86,7 @@ export function useInventoryReceiptRouteState(
     if (pageSize !== 50) nextQuery.pageSize = String(pageSize);
     else delete nextQuery.pageSize;
 
-    router.replace({ query: nextQuery }).catch(() => undefined);
+    router.replace({ query: nextQuery } as RouteLocationRaw).catch(() => undefined);
   }
 
   function clearReceiptRouteFilters() {
@@ -173,7 +173,7 @@ export function useInventoryReceiptRouteState(
   watch(
     () => route.query.tab,
     (tab) => {
-      if (tab === 'inventory' || tab === 'receipts') {
+      if (tab === 'inventory' || tab === 'receipts' || tab === 'outbounds' || tab === 'locations') {
         options.activeTab.value = String(tab);
       }
     },

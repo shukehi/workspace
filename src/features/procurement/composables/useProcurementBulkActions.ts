@@ -65,20 +65,26 @@ export function useProcurementBulkActions({
             return;
         }
         const orders = [...selectedRows.value];
-        let successCount = 0;
-        for (const o of orders) {
-            try {
-                await store.markOrderArrived(o.id, { arrived_at: new Date().toISOString() });
-                successCount++;
-            } catch { /* individual errors handled below */ }
-        }
-        await loadOrders();
-        if (successCount < orders.length && successCount > 0) {
-            toast({ title: '批量到货部分完成', description: `${successCount} / ${orders.length} 张订单登记成功`, variant: 'destructive' });
-        } else if (successCount === orders.length) {
-            clearSelection();
-            toast({ title: '批量登记到货完成', variant: 'success' });
-        } else {
+        try {
+            const result = await store.bulkMarkOrdersArrived(
+                orders.map((order) => order.id),
+                { arrived_at: new Date().toISOString() }
+            );
+            await loadOrders();
+
+            if (result.successCount > 0 && result.failureCount > 0) {
+                toast({
+                    title: '批量到货部分完成',
+                    description: `${result.successCount} / ${result.total} 张订单登记成功`,
+                    variant: 'destructive'
+                });
+            } else if (result.successCount === result.total) {
+                clearSelection();
+                toast({ title: '批量登记到货完成', variant: 'success' });
+            } else {
+                toast({ title: '批量登记到货失败', variant: 'destructive' });
+            }
+        } catch {
             toast({ title: '批量登记到货失败', variant: 'destructive' });
         }
     };

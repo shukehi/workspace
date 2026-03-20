@@ -12,6 +12,8 @@ import orderRoutes from './order';
 import materialRoutes from './material';
 import inventoryRoutes from './inventory';
 import inventoryReceiptRoutes from './inventoryReceipts';
+import inventoryLocationRoutes from './inventoryLocations';
+import inventoryOutboundRoutes from './inventoryOutbounds';
 import contractRoutes from './contracts';
 import contractCacheService, { type ListContractsQuery } from '../services/ContractCacheService';
 import { createApiErrorResponse } from '../shared/contracts/api';
@@ -40,6 +42,8 @@ router.use('/contracts', contractRoutes);
 router.use('/materials', materialRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/inventory-receipts', inventoryReceiptRoutes);
+router.use('/inventory-locations', inventoryLocationRoutes);
+router.use('/inventory-outbounds', inventoryOutboundRoutes);
 router.use('/print', printRoutes);
 
 /**

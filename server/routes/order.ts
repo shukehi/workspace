@@ -4,6 +4,7 @@ import errorHandler from '../app/middleware/errorHandler';
 import { validateRequest } from '../app/middleware/validateRequest';
 import * as orderController from '../controllers/order.controller';
 import {
+    validateBulkOrderArriveBody,
     validateOrderArriveBody,
     validateOrderCreateBody,
     validateOrderIdParams,
@@ -36,6 +37,13 @@ router.put(
     '/:id/status',
     validateRequest({ params: validateOrderIdParams, body: validateOrderStatusBody }),
     asyncHandler(orderController.updateOrderStatus)
+);
+
+// POST /api/orders/bulk-arrive
+router.post(
+    '/bulk-arrive',
+    validateRequest({ body: validateBulkOrderArriveBody }),
+    asyncHandler(orderController.bulkArriveOrders)
 );
 
 // POST /api/orders/:id/arrive

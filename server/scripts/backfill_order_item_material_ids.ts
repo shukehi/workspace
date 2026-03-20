@@ -1,6 +1,7 @@
 // Script: run with tsx
 import { Op } from 'sequelize';
 import { Order, OrderItem, sequelize } from '../models';
+import type { PlainRecord } from '../shared/types';
 
 function normalizeText(value: unknown): string {
     if (value === undefined || value === null) return '';
@@ -57,7 +58,7 @@ async function backfillOrderItemMaterialIds(): Promise<void> {
                 required: true
             }],
             order: [["created_at", "DESC"]]
-        })) as import("../shared/types").PlainRecord[];
+        })) as PlainRecord[];
 
         const autoOrders = orders.filter((order: any) => order?.metadata?.order_source === 'auto');
 

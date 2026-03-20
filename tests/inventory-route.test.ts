@@ -8,10 +8,12 @@ import type { Router } from 'express'
 const TEST_DB = path.join('/tmp', 'order-search-inventory-route.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material, Order, OrderItem } = require('../server/models') as typeof import('../server/models');
+const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, Warehouse } = require('../server/models') as typeof import('../server/models');
 import type { MaterialInstance } from '../server/models';
 const inventoryRoutes = (require('../server/routes/inventory') as { default: Router }).default;
 const inventoryReceiptRoutes = (require('../server/routes/inventoryReceipts') as { default: Router }).default;
+const inventoryLocationRoutes = (require('../server/routes/inventoryLocations') as { default: Router }).default;
+const inventoryOutboundRoutes = (require('../server/routes/inventoryOutbounds') as { default: Router }).default;
 const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
 
 function getBody(raw: Record<string, unknown>) {
@@ -27,6 +29,8 @@ async function startServer() {
   app.use(express.json());
   app.use('/api/inventory', inventoryRoutes);
   app.use('/api/inventory-receipts', inventoryReceiptRoutes);
+  app.use('/api/inventory-locations', inventoryLocationRoutes);
+  app.use('/api/inventory-outbounds', inventoryOutboundRoutes);
 
   return await new Promise<{ server: typeof server; baseUrl: string }>((resolve) => {
     const s = app.listen(0, () => {
@@ -82,6 +86,71 @@ test('GET /api/inventory and PUT /api/inventory/:id', async () => {
   assert.equal(updated.min_stock, 20);
 });
 
+test('GET /api/inventory supports warehouse/location filters and returns location summaries', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  assert.equal(locationRes.status, 200);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number; warehouse_id: number }>;
+  };
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-FILTER-${Date.now()}`,
+    name: 'Filter Material',
+    model: 'FILTER-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 0,
+    min_stock: 5
+  }) as MaterialInstance;
+
+  const order = await orderService.createOrder({
+    order_no: `FILTER-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Filter Material',
+        model: 'FILTER-MODEL',
+        spec: 'FILTER-MODEL',
+        quantity: 4,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-20T10:00:00.000Z',
+    warehouse_id: warehouseId,
+    location_id: locationId,
+  });
+
+  const filteredRes = await fetch(`${baseUrl}/api/inventory?warehouseId=${warehouseId}&locationId=${locationId}&keyword=FILTER-MODEL`);
+  assert.equal(filteredRes.status, 200);
+  const filtered = getBody(await filteredRes.json()) as Array<{
+    id: number;
+    stock_quantity: number;
+    locations: Array<{ locationId: number; warehouseId: number; quantity: number }>;
+  }>;
+  const found = filtered.find((item) => item.id === material.id);
+  assert.ok(found);
+  assert.equal(found.stock_quantity, 4);
+  assert.equal(found.locations[0].locationId, locationId);
+  assert.equal(found.locations[0].warehouseId, warehouseId);
+  assert.equal(found.locations[0].quantity, 4);
+
+  const lowStockRes = await fetch(`${baseUrl}/api/inventory?lowStockOnly=true&keyword=FILTER-MODEL`);
+  assert.equal(lowStockRes.status, 200);
+  const lowStockRows = getBody(await lowStockRes.json()) as Array<{ id: number }>;
+  assert.ok(lowStockRows.some((item) => item.id === material.id));
+});
+
 test('PUT /api/inventory/:id rejects invalid stock values with validation error', async () => {
   const res = await fetch(`${baseUrl}/api/inventory/1`, {
     method: 'PUT',
@@ -110,6 +179,81 @@ test('PUT /api/inventory/:id rejects invalid id param with validation error', as
   assert.equal(Array.isArray(body.issues), true);
   assert.equal(body.issues[0].target, 'params');
   assert.equal(body.issues[0].field, 'id');
+});
+
+test('POST /api/inventory-locations creates location and PUT updates status', async () => {
+  const initialRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  assert.equal(initialRes.status, 200);
+  const initialPayload = getBody(await initialRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ code: string }>;
+  };
+  assert.ok(initialPayload.warehouses.length >= 1);
+  assert.ok(initialPayload.locations.some((item) => item.code === 'UNASSIGNED'));
+
+  const createRes = await fetch(`${baseUrl}/api/inventory-locations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      warehouse_id: initialPayload.warehouses[0].id,
+      code: 'A-01',
+      name: '主通道 A-01',
+      remark: '首层货架',
+      sort_order: 10
+    })
+  });
+
+  assert.equal(createRes.status, 201);
+  const created = getBody(await createRes.json()) as {
+    id: number;
+    code: string;
+    status: string;
+  };
+  assert.equal(created.code, 'A-01');
+  assert.equal(created.status, 'active');
+
+  const updateRes = await fetch(`${baseUrl}/api/inventory-locations/${created.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      status: 'inactive',
+      remark: '停用待整理'
+    })
+  });
+
+  assert.equal(updateRes.status, 200);
+  const updated = getBody(await updateRes.json()) as { status: string; remark: string };
+  assert.equal(updated.status, 'inactive');
+  assert.equal(updated.remark, '停用待整理');
+});
+
+test('PUT /api/inventory-locations/:id rejects changing warehouse for an existing location', async () => {
+  const initialRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  assert.equal(initialRes.status, 200);
+  const initialPayload = getBody(await initialRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+
+  const secondWarehouse = await Warehouse.create({
+    code: `W-${Date.now()}`,
+    name: '二号仓',
+    status: 'active',
+    remark: '',
+  });
+
+  const res = await fetch(`${baseUrl}/api/inventory-locations/${initialPayload.locations[0].id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      warehouse_id: secondWarehouse.id,
+      remark: '尝试换仓',
+    })
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'LOCATION_WAREHOUSE_IMMUTABLE');
 });
 
 test('GET /api/inventory-receipts returns stock-in records', async () => {
@@ -497,6 +641,343 @@ test('GET /api/inventory-receipts keeps reversal stats correct under pagination 
   assert.equal(pagedPayload.rows.length, 1);
   assert.equal(pagedPayload.rows[0].reversed_quantity, 1);
   assert.equal(pagedPayload.rows[0].reversible_quantity, 3);
+});
+
+test('POST /api/inventory-outbounds creates outbound, filters list, and reverse restores balance', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-OUTBOUND-${Date.now()}`,
+    name: 'Outbound Material',
+    model: 'OUTBOUND-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 0,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  const order = await orderService.createOrder({
+    order_no: `OUTBOUND-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Outbound Material',
+        model: 'OUTBOUND-MODEL',
+        spec: 'OUTBOUND-MODEL',
+        quantity: 6,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-20T11:00:00.000Z',
+    warehouse_id: warehouseId,
+    location_id: locationId,
+  });
+
+  const createRes = await fetch(`${baseUrl}/api/inventory-outbounds`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      operator: '仓管A',
+      reason: '样品领用',
+      items: [
+        {
+          material_id: material.id,
+          quantity: 2
+        }
+      ]
+    })
+  });
+  assert.equal(createRes.status, 201);
+  const outbound = getBody(await createRes.json()) as {
+    id: number;
+    direction: string;
+    items: Array<{ quantity: number }>;
+  };
+  assert.equal(outbound.direction, 'out');
+  assert.equal(outbound.items[0].quantity, 2);
+
+  const balance = await InventoryLocationBalance.findOne({
+    where: {
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+    },
+  });
+  assert.equal(Number(balance?.quantity || 0), 4);
+
+  const listRes = await fetch(`${baseUrl}/api/inventory-outbounds?keyword=样品领用`);
+  assert.equal(listRes.status, 200);
+  const listPayload = getBody(await listRes.json()) as {
+    total: number;
+    rows: Array<{ id: number; reason: string }>;
+  };
+  assert.equal(listPayload.total >= 1, true);
+  assert.ok(listPayload.rows.some((item) => item.id === outbound.id && item.reason === '样品领用'));
+
+  const reverseRes = await fetch(`${baseUrl}/api/inventory-outbounds/${outbound.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reason: '误领料',
+      operator: '仓管B'
+    })
+  });
+  assert.equal(reverseRes.status, 200);
+  const reversed = getBody(await reverseRes.json()) as { direction: string; source_outbound_id: number };
+  assert.equal(reversed.direction, 'reversal');
+  assert.equal(reversed.source_outbound_id, outbound.id);
+
+  const refreshedMaterial = await Material.findByPk(material.id);
+  assert.equal(Number(refreshedMaterial?.stock_quantity || 0), 6);
+  const restoredBalance = await InventoryLocationBalance.findOne({
+    where: {
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+    },
+  });
+  assert.equal(Number(restoredBalance?.quantity || 0), 6);
+});
+
+test('POST /api/inventory-outbounds rejects insufficient location balance', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-OUTBOUND-LIMIT-${Date.now()}`,
+    name: 'Outbound Limit Material',
+    model: 'OUTBOUND-LIMIT',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 0,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  const order = await orderService.createOrder({
+    order_no: `OUTBOUND-LIMIT-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Outbound Limit Material',
+        model: 'OUTBOUND-LIMIT',
+        spec: 'OUTBOUND-LIMIT',
+        quantity: 1,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    warehouse_id: warehouseId,
+    location_id: locationId,
+  });
+
+  const res = await fetch(`${baseUrl}/api/inventory-outbounds`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      reason: '超额领用',
+      items: [
+        {
+          material_id: material.id,
+          quantity: 2
+        }
+      ]
+    })
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'OUTBOUND_INSUFFICIENT_BALANCE');
+});
+
+test('POST /api/inventory-receipts/:id/reverse rejects reversal when issued stock already consumed the location balance', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-REVERSE-BAL-${Date.now()}`,
+    name: 'Reverse Balance Material',
+    model: 'REV-BAL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 0,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  const order = await orderService.createOrder({
+    order_no: `REVERSE-BAL-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Reverse Balance Material',
+        model: 'REV-BAL',
+        spec: 'REV-BAL',
+        quantity: 4,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-20T11:20:00.000Z',
+    warehouse_id: warehouseId,
+    location_id: locationId,
+  });
+
+  const receiptsRes = await fetch(`${baseUrl}/api/inventory-receipts?orderId=${order.id}`);
+  const receiptsPayload = getBody(await receiptsRes.json()) as {
+    rows: Array<{ id: number; direction: string }>;
+  };
+  const originalReceipt = receiptsPayload.rows.find((item) => item.direction !== 'reversal');
+  assert.ok(originalReceipt);
+
+  const outboundRes = await fetch(`${baseUrl}/api/inventory-outbounds`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      reason: '先出库再撤销',
+      items: [
+        {
+          material_id: material.id,
+          quantity: 3,
+        }
+      ]
+    })
+  });
+  assert.equal(outboundRes.status, 201);
+
+  const reverseRes = await fetch(`${baseUrl}/api/inventory-receipts/${originalReceipt!.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reversed_at: '2026-03-20T11:30:00.000Z',
+      reverse_reason: 'entry_error',
+      quantity: 2,
+    })
+  });
+
+  assert.equal(reverseRes.status, 400);
+  const body = await reverseRes.json();
+  assert.equal(body.error, 'RECEIPT_INSUFFICIENT_BALANCE');
+});
+
+test('POST /api/inventory-outbounds/:id/reverse rejects duplicate reverse attempts', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-OUTBOUND-REVERSE-DUP-${Date.now()}`,
+    name: 'Outbound Reverse Dup Material',
+    model: 'OUTBOUND-REV-DUP',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 0,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  const order = await orderService.createOrder({
+    order_no: `OUTBOUND-REV-DUP-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: material.code,
+        supplier: 'Inventory Supplier',
+        name: 'Outbound Reverse Dup Material',
+        model: 'OUTBOUND-REV-DUP',
+        spec: 'OUTBOUND-REV-DUP',
+        quantity: 2,
+        unit: 'pcs',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    warehouse_id: warehouseId,
+    location_id: locationId,
+  });
+
+  const createRes = await fetch(`${baseUrl}/api/inventory-outbounds`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      reason: '重复冲销检查',
+      items: [
+        {
+          material_id: material.id,
+          quantity: 1
+        }
+      ]
+    })
+  });
+  assert.equal(createRes.status, 201);
+  const outbound = getBody(await createRes.json()) as { id: number };
+
+  const firstReverseRes = await fetch(`${baseUrl}/api/inventory-outbounds/${outbound.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: '第一次冲销' })
+  });
+  assert.equal(firstReverseRes.status, 200);
+
+  const duplicateReverseRes = await fetch(`${baseUrl}/api/inventory-outbounds/${outbound.id}/reverse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: '第二次冲销' })
+  });
+  assert.equal(duplicateReverseRes.status, 400);
+  const duplicateBody = await duplicateReverseRes.json();
+  assert.equal(duplicateBody.error, 'OUTBOUND_ALREADY_REVERSED');
 });
 
 test.after(async () => {

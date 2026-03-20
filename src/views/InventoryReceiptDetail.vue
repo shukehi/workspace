@@ -54,7 +54,7 @@ async function loadDetail() {
   try {
     const current = await store.fetchInventoryReceipt(receiptId.value);
     receipt.value = current;
-    relatedRows.value = await store.fetchAllInventoryReceipts({ orderNo: current.order_no });
+    relatedRows.value = await store.fetchAllInventoryReceipts({ orderId: current.order_id });
   } catch {
     toast({
       title: '详情加载失败',
@@ -149,6 +149,7 @@ watch(() => route.params.id, () => {
           <div><span class="text-muted-foreground">方向：</span>{{ receipt.direction === 'reversal' ? '撤销' : '入库' }}</div>
           <div><span class="text-muted-foreground">入库日期：</span>{{ normalizeDateString(auditDetail.original.receipt_date) || '-' }}</div>
           <div><span class="text-muted-foreground">操作人：</span>{{ auditDetail.original.operator || '-' }}</div>
+          <div><span class="text-muted-foreground">库位：</span>{{ auditDetail.original.location_name || auditDetail.original.location_code || '-' }}</div>
           <div><span class="text-muted-foreground">剩余可撤销：</span>{{ Number(auditDetail.original.reversible_quantity || 0) }} {{ auditDetail.original.unit || '' }}</div>
           <div class="md:col-span-2 xl:col-span-3"><span class="text-muted-foreground">备注：</span>{{ auditDetail.original.remark || '-' }}</div>
         </CardContent>

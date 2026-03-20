@@ -44,9 +44,15 @@ http://47.98.198.45:8802/getOutContractDetail
 - `POST /api/orders`
 - `PUT /api/orders/:id`
 - `DELETE /api/orders/:id`
+- `POST /api/orders/:id/arrive`
+- `POST /api/orders/bulk-arrive`
+- `POST /api/orders/:id/stock-in`
 
 说明：
 
+- `GET /api/orders` 当前支持 `page / pageSize / status / category / risk / keyword / orderNo / createdDate / startDate / endDate`
+- `POST /api/orders/:id/arrive` 用于单张到货，`POST /api/orders/bulk-arrive` 用于批量到货
+- `POST /api/orders/:id/stock-in` 支持按明细数量入库，并支持 `warehouse_id / location_id`
 - 自动生成采购单在 `POST /api/orders` 时会做数据库级幂等防重
 - 防重依据是 `source_contract_code + category + supplier + normalized items`
 - 历史自动生成单会在后续 `PUT /api/orders/:id` 更新时回填幂等 key，之后同样受数据库级防重约束
@@ -54,6 +60,29 @@ http://47.98.198.45:8802/getOutContractDetail
 - 若取消单恢复到有效状态时幂等 key 已被其他有效单占用，`PUT /api/orders/:id` 也会返回 `409`
 - `409` 响应会包含 `existingOrder`，用于前端提示用户查看已存在采购单
 - 手动录入且未携带 `source_contract_code` 的采购单不参与该防重
+
+## 1.2 库存域 API
+
+- `GET /api/inventory`
+- `PUT /api/inventory/:id`
+- `GET /api/inventory-receipts`
+- `GET /api/inventory-receipts/:id`
+- `POST /api/inventory-receipts/:id/reverse`
+- `GET /api/inventory-locations`
+- `POST /api/inventory-locations`
+- `PUT /api/inventory-locations/:id`
+- `GET /api/inventory-outbounds`
+- `GET /api/inventory-outbounds/:id`
+- `POST /api/inventory-outbounds`
+- `POST /api/inventory-outbounds/:id/reverse`
+
+说明：
+
+- `GET /api/inventory` 当前支持 `warehouseId / locationId / keyword / lowStockOnly`
+- `GET /api/inventory` 返回总库存，并附带 `locations[]` 库位余额摘要
+- `GET /api/inventory-receipts` 当前支持 `orderNo / orderId / warehouseId / locationId / keyword / direction / reverseReason / page / pageSize`
+- 正式出库通过 `inventory-outbounds` 维护；出库冲销会创建反向出库单回补原库位余额和总库存
+- `PUT /api/inventory/:id` 仍保留兼容，但不再是正式仓库流程推荐入口
 
 ## 2. 配置域 API
 
@@ -106,15 +135,16 @@ http://47.98.198.45:8802/getOutContractDetail
 1. 订单查询代理和配置域接口都通过本地后端统一暴露
 2. 订单查询仍依赖外部 ERP API
 3. 本地数据库已启用，默认 SQLite 路径为 `data/runtime/database.sqlite`
-4. 数据库配置入口位于 `server/config/database.js`
+4. 数据库配置入口位于 `server/config/database.ts`
 5. Mapping 与 materials 的前端主读取链路应优先使用 workflow `published` 接口
 6. Legacy `/api/config/*` 接口只用于兼容桥接，不应作为新功能真源
 7. 锁具配置页（`/config/lock`）保存时应走 workflow `lock` profile；`/api/config/lock` 仅作为 legacy 兼容桥接
 8. 采购管理页前端筛选按归一化类别工作，`配件 / 五金 / hardware` 会统一归类为五金配件；不要求历史订单的 `category` 存储值完全一致
-9. 采购管理页还提供纯前端风险筛选：`风险订单` 会命中待人工处理和待确认单据，`待人工处理` 只命中高风险单据；该筛选不依赖后端新增接口
+9. 采购管理页风险筛选当前已接入 `GET /api/orders?risk=`：`风险订单` 会命中待人工处理和待确认单据，`待人工处理` 只命中高风险单据
 10. 采购管理页摘要卡片里的 `待处理单` 会筛选 `draft / submitted / processing`，`今日新增` 会按 `created_at` 日期筛选
 11. `/api/materials` 对应库存/入库实际使用的 `materials` 数据库表；`/api/config/materials` / `material-catalog` 对应材料目录工作流，二者不会自动双向同步
 12. 采购入库只按 `order_items.material_id -> materials.code/id` 匹配；仅更新材料目录或 mapping 而未补齐 `materials` 表时，仍会触发 `MATERIAL_NOT_FOUND`
+13. 当前采购入库、入库撤销、正式出库、出库冲销都会同时更新 `Material.stock_quantity` 和库位余额；库存页手工改库存仅视为兼容入口
 
 ## 4. 关联文档
 

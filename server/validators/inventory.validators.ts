@@ -22,6 +22,29 @@ export function validateInventoryIdParams(params?: UnknownRecord): ValidationIss
     return [];
 }
 
+export function validateInventoryListQuery(query: UnknownRecord = {}): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+    if (query.warehouseId !== undefined) {
+        const warehouseId = Number(query.warehouseId);
+        if (!Number.isInteger(warehouseId) || warehouseId <= 0) {
+            issues.push(createIssue('query', 'warehouseId', 'warehouseId 必须为正整数'));
+        }
+    }
+    if (query.locationId !== undefined) {
+        const locationId = Number(query.locationId);
+        if (!Number.isInteger(locationId) || locationId <= 0) {
+            issues.push(createIssue('query', 'locationId', 'locationId 必须为正整数'));
+        }
+    }
+    if (query.keyword !== undefined && typeof query.keyword !== 'string') {
+        issues.push(createIssue('query', 'keyword', 'keyword 必须为字符串'));
+    }
+    if (query.lowStockOnly !== undefined && !['true', 'false', '1', '0'].includes(String(query.lowStockOnly).toLowerCase())) {
+        issues.push(createIssue('query', 'lowStockOnly', 'lowStockOnly 必须为布尔值'));
+    }
+    return issues;
+}
+
 export function validateInventoryUpdateBody(body: unknown): ValidationIssue[] {
     if (!isPlainObject(body)) {
         return [createIssue('body', 'body', '请求体必须为对象')];
@@ -39,4 +62,3 @@ export function validateInventoryUpdateBody(body: unknown): ValidationIssue[] {
 
     return issues;
 }
-

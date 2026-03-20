@@ -1,5 +1,15 @@
+export interface InventoryLocationSummary {
+    warehouseId: number;
+    warehouseName: string;
+    locationId: number;
+    locationCode: string;
+    locationName: string;
+    quantity: number;
+}
+
 export interface InventoryItem {
     id: number;
+    code: string;
     category: string;
     model: string;
     name: string;
@@ -7,7 +17,28 @@ export interface InventoryItem {
     unit: string;
     supplier: string;
     last_updated: string;
-    min_stock?: number; // Pre-warning level
+    min_stock?: number;
+    locations: InventoryLocationSummary[];
+}
+
+export interface Warehouse {
+    id: number;
+    code: string;
+    name: string;
+    status: 'active' | 'inactive';
+    remark?: string;
+}
+
+export interface InventoryLocation {
+    id: number;
+    code: string;
+    name: string;
+    warehouse_id: number;
+    warehouse_code: string;
+    warehouse_name: string;
+    status: 'active' | 'inactive';
+    remark?: string;
+    sort_order: number;
 }
 
 export interface InventoryReceipt {
@@ -20,6 +51,11 @@ export interface InventoryReceipt {
     reverse_reason?: string | null;
     reversed_quantity?: number | null;
     reversible_quantity?: number | null;
+    warehouse_id: number;
+    warehouse_name?: string | null;
+    location_id: number;
+    location_code?: string | null;
+    location_name?: string | null;
     material_id: string;
     item_name: string;
     supplier?: string | null;
@@ -30,4 +66,47 @@ export interface InventoryReceipt {
     remark?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
+}
+
+export interface InventoryOutboundItem {
+    id: number;
+    outbound_id: number;
+    material_id: number;
+    material_code: string;
+    item_name: string;
+    unit?: string | null;
+    quantity: number;
+}
+
+export interface InventoryOutbound {
+    id: number;
+    outbound_no: string;
+    direction: 'out' | 'reversal';
+    source_outbound_id?: number | null;
+    warehouse_id: number;
+    warehouse_name: string;
+    location_id: number;
+    location_code: string;
+    location_name: string;
+    operator?: string | null;
+    reason: string;
+    remark?: string | null;
+    status: 'posted' | 'reversed';
+    outbound_date: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    can_reverse?: boolean;
+    items: InventoryOutboundItem[];
+}
+
+export interface InventoryLocationListResponse {
+    warehouses: Warehouse[];
+    locations: InventoryLocation[];
+}
+
+export interface InventoryOutboundListResponse {
+    rows: InventoryOutbound[];
+    total: number;
+    page: number;
+    pageSize: number;
 }

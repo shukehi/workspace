@@ -197,6 +197,89 @@ test('POST /api/orders/:id/arrive marks processing order as arrived', async () =
   assert.equal(arrived.delivery_date, '2026-03-18T00:00:00.000Z');
 });
 
+test('POST /api/orders/bulk-arrive batches processing orders and reports per-id failures', async () => {
+  const createProcessingOrder = async (orderNo: string) => {
+    const res = await fetch(`${baseUrl}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_no: orderNo,
+        supplier: '汇成',
+        category: '锁具',
+        status: 'processing',
+        items: [
+          {
+            name: '锁体A',
+            model: '主锁',
+            spec: '主锁',
+            supplier: '汇成',
+            quantity: 1,
+            unit: '把',
+          },
+        ],
+      }),
+    });
+    return getBody(await res.json()) as { id: number };
+  };
+
+  const processingOne = await createProcessingOrder('ROUTE-PO-BULK-ARRIVE-001');
+  const processingTwo = await createProcessingOrder('ROUTE-PO-BULK-ARRIVE-002');
+
+  const draftRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-BULK-ARRIVE-003',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      items: [
+        {
+          name: '包装A',
+          model: 'P-1',
+          quantity: 1,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+  const draftOrder = getBody(await draftRes.json()) as { id: number };
+
+  const bulkRes = await fetch(`${baseUrl}/api/orders/bulk-arrive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ids: [processingOne.id, processingTwo.id, draftOrder.id],
+      arrived_at: '2026-03-20T12:30:00.000Z',
+      arrived_by: '采购员B',
+    }),
+  });
+
+  assert.equal(bulkRes.status, 200);
+  const body = getBody(await bulkRes.json()) as {
+    total: number;
+    successCount: number;
+    failureCount: number;
+    succeededIds: number[];
+    failed: Array<{ id: number; code: string }>;
+  };
+  assert.equal(body.total, 3);
+  assert.equal(body.successCount, 2);
+  assert.equal(body.failureCount, 1);
+  assert.deepEqual(body.succeededIds, [processingOne.id, processingTwo.id]);
+  assert.equal(body.failed[0].id, draftOrder.id);
+  assert.equal(body.failed[0].code, 'INVALID_STATUS_TRANSITION');
+
+  const arrivedOrderRes = await fetch(`${baseUrl}/api/orders/${processingOne.id}`);
+  const arrivedOrder = getBody(await arrivedOrderRes.json()) as { status: string; arrived_by: string };
+  assert.equal(arrivedOrder.status, 'arrived');
+  assert.equal(arrivedOrder.arrived_by, '采购员B');
+
+  const unchangedDraftRes = await fetch(`${baseUrl}/api/orders/${draftOrder.id}`);
+  const unchangedDraft = getBody(await unchangedDraftRes.json()) as { status: string };
+  assert.equal(unchangedDraft.status, 'draft');
+});
+
 test('GET /api/orders returns paginated rows when page query is provided', async () => {
   const createOne = await fetch(`${baseUrl}/api/orders`, {
     method: 'POST',
@@ -238,6 +321,48 @@ test('GET /api/orders returns paginated rows when page query is provided', async
   assert.equal(body.rows[0].status, 'arrived');
   assert.equal(typeof body.summary.pendingCount, 'number');
   assert.equal(typeof body.facets.statusCounts.arrived, 'number');
+});
+
+test('GET /api/orders applies supplier and date-range filters without pagination keys', async () => {
+  await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-FILTER-001',
+      supplier: '筛选供应商A',
+      category: '包装',
+      status: 'draft',
+      created_at: '2026-03-10T09:00:00.000Z',
+      items: [{ name: '包装A', model: 'P-F1', quantity: 1, unit: '套' }],
+    }),
+  });
+
+  await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-FILTER-002',
+      supplier: '筛选供应商B',
+      category: '锁具',
+      status: 'draft',
+      created_at: '2026-03-18T09:00:00.000Z',
+      items: [{ name: '锁体A', model: 'L-F2', quantity: 1, unit: '把' }],
+    }),
+  });
+
+  const supplierRes = await fetch(`${baseUrl}/api/orders?supplier=${encodeURIComponent('筛选供应商B')}`);
+  assert.equal(supplierRes.status, 200);
+  const supplierBody = getBody(await supplierRes.json()) as { rows: Array<{ supplier: string }> };
+  assert.equal(Array.isArray(supplierBody.rows), true);
+  assert.equal(supplierBody.rows.length >= 1, true);
+  assert.equal(supplierBody.rows.every((row) => row.supplier === '筛选供应商B'), true);
+
+  const dateRes = await fetch(`${baseUrl}/api/orders?startDate=2026-03-15&endDate=2026-03-20`);
+  assert.equal(dateRes.status, 200);
+  const dateBody = getBody(await dateRes.json()) as { rows: Array<{ order_no: string }> };
+  assert.equal(Array.isArray(dateBody.rows), true);
+  assert.equal(dateBody.rows.some((row) => row.order_no === 'ROUTE-PO-FILTER-002'), true);
+  assert.equal(dateBody.rows.some((row) => row.order_no === 'ROUTE-PO-FILTER-001'), false);
 });
 
 test('GET /api/orders rejects invalid page query with validation error', async () => {

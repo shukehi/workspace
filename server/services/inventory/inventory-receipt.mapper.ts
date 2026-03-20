@@ -54,8 +54,15 @@ export function resolveMaterialLookupCandidates(rawMaterialId: unknown): { code:
 
 export function toPlainReceipt(receipt: any): ReceiptLike {
   const plain: ReceiptLike = typeof receipt.get === 'function' ? receipt.get({ plain: true }) : { ...receipt };
+  const warehouse = plain.warehouse || {};
+  const location = plain.location || {};
   return {
     ...plain,
+    warehouse_id: Number(plain.warehouse_id || warehouse.id || 0),
+    warehouse_name: warehouse.name || '',
+    location_id: Number(plain.location_id || location.id || 0),
+    location_code: location.code || '',
+    location_name: location.name || '',
     quantity: Number(plain.quantity || 0),
     receipt_date: plain.receipt_date ? new Date(plain.receipt_date).toISOString() : null,
     created_at: plain.created_at ? new Date(plain.created_at).toISOString() : null,
@@ -75,4 +82,3 @@ export function computeReversalStats(receipt: ReceiptLike, reversalReceipts: Rec
     reversibleQuantity: Math.max(originalQuantity - reversedQuantity, 0),
   };
 }
-

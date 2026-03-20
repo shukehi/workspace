@@ -3,6 +3,12 @@ import { createReceiptError } from './inventory-receipt.errors';
 import { normalizeReceiptQuantity, resolveOrderedQuantity } from './inventory-receipt.mapper';
 import type { PlainRecord } from '../../shared/types';
 
+type ResolvedReceiptOrderItem = {
+  orderItem: PlainRecord;
+  quantity: number;
+  itemKey: string;
+};
+
 export function resolveReceiptOrderItems(order: PlainRecord | null | undefined, payload: PlainRecord = {}) {
   const orderItems = Array.isArray(order?.items) ? order.items : [];
   if (orderItems.length === 0) {
@@ -22,7 +28,7 @@ export function resolveReceiptOrderItems(order: PlainRecord | null | undefined, 
           itemKey: buildOrderItemKey(orderItem),
         };
       })
-      .filter(Boolean);
+      .filter((item): item is ResolvedReceiptOrderItem => Boolean(item));
   }
 
   if (!Array.isArray(payload.items) || payload.items.length === 0) {
@@ -30,7 +36,7 @@ export function resolveReceiptOrderItems(order: PlainRecord | null | undefined, 
   }
 
   const seenOrderItemIds = new Set<number>();
-  return payload.items.map((rawItem: PlainRecord) => {
+  return payload.items.map((rawItem: PlainRecord): ResolvedReceiptOrderItem => {
     const orderItemId = Number(rawItem?.order_item_id);
     const itemKey = String(rawItem?.item_key || '').trim();
 
@@ -68,4 +74,3 @@ export function resolveReceiptOrderItems(order: PlainRecord | null | undefined, 
     };
   });
 }
-

@@ -77,6 +77,7 @@ async function createLegacySchema(storagePath: string) {
       unit VARCHAR(255) DEFAULT 'PCS',
       price FLOAT DEFAULT 0,
       category VARCHAR(255),
+      stock_quantity FLOAT DEFAULT 7,
       createdAt DATETIME,
       updatedAt DATETIME
     )
@@ -87,6 +88,19 @@ async function createLegacySchema(storagePath: string) {
       created_at DATETIME,
       updated_at DATETIME
     )
+  `);
+
+  await sequelize.query(`
+    INSERT INTO materials (code, name, model, supplier, unit, price, category, stock_quantity)
+    VALUES ('LEGACY-MAT-001', 'Legacy Material', 'LEGACY', 'Legacy Supplier', 'pcs', 10, '测试', 7)
+  `);
+  await sequelize.query(`
+    INSERT INTO orders (order_no, supplier, status, metadata, created_at, delivery_date, updated_at)
+    VALUES ('LEGACY-PO-001', 'Legacy Supplier', 'completed', '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+  await sequelize.query(`
+    INSERT INTO inventory_receipts (order_id, order_no, order_item_id, material_id, item_name, supplier, quantity, unit, receipt_date, operator, remark, created_at, updated_at)
+    VALUES (1, 'LEGACY-PO-001', NULL, 'LEGACY-MAT-001', 'Legacy Material', 'Legacy Supplier', 7, 'pcs', CURRENT_TIMESTAMP, 'Legacy User', '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
 
   await sequelize.close();
@@ -109,16 +123,39 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
     const inventoryReceipts = await queryInterface.describeTable('inventory_receipts');
     const materials = await queryInterface.describeTable('materials');
     const idempotency = await queryInterface.describeTable('order_idempotency_keys');
+    const warehouses = await queryInterface.describeTable('warehouses');
+    const inventoryLocations = await queryInterface.describeTable('inventory_locations');
+    const inventoryLocationBalances = await queryInterface.describeTable('inventory_location_balances');
+    const inventoryOutbounds = await queryInterface.describeTable('inventory_outbounds');
+    const inventoryOutboundItems = await queryInterface.describeTable('inventory_outbound_items');
 
     assert.ok(orders.category);
     assert.ok(orders.dedupe_key);
     assert.ok(orderItems.material_id);
     assert.ok(orderItems.received_quantity);
     assert.ok(inventoryReceipts.direction);
+    assert.ok(inventoryReceipts.reverse_version);
+    assert.ok(inventoryReceipts.warehouse_id);
+    assert.ok(inventoryReceipts.location_id);
     assert.ok(materials.package_spec);
     assert.ok(materials.aliases);
     assert.ok(idempotency.scope);
     assert.ok(idempotency.active);
+    assert.ok(warehouses.code);
+    assert.ok(inventoryLocations.warehouse_id);
+    assert.ok(inventoryLocationBalances.location_id);
+    assert.ok(inventoryOutbounds.outbound_no);
+    assert.ok(inventoryOutboundItems.outbound_id);
+
+    const [defaultWarehouses] = await sequelize.query(`SELECT code FROM warehouses ORDER BY id`);
+    assert.deepEqual((defaultWarehouses as Array<{ code: string }>).map((row) => row.code), ['DEFAULT']);
+    const [defaultLocations] = await sequelize.query(`SELECT code FROM inventory_locations ORDER BY id`);
+    assert.deepEqual((defaultLocations as Array<{ code: string }>).map((row) => row.code), ['UNASSIGNED']);
+    const [receiptRows] = await sequelize.query(`SELECT warehouse_id, location_id FROM inventory_receipts ORDER BY id`);
+    assert.equal(Number((receiptRows as Array<{ warehouse_id: number }>)[0].warehouse_id) > 0, true);
+    assert.equal(Number((receiptRows as Array<{ location_id: number }>)[0].location_id) > 0, true);
+    const [balanceRows] = await sequelize.query(`SELECT quantity FROM inventory_location_balances ORDER BY id`);
+    assert.equal(Number((balanceRows as Array<{ quantity: number }>)[0].quantity), 7);
 
     const [rows] = await sequelize.query(`SELECT id FROM ${MIGRATIONS_TABLE} ORDER BY id`);
     assert.deepEqual((rows as { id: string }[]).map((row) => row.id), [
@@ -128,6 +165,8 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
       '20260313-004-add-material-columns',
       '20260313-005-add-order-idempotency-columns-and-index',
       '20260318-006-add-query-indexes',
+      '20260320-007-add-inventory-location-and-outbound',
+      '20260320-008-add-inventory-reversal-guards',
     ]);
   } finally {
     await sequelize.close();

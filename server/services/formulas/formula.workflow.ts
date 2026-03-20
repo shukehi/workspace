@@ -4,6 +4,7 @@ import type {
     FormulaRevisionAttributes,
 } from '../../models/types';
 import type { PlainRecord } from '../../shared/types';
+import type { BomRow } from './formula.validator';
 
 import FormulaRepository from './formula.repository';
 import { Op } from 'sequelize';
@@ -16,7 +17,7 @@ type FormulaError = {
 };
 
 type FormulaWorkflowResult =
-    | { ok: true; revision?: PlainRecord | null; definition?: PlainRecord | null }
+    | { ok: true; revision?: PlainRecord | number | null; definition?: PlainRecord | null }
     | { ok: false; status: number; errors: FormulaError[]; latestRevision?: number | null };
 
 const VALID_STATES = new Set(['draft', 'published', 'archived']);
@@ -84,7 +85,7 @@ function wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function validateAndResolveBomWithMaterials(bom: unknown[]): Promise<{ bom: unknown[]; errors: FormulaError[] }> {
+async function validateAndResolveBomWithMaterials(bom: unknown[]): Promise<{ bom: BomRow[]; errors: FormulaError[] }> {
     const normalizedRows = normalizeBom(bom);
     const shapeErrors = validateBomRows({ bom: normalizedRows, allowEmptyBom: false, materialCodeSet: null });
     if (shapeErrors.length > 0) {
@@ -211,7 +212,7 @@ export async function createFormula({
                     if (bomValidation.errors.length > 0) {
                         return { ok: false, status: 422, errors: bomValidation.errors };
                     }
-                    normalizedBom = bomValidation.bom as PlainRecord[];
+                    normalizedBom = bomValidation.bom;
                 }
 
                 const exists = await FormulaRepository.findDefinitionByKey(targetFormulaKey, transaction);
@@ -319,7 +320,7 @@ export async function updateDraft(
         if (bomValidation.errors.length > 0) {
             return { ok: false, status: 422, errors: bomValidation.errors };
         }
-        normalizedBom = bomValidation.bom as PlainRecord[];
+        normalizedBom = bomValidation.bom;
 
         const nextRevisionNumber = latest.revision + 1;
         const nextRevision = await FormulaRepository.createRevision({
@@ -378,7 +379,7 @@ export async function publish(formulaKey: string, { fromRevision, changeNote, op
         if (bomValidation.errors.length > 0) {
             return { ok: false, status: 422, errors: bomValidation.errors };
         }
-        const resolvedBom = bomValidation.bom as PlainRecord[];
+        const resolvedBom = bomValidation.bom;
 
         const latest = await FormulaRepository.findLatestRevision(definition.id, transaction);
         const nextRevisionNumber = (latest?.revision || 0) + 1;
@@ -519,4 +520,3 @@ export async function getPublishedFormulasMap() {
 
     return toPublishedMap(definitions, latestPublishedByFormulaId, parsePayload);
 }
-

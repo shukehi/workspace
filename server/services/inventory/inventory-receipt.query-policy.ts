@@ -7,6 +7,8 @@ export function buildInventoryReceiptListQuery(query: QueryInput = {}) {
 
   if (query.orderId) where.order_id = Number(query.orderId);
   if (query.orderNo) where.order_no = String(query.orderNo).trim();
+  if (query.warehouseId) where.warehouse_id = Number(query.warehouseId);
+  if (query.locationId) where.location_id = Number(query.locationId);
   if (query.direction && ['in', 'reversal'].includes(String(query.direction))) {
     where.direction = String(query.direction);
   }
@@ -22,6 +24,8 @@ export function buildInventoryReceiptListQuery(query: QueryInput = {}) {
       { item_name: { [Op.like]: `%${keyword}%` } },
       { operator: { [Op.like]: `%${keyword}%` } },
       { material_id: { [Op.like]: `%${keyword}%` } },
+      { '$location.name$': { [Op.like]: `%${keyword}%` } },
+      { '$location.code$': { [Op.like]: `%${keyword}%` } },
     ];
   }
 
@@ -35,4 +39,3 @@ export function buildInventoryReceiptListQuery(query: QueryInput = {}) {
     offset: (page - 1) * pageSize,
   };
 }
-

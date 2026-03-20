@@ -38,46 +38,46 @@ class FormulaRepository {
     }
 
     static async listDefinitions({ where, limit, offset }: DefinitionListQuery): Promise<DefinitionListResult> {
-        return FormulaDefinition.findAndCountAll({
+        return await FormulaDefinition.findAndCountAll({
             where,
             order: [['updated_at', 'DESC']],
             limit,
             offset
-        });
+        }) as unknown as DefinitionListResult;
     }
 
     static async listDefinitionsByStatuses(statuses: string[]): Promise<FormulaDefinitionInstance[]> {
-        return FormulaDefinition.findAll({
+        return await FormulaDefinition.findAll({
             where: { status: { [Op.in]: statuses } }
-        });
+        }) as unknown as FormulaDefinitionInstance[];
     }
 
     static async listDefinitionKeysByPrefix(
         prefix: string,
         transaction?: Transaction,
     ): Promise<Array<Pick<FormulaDefinitionAttributes, 'id' | 'formula_key'>>> {
-        return FormulaDefinition.findAll({
+        return await FormulaDefinition.findAll({
             where: { formula_key: { [Op.like]: `${prefix}%` } },
             attributes: ['id', 'formula_key'],
             ...txOpts(transaction)
-        });
+        }) as unknown as Array<Pick<FormulaDefinitionAttributes, 'id' | 'formula_key'>>;
     }
 
     static async findDefinitionByKey(
         formulaKey: string,
         transaction?: Transaction,
     ): Promise<FormulaDefinitionInstance | null> {
-        return FormulaDefinition.findOne({
+        return await FormulaDefinition.findOne({
             where: { formula_key: formulaKey },
             ...txOpts(transaction)
-        });
+        }) as unknown as FormulaDefinitionInstance | null;
     }
 
     static async createDefinition(
         payload: FormulaDefinitionCreationAttributes,
         transaction?: Transaction,
     ): Promise<FormulaDefinitionInstance> {
-        return FormulaDefinition.create(payload, txOpts(transaction));
+        return await FormulaDefinition.create(payload, txOpts(transaction)) as unknown as FormulaDefinitionInstance;
     }
 
     static async updateDefinition(
@@ -102,22 +102,22 @@ class FormulaRepository {
         formulaId: number,
         transaction?: Transaction,
     ): Promise<FormulaRevisionInstance[]> {
-        return FormulaRevision.findAll({
+        return await FormulaRevision.findAll({
             where: { formula_id: formulaId },
             order: [['revision', 'DESC']],
             ...txOpts(transaction)
-        });
+        }) as unknown as FormulaRevisionInstance[];
     }
 
     static async findLatestRevision(
         formulaId: number,
         transaction?: Transaction,
     ): Promise<FormulaRevisionInstance | null> {
-        return FormulaRevision.findOne({
+        return await FormulaRevision.findOne({
             where: { formula_id: formulaId },
             order: [['revision', 'DESC']],
             ...txOpts(transaction)
-        });
+        }) as unknown as FormulaRevisionInstance | null;
     }
 
     static async findRevisionByNumber(
@@ -125,20 +125,20 @@ class FormulaRepository {
         revision: number | string,
         transaction?: Transaction,
     ): Promise<FormulaRevisionInstance | null> {
-        return FormulaRevision.findOne({
+        return await FormulaRevision.findOne({
             where: {
                 formula_id: formulaId,
                 revision: Number(revision)
             },
             ...txOpts(transaction)
-        });
+        }) as unknown as FormulaRevisionInstance | null;
     }
 
     static async createRevision(
         payload: FormulaRevisionCreationAttributes,
         transaction?: Transaction,
     ): Promise<FormulaRevisionInstance> {
-        return FormulaRevision.create(payload, txOpts(transaction));
+        return await FormulaRevision.create(payload, txOpts(transaction)) as unknown as FormulaRevisionInstance;
     }
 
     static async destroyRevisions(formulaId: number, transaction?: Transaction): Promise<number> {
@@ -149,20 +149,20 @@ class FormulaRepository {
     }
 
     static async listPublishedRevisionsByFormulaIds(formulaIds: number[]): Promise<FormulaRevisionInstance[]> {
-        return FormulaRevision.findAll({
+        return await FormulaRevision.findAll({
             where: {
                 formula_id: { [Op.in]: formulaIds },
                 state: 'published'
             },
             order: [['revision', 'DESC']]
-        });
+        }) as unknown as FormulaRevisionInstance[];
     }
 
     static async createAuditLog(
         payload: FormulaAuditLogCreationAttributes,
         transaction?: Transaction,
     ): Promise<FormulaAuditLogInstance> {
-        return FormulaAuditLog.create(payload, txOpts(transaction));
+        return await FormulaAuditLog.create(payload, txOpts(transaction)) as unknown as FormulaAuditLogInstance;
     }
 
     static async destroyAuditLogs(formulaId: number, transaction?: Transaction): Promise<number> {
@@ -174,10 +174,10 @@ class FormulaRepository {
 
     static async findMaterialsByCodes(codes: string[]): Promise<Array<Pick<MaterialInstance, 'code'>>> {
         if (!codes.length) return [];
-        return Material.findAll({
+        return await Material.findAll({
             where: { code: { [Op.in]: codes } },
             attributes: ['code']
-        });
+        }) as unknown as Array<Pick<MaterialInstance, 'code'>>;
     }
 }
 

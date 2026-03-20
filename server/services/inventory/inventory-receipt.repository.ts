@@ -10,7 +10,10 @@ import type {
 
 import type { Transaction } from 'sequelize';
 import type { WhereOptions } from 'sequelize';
-import { InventoryReceipt, Material, Order, OrderItem } from '../../models';
+import { InventoryLocation, InventoryLocationBalance, InventoryReceipt, Material, Order, OrderItem, Warehouse } from '../../models';
+import type {
+    InventoryLocationBalanceInstance,
+} from '../../models';
 import { createReceiptError } from './inventory-receipt.errors';
 import { resolveMaterialLookupCandidates } from './inventory-receipt.mapper';
 
@@ -28,6 +31,11 @@ interface ReceiptListResult {
     rows: InventoryReceiptInstance[];
 }
 
+const RECEIPT_INCLUDE = [
+    { model: Warehouse, as: 'warehouse', required: false },
+    { model: InventoryLocation, as: 'location', required: false },
+];
+
 export async function findMaterialForItem(
     item: { material_id?: string | number | null } | null | undefined,
     transaction?: LooseTransaction,
@@ -39,10 +47,10 @@ export async function findMaterialForItem(
 
     let material: MaterialInstance | null = null;
     if (code) {
-        material = await Material.findOne({ where: { code }, transaction: transaction ?? null });
+        material = await Material.findOne({ where: { code }, transaction: transaction ?? null }) as unknown as MaterialInstance | null;
     }
     if (!material && numericId) {
-        material = await Material.findByPk(numericId, { transaction: transaction ?? null });
+        material = await Material.findByPk(numericId, { transaction: transaction ?? null }) as unknown as MaterialInstance | null;
     }
     if (!material) {
         throw createReceiptError('MATERIAL_NOT_FOUND', { materialId: code || String(numericId) });
@@ -59,15 +67,19 @@ export async function listReversalReceipts(
             source_receipt_id: sourceReceiptId,
             direction: 'reversal',
         },
+        include: RECEIPT_INCLUDE,
         transaction: transaction ?? null,
-    });
+    }) as unknown as InventoryReceiptInstance[];
 }
 
 export async function findReceiptById(
     receiptId: number,
     transaction?: LooseTransaction,
 ): Promise<InventoryReceiptInstance | null> {
-    return await InventoryReceipt.findByPk(receiptId, { transaction: transaction ?? null });
+    return await InventoryReceipt.findByPk(receiptId, {
+        include: RECEIPT_INCLUDE,
+        transaction: transaction ?? null,
+    }) as unknown as InventoryReceiptInstance | null;
 }
 
 export async function findOrderWithItems(
@@ -77,14 +89,36 @@ export async function findOrderWithItems(
     return await Order.findByPk(orderId, {
         include: [{ model: OrderItem, as: 'items' }],
         transaction: transaction ?? null,
-    });
+    }) as unknown as OrderInstance | null;
 }
 
 export async function createReceipt(
     payload: InventoryReceiptCreationAttributes,
     transaction?: LooseTransaction,
 ): Promise<InventoryReceiptInstance> {
-    return await InventoryReceipt.create(payload, { transaction: transaction ?? null });
+    return await InventoryReceipt.create(payload, { transaction: transaction ?? null }) as unknown as InventoryReceiptInstance;
+}
+
+export async function claimReceiptReverseLock(
+    receiptId: number,
+    expectedReverseVersion: number,
+    transaction?: LooseTransaction,
+) {
+    const [updated] = await InventoryReceipt.update(
+        {
+            reverse_version: expectedReverseVersion + 1,
+            updated_at: new Date(),
+        },
+        {
+            where: {
+                id: receiptId,
+                reverse_version: expectedReverseVersion,
+            },
+            transaction: transaction ?? null,
+        },
+    );
+
+    return Number(updated || 0);
 }
 
 export async function findReceiptsAndCount({
@@ -94,10 +128,11 @@ export async function findReceiptsAndCount({
 }: ReceiptListQuery): Promise<ReceiptListResult> {
     return await InventoryReceipt.findAndCountAll({
         where,
+        include: RECEIPT_INCLUDE,
         order: [['receipt_date', 'DESC'], ['created_at', 'DESC']],
         offset,
         limit: pageSize,
-    });
+    }) as unknown as ReceiptListResult;
 }
 
 export async function findRelatedReversals(originalIds: number[]): Promise<InventoryReceiptInstance[]> {
@@ -107,6 +142,22 @@ export async function findRelatedReversals(originalIds: number[]): Promise<Inven
             direction: 'reversal',
             source_receipt_id: originalIds,
         },
-    });
+        include: RECEIPT_INCLUDE,
+    }) as unknown as InventoryReceiptInstance[];
 }
 
+export async function findLocationBalance(
+    materialId: number,
+    warehouseId: number,
+    locationId: number,
+    transaction?: LooseTransaction,
+) {
+    return await InventoryLocationBalance.findOne({
+        where: {
+            material_id: materialId,
+            warehouse_id: warehouseId,
+            location_id: locationId,
+        },
+        transaction: transaction ?? null,
+    }) as unknown as InventoryLocationBalanceInstance | null;
+}

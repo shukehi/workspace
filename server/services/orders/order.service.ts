@@ -1,4 +1,4 @@
-import type { OrderListQuery, OrderCreateInput, OrderUpdateInput } from '../../models/types';
+import type { OrderAttributes, OrderListQuery, OrderCreateInput, OrderUpdateInput } from '../../models/types';
 import type { Transaction } from 'sequelize';
 import { createPaginationResponse } from '../../shared/contracts/pagination';
 import { Op } from 'sequelize';
@@ -13,7 +13,6 @@ import {
 import {
     buildOrderFacets,
     buildOrderSummary,
-    filterOrders,
 } from './order.query-policy';
 import {
     normalizeOrderForLog,
@@ -47,6 +46,43 @@ import type { PlainRecord } from '../../shared/types';
 function normalizeOrderRemark(remark: unknown): string {
     if (remark === undefined || remark === null) return '';
     return String(remark);
+}
+
+function normalizeNullableDate(value: unknown, fallback: Date | null | undefined): Date | null | undefined {
+    if (value === undefined) return fallback;
+    if (value === null || value === '') return null;
+    if (value instanceof Date) return value;
+    const parsed = new Date(String(value));
+    return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+}
+
+function normalizeBulkOrderIds(idsInput: unknown): number[] {
+    if (!Array.isArray(idsInput)) return [];
+
+    const seen = new Set<number>();
+    const ids: number[] = [];
+    for (const value of idsInput) {
+        const numeric = Number(String(value || '').trim());
+        if (!Number.isInteger(numeric) || numeric <= 0 || seen.has(numeric)) continue;
+        seen.add(numeric);
+        ids.push(numeric);
+    }
+
+    return ids;
+}
+
+function serializeBulkArriveError(error: unknown): { code: string; message: string } {
+    const record = (error || {}) as PlainRecord;
+    const code = typeof record.code === 'string'
+        ? record.code
+        : (String(record.message || '').trim() === 'Order not found' ? 'ORDER_NOT_FOUND' : 'UNKNOWN_ERROR');
+
+    return {
+        code,
+        message: typeof record.message === 'string' && record.message.trim()
+            ? record.message
+            : code,
+    };
 }
 
 class OrderService {
@@ -133,32 +169,38 @@ class OrderService {
     async getPaginatedOrders(query: OrderListQuery = {}) {
         const page = Math.max(1, Number(query.page) || 1);
         const pageSize = Math.min(200, Math.max(10, Number(query.pageSize) || 50));
+        const aggregates = await orderRepository.getPaginatedOrderAggregates(query);
+        if (aggregates.total === 0) {
+            return createPaginationResponse({
+                rows: [],
+                total: 0,
+                page,
+                pageSize,
+                summary: buildOrderSummary([]),
+                facets: buildOrderFacets([]),
+            });
+        }
 
-        // 将简单条件（status、supplier、orderNo、日期范围）推到数据库层过滤，
-        // 减少从 DB 返回的记录数。
-        // category 需要中英文归一化，保留由 filterOrders 在内存中处理。
-        // risk / keyword（含 item 内容搜索）无法下推，也保留内存处理。
-        const dbWhere = orderRepository.buildSimpleWhereFromQuery(query as Record<string, unknown>);
-
-        // 加载全量 DB 过滤结果用于 facets / summary / total 计算。
-        // category 归一化（中英文映射）及 risk / keyword（含 item 内容搜索）
-        // 由 filterOrders 在内存中处理，因此必须先加载全量再 slice。
-        // findOrdersPaginated 已在 repository 层提供 DB-level LIMIT/OFFSET 支持，
-        // 待 facets 拆分为独立聚合查询后可替换本处的全量加载。
-        const dbOrders = await orderRepository.findAllOrdersWithItems(dbWhere);
-        const serialized = dbOrders.map(serializeOrder);
-
-        const filteredOrders = filterOrders(serialized, query);
-        const start = (page - 1) * pageSize;
-        const rows = filteredOrders.slice(start, start + pageSize);
+        const pagedIds = await orderRepository.findPaginatedOrderIds(query, page, pageSize);
+        const orders = await orderRepository.findOrdersWithItemsByIds(pagedIds);
+        const serializedOrders = orders.map(serializeOrder);
+        const rowsById = new Map<number, PlainRecord>();
+        serializedOrders.forEach((order) => {
+            if (order && Number.isInteger(order.id)) {
+                rowsById.set(Number(order.id), order);
+            }
+        });
+        const rows = pagedIds
+            .map((id) => rowsById.get(id))
+            .filter((order): order is PlainRecord => Boolean(order));
 
         return createPaginationResponse({
             rows,
-            total: filteredOrders.length,
+            total: aggregates.total,
             page,
             pageSize,
-            summary: buildOrderSummary(filteredOrders),
-            facets: buildOrderFacets(filteredOrders),
+            summary: aggregates.summary,
+            facets: aggregates.facets,
         });
     }
 
@@ -287,7 +329,7 @@ class OrderService {
             const nextSourceContractCode = resolveSourceContractCode({
                 source_contract_code: data.source_contract_code,
                 metadata: nextMetadata
-            }, order.source_contract_code);
+            }, order.source_contract_code || '');
             const nextItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
             const nextSupplier = data.supplier === undefined ? order.supplier : data.supplier;
             const nextCategory = data.category === undefined ? order.category : data.category;
@@ -326,7 +368,7 @@ class OrderService {
                 }, transaction);
             }
 
-            await order.update({
+            const nextOrderValues: Partial<OrderAttributes> = {
                 supplier: nextSupplier,
                 source_contract_code: nextSourceContractCode || null,
                 dedupe_key: nextDedupeKey || null,
@@ -334,14 +376,15 @@ class OrderService {
                 status: nextStatus,
                 remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
                 metadata: nextMetadata,
-                delivery_date: data.delivery_date === undefined ? order.delivery_date : data.delivery_date,
-                arrived_at: data.arrived_at === undefined ? order.arrived_at : data.arrived_at,
+                delivery_date: normalizeNullableDate(data.delivery_date, order.delivery_date),
+                arrived_at: normalizeNullableDate(data.arrived_at, order.arrived_at),
                 arrived_by: data.arrived_by === undefined ? order.arrived_by : data.arrived_by,
                 arrived_remark: data.arrived_remark === undefined ? order.arrived_remark : normalizeOrderRemark(data.arrived_remark),
-                stocked_in_at: data.stocked_in_at === undefined ? order.stocked_in_at : data.stocked_in_at,
+                stocked_in_at: normalizeNullableDate(data.stocked_in_at, order.stocked_in_at),
                 stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
                 stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark)
-            }, { transaction });
+            };
+            await order.update(nextOrderValues, { transaction });
 
             if (data.created_at !== undefined) {
                 await orderRepository.updateOrderCreatedAt(Number(id), nextCreatedAt, transaction);
@@ -422,6 +465,37 @@ class OrderService {
             arrived_at: data.arrived_at || new Date().toISOString(),
         };
         return await this.updateOrder(id, payload);
+    }
+
+    async bulkMarkArrived(idsInput: unknown, data: PlainRecord = {}) {
+        const ids = normalizeBulkOrderIds(idsInput);
+        const payload = {
+            arrived_at: data.arrived_at,
+            arrived_by: data.arrived_by,
+            arrived_remark: data.arrived_remark,
+        };
+        const succeededIds: number[] = [];
+        const failed: Array<{ id: number; code: string; message: string }> = [];
+
+        for (const id of ids) {
+            try {
+                await this.markArrived(id, payload);
+                succeededIds.push(id);
+            } catch (error) {
+                failed.push({
+                    id,
+                    ...serializeBulkArriveError(error),
+                });
+            }
+        }
+
+        return {
+            total: ids.length,
+            successCount: succeededIds.length,
+            failureCount: failed.length,
+            succeededIds,
+            failed,
+        };
     }
 
     async stockInOrder(id: number | string, data: PlainRecord = {}) {

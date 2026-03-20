@@ -11,17 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { Order, StockInOrderItemInput } from '@/types/order';
-
-type StockInDraftItem = {
-  order_item_id: number;
-  item_key: string;
-  label: string;
-  ordered: number;
-  received: number;
-  remaining: number;
-  quantity: string;
-  unit: string;
-};
+import type { InventoryLocation, Warehouse } from '@/types/inventory';
+import {
+  buildFullStockInItems,
+  buildSelectedStockInItems,
+  buildStockInDraftItems,
+  normalizeStockInNumber,
+  type StockInDraftItem,
+} from '@/features/procurement/stockInDraft';
 
 const props = defineProps<{
   open: boolean;
@@ -29,6 +26,9 @@ const props = defineProps<{
   saving?: boolean;
   queueIndex?: number;
   queueTotal?: number;
+  warehouses: Warehouse[];
+  locations: InventoryLocation[];
+  locationsLoading?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -37,6 +37,8 @@ const emit = defineEmits<{
     stocked_in_at?: string;
     operator?: string;
     remark?: string;
+    warehouse_id: number;
+    location_id: number;
     items: StockInOrderItemInput[];
   }): void;
 }>();
@@ -44,66 +46,49 @@ const emit = defineEmits<{
 const operator = ref('');
 const remark = ref('');
 const items = ref<StockInDraftItem[]>([]);
-
-function normalizeNumber(value: unknown): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 0;
-  return parsed;
-}
-
-function resolveOrderedQuantity(rawOrdered: unknown, rawQuantity: unknown): number {
-  const ordered = normalizeNumber(rawOrdered);
-  if (ordered > 0) return ordered;
-  return normalizeNumber(rawQuantity);
-}
-
-function buildDraftItems(order: Order | null): StockInDraftItem[] {
-  if (!order?.items?.length) return [];
-  return order.items
-    .map((item) => {
-      const ordered = resolveOrderedQuantity(item.ordered_quantity, item.quantity);
-      const received = normalizeNumber(item.received_quantity);
-      const remaining = Math.max(ordered - received, 0);
-      return {
-        order_item_id: item.id,
-        item_key: item.item_key || '',
-        label: String(item.name || item.type || item.model || '-'),
-        ordered,
-        received,
-        remaining,
-        quantity: '',
-        unit: item.unit || '',
-      };
-    })
-    .filter((item) => item.remaining > 0);
-}
+const selectedWarehouseId = ref('');
+const selectedLocationId = ref('');
 
 watch(
-  () => [props.open, props.order] as const,
+  () => [props.open, props.order, props.warehouses, props.locations] as const,
   ([open, order]) => {
     if (!open) return;
     operator.value = '';
     remark.value = '';
-    items.value = buildDraftItems(order);
+    selectedWarehouseId.value = props.warehouses[0] ? String(props.warehouses[0].id) : '';
+    const initialLocation = props.warehouses[0]
+      ? props.locations.find((location) => location.warehouse_id === props.warehouses[0].id && location.status === 'active')
+      : undefined;
+    selectedLocationId.value = initialLocation ? String(initialLocation.id) : '';
+    items.value = buildStockInDraftItems(order);
   },
   { immediate: true, deep: true }
 );
 
-const selectedItems = computed<StockInOrderItemInput[]>(() => (
-  items.value
-    .map((item) => ({
-      order_item_id: item.order_item_id,
-      item_key: item.item_key,
-      quantity: normalizeNumber(item.quantity),
-      remaining: item.remaining,
-    }))
-    .filter((item) => item.quantity > 0)
-    .map(({ remaining, ...item }) => item)
-));
+const filteredLocations = computed(() => {
+  const warehouseId = Number(selectedWarehouseId.value);
+  if (!Number.isInteger(warehouseId) || warehouseId <= 0) return [];
+  return props.locations.filter((location) => location.warehouse_id === warehouseId && location.status === 'active');
+});
+
+watch(selectedWarehouseId, (warehouseId) => {
+  const nextLocation = filteredLocations.value[0];
+  if (!warehouseId) {
+    selectedLocationId.value = '';
+    return;
+  }
+  if (!filteredLocations.value.some((location) => location.id === Number(selectedLocationId.value))) {
+    selectedLocationId.value = nextLocation ? String(nextLocation.id) : '';
+  }
+});
+
+const selectedItems = computed<StockInOrderItemInput[]>(() => buildSelectedStockInItems(items.value));
+const fullRemainingItems = computed<StockInOrderItemInput[]>(() => buildFullStockInItems(items.value));
+const hasNextQueueOrder = computed(() => (props.queueTotal || 0) > 1 && (props.queueIndex || 1) < (props.queueTotal || 0));
 
 const hasInvalidQuantity = computed(() => (
   items.value.some((item) => {
-    const quantity = normalizeNumber(item.quantity);
+    const quantity = normalizeStockInNumber(item.quantity);
     return quantity < 0 || quantity > item.remaining;
   })
 ));
@@ -112,6 +97,8 @@ const submitDisabled = computed(() => (
   props.saving
   || items.value.length === 0
   || selectedItems.value.length === 0
+  || !selectedWarehouseId.value
+  || !selectedLocationId.value
   || hasInvalidQuantity.value
 ));
 
@@ -127,14 +114,25 @@ function clearQuantity(index: number) {
   item.quantity = '';
 }
 
-function handleSubmit() {
-  if (submitDisabled.value) return;
+function emitSubmit(itemsPayload: StockInOrderItemInput[]) {
   emit('submit', {
     stocked_in_at: new Date().toISOString(),
     operator: operator.value.trim() || undefined,
     remark: remark.value,
-    items: selectedItems.value,
+    warehouse_id: Number(selectedWarehouseId.value),
+    location_id: Number(selectedLocationId.value),
+    items: itemsPayload,
   });
+}
+
+function handleSubmit() {
+  if (submitDisabled.value) return;
+  emitSubmit(selectedItems.value);
+}
+
+function handleSubmitAllRemaining() {
+  if (props.saving || fullRemainingItems.value.length === 0) return;
+  emitSubmit(fullRemainingItems.value);
 }
 </script>
 
@@ -153,6 +151,27 @@ function handleSubmit() {
       <div class="space-y-4">
         <div class="grid gap-3 md:grid-cols-[180px_1fr]">
           <label class="space-y-1 text-sm">
+            <span class="text-muted-foreground">仓库</span>
+            <select v-model="selectedWarehouseId" class="h-10 w-full rounded-md border bg-background px-3 text-sm">
+              <option value="">请选择仓库</option>
+              <option v-for="warehouse in warehouses" :key="warehouse.id" :value="String(warehouse.id)">
+                {{ warehouse.name }}
+              </option>
+            </select>
+          </label>
+          <label class="space-y-1 text-sm">
+            <span class="text-muted-foreground">入库库位</span>
+            <select v-model="selectedLocationId" class="h-10 w-full rounded-md border bg-background px-3 text-sm">
+              <option value="">请选择库位</option>
+              <option v-for="location in filteredLocations" :key="location.id" :value="String(location.id)">
+                {{ location.name }} ({{ location.code }})
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-[180px_1fr]">
+          <label class="space-y-1 text-sm">
             <span class="text-muted-foreground">操作人</span>
             <Input v-model="operator" placeholder="例如：仓管A" />
           </label>
@@ -161,6 +180,10 @@ function handleSubmit() {
             <Textarea v-model="remark" rows="2" placeholder="例如：首批到货" />
           </label>
         </div>
+
+        <p v-if="locationsLoading" class="text-xs text-muted-foreground">
+          正在加载库位配置...
+        </p>
 
         <div class="rounded-md border overflow-hidden">
           <table class="w-full text-sm">
@@ -218,6 +241,14 @@ function handleSubmit() {
           </p>
           <div class="flex items-center gap-2">
             <Button variant="outline" :disabled="saving" @click="$emit('update:open', false)">取消</Button>
+            <Button
+              v-if="hasNextQueueOrder"
+              variant="secondary"
+              :disabled="saving || fullRemainingItems.length === 0"
+              @click="handleSubmitAllRemaining"
+            >
+              {{ saving ? '入库中...' : '全入当前单并下一单' }}
+            </Button>
             <Button :disabled="submitDisabled" @click="handleSubmit">
               {{ saving ? '入库中...' : '确认入库' }}
             </Button>

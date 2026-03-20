@@ -48,6 +48,8 @@ export function validateInventoryReceiptIdParams(params: UnknownRecord = {}): Va
 export function validateInventoryReceiptListQuery(query: UnknownRecord = {}): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     pushIfPresentIsNotPositiveInteger(issues, query, 'orderId');
+    pushIfPresentIsNotPositiveInteger(issues, query, 'warehouseId');
+    pushIfPresentIsNotPositiveInteger(issues, query, 'locationId');
     pushIfPresentIsNotPositiveInteger(issues, query, 'page');
     pushIfPresentIsNotPositiveInteger(issues, query, 'pageSize');
     pushIfPresentIsNotString(issues, query, 'orderNo');
@@ -71,4 +73,3 @@ export function validateInventoryReceiptReverseBody(body: unknown): ValidationIs
     pushIfPresentIsNotPositiveNumber(issues, body, 'quantity');
     return issues;
 }
-

@@ -47,6 +47,7 @@ test('useInventoryReceiptFlow manages audit state and reverse flow', async () =>
   const toastCalls: Array<{ title: string; description?: string; variant?: string }> = [];
   const loadCalls: string[] = [];
   let refreshCount = 0;
+  let inventoryReloadCount = 0;
 
   const flow = useInventoryReceiptFlow({
     store,
@@ -55,6 +56,9 @@ test('useInventoryReceiptFlow manages audit state and reverse flow', async () =>
     },
     loadReceipts: async (orderNo = '') => {
       loadCalls.push(orderNo);
+    },
+    reloadInventory: async () => {
+      inventoryReloadCount += 1;
     },
     notifyProcurementRefresh: () => {
       refreshCount += 1;
@@ -76,6 +80,7 @@ test('useInventoryReceiptFlow manages audit state and reverse flow', async () =>
   await flow.confirmReverseReceipt('PO-1001');
 
   assert.equal(loadCalls[0], 'PO-1001');
+  assert.equal(inventoryReloadCount, 1);
   assert.equal(refreshCount, 1);
   assert.equal(flow.reverseDialogOpen.value, false);
   assert.equal(flow.reverseReceiptTarget.value, null);

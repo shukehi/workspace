@@ -1,10 +1,10 @@
-type BomUsage = {
+export type BomUsage = {
     single: number;
     double: number;
     paired: number;
 };
 
-type BomRow = {
+export type BomRow = {
     materialId: string;
     position: string;
     materialCategory: string;
@@ -12,13 +12,13 @@ type BomRow = {
     usage: BomUsage;
 };
 
-type FormulaPayload = {
+export type FormulaPayload = {
     formulaKey: string;
     displayName: string;
     bom: BomRow[];
 };
 
-type ValidationError = {
+export type ValidationError = {
     field: string;
     message: string;
 };
@@ -141,4 +141,3 @@ export function validateBomRows({
 
     return errors;
 }
-

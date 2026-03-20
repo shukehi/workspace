@@ -71,10 +71,27 @@ export const inventoryErrorResolver = (error: any): AppError | null => {
     case ERROR_CODES.RECEIPT_ALREADY_FULLY_REVERSED:
     case ERROR_CODES.REVERSE_REASON_REQUIRED:
     case ERROR_CODES.INVALID_RECEIPT_DATE:
+    case ERROR_CODES.RECEIPT_INSUFFICIENT_BALANCE:
         return new AppError({
             code: error.code,
             status: 400,
-            details: { receiptId: error.receiptId },
+            details: {
+                receiptId: error.receiptId,
+                materialId: error.materialId,
+                warehouseId: error.warehouseId,
+                locationId: error.locationId,
+                availableQuantity: error.availableQuantity,
+                requestedQuantity: error.requestedQuantity,
+            },
+            originalError: error,
+        });
+    case ERROR_CODES.RECEIPT_REVERSE_CONFLICT:
+        return new AppError({
+            code: error.code,
+            status: 409,
+            details: {
+                receiptId: error.receiptId,
+            },
             originalError: error,
         });
     case ERROR_CODES.REVERSE_QUANTITY_EXCEEDED:
@@ -84,6 +101,46 @@ export const inventoryErrorResolver = (error: any): AppError | null => {
             details: {
                 reversibleQuantity: error.reversibleQuantity,
                 requestedQuantity: error.requestedQuantity,
+            },
+            originalError: error,
+        });
+    case ERROR_CODES.WAREHOUSE_NOT_FOUND:
+    case ERROR_CODES.LOCATION_NOT_FOUND:
+        return new AppError({
+            code: error.code,
+            status: 404,
+            details: {
+                warehouseId: error.warehouseId,
+                locationId: error.locationId,
+            },
+            originalError: error,
+        });
+    case ERROR_CODES.LOCATION_INACTIVE:
+    case ERROR_CODES.LOCATION_WAREHOUSE_MISMATCH:
+    case ERROR_CODES.LOCATION_WAREHOUSE_IMMUTABLE:
+    case ERROR_CODES.OUTBOUND_ALREADY_REVERSED:
+    case ERROR_CODES.OUTBOUND_INSUFFICIENT_BALANCE:
+    case ERROR_CODES.OUTBOUND_ITEMS_REQUIRED:
+    case ERROR_CODES.OUTBOUND_REASON_REQUIRED:
+        return new AppError({
+            code: error.code,
+            status: 400,
+            details: {
+                warehouseId: error.warehouseId,
+                locationId: error.locationId,
+                outboundId: error.outboundId,
+                materialId: error.materialId,
+                availableQuantity: error.availableQuantity,
+                requestedQuantity: error.requestedQuantity,
+            },
+            originalError: error,
+        });
+    case ERROR_CODES.OUTBOUND_NOT_FOUND:
+        return new AppError({
+            code: error.code,
+            status: 404,
+            details: {
+                outboundId: error.outboundId,
             },
             originalError: error,
         });
@@ -109,4 +166,3 @@ export const inventoryErrorResolver = (error: any): AppError | null => {
         return null;
     }
 };
-

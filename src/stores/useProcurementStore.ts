@@ -14,11 +14,12 @@ import {
 } from '@/features/procurement/model/orderNormalizer';
 import type {
     Order,
-    StockInOrderItemInput,
+    ProcurementBulkArriveResponse,
     ProcurementOrderFacetCounts,
     ProcurementOrderListResponse,
     ProcurementOrderQuery,
-    ProcurementOrderSummary
+    ProcurementOrderSummary,
+    StockInPayload,
 } from '@/types/order';
 
 export const useProcurementStore = defineStore('procurement', () => {
@@ -270,12 +271,23 @@ export const useProcurementStore = defineStore('procurement', () => {
         }
     }
 
-    async function stockInOrder(id: number, payload: {
-        stocked_in_at?: string;
-        operator?: string;
-        remark?: string;
-        items?: StockInOrderItemInput[];
+    async function bulkMarkOrdersArrived(ids: number[], payload: {
+        arrived_at?: string;
+        arrived_by?: string;
+        arrived_remark?: string;
     } = {}) {
+        try {
+            return await api.post<ProcurementBulkArriveResponse>('/orders/bulk-arrive', {
+                ids,
+                ...payload,
+            });
+        } catch (e) {
+            console.error('Failed to bulk mark orders arrived', e);
+            throw e;
+        }
+    }
+
+    async function stockInOrder(id: number, payload: StockInPayload = {}) {
         try {
             const res = await api.post<Order>(`/orders/${id}/stock-in`, payload);
             const normalized = normalizeOrderPayload(res);
@@ -368,6 +380,7 @@ export const useProcurementStore = defineStore('procurement', () => {
         bulkDelete,
         bulkUpdateStatus,
         markOrderArrived,
+        bulkMarkOrdersArrived,
         stockInOrder,
         updateOrder,
         clearOrders,

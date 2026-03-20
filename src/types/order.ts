@@ -33,6 +33,15 @@ export interface StockInOrderItemInput {
     quantity: number;
 }
 
+export interface StockInPayload {
+    stocked_in_at?: string;
+    operator?: string;
+    remark?: string;
+    warehouse_id?: number;
+    location_id?: number;
+    items?: StockInOrderItemInput[];
+}
+
 export interface Order {
     id: number;
     order_no: string;
@@ -78,6 +87,18 @@ export interface ProcurementOrderFacetCounts {
 export interface ProcurementOrderListResponse extends PaginatedResponse<Order> {
     summary: ProcurementOrderSummary;
     facets: ProcurementOrderFacetCounts;
+}
+
+export interface ProcurementBulkArriveResponse {
+    total: number;
+    successCount: number;
+    failureCount: number;
+    succeededIds: number[];
+    failed: Array<{
+        id: number;
+        code: string;
+        message: string;
+    }>;
 }
 
 export interface ProcurementOrderQuery extends PaginationQuery {

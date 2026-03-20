@@ -26,7 +26,10 @@ export async function listOrders(req: Request, res: Response): Promise<void> {
         'risk',
         'createdDate',
         'keyword',
-        'orderNo'
+        'orderNo',
+        'supplier',
+        'startDate',
+        'endDate',
     ].some((key) => req.query[key] !== undefined);
 
     if (hasPaginationQuery) {
@@ -77,6 +80,13 @@ export async function arriveOrder(req: Request, res: Response): Promise<void> {
     );
 }
 
+export async function bulkArriveOrders(req: Request, res: Response): Promise<void> {
+    sendSuccess(
+        res,
+        await orderService.bulkMarkArrived((req.body || {})['ids'], req.body || {})
+    );
+}
+
 export async function stockInOrder(req: Request, res: Response): Promise<void> {
     sendSuccess(
         res,
@@ -100,4 +110,3 @@ export async function deleteOrder(req: Request, res: Response): Promise<void> {
 
     sendSuccess(res, { success: true, data: { deleted } });
 }
-

@@ -111,6 +111,88 @@ test('OrderService CRUD and category filter', async (t) => {
   assert.equal(afterDelete, null);
 });
 
+test('OrderService paginated query keeps DB-level filters and full-result aggregates aligned', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await orderService.createOrder({
+    order_no: uniqueOrderNo('PAGE-FILTER'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'processing',
+    created_at: '2026-03-12T09:00:00.000Z',
+    items: [
+      {
+        supplier: '汇成',
+        type: '锁体A',
+        name: '锁体A',
+        model: '主锁-A',
+        quantity: 2,
+        price: 10,
+        unit: '把',
+        remark: '待确认：门厚异常',
+      }
+    ]
+  });
+
+  await orderService.createOrder({
+    order_no: uniqueOrderNo('PAGE-FILTER'),
+    supplier: '汇成',
+    category: 'lockset',
+    status: 'submitted',
+    created_at: '2026-03-12T09:01:00.000Z',
+    items: [
+      {
+        supplier: '待人工处理',
+        type: '未匹配锁体',
+        name: '未匹配锁体',
+        model: '主锁-B',
+        quantity: 3,
+        price: 20,
+        unit: '把',
+      }
+    ]
+  });
+
+  await orderService.createOrder({
+    order_no: uniqueOrderNo('PAGE-FILTER'),
+    supplier: '方亮包装',
+    category: '包装',
+    status: 'processing',
+    created_at: '2026-03-12T09:02:00.000Z',
+    items: [
+      {
+        supplier: '方亮包装',
+        name: '纸箱A',
+        model: 'BZ-1',
+        quantity: 1,
+        price: 5,
+        unit: '套',
+      }
+    ]
+  });
+
+  const firstPage = await orderService.getPaginatedOrders({
+    category: 'lockset',
+    risk: 'RISK',
+    keyword: '主锁',
+    page: 1,
+    pageSize: 10,
+  });
+
+  assert.equal(firstPage.total, 2);
+  assert.equal(firstPage.rows.length, 2);
+  assert.equal(firstPage.rows[0].category, 'lockset');
+  assert.equal(firstPage.rows[0].status, 'submitted');
+  assert.equal(firstPage.summary.totalAmount, 80);
+  assert.equal(firstPage.summary.pendingCount, 2);
+  assert.equal(firstPage.facets.statusCounts.submitted, 1);
+  assert.equal(firstPage.facets.statusCounts.processing, 1);
+  assert.equal(firstPage.facets.categoryCounts.lockset, 2);
+  assert.equal(firstPage.facets.riskCounts.RISK, 2);
+  assert.equal(firstPage.facets.riskCounts.MANUAL, 1);
+});
+
 test('OrderService createOrder falls back to plain payload when immediate refetch returns null', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });

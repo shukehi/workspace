@@ -1,9 +1,15 @@
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
 
+type ReceiptItem = {
+    orderItem: PlainRecord;
+    quantity: number;
+    itemKey: string;
+};
+
 type StockInDeps = {
     inventoryReceiptService: {
-        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction?: Transaction | null) => Promise<{ receiptItems?: PlainRecord[] }>;
+        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction?: Transaction | null) => Promise<{ receiptItems?: ReceiptItem[] }>;
     };
     MissingMaterialError: new (materialId?: string) => Error;
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;
@@ -24,9 +30,9 @@ export function assertOrderReadyForStockIn(
 export async function createReceiptItemsFromOrder(
     order: PlainRecord,
     data: PlainRecord,
-    transaction: unknown,
+    transaction: Transaction | null | undefined,
     deps: Pick<StockInDeps, 'inventoryReceiptService' | 'MissingMaterialError'>,
-): Promise<PlainRecord[]> {
+): Promise<ReceiptItem[]> {
     const { inventoryReceiptService, MissingMaterialError } = deps;
 
     try {
@@ -42,15 +48,17 @@ export async function createReceiptItemsFromOrder(
 
 export async function syncStockInReceiptItems(
     order: PlainRecord,
-    receiptItems: PlainRecord[],
-    transaction: unknown,
+    receiptItems: ReceiptItem[],
+    transaction: Transaction | null | undefined,
     deps: Pick<StockInDeps, 'resolveOrderedQuantity' | 'ReceivedQuantityExceededError'>,
 ): Promise<Map<number, PlainRecord>> {
     const { resolveOrderedQuantity, ReceivedQuantityExceededError } = deps;
     const updatesByOrderItemId = new Map<number, PlainRecord>();
 
     for (const receiptItem of receiptItems) {
-        const item = receiptItem.orderItem;
+        const item = receiptItem.orderItem as PlainRecord & {
+            update: (values: PlainRecord, options?: { transaction?: Transaction | null }) => Promise<PlainRecord>;
+        };
         const nextReceived = Number(item.received_quantity || 0) + Number(receiptItem.quantity || 0);
         const nextOrdered = resolveOrderedQuantity(item.ordered_quantity, item.quantity);
         if (nextReceived > nextOrdered) {
@@ -98,4 +106,3 @@ export function buildStockInOrderUpdate(
             : order.stocked_in_remark,
     };
 }
-

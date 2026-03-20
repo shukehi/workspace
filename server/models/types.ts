@@ -1,4 +1,7 @@
 export type InventoryReceiptDirection = 'in' | 'reversal';
+export type WarehouseStatus = 'active' | 'inactive';
+export type InventoryOutboundDirection = 'out' | 'reversal';
+export type InventoryDocumentStatus = 'posted' | 'reversed';
 export type FormulaStatus = 'draft' | 'published' | 'archived';
 export type FormulaRevisionState = 'draft' | 'published' | 'archived';
 export type MappingProfileCode = 'packaging' | 'cylinder' | 'lock' | 'lock_fork' | 'handle';
@@ -165,6 +168,9 @@ export interface InventoryReceiptAttributes {
     direction: InventoryReceiptDirection;
     source_receipt_id?: number | null;
     reverse_reason?: string | null;
+    reverse_version: number;
+    warehouse_id: number;
+    location_id: number;
     material_id: string;
     item_name: string;
     supplier?: string | null;
@@ -185,6 +191,9 @@ export interface InventoryReceiptCreationAttributes {
     direction?: InventoryReceiptDirection;
     source_receipt_id?: number | null;
     reverse_reason?: string | null;
+    reverse_version?: number;
+    warehouse_id: number;
+    location_id: number;
     material_id: string;
     item_name: string;
     supplier?: string | null;
@@ -285,6 +294,118 @@ export interface OrderUpdateInput {
 
 export interface InventoryReceiptWithOrderAttributes extends InventoryReceiptAttributes {
     order?: OrderAttributes;
+}
+
+export interface WarehouseAttributes {
+    id: number;
+    code: string;
+    name: string;
+    status: WarehouseStatus;
+    remark: string;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface WarehouseCreationAttributes {
+    id?: number;
+    code: string;
+    name: string;
+    status?: WarehouseStatus;
+    remark?: string;
+}
+
+export interface InventoryLocationAttributes {
+    id: number;
+    code: string;
+    name: string;
+    warehouse_id: number;
+    status: WarehouseStatus;
+    remark: string;
+    sort_order: number;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface InventoryLocationCreationAttributes {
+    id?: number;
+    code: string;
+    name: string;
+    warehouse_id: number;
+    status?: WarehouseStatus;
+    remark?: string;
+    sort_order?: number;
+}
+
+export interface InventoryLocationBalanceAttributes {
+    id: number;
+    material_id: number;
+    warehouse_id: number;
+    location_id: number;
+    quantity: number;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface InventoryLocationBalanceCreationAttributes {
+    id?: number;
+    material_id: number;
+    warehouse_id: number;
+    location_id: number;
+    quantity?: number;
+}
+
+export interface InventoryOutboundAttributes {
+    id: number;
+    outbound_no: string;
+    direction: InventoryOutboundDirection;
+    source_outbound_id?: number | null;
+    warehouse_id: number;
+    location_id: number;
+    operator?: string | null;
+    reason: string;
+    remark: string;
+    status: InventoryDocumentStatus;
+    outbound_date: Date;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface InventoryOutboundCreationAttributes {
+    id?: number;
+    outbound_no: string;
+    direction?: InventoryOutboundDirection;
+    source_outbound_id?: number | null;
+    warehouse_id: number;
+    location_id: number;
+    operator?: string | null;
+    reason: string;
+    remark?: string;
+    status?: InventoryDocumentStatus;
+    outbound_date: Date | string;
+}
+
+export interface InventoryOutboundItemAttributes {
+    id: number;
+    outbound_id: number;
+    material_id: number;
+    item_name: string;
+    unit?: string | null;
+    quantity: number;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface InventoryOutboundItemCreationAttributes {
+    id?: number;
+    outbound_id: number;
+    material_id: number;
+    item_name: string;
+    unit?: string | null;
+    quantity: number;
+}
+
+export interface InventoryOutboundWithItemsAttributes extends InventoryOutboundAttributes {
+    items?: InventoryOutboundItemAttributes[];
 }
 
 export interface FormulaDefinitionAttributes {

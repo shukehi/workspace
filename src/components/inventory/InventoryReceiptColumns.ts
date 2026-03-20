@@ -36,6 +36,14 @@ export const createInventoryReceiptColumns = (actions: {
         }
     },
     {
+        accessorKey: 'location_name',
+        header: '库位',
+        cell: ({ row }) => {
+            const receipt = row.original;
+            return h('div', { class: 'text-xs text-muted-foreground' }, receipt.location_name || receipt.location_code || '-');
+        }
+    },
+    {
         accessorKey: 'supplier',
         header: '供应商',
         cell: ({ row }) => h('div', { class: 'text-muted-foreground' }, row.getValue<string>('supplier') || '-')

@@ -1,13 +1,16 @@
 import type { PlainRecord } from '../../shared/types';
 
-export function toRevisionMeta(revision: PlainRecord) {
+export function toRevisionMeta(revision: PlainRecord | number) {
+    const normalized = typeof revision === 'number'
+        ? { revision }
+        : revision;
     return {
-        id: revision.id,
-        revision: revision.revision,
-        state: revision.state,
-        changeNote: revision.change_note,
-        createdBy: revision.created_by,
-        createdAt: revision.created_at
+        id: normalized.id,
+        revision: normalized.revision,
+        state: normalized.state,
+        changeNote: normalized.change_note,
+        createdBy: normalized.created_by,
+        createdAt: normalized.created_at
     };
 }
 
@@ -56,4 +59,3 @@ export function toPublishedMap(
     }
     return mapping;
 }
-

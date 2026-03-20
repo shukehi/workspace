@@ -1,6 +1,7 @@
 # 当前架构护栏（2026-03-13）
 
 > 用途：记录当前项目在“边开发边使用、业务思路仍会频繁调整”阶段的工程边界，避免后续开发为了结构统一而过早引入高成本改造。
+> 2026-03-20 更新：`server/` 已完成 TypeScript 迁移，以下 TypeScript 策略已按当前事实同步。
 
 ## 1. 当前阶段判断
 
@@ -21,18 +22,18 @@
 当前默认策略：
 
 1. 前端 `src/` 继续保持 TypeScript 主体
-2. 后端 `server/` 不做全量 TypeScript 迁移
-3. 只在“稳定边界”和“纯逻辑模块”中优先引入 TypeScript
+2. 后端 `server/` 已完成 TypeScript 迁移，新增后端模块默认继续使用 TypeScript
+3. 运行方式、脚本入口和 migration 仍保持低摩擦优先，不为“构建形式统一”额外引入复杂度
 
 ### 2.1 后端新增模块默认规则
 
-后续后端新增模块，不采用“全部强制 TypeScript”的策略，而采用双轨规则：
+后续后端新增模块，默认继续沿用 TypeScript 基线，但不要求所有文件都同时追求相同工程重量：
 
-1. 新增纯逻辑模块，优先使用 TypeScript
-2. 新增 shared contract / DTO / validator / policy / mapper / normalizer，优先使用 TypeScript
-3. 新增会被前后端长期共享的数据结构定义，优先使用 TypeScript
-4. 新增运行入口、migration、一次性脚本，可继续使用 JavaScript
-5. 新增强依赖运行时、副作用较重且仍在高频试验的主编排模块，可先使用 JavaScript，待稳定后再迁移
+1. 新增纯逻辑模块，默认使用 TypeScript
+2. 新增 shared contract / DTO / validator / policy / mapper / normalizer，必须优先使用 TypeScript
+3. 新增会被前后端长期共享的数据结构定义，必须优先使用 TypeScript
+4. 新增运行入口、migration、一次性脚本，也优先使用 TypeScript，但可以继续通过 `tsx` 等低摩擦方式运行
+5. 不为“代码风格绝对统一”牺牲当前业务迭代速度
 
 判断原则：
 
@@ -48,9 +49,9 @@
 3. policy / mapper / normalizer
 4. 纯函数规则层
 
-暂不优先类型化的区域：
+不要求进一步工程化加码的区域：
 
-1. `server/index.js`
+1. `server/index.ts`
 2. 运行时脚本
 3. migration 脚本
 4. compatibility shell
@@ -119,7 +120,7 @@
 后续如果由 AI 参与开发，默认先遵守以下护栏：
 
 1. 先读取当前治理文档，再做高风险修改
-2. 未经明确要求，不推动全量 TS 迁移
+2. 默认保持 `server/` 的 TypeScript 基线，不再新增新的 JS 回退实现
 3. 未经明确要求，不做破坏性 schema 变更
 4. 若发现某处仍在高频变化，应优先保留低摩擦实现
 5. 若某处已经稳定，再建议做类型化、模块收敛和命名清理
@@ -137,5 +138,5 @@
 
 1. 小步演进
 2. 保守改库
-3. 局部类型化
+3. 保持 TypeScript 基线稳定
 4. 兼容优先

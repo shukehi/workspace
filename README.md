@@ -6,6 +6,7 @@
 
 - 前端主应用：`src/`（Vue 3 + Pinia + Vue Router + TypeScript）
 - 后端服务：`server/`（Express + Sequelize + SQLite）
+- 当前质量基线：`npm run type-check`、`npm run type-check:server`、`npm test` 已通过
 - 打印预览：当前页面为 `src/views/PrintDocument.vue`（路由 `/print-document`）
 - Mock 模式：仅在 `VITE_USE_MOCK=true` 时启用
 
@@ -22,7 +23,7 @@
 - 订单查询（ERP 代理）
 - 来源解析与 BOM 计算
 - 采购订单管理（含分类）
-- 库存管理与预警
+- 库存管理（库位、入库、正式出库、冲销）与预警
 - 统计看板
 - 配置管理（配方、材料目录、包装、锁芯、锁具、拉手、锁叉）
 
@@ -44,6 +45,10 @@
 - 自动单改为 `cancelled` 时会释放幂等 key，因此允许重新生成
 - 若取消单恢复到有效状态时幂等 key 已被别的单占用，恢复会失败
 - 手动录入单不参与这条自动防重规则
+- 采购单支持单张到货与批量到货；到货后入库需要明确仓库/库位
+- 库存页当前分为 `物料库存 / 采购入库记录 / 正式出库记录 / 库位管理` 四个 tab
+- 正式出库通过独立出库单与冲销单实现；`Material.stock_quantity` 保留为总库存缓存，库位余额由独立表维护
+- 库存导出已按当前 tab 提供不同结果：库位余额、入库记录、正式出库记录
 
 ## 技术栈
 
@@ -187,6 +192,12 @@ NODE_ENV=production PRINT_RENDER_BASE_URL=https://your-frontend-domain.example.c
 npm run type-check
 ```
 
+后端类型检查：
+
+```bash
+npm run type-check:server
+```
+
 回归测试：
 
 ```bash
@@ -223,13 +234,26 @@ node --test tests/repository-structure-guard.test.js
 - `POST /api/orders`：创建采购单
 - `PUT /api/orders/:id`：更新采购单
 - `DELETE /api/orders/:id`：删除采购单
+- `POST /api/orders/:id/arrive`：登记单张到货
+- `POST /api/orders/bulk-arrive`：批量登记到货
+- `POST /api/orders/:id/stock-in`：按明细入库（支持 `warehouse_id` / `location_id`）
 - `POST /api/contracts/cache`：缓存 ERP 原始合同快照
 - `GET /api/contracts/:code`：读取缓存合同
 - `GET /api/materials`：物料检索
 - `POST /api/materials`：新增物料
 - `PUT /api/materials/:id`：更新物料
-- `GET /api/inventory`：库存列表
-- `PUT /api/inventory/:id`：更新库存
+- `GET /api/inventory`：库存列表（支持仓库/库位/关键字/低库存筛选）
+- `PUT /api/inventory/:id`：更新库存（兼容旧入口，不属于正式仓库流程）
+- `GET /api/inventory-receipts`：入库记录列表
+- `GET /api/inventory-receipts/:id`：入库记录详情
+- `POST /api/inventory-receipts/:id/reverse`：撤销入库
+- `GET /api/inventory-locations`：仓库与库位列表
+- `POST /api/inventory-locations`：新增库位
+- `PUT /api/inventory-locations/:id`：编辑/停用库位
+- `GET /api/inventory-outbounds`：正式出库单列表
+- `GET /api/inventory-outbounds/:id`：正式出库单详情
+- `POST /api/inventory-outbounds`：创建正式出库单
+- `POST /api/inventory-outbounds/:id/reverse`：冲销正式出库单
 - `GET /api/config/materials`：读取材料目录
 - `POST /api/config/materials`：保存材料目录
 - `GET /api/config/lock`：读取锁具映射

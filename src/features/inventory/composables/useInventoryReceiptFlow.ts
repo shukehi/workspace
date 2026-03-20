@@ -9,7 +9,7 @@ type ToastFn = (payload: {
 
 type InventoryStoreLike = {
   receipts: InventoryReceipt[];
-  fetchAllInventoryReceipts: (params: { orderNo?: string }) => Promise<InventoryReceipt[]>;
+  fetchAllInventoryReceipts: (params: { orderNo?: string; orderId?: number | string }) => Promise<InventoryReceipt[]>;
   reverseReceipt: (
     id: number,
     payload: {
@@ -27,6 +27,7 @@ export function useInventoryReceiptFlow(options: {
   toast: ToastFn;
   loadReceipts: (orderNo?: string) => Promise<void>;
   notifyProcurementRefresh: () => void;
+  reloadInventory?: () => Promise<void>;
 }) {
   const reverseDialogOpen = ref(false);
   const reverseReceiptTarget = ref<InventoryReceipt | null>(null);
@@ -93,7 +94,10 @@ export function useInventoryReceiptFlow(options: {
         remark: reverseRemark.value.trim() || undefined,
         quantity: quantityValue ? Number(quantityValue) : undefined,
       });
-      await options.loadReceipts(orderNo);
+      await Promise.all([
+        options.loadReceipts(orderNo),
+        options.reloadInventory?.(),
+      ]);
       options.toast({
         title: '撤销成功',
         description: `已撤销 ${reverseReceiptTarget.value.order_no} 的入库记录`,
@@ -130,7 +134,7 @@ export function useInventoryReceiptFlow(options: {
 
     try {
       auditRows.value = await options.store.fetchAllInventoryReceipts({
-        orderNo: receipt.order_no,
+        orderId: receipt.order_id,
       });
     } catch {
       auditRows.value = [];

@@ -135,7 +135,7 @@ export function useOrderActions(options: OrderActionOptions) {
   async function markArrived(order: Order) {
     try {
       isActionInProgress.value = true;
-      await (apiClient.put ?? api.put.bind(api))(`/orders/${order.id}/mark-arrived`, {
+      await apiClient.post(`/orders/${order.id}/arrive`, {
         arrived_at: new Date().toISOString(),
       });
       await options.onRefresh?.();
