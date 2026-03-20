@@ -137,7 +137,7 @@ npm run server:dev
 说明：
 
 - 前端对 `/api/*` 和 `/data/*` 的请求依赖后端服务，本地联调时需要同时启动 `npm run dev` 和 `npm run server:dev`
-- `npm run server:dev` 使用 `tsx watch`，可在保留当前 JS 入口的同时加载逐步迁入的 `.ts` 后端模块
+- `npm run server:dev` 使用 `tsx watch`，后端模块全部为 `.ts`，热更新即时生效
 
 局域网共享开发（同一 Wi-Fi 给同事访问）：
 

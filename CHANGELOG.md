@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.4] - 2026-03-19
+
+### Changed
+
+- **前端 composable 拆分**：`Procurement.vue` 页面 script 从 270 行瘦身至 120 行——入库队列逻辑提取为 `useStockInQueue`，批量操作逻辑提取为 `useProcurementBulkActions`，两者均通过依赖注入接收 store/toast/回调，可独立测试
+- `useProcurementStore.fetchOrders` 错误不再静默吞掉——现在向上抛出，页面层可统一用 toast 展示
+- `tsconfig.server.json` 移除 `allowJs` / `checkJs`：server/ 目录全部为 `.ts`，不再允许混入 JS 文件
+- 仓库层 WHERE 子句类型从松散的 `Record<string, unknown>` 升级为 Sequelize 的 `WhereOptions<T>`（`order.repository.ts` 和 `inventory-receipt.repository.ts`）
+- `order.errors.ts`：`DuplicateOrderError.existingOrder` 由 `any` 改为 `OrderInstance`；`orderErrorResolver` 参数由 `any` 改为 `OrderDomainError | Error | unknown`；新增导出 `OrderDomainError` 联合类型供调用方使用
+
+### Added
+
+- `server/config/env.ts` 新增 Zod schema 启动时校验：`PORT` / `ERP_TIMEOUT` 自动 coerce 为数字，`NODE_ENV` 限制为合法枚举，`ERP_BASE_URL` 校验为 URL 格式——环境变量错误在进程启动时即报告，不再等到运行时才爆炸
+
 ## [1.1.3] - 2026-03-19
 
 ### Changed
