@@ -13,7 +13,7 @@ let baseUrl: string
 async function startServer() {
   const app = express()
   app.use(express.json({ limit: '2mb' }))
-  app.use('/api/print', _require(routePath))
+  app.use('/api/print', (_require(routePath).default ?? _require(routePath)) as express.Router)
 
   return await new Promise<{ server: ReturnType<typeof app.listen>; baseUrl: string }>((resolve) => {
     const s = app.listen(0, () => {

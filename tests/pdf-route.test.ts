@@ -15,7 +15,7 @@ let lastPdfCall: Record<string, unknown> | null = null
 async function startServer() {
   const app = express()
   app.use(express.json({ limit: '2mb' }))
-  app.use('/api/pdf', _require(routePath))
+  app.use('/api/pdf', (_require(routePath).default ?? _require(routePath)) as express.Router)
 
   return await new Promise<{ server: ReturnType<typeof app.listen>; baseUrl: string }>((resolve) => {
     const s = app.listen(0, () => {
