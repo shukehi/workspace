@@ -1,9 +1,11 @@
 import type {
-    InventoryReceiptAttributes,
     InventoryReceiptCreationAttributes,
-    MaterialAttributes,
-    OrderWithItemsAttributes,
 } from '../../models/types';
+import type {
+    InventoryReceiptInstance,
+    MaterialInstance,
+    OrderInstance,
+} from '../../models';
 
 import type { Transaction } from 'sequelize';
 import { InventoryReceipt, Material, Order, OrderItem } from '../../models';
@@ -21,19 +23,19 @@ interface ReceiptListQuery {
 
 interface ReceiptListResult {
     count: number;
-    rows: any[];
+    rows: InventoryReceiptInstance[];
 }
 
 export async function findMaterialForItem(
     item: { material_id?: string | number | null } | null | undefined,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<MaterialInstance> {
     const { code, numericId } = resolveMaterialLookupCandidates(item?.material_id);
     if (!code && !numericId) {
         throw createReceiptError('MATERIAL_ID_REQUIRED', { item });
     }
 
-    let material: any = null;
+    let material: MaterialInstance | null = null;
     if (code) {
         material = await Material.findOne({ where: { code }, transaction: transaction ?? null });
     }
@@ -49,7 +51,7 @@ export async function findMaterialForItem(
 export async function listReversalReceipts(
     sourceReceiptId: number,
     transaction?: LooseTransaction,
-): Promise<any[]> {
+): Promise<InventoryReceiptInstance[]> {
     return await InventoryReceipt.findAll({
         where: {
             source_receipt_id: sourceReceiptId,
@@ -62,14 +64,14 @@ export async function listReversalReceipts(
 export async function findReceiptById(
     receiptId: number,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<InventoryReceiptInstance | null> {
     return await InventoryReceipt.findByPk(receiptId, { transaction: transaction ?? null });
 }
 
 export async function findOrderWithItems(
     orderId: number,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<OrderInstance | null> {
     return await Order.findByPk(orderId, {
         include: [{ model: OrderItem, as: 'items' }],
         transaction: transaction ?? null,
@@ -79,7 +81,7 @@ export async function findOrderWithItems(
 export async function createReceipt(
     payload: InventoryReceiptCreationAttributes,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<InventoryReceiptInstance> {
     return await InventoryReceipt.create(payload, { transaction: transaction ?? null });
 }
 
@@ -96,7 +98,7 @@ export async function findReceiptsAndCount({
     });
 }
 
-export async function findRelatedReversals(originalIds: number[]): Promise<any[]> {
+export async function findRelatedReversals(originalIds: number[]): Promise<InventoryReceiptInstance[]> {
     if (!Array.isArray(originalIds) || originalIds.length === 0) return [];
     return await InventoryReceipt.findAll({
         where: {

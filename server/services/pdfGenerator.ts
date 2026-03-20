@@ -78,7 +78,7 @@ export async function generatePurchaseOrderPDF(options?: PdfGenerationOptions): 
             displayHeaderFooter: false
         });
 
-        if (process.env.PDF_DEBUG !== '0') {
+        if (process.env.PDF_DEBUG === '1') {
             const tempDir = path.join(__dirname, '../../temp');
             if (!fs.existsSync(tempDir)) {
                 fs.mkdirSync(tempDir, { recursive: true });

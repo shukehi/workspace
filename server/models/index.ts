@@ -21,7 +21,11 @@ import type {
     MaterialAttributes, MaterialCreationAttributes,
     OrderAttributes, OrderCreationAttributes,
     OrderItemAttributes, OrderItemCreationAttributes,
+    OrderIdempotencyKeyAttributes, OrderIdempotencyKeyCreationAttributes,
     InventoryReceiptAttributes, InventoryReceiptCreationAttributes,
+    FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes,
+    FormulaRevisionAttributes, FormulaRevisionCreationAttributes,
+    FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes,
     MappingProfileAttributes, MappingProfileCreationAttributes,
     MappingRevisionAttributes, MappingRevisionCreationAttributes,
     MappingAuditLogAttributes, MappingAuditLogCreationAttributes,
@@ -34,7 +38,11 @@ import type {
 export type MaterialInstance = ModelInstance<MaterialAttributes, MaterialCreationAttributes>;
 export type OrderInstance = ModelInstance<OrderAttributes, OrderCreationAttributes>;
 export type OrderItemInstance = ModelInstance<OrderItemAttributes, OrderItemCreationAttributes>;
+export type OrderIdempotencyKeyInstance = ModelInstance<OrderIdempotencyKeyAttributes, OrderIdempotencyKeyCreationAttributes>;
 export type InventoryReceiptInstance = ModelInstance<InventoryReceiptAttributes, InventoryReceiptCreationAttributes>;
+export type FormulaDefinitionInstance = ModelInstance<FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes>;
+export type FormulaRevisionInstance = ModelInstance<FormulaRevisionAttributes, FormulaRevisionCreationAttributes>;
+export type FormulaAuditLogInstance = ModelInstance<FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes>;
 export type MappingProfileInstance = ModelInstance<MappingProfileAttributes, MappingProfileCreationAttributes>;
 export type MappingRevisionInstance = ModelInstance<MappingRevisionAttributes, MappingRevisionCreationAttributes>;
 export type MappingAuditLogInstance = ModelInstance<MappingAuditLogAttributes, MappingAuditLogCreationAttributes>;

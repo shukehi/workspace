@@ -6,8 +6,12 @@ import type {
     OrderIdempotencyKeyCreationAttributes,
     OrderItemAttributes,
     OrderItemCreationAttributes,
-    OrderWithItemsAttributes,
 } from '../../models/types';
+import type {
+    OrderInstance,
+    OrderItemInstance,
+    OrderIdempotencyKeyInstance,
+} from '../../models';
 
 import { Op } from 'sequelize';
 import { Order, OrderItem, OrderIdempotencyKey } from '../../models';
@@ -21,7 +25,7 @@ const ORDER_ITEM_INCLUDE = [{ model: OrderItem, as: 'items' }];
 export async function createIdempotencyKey(
     values: OrderIdempotencyKeyCreationAttributes,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<OrderIdempotencyKeyInstance> {
     return await OrderIdempotencyKey.create(values, { transaction });
 }
 
@@ -29,7 +33,7 @@ export async function findActiveIdempotencyKey(
     scope: string,
     dedupeKey: string,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<OrderIdempotencyKeyInstance | null> {
     return await OrderIdempotencyKey.findOne({
         where: {
             scope,
@@ -44,7 +48,7 @@ export async function updateActiveIdempotencyKeysByOrderId(
     orderId: number,
     values: Partial<OrderIdempotencyKeyAttributes>,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<[number]> {
     return await OrderIdempotencyKey.update(values, {
         where: { order_id: orderId, active: true },
         transaction
@@ -56,7 +60,7 @@ export async function updateScopedIdempotencyKeysByOrderId(
     scope: string,
     values: Partial<OrderIdempotencyKeyAttributes>,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<[number]> {
     return await OrderIdempotencyKey.update(values, {
         where: { order_id: orderId, scope },
         transaction
@@ -73,7 +77,7 @@ export async function destroyIdempotencyKeysByOrderId(
 export async function findAllOrdersWithItems(
     where: LooseWhere = {},
     transaction?: LooseTransaction,
-): Promise<any[]> {
+): Promise<OrderInstance[]> {
     return await Order.findAll({
         where,
         include: ORDER_ITEM_INCLUDE,
@@ -87,7 +91,7 @@ export async function findOrdersPaginated(
     page: number,
     pageSize: number,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<{ rows: OrderInstance[]; count: number }> {
     const { count, rows } = await Order.findAndCountAll({
         where,
         include: ORDER_ITEM_INCLUDE,
@@ -103,7 +107,7 @@ export async function findOrdersPaginated(
 export async function findOrderByIdWithItems(
     id: number | string,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<OrderInstance | null> {
     return await Order.findByPk(id, {
         include: ORDER_ITEM_INCLUDE,
         transaction
@@ -113,21 +117,21 @@ export async function findOrderByIdWithItems(
 export async function findOrderById(
     id: number | string,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<OrderInstance | null> {
     return await Order.findByPk(id, { transaction });
 }
 
 export async function createOrder(
     values: OrderCreationAttributes,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<OrderInstance> {
     return await Order.create(values, { transaction });
 }
 
 export async function bulkCreateOrderItems(
     items: OrderItemCreationAttributes[],
     transaction?: LooseTransaction,
-): Promise<any[]> {
+): Promise<OrderItemInstance[]> {
     return await OrderItem.bulkCreate(items, { transaction });
 }
 
@@ -135,7 +139,7 @@ export async function updateOrderCreatedAt(
     id: number,
     createdAt: Date | string,
     transaction?: LooseTransaction,
-): Promise<any> {
+): Promise<[number]> {
     return await Order.update(
         { created_at: new Date(createdAt) },
         { where: { id }, transaction: transaction ?? undefined, silent: true }
@@ -146,7 +150,7 @@ export async function replaceOrderItems(
     orderId: number,
     items: OrderItemCreationAttributes[],
     transaction?: LooseTransaction,
-): Promise<any[]> {
+): Promise<OrderItemInstance[]> {
     await OrderItem.destroy({ where: { order_id: orderId }, transaction });
     return await OrderItem.bulkCreate(items, { transaction });
 }
@@ -154,7 +158,7 @@ export async function replaceOrderItems(
 export async function findOrderItemsByOrderId(
     orderId: number,
     transaction?: LooseTransaction,
-): Promise<any[]> {
+): Promise<OrderItemInstance[]> {
     return await OrderItem.findAll({ where: { order_id: orderId }, transaction });
 }
 

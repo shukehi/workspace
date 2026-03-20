@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Op } from 'sequelize';
+import { Op, UniqueConstraintError } from 'sequelize';
 import { ErpContract } from '../models';
 
 function stableStringify(value: unknown): string {
@@ -51,23 +51,7 @@ class ContractCacheService {
         const payloadHash = computePayloadHash(rawContract);
         const existing = await ErpContract.findOne({ where: { contract_code: code } });
 
-        if (!existing) {
-            const created = await ErpContract.create({
-                contract_code: code,
-                customer_name: rc.customerName || null,
-                order_date: rc.orderDate || null,
-                advance_date: rc.advanceDate || null,
-                total_count_raw: rc.count || null,
-                total_amount: rc.totalAmount ?? null,
-                payload_hash: payloadHash,
-                last_fetched_at: now,
-                raw_json: rawContract as object
-            });
-            return { status: 'created', contract: created };
-        }
-
-        const status = existing.get('payload_hash') === payloadHash ? 'unchanged' : 'updated';
-        await existing.update({
+        const updateFields = {
             customer_name: rc.customerName || null,
             order_date: rc.orderDate || null,
             advance_date: rc.advanceDate || null,
@@ -76,7 +60,28 @@ class ContractCacheService {
             payload_hash: payloadHash,
             last_fetched_at: now,
             raw_json: rawContract as object
-        });
+        };
+
+        if (!existing) {
+            try {
+                const created = await ErpContract.create({
+                    contract_code: code,
+                    ...updateFields
+                });
+                return { status: 'created', contract: created };
+            } catch (err) {
+                // Race: concurrent request created the same contract_code — fall through to update
+                if (!(err instanceof UniqueConstraintError)) throw err;
+                const concurrent = await ErpContract.findOne({ where: { contract_code: code } });
+                if (!concurrent) throw err; // should not happen, but guard
+                const status = concurrent.get('payload_hash') === payloadHash ? 'unchanged' : 'updated';
+                await concurrent.update(updateFields);
+                return { status, contract: concurrent };
+            }
+        }
+
+        const status = existing.get('payload_hash') === payloadHash ? 'unchanged' : 'updated';
+        await existing.update(updateFields);
 
         return { status, contract: existing };
     }

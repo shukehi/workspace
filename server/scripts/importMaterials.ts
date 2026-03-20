@@ -1,5 +1,6 @@
 // Script: run with tsx
 import fs from 'fs';
+import sequelize from '../config/database';
 import { initDB, Material } from '../models';
 import { CONFIG_FILES } from '../config/paths';
 
@@ -53,7 +54,9 @@ async function importMaterials(): Promise<void> {
     }
 
     console.log(`Successfully imported/checked ${count} materials.`);
-    process.exit(0);
 }
 
-importMaterials();
+importMaterials().catch((err) => {
+    console.error('Import failed:', err);
+    process.exitCode = 1;
+}).finally(() => sequelize.close());
