@@ -14,11 +14,12 @@ import type {
 } from '../../models';
 
 import { Op } from 'sequelize';
+import type { WhereOptions } from 'sequelize';
 import { Order, OrderItem, OrderIdempotencyKey } from '../../models';
 import { ORDER_PENDING_STATUSES } from '../../shared/constants/order';
 
 type LooseTransaction = Transaction | undefined;
-type LooseWhere = Record<string, unknown>;
+type OrderWhere = WhereOptions<OrderAttributes>;
 
 const ORDER_ITEM_INCLUDE = [{ model: OrderItem, as: 'items' }];
 
@@ -75,7 +76,7 @@ export async function destroyIdempotencyKeysByOrderId(
 }
 
 export async function findAllOrdersWithItems(
-    where: LooseWhere = {},
+    where: OrderWhere = {},
     transaction?: LooseTransaction,
 ): Promise<OrderInstance[]> {
     return await Order.findAll({
@@ -87,7 +88,7 @@ export async function findAllOrdersWithItems(
 }
 
 export async function findOrdersPaginated(
-    where: LooseWhere,
+    where: OrderWhere,
     page: number,
     pageSize: number,
     transaction?: LooseTransaction,
@@ -181,8 +182,8 @@ export async function destroyOrderById(
  * 只处理可以安全推到数据库的简单条件。
  * 复杂条件（risk、keyword 含 item 内容）保留在内存过滤层处理。
  */
-export function buildSimpleWhereFromQuery(query: Record<string, unknown>): LooseWhere {
-    const where: LooseWhere = {};
+export function buildSimpleWhereFromQuery(query: Record<string, unknown>): OrderWhere {
+    const where: Record<string, unknown> = {};
 
     const status = query.status ? String(query.status).trim() : '';
     if (status && status !== 'ALL') {
@@ -220,6 +221,6 @@ export function buildSimpleWhereFromQuery(query: Record<string, unknown>): Loose
         where.order_no = { [Op.like]: `%${orderNo}%` };
     }
 
-    return where;
+    return where as OrderWhere;
 }
 

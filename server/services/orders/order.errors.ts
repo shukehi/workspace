@@ -2,14 +2,15 @@ import { API_ERROR_CODES } from '../../shared/contracts/api';
 import ERROR_CODES from '../../app/errors/errorCodes';
 import AppError from '../../app/errors/AppError';
 import { toDuplicateOrderSummary } from './order.mapper';
+import type { OrderInstance } from '../../models';
 
 /**
  * 重复订单错误
  */
 export class DuplicateOrderError extends Error {
     code: string = API_ERROR_CODES.DUPLICATE_ORDER;
-    existingOrder: any;
-    constructor(existingOrder: any) {
+    existingOrder: OrderInstance;
+    constructor(existingOrder: OrderInstance) {
         super(API_ERROR_CODES.DUPLICATE_ORDER);
         this.name = 'DuplicateOrderError';
         this.existingOrder = existingOrder;
@@ -76,63 +77,72 @@ export class ReceivedQuantityExceededError extends Error {
     }
 }
 
+/** 所有订单领域错误的联合类型 */
+export type OrderDomainError =
+    | DuplicateOrderError
+    | MissingMaterialError
+    | InvalidStatusTransitionError
+    | OrderEditLockedError
+    | ReceivedQuantityExceededError;
+
 /**
  * 订单领域错误处理器 (最高标准显式映射版)
  */
-export const orderErrorResolver = (error: any): AppError | null => {
-    if (!error?.code) return null;
+export const orderErrorResolver = (error: OrderDomainError | Error | unknown): AppError | null => {
+    if (!error || typeof error !== 'object' || !('code' in error)) return null;
+    const e = error as OrderDomainError;
 
-    switch (error.code) {
+    switch (e.code) {
     case ERROR_CODES.DUPLICATE_ORDER:
         return new AppError({
             code: ERROR_CODES.DUPLICATE_ORDER,
             status: 409,
-            details: { existingOrder: toDuplicateOrderSummary(error.existingOrder) },
-            originalError: error,
+            details: { existingOrder: toDuplicateOrderSummary((e as DuplicateOrderError).existingOrder) },
+            originalError: e,
         });
     case ERROR_CODES.INVALID_STATUS_TRANSITION:
         return new AppError({
             code: ERROR_CODES.INVALID_STATUS_TRANSITION,
             status: 400,
             details: {
-                fromStatus: error.fromStatus,
-                toStatus: error.toStatus,
+                fromStatus: (e as InvalidStatusTransitionError).fromStatus,
+                toStatus: (e as InvalidStatusTransitionError).toStatus,
             },
-            originalError: error,
+            originalError: e,
         });
     case ERROR_CODES.ORDER_EDIT_LOCKED:
         return new AppError({
             code: ERROR_CODES.ORDER_EDIT_LOCKED,
             status: 400,
             details: {
-                status: error.status,
-                fields: error.fields,
+                status: (e as OrderEditLockedError).status,
+                fields: (e as OrderEditLockedError).fields,
             },
-            originalError: error,
+            originalError: e,
         });
     case ERROR_CODES.MATERIAL_NOT_FOUND:
         return new AppError({
             code: ERROR_CODES.MATERIAL_NOT_FOUND,
             status: 400,
-            details: { materialId: error.materialId },
-            originalError: error,
+            details: { materialId: (e as MissingMaterialError).materialId },
+            originalError: e,
         });
     case ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED:
         return new AppError({
             code: ERROR_CODES.RECEIVED_QUANTITY_EXCEEDED,
             status: 400,
             details: {
-                orderItemId: error.orderItemId,
-                orderedQuantity: error.orderedQuantity,
-                nextReceivedQuantity: error.nextReceivedQuantity,
+                orderItemId: (e as ReceivedQuantityExceededError).orderItemId,
+                orderedQuantity: (e as ReceivedQuantityExceededError).orderedQuantity,
+                nextReceivedQuantity: (e as ReceivedQuantityExceededError).nextReceivedQuantity,
             },
-            originalError: error,
+            originalError: e,
         });
     case ERROR_CODES.ORDER_NOT_FOUND:
         return new AppError({
             code: ERROR_CODES.ORDER_NOT_FOUND,
             status: 404,
-            originalError: error,
+            originalError: e,
         });
     default:
         return null;
