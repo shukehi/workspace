@@ -107,6 +107,7 @@ const handleEdit = () => {
           mode="preview"
           :column-widths="previewColumnWidths"
           :default-widths="previewDefaultWidths"
+          :aggregate-side-quantities="Boolean(order.metadata?.aggregateSideQuantities)"
         />
         <div v-else class="h-full flex items-center justify-center text-sm text-muted-foreground">
           暂无可预览的订单数据

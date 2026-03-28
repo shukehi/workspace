@@ -103,7 +103,10 @@ watch(columnWidths, (next) => {
 }, { deep: true });
 
 watch(supportsAggregateQuantityToggle, (supported) => {
-  if (!supported) aggregateSideQuantities.value = false;
+  if (!supported) {
+    aggregateSideQuantities.value = false;
+    if (form.value?.metadata) form.value.metadata.aggregateSideQuantities = false;
+  }
 });
 
 const hasUnsavedChanges = computed(() => {
@@ -119,7 +122,7 @@ function bootstrapEditOrder(order: Order) {
   const { draft, widths } = bootstrapOrderDraft({ mode: 'edit', order });
   form.value = draft;
   columnWidths.value = widths;
-  aggregateSideQuantities.value = false;
+  aggregateSideQuantities.value = supportsAggregateQuantityToggle.value && Boolean(draft.metadata?.aggregateSideQuantities);
   initialSnapshot.value = JSON.stringify(draft);
 }
 
@@ -128,6 +131,8 @@ function bootstrapCreateOrder() {
   form.value = draft;
   columnWidths.value = widths;
   aggregateSideQuantities.value = false;
+  if (!form.value.metadata) form.value.metadata = {};
+  form.value.metadata.aggregateSideQuantities = false;
   initialSnapshot.value = JSON.stringify(draft);
 }
 
@@ -262,6 +267,9 @@ const handleColumnWidthsChange = (next: Record<string, number>) => {
 const toggleAggregateSideQuantities = () => {
   if (!supportsAggregateQuantityToggle.value) return;
   aggregateSideQuantities.value = !aggregateSideQuantities.value;
+  if (!form.value) return;
+  if (!form.value.metadata) form.value.metadata = {};
+  form.value.metadata.aggregateSideQuantities = aggregateSideQuantities.value;
 };
 
 const toggleRiskWarningDismissed = () => {
@@ -293,6 +301,7 @@ const handleCategoryChange = (event: Event) => {
   const defaults = getDefaultWidths(category);
   columnWidths.value = { ...defaults };
   if (!form.value.metadata) form.value.metadata = {};
+  form.value.metadata.aggregateSideQuantities = false;
   form.value.metadata.printColumnWidths = { ...defaults };
 
   if (!Array.isArray(form.value.items) || form.value.items.length === 0) {

@@ -11,7 +11,11 @@ import {
 } from '@/features/procurement/docModel';
 import { pickSalesDepartmentLabel } from '@/features/procurement/customerName';
 import { sortProcurementItems } from '@/features/procurement/itemSort';
-import { getSheetSchema } from '@/features/procurement/order-sheet.schema';
+import {
+  getSheetSchema,
+  resolveAggregateQuantityDisplayWidth,
+  resolveAggregateRemarkColumnWidth,
+} from '@/features/procurement/order-sheet.schema';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 
 type AnyRecord = Record<string, any>;
@@ -50,6 +54,7 @@ type NormalizedSource = {
   supplier: string;
   internalName: string;
   externalName: string;
+  aggregateSideQuantities: boolean;
   printColumnWidths: Record<string, number>;
   items: AnyRecord[];
 };
@@ -266,6 +271,7 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
     supplier,
     internalName,
     externalName,
+    aggregateSideQuantities: Boolean(order.aggregateSideQuantities || metadata.aggregateSideQuantities),
     printColumnWidths: normalizePrintColumnWidths(order.printColumnWidths || metadata.printColumnWidths),
     items: list,
   };
@@ -285,7 +291,7 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
       eccentricity: String(item?.eccentricity || '-'),
       qtyLeft: Number(qty.left || 0),
       qtyRight: Number(qty.right || 0),
-      quantity: Number(item?.quantity || 0),
+      quantity: Number(qty.left || 0) + Number(qty.right || 0),
       unit: String(item?.unit || '套'),
       remark: String(item?.remark || ''),
     };
@@ -405,6 +411,17 @@ function buildTotalRow(category: PrintCategory, fields: string[], items: Normali
   if (category === 'packaging' || category === 'handle' || category === 'lockset') {
     const totalLeft = items.reduce((sum, item) => sum + Number(item.qtyLeft || 0), 0);
     const totalRight = items.reduce((sum, item) => sum + Number(item.qtyRight || 0), 0);
+    if (fields.includes('quantity')) {
+      const quantityIndex = fields.indexOf('quantity');
+      return {
+        rowType: 'total',
+        values: {
+          __label: '合计',
+          __labelColspan: quantityIndex > 0 ? quantityIndex : Math.max(fields.length - 2, 1),
+          quantity: totalLeft + totalRight,
+        },
+      };
+    }
     const labelColspan = category === 'packaging' ? 4 : 3;
     const values: Record<string, string | number> = {
       __label: '合计',
@@ -454,7 +471,14 @@ function buildPage(
     source.printColumnWidths,
     { preferLocalWhenMissing: false }
   );
-  const fittedWidths = fitColumnWidthsForPrint(fields, widthState.widths);
+  const effectiveWidths = source.aggregateSideQuantities
+    ? {
+        ...widthState.widths,
+        quantity: resolveAggregateQuantityDisplayWidth(widthState.widths, widthState.defaults),
+        remark: resolveAggregateRemarkColumnWidth(widthState.widths, widthState.defaults),
+      }
+    : widthState.widths;
+  const fittedWidths = fitColumnWidthsForPrint(fields, effectiveWidths);
 
   return {
     pageKey: `${source.poNumber || 'order'}-${pageIndex}`,
@@ -482,7 +506,9 @@ function buildPage(
 
 export function buildProcurementDocModel(input: PrintDocBuildInput): ProcurementDocModel {
   const source = normalizeSource(input);
-  const schema = getSheetSchema(source.category);
+  const schema = getSheetSchema(source.category, {
+    aggregateSideQuantities: source.aggregateSideQuantities,
+  });
   const normalizedItems = sortProcurementItems(
     source.category,
     source.items.map((item) => normalizeItem(item, source.category, source))

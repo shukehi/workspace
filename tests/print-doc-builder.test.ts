@@ -133,3 +133,33 @@ test('buildProcurementDocModel clamps oversized custom widths for print page', (
   assert.ok(total <= PRINT_DOC_MAX_TABLE_WIDTH_PX);
   assert.ok(widths.every((value) => value >= 36));
 });
+
+test('buildProcurementDocModel uses aggregate quantity column when order metadata enables it', () => {
+  const doc = buildProcurementDocModel({
+    category: '锁具',
+    poNumber: 'PO-BUILDER-004',
+    order: {
+      metadata: {
+        aggregateSideQuantities: true,
+        printColumnWidths: {
+          no: 48,
+          type: 220,
+          spec: 180,
+          qtyLeft: 96,
+          qtyRight: 104,
+          unit: 70,
+          remark: 160,
+        },
+      },
+      items: [
+        { type: '锁具A', spec: '主锁', quantity_left: 2, quantity_right: 3, unit: '套', remark: '备注A' },
+      ],
+    },
+  });
+
+  assert.deepEqual(doc.pages[0].columns.map((column) => column.key), ['no', 'type', 'spec', 'quantity', 'unit', 'remark']);
+  assert.equal(doc.pages[0].columns.find((column) => column.key === 'quantity')?.label, '总数量');
+  assert.equal(doc.pages[0].rows[0].values.quantity, 5);
+  assert.equal(doc.pages[0].rows[doc.pages[0].rows.length - 1].values.quantity, 5);
+  assert.ok((doc.pages[0].columns.find((column) => column.key === 'remark')?.width || 0) > 160);
+});

@@ -23,6 +23,7 @@ test('createEmptyOrderDraft seeds packaging order defaults', () => {
   assert.equal(draft.items.length, 1);
   assert.match(draft.order_no, /^PO-MANUAL-/);
   assert.ok(draft.metadata?.printColumnWidths);
+  assert.equal(draft.metadata?.aggregateSideQuantities, false);
 });
 
 test('bootstrapOrderDraft preserves edit payload and resolved widths', () => {

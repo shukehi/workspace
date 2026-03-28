@@ -177,6 +177,7 @@ onMounted(loadSource);
           mode="preview"
           :column-widths="printColumnWidths"
           :default-widths="previewWidthState.defaults"
+          :aggregate-side-quantities="Boolean(source.order.metadata?.aggregateSideQuantities)"
           customer-name-display="salesDepartment"
         />
       </div>

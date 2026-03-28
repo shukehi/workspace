@@ -50,6 +50,7 @@ export interface OrderMetadata {
     external_name?: string;
     order_source?: 'auto' | 'manual';
     source_contract_code?: string;
+    aggregateSideQuantities?: boolean;
     riskWarningDismissed?: boolean;
     [key: string]: unknown;
 }
