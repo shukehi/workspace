@@ -88,3 +88,13 @@ export function sortProcurementItems<T extends LockForkLikeItem>(category: strin
   if (normalizedCategory !== 'lock') return [...items];
   return [...items].sort(compareLockForkItems);
 }
+
+export function resolveProcurementItems<T extends LockForkLikeItem>(
+  category: string | undefined,
+  items: T[],
+  options?: { preserveManualOrder?: boolean }
+) {
+  if (!Array.isArray(items) || items.length <= 1) return Array.isArray(items) ? [...items] : [];
+  if (options?.preserveManualOrder) return [...items];
+  return sortProcurementItems(category, items);
+}

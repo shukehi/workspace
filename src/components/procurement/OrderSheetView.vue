@@ -7,7 +7,7 @@ import type { Order, OrderItem } from '@/types/order';
 import { resolveDisplayCustomerName } from '@/features/procurement/customerName';
 import { normalizeDateString, normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
-import { sortProcurementItems } from '@/features/procurement/itemSort';
+import { resolveProcurementItems } from '@/features/procurement/itemSort';
 import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
 
@@ -37,7 +37,11 @@ const isEditMode = computed(() => props.mode === 'edit');
 const isRestrictedEditMode = computed(() => isEditMode.value && props.restrictDetailEditing);
 const category = computed<PrintCategory>(() => normalizePrintCategory(props.order.category));
 const isPackaging = computed(() => category.value === 'packaging');
-const items = computed(() => sortProcurementItems(category.value, (props.order.items || []) as OrderItem[]));
+const items = computed(() => resolveProcurementItems(
+  category.value,
+  (props.order.items || []) as OrderItem[],
+  { preserveManualOrder: isEditMode.value }
+));
 const schema = computed(() => {
   const base = getSheetSchema(category.value);
   if (!props.hiddenColumns || props.hiddenColumns.length === 0) return base;
@@ -137,6 +141,18 @@ function handleCellInput(item: Partial<OrderItem>, key: string, value: string) {
     return;
   }
   setEditableValue(item, key, value);
+}
+
+function getRowKey(item: Partial<OrderItem>, idx: number) {
+  const itemKey = String(item.item_key || '').trim();
+  if (itemKey) return itemKey;
+
+  const numericId = Number(item.id || 0);
+  if (Number.isInteger(numericId) && numericId > 0) {
+    return `order-item-${numericId}`;
+  }
+
+  return `draft-row-${idx}`;
 }
 
 onBeforeUnmount(() => {
@@ -239,7 +255,7 @@ onBeforeUnmount(() => {
           </tr>
         </thead>
         <tbody class="divide-y">
-          <tr v-for="(item, idx) in items" :key="idx" class="hover:bg-muted/30">
+          <tr v-for="(item, idx) in items" :key="getRowKey(item, idx)" class="hover:bg-muted/30">
             <td
               v-for="column in schema.columns"
               :key="`cell-${idx}-${column.key}`"

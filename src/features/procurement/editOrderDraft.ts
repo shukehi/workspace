@@ -1,6 +1,6 @@
 import { packagingMatcher } from '@/lib/packagingMatcher';
 import { getPackagingMapping } from '@/services/packagingConfig';
-import { normalizeOrderDraft } from '@/features/procurement/orderDraft';
+import { createDraftItemKey, normalizeOrderDraft } from '@/features/procurement/orderDraft';
 import {
   normalizePrintCategory,
   resolveProcurementOrderCategory,
@@ -30,6 +30,7 @@ export function buildManualOrderNo() {
 export function createEmptyItem(category: PrintCategory): OrderItem {
   const base: OrderItem = {
     id: 0,
+    item_key: createDraftItemKey(),
     material_id: '',
     supplier: '',
     name: '',

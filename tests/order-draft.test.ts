@@ -54,4 +54,20 @@ test('normalizeOrderDraft fills display fields from model/orientation fallbacks'
   const normalized = normalizeOrderDraft(sampleOrder);
   assert.equal(normalized.items[0].spec, 'A-100');
   assert.equal(normalized.items[0].mb, '-');
+  assert.equal(normalized.items[0].item_key, 'order-item-1');
+});
+
+test('normalizeOrderDraft preserves existing item_key for stable row identity', () => {
+  const normalized = normalizeOrderDraft({
+    ...sampleOrder,
+    items: [
+      {
+        ...sampleOrder.items[0],
+        id: 0,
+        item_key: 'draft-item-existing',
+      }
+    ]
+  });
+
+  assert.equal(normalized.items[0].item_key, 'draft-item-existing');
 });

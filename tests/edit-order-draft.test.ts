@@ -5,6 +5,7 @@ import type { Order } from '../src/types/order';
 
 test('createEmptyItem creates category-specific packaging fields', () => {
   const packagingItem = createEmptyItem('packaging');
+  assert.match(String(packagingItem.item_key), /^draft-item-/);
   assert.equal(packagingItem.unit, '套');
   assert.equal(packagingItem.internal_name, '');
   assert.equal(packagingItem.quantity_left, 0);
