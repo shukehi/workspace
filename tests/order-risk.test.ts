@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { matchesOrderRiskFilter, resolveOrderRisk } from '../src/features/procurement/orderRisk';
+import { isOrderRiskDismissed, matchesOrderRiskFilter, resolveOrderRisk } from '../src/features/procurement/orderRisk';
 import type { Order } from '../src/types/order';
 
 function createOrder(overrides: Partial<Order> = {}): Order {
@@ -59,5 +59,29 @@ test('resolveOrderRisk identifies confirmation-needed orders as medium risk', ()
   const risk = resolveOrderRisk(order);
   assert.equal(risk.level, 'medium');
   assert.equal(matchesOrderRiskFilter(order, 'RISK'), true);
+  assert.equal(matchesOrderRiskFilter(order, 'MANUAL'), false);
+});
+
+test('resolveOrderRisk hides warning after manual dismissal but keeps raw detection available', () => {
+  const order = createOrder({
+    metadata: { riskWarningDismissed: true },
+    items: [
+      {
+        id: 1,
+        material_id: 'm-3',
+        supplier: '待人工处理',
+        name: '锁具B',
+        model: 'LK-2',
+        quantity: 1,
+        unit: '把',
+        remark: '',
+      }
+    ]
+  });
+
+  assert.equal(isOrderRiskDismissed(order), true);
+  assert.equal(resolveOrderRisk(order).level, null);
+  assert.equal(resolveOrderRisk(order, { ignoreDismissed: true }).level, 'high');
+  assert.equal(matchesOrderRiskFilter(order, 'RISK'), false);
   assert.equal(matchesOrderRiskFilter(order, 'MANUAL'), false);
 });

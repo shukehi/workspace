@@ -21,7 +21,13 @@ export function resolveBackendPrintCategory(category: unknown): string {
     return 'packaging';
 }
 
+export function isBackendOrderRiskDismissed(order: PlainRecord): boolean {
+    return Boolean(order?.metadata?.riskWarningDismissed);
+}
+
 export function resolveBackendOrderRiskLevel(order: PlainRecord): 'high' | 'medium' | null {
+    if (isBackendOrderRiskDismissed(order)) return null;
+
     const items = Array.isArray(order?.items) ? order.items : [];
     const hasHighRisk = items.some((item: PlainRecord) => {
         const supplier = String(item?.supplier || '');
@@ -116,4 +122,3 @@ export function buildOrderFacets(orders: PlainRecord[]) {
 
     return { statusCounts, categoryCounts, riskCounts };
 }
-

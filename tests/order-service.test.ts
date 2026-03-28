@@ -172,6 +172,26 @@ test('OrderService paginated query keeps DB-level filters and full-result aggreg
     ]
   });
 
+  await orderService.createOrder({
+    order_no: uniqueOrderNo('PAGE-FILTER'),
+    supplier: '人工复核厂',
+    category: 'lockset',
+    status: 'processing',
+    created_at: '2026-03-12T09:03:00.000Z',
+    metadata: { riskWarningDismissed: true },
+    items: [
+      {
+        supplier: '待人工处理',
+        type: '未匹配锁体',
+        name: '未匹配锁体',
+        model: '主锁-C',
+        quantity: 4,
+        price: 30,
+        unit: '把',
+      }
+    ]
+  });
+
   const firstPage = await orderService.getPaginatedOrders({
     category: 'lockset',
     risk: 'RISK',

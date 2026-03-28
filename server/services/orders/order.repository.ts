@@ -99,7 +99,8 @@ function buildCategoryExpressions(columnSql: string): Record<OrderCategoryKey, s
 }
 
 function buildHighRiskSql(orderAlias: string): string {
-    return `EXISTS (
+    const riskDismissedSql = `COALESCE(json_extract(${orderAlias}.metadata, '$.riskWarningDismissed'), 0) IN (1, '1', 'true')`;
+    return `(NOT (${riskDismissedSql}) AND EXISTS (
         SELECT 1
         FROM order_items oi
         WHERE oi.order_id = ${orderAlias}.id
@@ -108,11 +109,12 @@ function buildHighRiskSql(orderAlias: string): string {
               OR COALESCE(oi.type, oi.name, '') LIKE '%未匹配%'
               OR COALESCE(oi.remark, '') LIKE '%待人工处理%'
           )
-    )`;
+    ))`;
 }
 
 function buildMediumRiskSql(orderAlias: string): string {
-    return `EXISTS (
+    const riskDismissedSql = `COALESCE(json_extract(${orderAlias}.metadata, '$.riskWarningDismissed'), 0) IN (1, '1', 'true')`;
+    return `(NOT (${riskDismissedSql}) AND EXISTS (
         SELECT 1
         FROM order_items oi
         WHERE oi.order_id = ${orderAlias}.id
@@ -121,7 +123,7 @@ function buildMediumRiskSql(orderAlias: string): string {
               OR COALESCE(oi.remark, '') LIKE '%待确认%'
               OR COALESCE(oi.remark, '') LIKE '%未识别%'
           )
-    )`;
+    ))`;
 }
 
 function buildOrderQuerySql(query: OrderListQuery = {}, orderAlias = 'o'): OrderQuerySql {

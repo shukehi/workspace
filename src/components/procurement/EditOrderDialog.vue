@@ -34,6 +34,7 @@ import {
   createEmptyItem,
   nowStamp,
 } from '@/features/procurement/editOrderDraft';
+import { isOrderRiskDismissed, resolveOrderRisk } from '@/features/procurement/orderRisk';
 
 type DialogMode = 'edit' | 'create';
 
@@ -65,6 +66,27 @@ const currentCategory = computed<PrintCategory>(() => normalizePrintCategory(for
 const currentDefaultWidths = computed(() => getDefaultWidths(currentCategory.value));
 const supportsAggregateQuantityToggle = computed(() => {
   return currentCategory.value === 'packaging' || currentCategory.value === 'handle' || currentCategory.value === 'lockset';
+});
+const detectedRisk = computed(() => {
+  if (!form.value || !Array.isArray(form.value.items)) {
+    return { level: null, reason: '' };
+  }
+  return resolveOrderRisk(form.value as Order, { ignoreDismissed: true });
+});
+const riskWarningDismissed = computed(() => isOrderRiskDismissed(form.value as Order | null));
+const canToggleRiskWarning = computed(() => {
+  return detectedRisk.value.level !== null;
+});
+const riskToggleLabel = computed(() => riskWarningDismissed.value ? '恢复 ! 警告' : '人工取消 ! 警告');
+const riskToneClass = computed(() => {
+  if (riskWarningDismissed.value) return 'text-muted-foreground';
+  return detectedRisk.value.level === 'high' ? 'text-red-600' : 'text-amber-600';
+});
+const riskStatusLabel = computed(() => {
+  if (riskWarningDismissed.value) return '已人工取消 ! 警告';
+  if (detectedRisk.value.level === 'high') return '当前存在待人工处理明细';
+  if (detectedRisk.value.level === 'medium') return '当前存在需人工确认明细';
+  return '';
 });
 
 const categoryOptions: Array<{ value: string; label: string }> = PROCUREMENT_CATEGORY_ORDER.map((category) => ({
@@ -181,6 +203,9 @@ const handleSave = async () => {
     supplier: item.supplier || draft.supplier,
   }, currentCategory.value));
   draft.remark = String(draft.remark || '');
+  if (resolveOrderRisk(draft, { ignoreDismissed: true }).level === null && draft.metadata?.riskWarningDismissed) {
+    draft.metadata.riskWarningDismissed = false;
+  }
 
   applyPackagingHeaderNames(draft);
 
@@ -200,6 +225,7 @@ const handleSave = async () => {
         ? {
             remark: draft.remark,
             delivery_date: draft.delivery_date,
+            metadata: draft.metadata,
           }
         : draft;
       await store.updateOrder(draft.id, payload as Partial<Order>);
@@ -236,6 +262,12 @@ const handleColumnWidthsChange = (next: Record<string, number>) => {
 const toggleAggregateSideQuantities = () => {
   if (!supportsAggregateQuantityToggle.value) return;
   aggregateSideQuantities.value = !aggregateSideQuantities.value;
+};
+
+const toggleRiskWarningDismissed = () => {
+  if (!form.value) return;
+  if (!form.value.metadata) form.value.metadata = {};
+  form.value.metadata.riskWarningDismissed = !riskWarningDismissed.value;
 };
 
 const addItemRow = () => {
@@ -286,6 +318,17 @@ const handleCategoryChange = (event: Event) => {
         <DialogTitle class="text-lg font-semibold">{{ isCreateMode ? PROCUREMENT_DOCUMENT_CREATE_TITLE : PROCUREMENT_DOCUMENT_EDIT_TITLE }}</DialogTitle>
         <div class="flex gap-2 items-center">
           <div
+            v-if="canToggleRiskWarning"
+            class="mr-2 inline-flex items-center gap-2 rounded-full border bg-muted/30 px-2 py-1 text-xs"
+            :class="riskToneClass"
+            :title="detectedRisk.reason || (riskWarningDismissed ? '已人工取消警告' : '')"
+          >
+            <span>{{ riskStatusLabel }}</span>
+            <Button variant="ghost" size="sm" class="h-6 px-2 text-[11px]" :disabled="saving" @click="toggleRiskWarningDismissed">
+              {{ riskToggleLabel }}
+            </Button>
+          </div>
+          <div
             v-if="supportsAggregateQuantityToggle"
             class="mr-2 inline-flex items-center gap-2 rounded-full border bg-muted/30 px-2 py-1 text-xs text-muted-foreground"
           >
@@ -298,8 +341,8 @@ const handleCategoryChange = (event: Event) => {
               @click="toggleAggregateSideQuantities"
             >
               <span
-                class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-                :class="aggregateSideQuantities ? 'translate-x-5' : 'translate-x-0.5'"
+                class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+                :class="aggregateSideQuantities ? 'translate-x-5' : 'translate-x-0'"
               />
             </button>
             <span :class="aggregateSideQuantities ? 'text-foreground font-medium' : ''">总数量</span>

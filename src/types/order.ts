@@ -67,6 +67,7 @@ export interface Order {
         external_name?: string;
         order_source?: 'auto' | 'manual';
         source_contract_code?: string;
+        riskWarningDismissed?: boolean;
         [key: string]: any;
     };
 }

@@ -3,7 +3,18 @@ import type { Order } from '@/types/order';
 export type OrderRiskLevel = 'high' | 'medium' | null;
 export type OrderRiskFilter = 'ALL' | 'RISK' | 'MANUAL';
 
-export function resolveOrderRisk(order: Order): { level: OrderRiskLevel; reason: string } {
+export function isOrderRiskDismissed(order: Pick<Order, 'metadata'> | null | undefined) {
+  return Boolean(order?.metadata?.riskWarningDismissed);
+}
+
+export function resolveOrderRisk(
+  order: Order,
+  options: { ignoreDismissed?: boolean } = {},
+): { level: OrderRiskLevel; reason: string } {
+  if (!options.ignoreDismissed && isOrderRiskDismissed(order)) {
+    return { level: null, reason: '' };
+  }
+
   const items = Array.isArray(order.items) ? order.items : [];
   const hasHighRisk = items.some((item: any) => {
     const supplier = String(item?.supplier || '');

@@ -51,6 +51,16 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
       supplier: '锁芯厂',
       items: [{ id: 3, material_id: 'm-3', supplier: '锁芯厂', name: '锁芯A', model: 'LX-1', quantity: 1, unit: '套', remark: '待确认：偏心缺失' }]
     }),
+    createOrder({
+      id: 6,
+      order_no: 'PO-LOCK-006',
+      category: '锁具',
+      status: 'processing',
+      total_amount: 50,
+      supplier: '人工复核厂',
+      metadata: { riskWarningDismissed: true },
+      items: [{ id: 6, material_id: 'm-6', supplier: '待人工处理', name: '锁具B', model: 'LK-2', quantity: 1, unit: '把' }]
+    }),
     createOrder({ id: 4, order_no: 'PO-HW-004', category: 'hardware', status: 'processing', total_amount: 40, supplier: '配件厂' }),
     createOrder({ id: 5, order_no: 'PO-CAN-005', category: '锁具', status: 'cancelled', total_amount: 0, supplier: '锁具厂' }),
   ];
@@ -61,20 +71,20 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
     sortedOrders: orders,
   });
 
-  assert.equal(state.summaryStats.value.totalAmount, 300);
-  assert.equal(state.summaryStats.value.pendingCount, 4);
+  assert.equal(state.summaryStats.value.totalAmount, 350);
+  assert.equal(state.summaryStats.value.pendingCount, 5);
   assert.equal(state.summaryStats.value.completedCount, 0);
-  assert.equal(state.visibleOrderCount.value, 5);
+  assert.equal(state.visibleOrderCount.value, 6);
   assert.equal(state.tableEmptyText.value, '暂无采购订单数据');
   assert.equal(state.hasActiveFilters.value, false);
 
   assert.deepEqual(
     state.statusOptions.value,
     [
-      { id: 'ALL', label: '全部订单', count: 5 },
+      { id: 'ALL', label: '全部订单', count: 6 },
       { id: 'draft', label: '草稿', count: 1 },
       { id: 'submitted', label: '已提交', count: 1 },
-      { id: 'processing', label: '处理中', count: 1 },
+      { id: 'processing', label: '处理中', count: 2 },
       { id: 'arrived', label: '已到货', count: 1 },
       { id: 'completed', label: '已入库', count: 0 },
       { id: 'cancelled', label: '已取消', count: 1 },
@@ -87,7 +97,7 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
   assert.deepEqual(
     state.riskOptions.value,
     [
-      { id: 'ALL', label: '全部', count: 5 },
+      { id: 'ALL', label: '全部', count: 6 },
       { id: 'RISK', label: '风险订单', count: 2 },
       { id: 'MANUAL', label: '待人工处理', count: 1 },
     ]
@@ -104,15 +114,15 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
 
   state.resetFilters();
   state.setFilterPreset({ status: 'PENDING' });
-  assert.equal(state.filteredOrders.value.length, 4);
+  assert.equal(state.filteredOrders.value.length, 5);
   assert.deepEqual(
     state.filteredOrders.value.map((order) => order.order_no),
-    ['PO-PKG-001', 'PO-LOCK-002', 'PO-CYL-003', 'PO-HW-004']
+    ['PO-PKG-001', 'PO-LOCK-002', 'PO-CYL-003', 'PO-LOCK-006', 'PO-HW-004']
   );
 
   state.resetFilters();
   state.setFilterPreset({ createdDate: '2026-03-09' });
-  assert.equal(state.filteredOrders.value.length, 5);
+  assert.equal(state.filteredOrders.value.length, 6);
 
   state.resetFilters();
   state.setFilterPreset({ createdDate: '2026-03-10' });
@@ -154,7 +164,7 @@ test('useProcurementPageState computes summary, filters, and empty text', async 
   assert.equal(state.activeRiskFilter.value, 'ALL');
   assert.equal(state.activeCreatedDate.value, '');
   assert.equal(state.searchQuery.value, '');
-  assert.equal(state.filteredOrders.value.length, 5);
+  assert.equal(state.filteredOrders.value.length, 6);
 });
 
 test('useProcurementPageState tracks selection and loading empty text', () => {
