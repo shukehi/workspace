@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getSheetSchema, getDisplayValue } from '../src/features/procurement/order-sheet.schema';
+import {
+  getSheetSchema,
+  getDisplayValue,
+  resolveOrderItemQuantity,
+  syncOrderItemQuantity,
+  resolveAggregateQuantityColumnWidth,
+  distributeAggregateQuantityColumnWidth
+} from '../src/features/procurement/order-sheet.schema';
 
 test('schema: packaging columns keep expected order', () => {
   const schema = getSheetSchema('packaging');
@@ -45,4 +52,36 @@ test('display value: spec/mb fallback works for preview consistency', () => {
   };
   assert.equal(getDisplayValue(item as any, 'spec', 0), 'M-100');
   assert.equal(getDisplayValue(item as any, 'mb', 0), '左');
+});
+
+test('schema: aggregate quantity view replaces left/right columns with total quantity', () => {
+  const schema = getSheetSchema('packaging', { aggregateSideQuantities: true });
+  assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'productModelName', 'spec', 'mb', 'quantity', 'remark']);
+  assert.equal(schema.columns.find((c) => c.key === 'quantity')?.label, '总数量');
+});
+
+test('quantity helpers: split quantity categories sum left and right values', () => {
+  const item = { quantity_left: 3, quantity_right: 4, quantity: 0 } as any;
+  assert.equal(resolveOrderItemQuantity(item, 'handle'), 7);
+
+  syncOrderItemQuantity(item, 'handle');
+  assert.equal(item.quantity, 7);
+});
+
+test('quantity helpers: aggregate quantity width is derived from left and right columns', () => {
+  assert.equal(
+    resolveAggregateQuantityColumnWidth({ qtyLeft: 90, qtyRight: 110 }, { qtyLeft: 72, qtyRight: 72 }),
+    200
+  );
+});
+
+test('quantity helpers: aggregate quantity resize maps back to split widths', () => {
+  assert.deepEqual(
+    distributeAggregateQuantityColumnWidth(240, { qtyLeft: 72, qtyRight: 72 }, { qtyLeft: 72, qtyRight: 72 }),
+    { qtyLeft: 120, qtyRight: 120 }
+  );
+  assert.deepEqual(
+    distributeAggregateQuantityColumnWidth(150, { qtyLeft: 90, qtyRight: 60 }, { qtyLeft: 72, qtyRight: 72 }),
+    { qtyLeft: 88, qtyRight: 62 }
+  );
 });

@@ -19,6 +19,13 @@ export type SheetSchema = {
   columns: SheetColumn[];
 };
 
+type SheetSchemaOptions = {
+  aggregateSideQuantities?: boolean;
+  hiddenColumns?: string[];
+};
+
+type WidthMap = Record<string, number>;
+
 type SharedColumn = {
   key: string;
   label: string;
@@ -59,8 +66,96 @@ export const CATEGORY_SCHEMAS: Record<PrintCategory, SheetSchema> = {
   hardware: toSheetSchema(sharedCategories.hardware)
 };
 
-export function getSheetSchema(category: PrintCategory): SheetSchema {
-  return CATEGORY_SCHEMAS[category];
+export function supportsSplitQuantityColumns(category: PrintCategory): boolean {
+  return category === 'packaging' || category === 'handle' || category === 'lockset';
+}
+
+export function resolveOrderItemQuantity(item: Partial<OrderItem>, category: PrintCategory): number {
+  if (supportsSplitQuantityColumns(category)) {
+    return Number(item.quantity_left || 0) + Number(item.quantity_right || 0);
+  }
+  return Number(item.quantity || 0);
+}
+
+export function syncOrderItemQuantity<T extends Partial<OrderItem>>(item: T, category: PrintCategory): T {
+  if (supportsSplitQuantityColumns(category)) {
+    item.quantity = resolveOrderItemQuantity(item, category);
+    return item;
+  }
+
+  item.quantity = Number(item.quantity || 0);
+  return item;
+}
+
+function resolveWidthValue(widths: WidthMap, defaults: WidthMap, key: string, fallback: number) {
+  return Number(widths[key] || defaults[key] || fallback);
+}
+
+export function resolveAggregateQuantityColumnWidth(widths: WidthMap, defaults: WidthMap): number {
+  const left = resolveWidthValue(widths, defaults, 'qtyLeft', 72);
+  const right = resolveWidthValue(widths, defaults, 'qtyRight', 72);
+  return left + right;
+}
+
+export function distributeAggregateQuantityColumnWidth(
+  totalWidth: number,
+  widths: WidthMap,
+  defaults: WidthMap,
+): Pick<WidthMap, 'qtyLeft' | 'qtyRight'> {
+  const minimumSideWidth = 62;
+  const left = resolveWidthValue(widths, defaults, 'qtyLeft', 72);
+  const right = resolveWidthValue(widths, defaults, 'qtyRight', 72);
+  const currentTotal = left + right;
+  const clampedTotal = Math.max(minimumSideWidth * 2, Number(totalWidth || 0));
+  const ratio = currentTotal > 0 ? left / currentTotal : 0.5;
+
+  let nextLeft = Math.round(clampedTotal * ratio);
+  nextLeft = Math.max(minimumSideWidth, Math.min(clampedTotal - minimumSideWidth, nextLeft));
+
+  return {
+    qtyLeft: nextLeft,
+    qtyRight: clampedTotal - nextLeft,
+  };
+}
+
+function replaceSideQuantityColumns(columns: SheetColumn[]) {
+  const next: SheetColumn[] = [];
+
+  columns.forEach((column) => {
+    if (column.key === 'qtyRight') return;
+    if (column.key === 'qtyLeft') {
+      next.push({
+        key: 'quantity',
+        label: '总数量',
+        align: 'center',
+        inputType: 'number',
+        semantic: 'quantity',
+      });
+      return;
+    }
+    next.push(column);
+  });
+
+  return next;
+}
+
+export function getSheetSchema(category: PrintCategory, options: SheetSchemaOptions = {}): SheetSchema {
+  const base = CATEGORY_SCHEMAS[category];
+  const hiddenSet = new Set(options.hiddenColumns || []);
+  let columns = base.columns;
+
+  if (options.aggregateSideQuantities && supportsSplitQuantityColumns(category)) {
+    columns = replaceSideQuantityColumns(columns);
+  }
+
+  if (hiddenSet.size > 0) {
+    columns = columns.filter((column) => !hiddenSet.has(column.key));
+  }
+
+  return {
+    ...base,
+    columns,
+  };
 }
 
 export function getDisplayValue(item: Partial<OrderItem>, key: string, rowIndex: number): string | number {

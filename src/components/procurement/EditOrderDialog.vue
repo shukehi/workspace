@@ -10,13 +10,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import type { Order } from '@/types/order';
-import { cloneOrderDraft, normalizeOrderDraft } from '@/features/procurement/orderDraft';
+import { cloneOrderDraft } from '@/features/procurement/orderDraft';
 import {
   normalizePrintCategory,
   PROCUREMENT_CATEGORY_ORDER,
   PROCUREMENT_CATEGORY_META,
   type PrintCategory
 } from '@/features/procurement/docModel';
+import { syncOrderItemQuantity } from '@/features/procurement/order-sheet.schema';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   PROCUREMENT_DOCUMENT_CREATE_TITLE,
@@ -56,11 +57,15 @@ const form = ref<Partial<Order>>({});
 const saving = ref(false);
 const initialSnapshot = ref('');
 const columnWidths = ref<Record<string, number>>({ ...getDefaultWidths('packaging') });
+const aggregateSideQuantities = ref(false);
 
 const isCreateMode = computed(() => props.mode === 'create');
 const isRestrictedDetailEdit = computed(() => !isCreateMode.value && form.value.status === 'arrived');
 const currentCategory = computed<PrintCategory>(() => normalizePrintCategory(form.value.category));
 const currentDefaultWidths = computed(() => getDefaultWidths(currentCategory.value));
+const supportsAggregateQuantityToggle = computed(() => {
+  return currentCategory.value === 'packaging' || currentCategory.value === 'handle' || currentCategory.value === 'lockset';
+});
 
 const categoryOptions: Array<{ value: string; label: string }> = PROCUREMENT_CATEGORY_ORDER.map((category) => ({
   value: PROCUREMENT_CATEGORY_META[category].orderCategory,
@@ -75,6 +80,10 @@ watch(columnWidths, (next) => {
   form.value.metadata.printColumnWidths = { ...next };
 }, { deep: true });
 
+watch(supportsAggregateQuantityToggle, (supported) => {
+  if (!supported) aggregateSideQuantities.value = false;
+});
+
 const hasUnsavedChanges = computed(() => {
   if (!initialSnapshot.value) return false;
   try {
@@ -88,6 +97,7 @@ function bootstrapEditOrder(order: Order) {
   const { draft, widths } = bootstrapOrderDraft({ mode: 'edit', order });
   form.value = draft;
   columnWidths.value = widths;
+  aggregateSideQuantities.value = false;
   initialSnapshot.value = JSON.stringify(draft);
 }
 
@@ -95,6 +105,7 @@ function bootstrapCreateOrder() {
   const { draft, widths } = bootstrapOrderDraft({ mode: 'create' });
   form.value = draft;
   columnWidths.value = widths;
+  aggregateSideQuantities.value = false;
   initialSnapshot.value = JSON.stringify(draft);
 }
 
@@ -165,10 +176,10 @@ const handleSave = async () => {
   if (!draft.status) draft.status = 'draft';
   if (!draft.order_no) draft.order_no = buildManualOrderNo();
 
-  draft.items = (draft.items || []).map((item) => ({
+  draft.items = (draft.items || []).map((item) => syncOrderItemQuantity({
     ...item,
     supplier: item.supplier || draft.supplier,
-  }));
+  }, currentCategory.value));
   draft.remark = String(draft.remark || '');
 
   applyPackagingHeaderNames(draft);
@@ -222,6 +233,11 @@ const handleColumnWidthsChange = (next: Record<string, number>) => {
   columnWidths.value = next;
 };
 
+const toggleAggregateSideQuantities = () => {
+  if (!supportsAggregateQuantityToggle.value) return;
+  aggregateSideQuantities.value = !aggregateSideQuantities.value;
+};
+
 const addItemRow = () => {
   if (!form.value) return;
   const category = currentCategory.value;
@@ -239,6 +255,7 @@ const handleCategoryChange = (event: Event) => {
   if (!isCreateMode.value || !form.value) return;
   const nextCategory = (event.target as HTMLSelectElement).value;
   form.value.category = nextCategory;
+  aggregateSideQuantities.value = false;
 
   const category = normalizePrintCategory(nextCategory);
   const defaults = getDefaultWidths(category);
@@ -268,6 +285,25 @@ const handleCategoryChange = (event: Event) => {
       <div class="px-6 py-4 bg-background border-b flex justify-between items-center sticky top-0 z-10 gap-2">
         <DialogTitle class="text-lg font-semibold">{{ isCreateMode ? PROCUREMENT_DOCUMENT_CREATE_TITLE : PROCUREMENT_DOCUMENT_EDIT_TITLE }}</DialogTitle>
         <div class="flex gap-2 items-center">
+          <div
+            v-if="supportsAggregateQuantityToggle"
+            class="mr-2 inline-flex items-center gap-2 rounded-full border bg-muted/30 px-2 py-1 text-xs text-muted-foreground"
+          >
+            <span :class="!aggregateSideQuantities ? 'text-foreground font-medium' : ''">分左右数量</span>
+            <button
+              type="button"
+              class="relative h-6 w-11 rounded-full transition-colors"
+              :class="aggregateSideQuantities ? 'bg-primary' : 'bg-slate-300'"
+              :aria-pressed="aggregateSideQuantities"
+              @click="toggleAggregateSideQuantities"
+            >
+              <span
+                class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+                :class="aggregateSideQuantities ? 'translate-x-5' : 'translate-x-0.5'"
+              />
+            </button>
+            <span :class="aggregateSideQuantities ? 'text-foreground font-medium' : ''">总数量</span>
+          </div>
           <select
             v-if="isCreateMode"
             class="h-8 rounded-md border bg-background px-2 text-xs"
@@ -297,6 +333,7 @@ const handleCategoryChange = (event: Event) => {
           :restrict-detail-editing="isRestrictedDetailEdit"
           :column-widths="columnWidths"
           :default-widths="currentDefaultWidths"
+          :aggregate-side-quantities="aggregateSideQuantities"
           :hidden-columns="isCreateMode ? ['mb'] : []"
           @update:column-widths="handleColumnWidthsChange"
         />

@@ -8,7 +8,18 @@ import { resolveDisplayCustomerName } from '@/features/procurement/customerName'
 import { normalizeDateString, normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
 import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
 import { resolveProcurementItems } from '@/features/procurement/itemSort';
-import { getSheetSchema, getDisplayValue, getEditableValue, setEditableValue, isNumericColumn } from '@/features/procurement/order-sheet.schema';
+import {
+  getSheetSchema,
+  getDisplayValue,
+  getEditableValue,
+  setEditableValue,
+  isNumericColumn,
+  resolveOrderItemQuantity,
+  supportsSplitQuantityColumns,
+  syncOrderItemQuantity,
+  resolveAggregateQuantityColumnWidth,
+  distributeAggregateQuantityColumnWidth,
+} from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
 
 type Mode = 'edit' | 'preview';
@@ -20,11 +31,13 @@ const props = withDefaults(defineProps<{
   columnWidths: Record<string, number>;
   defaultWidths: Record<string, number>;
   hiddenColumns?: string[];
+  aggregateSideQuantities?: boolean;
   customerNameDisplay?: CustomerNameDisplayMode;
   restrictDetailEditing?: boolean;
 }>(), {
   mode: 'preview',
   hiddenColumns: () => [],
+  aggregateSideQuantities: false,
   customerNameDisplay: 'full',
   restrictDetailEditing: false,
 });
@@ -37,20 +50,17 @@ const isEditMode = computed(() => props.mode === 'edit');
 const isRestrictedEditMode = computed(() => isEditMode.value && props.restrictDetailEditing);
 const category = computed<PrintCategory>(() => normalizePrintCategory(props.order.category));
 const isPackaging = computed(() => category.value === 'packaging');
+const usesSplitQuantityColumns = computed(() => supportsSplitQuantityColumns(category.value));
+const showsAggregatedQuantity = computed(() => props.aggregateSideQuantities && usesSplitQuantityColumns.value);
 const items = computed(() => resolveProcurementItems(
   category.value,
   (props.order.items || []) as OrderItem[],
   { preserveManualOrder: isEditMode.value }
 ));
-const schema = computed(() => {
-  const base = getSheetSchema(category.value);
-  if (!props.hiddenColumns || props.hiddenColumns.length === 0) return base;
-  const hiddenSet = new Set(props.hiddenColumns);
-  return {
-    ...base,
-    columns: base.columns.filter((column) => !hiddenSet.has(column.key))
-  };
-});
+const schema = computed(() => getSheetSchema(category.value, {
+  hiddenColumns: props.hiddenColumns,
+  aggregateSideQuantities: showsAggregatedQuantity.value,
+}));
 const quantitySummary = computed(() => {
   return computeItemQuantitySummary(category.value, items.value);
 });
@@ -79,11 +89,15 @@ const formattedDeliveryDate = computed({
 const resizing = ref<{ key: string; startX: number; startWidth: number } | null>(null);
 
 function getColumnWidth(key: string) {
+  if (key === 'quantity' && showsAggregatedQuantity.value) {
+    return resolveAggregateQuantityColumnWidth(props.columnWidths, props.defaultWidths);
+  }
   return props.columnWidths[key] || props.defaultWidths[key] || 120;
 }
 
 function getColumnMinWidth(key: string) {
   if (key === 'no') return 36;
+  if (key === 'quantity' && showsAggregatedQuantity.value) return 124;
   if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 62;
   if (key === 'unit') return 50;
   if (key === 'remark') return 160;
@@ -100,6 +114,14 @@ function onResizeMove(event: MouseEvent) {
   if (!resizing.value) return;
   const deltaX = event.clientX - resizing.value.startX;
   const width = Math.max(getColumnMinWidth(resizing.value.key), resizing.value.startWidth + deltaX);
+  if (resizing.value.key === 'quantity' && showsAggregatedQuantity.value) {
+    const { quantity: _quantity, ...rest } = props.columnWidths;
+    emit('update:columnWidths', {
+      ...rest,
+      ...distributeAggregateQuantityColumnWidth(width, props.columnWidths, props.defaultWidths)
+    });
+    return;
+  }
   emit('update:columnWidths', {
     ...props.columnWidths,
     [resizing.value.key]: width
@@ -128,6 +150,15 @@ function startResize(key: string, event: MouseEvent) {
 
 function resetSingleColumnWidth(key: string) {
   if (!isEditMode.value) return;
+  if (key === 'quantity' && showsAggregatedQuantity.value) {
+    const { quantity: _quantity, ...rest } = props.columnWidths;
+    emit('update:columnWidths', {
+      ...rest,
+      qtyLeft: props.defaultWidths.qtyLeft || 72,
+      qtyRight: props.defaultWidths.qtyRight || 72
+    });
+    return;
+  }
   emit('update:columnWidths', {
     ...props.columnWidths,
     [key]: props.defaultWidths[key] || 120
@@ -138,9 +169,22 @@ function handleCellInput(item: Partial<OrderItem>, key: string, value: string) {
   if (isNumericColumn(key)) {
     const nextValue = value === '' ? null : Number(value);
     setEditableValue(item, key, nextValue);
+    syncOrderItemQuantity(item, category.value);
     return;
   }
   setEditableValue(item, key, value);
+  syncOrderItemQuantity(item, category.value);
+}
+
+function resolveCellDisplayValue(item: Partial<OrderItem>, key: string, rowIndex: number) {
+  if (key === 'quantity' && showsAggregatedQuantity.value) {
+    return resolveOrderItemQuantity(item, category.value);
+  }
+  return getDisplayValue(item, key, rowIndex);
+}
+
+function isComputedQuantityColumn(key: string) {
+  return key === 'quantity' && showsAggregatedQuantity.value;
 }
 
 function getRowKey(item: Partial<OrderItem>, idx: number) {
@@ -265,6 +309,11 @@ onBeforeUnmount(() => {
               <template v-if="column.key === 'no'">
                 <div class="w-full h-full p-2 text-muted-foreground text-center">{{ idx + 1 }}</div>
               </template>
+              <template v-else-if="isComputedQuantityColumn(column.key)">
+                <div class="w-full h-full p-2 text-center text-foreground">
+                  {{ resolveCellDisplayValue(item, column.key, idx) }}
+                </div>
+              </template>
               <template v-else-if="isEditMode && !isRestrictedEditMode">
                 <input
                   :value="getEditableValue(item, column.key)"
@@ -282,7 +331,7 @@ onBeforeUnmount(() => {
                     column.key === 'productModelName' ? 'whitespace-pre-line text-left' : ''
                   ]"
                 >
-                  {{ getDisplayValue(item, column.key, idx) }}
+                  {{ resolveCellDisplayValue(item, column.key, idx) }}
                 </div>
               </template>
             </td>
