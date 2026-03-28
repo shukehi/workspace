@@ -22,7 +22,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex flex-col gap-3">
-    <div v-if="title || $slots.header" class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <div>
         <div v-if="title" class="text-sm font-medium">{{ title }}</div>
         <div v-if="description" class="text-xs text-muted-foreground">{{ description }}</div>
