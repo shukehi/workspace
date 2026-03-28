@@ -29,7 +29,6 @@ const source = ref<PrintSourcePayload | null>(null);
 
 const embedded = computed(() => route.query.embedded === '1' || window.self !== window.top);
 const autoPrintRequested = computed(() => route.query.autoPrint === '1');
-const customerNameDisplay = computed(() => route.query.pdf === '1' ? 'salesDepartment' : 'full');
 const modeLabels: Record<PrintMode, string> = {
   signature: '签字版',
   compact: '简洁版',
@@ -178,7 +177,7 @@ onMounted(loadSource);
           mode="preview"
           :column-widths="printColumnWidths"
           :default-widths="previewWidthState.defaults"
-          :customer-name-display="customerNameDisplay"
+          customer-name-display="salesDepartment"
         />
       </div>
     </div>
