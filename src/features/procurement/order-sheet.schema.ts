@@ -97,25 +97,17 @@ export function resolveAggregateQuantityColumnWidth(widths: WidthMap, defaults: 
   return left + right;
 }
 
-export function distributeAggregateQuantityColumnWidth(
-  totalWidth: number,
-  widths: WidthMap,
-  defaults: WidthMap,
-): Pick<WidthMap, 'qtyLeft' | 'qtyRight'> {
-  const minimumSideWidth = 62;
-  const left = resolveWidthValue(widths, defaults, 'qtyLeft', 72);
-  const right = resolveWidthValue(widths, defaults, 'qtyRight', 72);
-  const currentTotal = left + right;
-  const clampedTotal = Math.max(minimumSideWidth * 2, Number(totalWidth || 0));
-  const ratio = currentTotal > 0 ? left / currentTotal : 0.5;
+export function resolveAggregateQuantityDisplayWidth(widths: WidthMap, defaults: WidthMap): number {
+  return Math.max(62, resolveWidthValue(widths, defaults, 'quantity', 72));
+}
 
-  let nextLeft = Math.round(clampedTotal * ratio);
-  nextLeft = Math.max(minimumSideWidth, Math.min(clampedTotal - minimumSideWidth, nextLeft));
-
-  return {
-    qtyLeft: nextLeft,
-    qtyRight: clampedTotal - nextLeft,
-  };
+export function resolveAggregateRemarkColumnWidth(widths: WidthMap, defaults: WidthMap): number {
+  const baseRemarkWidth = Math.max(160, resolveWidthValue(widths, defaults, 'remark', 160));
+  const releasedWidth = Math.max(
+    0,
+    resolveAggregateQuantityColumnWidth(widths, defaults) - resolveAggregateQuantityDisplayWidth(widths, defaults),
+  );
+  return baseRemarkWidth + releasedWidth;
 }
 
 function replaceSideQuantityColumns(columns: SheetColumn[]) {

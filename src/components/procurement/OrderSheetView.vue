@@ -17,8 +17,8 @@ import {
   resolveOrderItemQuantity,
   supportsSplitQuantityColumns,
   syncOrderItemQuantity,
-  resolveAggregateQuantityColumnWidth,
-  distributeAggregateQuantityColumnWidth,
+  resolveAggregateQuantityDisplayWidth,
+  resolveAggregateRemarkColumnWidth,
 } from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
 
@@ -90,14 +90,16 @@ const resizing = ref<{ key: string; startX: number; startWidth: number } | null>
 
 function getColumnWidth(key: string) {
   if (key === 'quantity' && showsAggregatedQuantity.value) {
-    return resolveAggregateQuantityColumnWidth(props.columnWidths, props.defaultWidths);
+    return resolveAggregateQuantityDisplayWidth(props.columnWidths, props.defaultWidths);
+  }
+  if (key === 'remark' && showsAggregatedQuantity.value) {
+    return resolveAggregateRemarkColumnWidth(props.columnWidths, props.defaultWidths);
   }
   return props.columnWidths[key] || props.defaultWidths[key] || 120;
 }
 
 function getColumnMinWidth(key: string) {
   if (key === 'no') return 36;
-  if (key === 'quantity' && showsAggregatedQuantity.value) return 124;
   if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') return 62;
   if (key === 'unit') return 50;
   if (key === 'remark') return 160;
@@ -115,10 +117,9 @@ function onResizeMove(event: MouseEvent) {
   const deltaX = event.clientX - resizing.value.startX;
   const width = Math.max(getColumnMinWidth(resizing.value.key), resizing.value.startWidth + deltaX);
   if (resizing.value.key === 'quantity' && showsAggregatedQuantity.value) {
-    const { quantity: _quantity, ...rest } = props.columnWidths;
     emit('update:columnWidths', {
-      ...rest,
-      ...distributeAggregateQuantityColumnWidth(width, props.columnWidths, props.defaultWidths)
+      ...props.columnWidths,
+      quantity: width
     });
     return;
   }
@@ -151,11 +152,9 @@ function startResize(key: string, event: MouseEvent) {
 function resetSingleColumnWidth(key: string) {
   if (!isEditMode.value) return;
   if (key === 'quantity' && showsAggregatedQuantity.value) {
-    const { quantity: _quantity, ...rest } = props.columnWidths;
     emit('update:columnWidths', {
-      ...rest,
-      qtyLeft: props.defaultWidths.qtyLeft || 72,
-      qtyRight: props.defaultWidths.qtyRight || 72
+      ...props.columnWidths,
+      quantity: 72
     });
     return;
   }

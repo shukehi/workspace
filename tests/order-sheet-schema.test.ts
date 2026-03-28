@@ -6,7 +6,8 @@ import {
   resolveOrderItemQuantity,
   syncOrderItemQuantity,
   resolveAggregateQuantityColumnWidth,
-  distributeAggregateQuantityColumnWidth
+  resolveAggregateQuantityDisplayWidth,
+  resolveAggregateRemarkColumnWidth
 } from '../src/features/procurement/order-sheet.schema';
 
 test('schema: packaging columns keep expected order', () => {
@@ -75,13 +76,13 @@ test('quantity helpers: aggregate quantity width is derived from left and right 
   );
 });
 
-test('quantity helpers: aggregate quantity resize maps back to split widths', () => {
-  assert.deepEqual(
-    distributeAggregateQuantityColumnWidth(240, { qtyLeft: 72, qtyRight: 72 }, { qtyLeft: 72, qtyRight: 72 }),
-    { qtyLeft: 120, qtyRight: 120 }
+test('quantity helpers: aggregate quantity view keeps total column narrow and moves extra width to remark', () => {
+  assert.equal(
+    resolveAggregateQuantityDisplayWidth({ qtyLeft: 90, qtyRight: 110 }, { qtyLeft: 72, qtyRight: 72, remark: 160 }),
+    72
   );
-  assert.deepEqual(
-    distributeAggregateQuantityColumnWidth(150, { qtyLeft: 90, qtyRight: 60 }, { qtyLeft: 72, qtyRight: 72 }),
-    { qtyLeft: 88, qtyRight: 62 }
+  assert.equal(
+    resolveAggregateRemarkColumnWidth({ qtyLeft: 90, qtyRight: 110, remark: 160 }, { qtyLeft: 72, qtyRight: 72, remark: 160 }),
+    288
   );
 });
