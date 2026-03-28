@@ -76,6 +76,17 @@ test('server mapping validator: cylinder and lock-fork validators expose nested 
   assert.ok(lockForkIssues.some((item) => item.path === 'suppliers["default"]'));
 });
 
+test('server mapping validator: cylinder custom logos reject duplicates case-insensitively', () => {
+  const issues = validateCylinderMapping({
+    dimensions: {
+      7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
+    },
+    customLogos: ['ZSF', ' zsf '],
+  });
+
+  assert.ok(issues.some((item) => item.path === 'customLogos[1]' && item.code === 'duplicate'));
+});
+
 test('server mapping validator: lock-fork high-height rules expose nested paths', () => {
   const issues = validateLockForkMapping({
     highHeightRules: {

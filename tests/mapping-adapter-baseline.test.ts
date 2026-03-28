@@ -31,6 +31,8 @@ test('mapping adapter baseline: current cylinder mapping adapts and validates cl
   assert.equal(validateCylinderMapping(payload).length, 0);
   assert.ok(Object.keys(payload.dimensions).length > 0);
   assert.ok(Object.keys(payload.mappings).length > 0);
+  assert.equal(payload.mappings['锌合金高低齿']?.supplier, '兴泰锁芯');
+  assert.ok(payload.customLogos.includes('ZSF'));
 });
 
 test('mapping adapter baseline: current lock-fork mapping adapts and validates cleanly', () => {

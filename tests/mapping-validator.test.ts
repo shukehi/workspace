@@ -50,6 +50,17 @@ test('frontend mapping validator: cylinder validator reports nested rule paths',
   assert.ok(issues.some((item) => item.path === 'customLogos' && item.code === 'invalid-type'));
 });
 
+test('frontend mapping validator: cylinder validator rejects duplicate custom logos', () => {
+  const issues = validateCylinderMapping({
+    dimensions: {
+      7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
+    },
+    customLogos: ['ZSF', ' zsf '],
+  });
+
+  assert.ok(issues.some((item) => item.path === 'customLogos[1]' && item.code === 'duplicate'));
+});
+
 test('frontend mapping validator: lock-fork validator reports structural gaps', () => {
   const issues = validateLockForkMapping({
     baseDimensions: {

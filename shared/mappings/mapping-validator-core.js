@@ -23,6 +23,12 @@ function normalizeCylinderExcludeKey(input) {
     .replace(/\s+/g, '');
 }
 
+function normalizeCylinderLogoKey(input) {
+  return String(input || '')
+    .trim()
+    .toUpperCase();
+}
+
 function getPackagingMappingSource(value) {
   const record = asRecord(value);
   if (Object.prototype.hasOwnProperty.call(record, 'mappings')) {
@@ -238,10 +244,18 @@ function validateCylinderMapping(value) {
     issues.push(createIssue('customLogos', 'invalid-type', 'customLogos 必须是数组'));
   }
 
+  const logoSeen = new Set();
   adapted.customLogos.forEach((logo, index) => {
     if (!logo) {
       issues.push(createIssue(`customLogos[${index}]`, 'required', 'customLogos 不能为空字符串'));
+      return;
     }
+    const normalized = normalizeCylinderLogoKey(logo);
+    if (logoSeen.has(normalized)) {
+      issues.push(createIssue(`customLogos[${index}]`, 'duplicate', 'customLogos 存在重复值'));
+      return;
+    }
+    logoSeen.add(normalized);
   });
 
   if (asRecord(value).excludedCylinders !== undefined && !Array.isArray(asRecord(value).excludedCylinders)) {
