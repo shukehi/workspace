@@ -159,6 +159,10 @@ const initDB = async () => {
         await sequelize.authenticate();
         console.log('📦 Database connection establishment... OK');
 
+        await sequelize.query('PRAGMA journal_mode = WAL;');
+        await sequelize.query('PRAGMA busy_timeout = 5000;');
+        await sequelize.query('PRAGMA foreign_keys = ON;');
+
         await sequelize.sync();
         await runMigrations(sequelize);
         console.log('✅ Database synchronized');

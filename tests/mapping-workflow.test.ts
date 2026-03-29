@@ -3,9 +3,22 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 
-const tempDbPath = path.join(os.tmpdir(), `mapping-workflow-${Date.now()}.sqlite`);
-process.env.DB_STORAGE = tempDbPath;
+const _require = createRequire(import.meta.url);
+const TEST_DB = path.join(os.tmpdir(), `test-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
+process.env.DB_STORAGE = TEST_DB;
 
 const {
   initDB,
@@ -13,13 +26,13 @@ const {
   MappingProfile,
   MappingRevision,
   MappingAuditLog,
-} = require('../server/models') as typeof import('../server/models');
+} = _require('../server/models') as typeof import('../server/models');
 import type { MappingProfileInstance, MappingRevisionInstance, MappingAuditLogInstance } from '../server/models';
-const MappingWorkflow = require('../server/services/mappings') as typeof import('../server/services/mappings');
+const MappingWorkflow = _require('../server/services/mappings') as typeof import('../server/services/mappings');
 const {
   PROFILE_CODES,
   REVISION_STATES,
-} = require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
+} = _require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
 
 const packagingPayload = {
   supplierName: '方亮包装',
@@ -150,9 +163,62 @@ test('mapping workflow skeleton: enforces single draft, optimistic lock, publish
   );
 });
 
+test('ensurePublishedMapping serializes first-read seeding across concurrent mapping requests', async () => {
+  const profilePayloads = [
+    {
+      profileCode: PROFILE_CODES.CYLINDER,
+      payload: {},
+    },
+    {
+      profileCode: PROFILE_CODES.LOCK,
+      payload: {},
+    },
+    {
+      profileCode: PROFILE_CODES.LOCK_FORK,
+      payload: {
+        suppliers: {
+          default: '应志友',
+        },
+      },
+    },
+    {
+      profileCode: PROFILE_CODES.HANDLE,
+      payload: {},
+    },
+  ] as const;
+
+  const results = await Promise.all(
+    profilePayloads.map(({ profileCode, payload }) =>
+      MappingWorkflow.ensurePublishedMapping(profileCode, {
+        legacyPayload: payload,
+        operator: 'tester',
+        changeNote: 'seed concurrent read path',
+      }),
+    ),
+  );
+
+  assert.equal(results.every((result) => result?.ok && result.payload), true);
+
+  const profiles = await MappingProfile.findAll({
+    order: [['profile_code', 'ASC']],
+  }) as MappingProfileInstance[];
+
+  assert.deepEqual(
+    profilePayloads.every(({ profileCode }) => profiles.some((profile) => profile.profile_code === profileCode)),
+    true,
+  );
+
+  for (const { profileCode } of profilePayloads) {
+    const detail = await MappingWorkflow.getMappingDetail(profileCode);
+    assert.equal(detail?.ok, true);
+    assert.equal(detail?.mapping.publishedRevision?.state, REVISION_STATES.PUBLISHED);
+    assert.equal(detail?.mapping.draftRevision, null);
+  }
+});
+
 test.after(async () => {
   await sequelize.close();
-  if (fs.existsSync(tempDbPath)) {
-    fs.unlinkSync(tempDbPath);
+  if (fs.existsSync(TEST_DB)) {
+    fs.unlinkSync(TEST_DB);
   }
 });

@@ -21,6 +21,24 @@ const sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: storagePath,
     logging: false, // Set to console.log to see SQL queries
+    pool: {
+        max: 1,
+        min: 1,
+        idle: 10000,
+        acquire: 30000
+    }
 });
+
+// Safeguard against accidental data wipe
+const isProductionDb = storagePath === path.resolve(RUNTIME_FILES.database);
+const originalSync = sequelize.sync.bind(sequelize);
+sequelize.sync = async (options?: any) => {
+    if (options?.force && isProductionDb) {
+        const msg = 'CRITICAL: sequelize.sync({ force: true }) is forbidden on the production database! This prevents accidental data loss during tests or development.';
+        console.error(`\x1b[31m${msg}\x1b[0m`);
+        throw new Error(msg);
+    }
+    return originalSync(options);
+};
 
 export default sequelize;

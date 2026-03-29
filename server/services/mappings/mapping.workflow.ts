@@ -45,6 +45,23 @@ interface EnsurePublishedParams {
     changeNote?: string;
 }
 
+let mappingSeedQueue: Promise<void> = Promise.resolve();
+
+async function runSerializedMappingSeed<T>(task: () => Promise<T>): Promise<T> {
+    const previous = mappingSeedQueue;
+    let releaseCurrent!: () => void;
+    mappingSeedQueue = new Promise<void>((resolve) => {
+        releaseCurrent = resolve;
+    });
+
+    await previous;
+    try {
+        return await task();
+    } finally {
+        releaseCurrent();
+    }
+}
+
 export function operatorFromRequest(req?: PlainRecord): string {
     const fromHeader = req?.headers?.['x-operator'] || req?.headers?.['x-user'];
     return String(fromHeader || 'system-admin');
@@ -427,13 +444,20 @@ export async function ensurePublishedMapping(
         return published || null;
     }
 
-    const seeded = await seedFromLegacyPayload(profileCode, legacyPayload, {
-        operator,
-        changeNote
-    });
-    if (!seeded || !seeded.ok) return seeded;
+    return runSerializedMappingSeed(async () => {
+        const publishedAfterWait = await getPublishedMapping(profileCode);
+        if (publishedAfterWait && publishedAfterWait.ok && publishedAfterWait.payload) {
+            return publishedAfterWait;
+        }
 
-    return getPublishedMapping(profileCode);
+        const seeded = await seedFromLegacyPayload(profileCode, legacyPayload, {
+            operator,
+            changeNote
+        });
+        if (!seeded || !seeded.ok) return seeded;
+
+        return getPublishedMapping(profileCode);
+    });
 }
 
 export function syncLegacyRuntimeFile(runtimeFile: string | undefined, payload: PlainRecord): void {
@@ -442,4 +466,3 @@ export function syncLegacyRuntimeFile(runtimeFile: string | undefined, payload: 
     fs.writeFileSync(tempPath, JSON.stringify(payload, null, 4));
     fs.renameSync(tempPath, runtimeFile);
 }
-
