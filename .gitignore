@@ -48,3 +48,4 @@ data/runtime/
 
 # Antigravity brain directory (optional - uncomment if you don't want to track it)
 # .gemini/
+.gstack/

@@ -22,7 +22,6 @@
 启动命令：
 
 ```bash
-npm run server:lan
 npm run dev:lan
 ```
 
@@ -38,8 +37,8 @@ npm run dev:lan
 
 行为说明：
 
-- `npm run dev:lan` 仍然是 Vite 开发模式，只是将监听地址开放到局域网
-- `npm run server:lan` 使用 `tsx watch`，修改后端代码后会自动重启，并允许逐步加载后端 `.ts` 模块
+- `npm run dev:lan` 会同时启动 Vite 和 Express，并将前端监听地址开放到局域网
+- 如果你只想单独调试后端，仍可使用 `npm run server:lan`
 - 同事访问前端时，`/api/*` 和 `/data/*` 仍由 Vite 代理到你本机的 `3000` 端口
 - 你改动代码时，本机和同事页面都会看到最新结果
 
@@ -103,7 +102,7 @@ npm run share:prod
 
 1. 确认双方处于同一局域网
 2. 确认本机 IP 没变
-3. 确认 `npm run server:lan` 和 `npm run dev:lan` 都还在运行
+3. 确认 `npm run dev:lan` 仍在运行；如果你是拆开启动，再额外确认 `npm run server:lan`
 4. 确认系统防火墙未拦截 Node.js
 5. 确认公司 Wi-Fi 没有限制终端互访
 
