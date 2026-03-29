@@ -493,6 +493,36 @@ export const useInventoryStore = defineStore('inventory', () => {
         downloadCsv(`库存库位余额_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
     }
 
+    function exportReconciliationToCSV(data: InventoryItem[]) {
+        if (!Array.isArray(data) || data.length === 0) return;
+
+        const headers = ['物料编码', '物料型号', '物料名称', '总库存', '库位汇总', '差异数量', '建议补录目标'];
+        const rows = data
+            .map((item) => {
+                const locations = Array.isArray(item.locations) ? item.locations : [];
+                const locationTotal = locations.reduce((sum, location) => sum + Number(location.quantity || 0), 0);
+                const diffQuantity = Number(item.stock_quantity || 0) - locationTotal;
+                const firstPositiveLocation = locations.find((location) => Number(location.quantity || 0) > 0);
+                const suggestedTarget = firstPositiveLocation
+                    ? `${firstPositiveLocation.warehouseName || 'DEFAULT'} / ${firstPositiveLocation.locationName || firstPositiveLocation.locationCode || 'UNASSIGNED'}`
+                    : 'DEFAULT / UNASSIGNED';
+                return [
+                    item.code || '',
+                    item.model || '',
+                    item.name || '',
+                    Number(item.stock_quantity || 0),
+                    locationTotal,
+                    diffQuantity,
+                    suggestedTarget,
+                ];
+            })
+            .filter((row) => Number(row[5] || 0) !== 0);
+
+        if (rows.length === 0) return;
+
+        downloadCsv(`库存对账异常_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+    }
+
     function exportOutboundsToCSV(data: InventoryOutbound[]) {
         if (!Array.isArray(data) || data.length === 0) return;
 
@@ -573,6 +603,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         updateMinStock,
         exportReceiptsToCSV,
         exportInventoryToCSV,
+        exportReconciliationToCSV,
         exportOutboundsToCSV,
     };
 });

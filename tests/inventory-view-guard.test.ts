@@ -52,6 +52,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /availableReverseReasonOptions/);
   assert.match(view, /handleExportReceipts/);
   assert.match(view, /handleExportInventory/);
+  assert.match(view, /handleExportReconciliation/);
   assert.match(view, /handleExportOutbounds/);
   assert.match(view, /handleContextExport/);
   assert.match(view, /currentExportLabel/);
@@ -74,6 +75,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /route\.query\.tab/);
   assert.match(view, /当前按采购订单/);
   assert.match(view, /导出库位余额/);
+  assert.match(view, /导出对账异常/);
   assert.match(view, /导出出库记录/);
   assert.match(view, /全部方向/);
   assert.match(view, /仅入库/);
@@ -166,6 +168,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(store, /async function reverseReceipt/);
   assert.match(store, /function exportReceiptsToCSV/);
   assert.match(store, /function exportInventoryToCSV/);
+  assert.match(store, /function exportReconciliationToCSV/);
   assert.match(store, /function exportOutboundsToCSV/);
   assert.match(store, /方向/);
   assert.match(store, /剩余可撤销/);

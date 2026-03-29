@@ -24,6 +24,7 @@
 - 来源解析与 BOM 计算
 - 采购订单管理（含分类）
 - 库存管理（库位、入库、正式出库、冲销）与预警
+- 库存页支持查看单物料库存轨迹、对账异常筛选与异常导出
 - 统计看板
 - 配置管理（配方、材料目录、包装、锁芯、锁具、拉手、锁叉）
 
@@ -51,6 +52,7 @@
 - 库存页当前分为 `物料库存 / 采购入库记录 / 正式出库记录 / 库位管理` 四个 tab
 - 正式出库通过独立出库单与冲销单实现；`Material.stock_quantity` 保留为总库存缓存，库位余额由独立表维护
 - 库存导出已按当前 tab 提供不同结果：库位余额、入库记录、正式出库记录
+- 物料库存 tab 额外支持“导出对账异常”，用于导出 `总库存 != 库位汇总` 的物料
 
 ## 技术栈
 
@@ -253,6 +255,7 @@ node --test tests/repository-structure-guard.test.js
 - `GET /api/inventory`：库存列表（支持仓库/库位/关键字/低库存筛选）
 - `PUT /api/inventory/:id`：仅更新安全库存 `min_stock`；若传入 `stock_quantity` 会返回 `STOCK_QUANTITY_IMMUTABLE`
 - `POST /api/inventory-adjustments`：手工调账；需传稳定的 `operation_key`，同步更新总库存、库位余额，并写入 `inventory_movements`
+- `GET /api/inventory-movements`：库存流水列表（支持物料/仓库/库位/来源/关键字/日期筛选）
 - `GET /api/inventory-receipts`：入库记录列表
 - `GET /api/inventory-receipts/:id`：入库记录详情
 - `POST /api/inventory-receipts/:id/reverse`：撤销入库
@@ -283,11 +286,16 @@ node --test tests/repository-structure-guard.test.js
 - `/api/materials` 维护的是库存/入库实际使用的 `materials` 数据库表；采购入库按 `order_items.material_id -> materials.code/id` 匹配
 - `/api/config/materials` 维护的是材料目录工作流，主要服务来源分析、配方和配置读取，不会自动把数据同步到 `materials` 表
 - 拉手自动单如需稳定入库，建议在 `handle` 映射里填写 `materialCode`，并确保对应编码已存在于 `materials` 表
+- 库存页当前支持按物料查看最近库存轨迹，并可导出对账异常清单
 - 本轮编码治理候选表见 [docs/reference/MATERIAL_CODE_STANDARDIZATION_CANDIDATES_2026-03-13.csv](/Users/aries/Dve/workspace/docs/reference/MATERIAL_CODE_STANDARDIZATION_CANDIDATES_2026-03-13.csv)
 
 ## 配方迁移与回退
 
 JSON 配方迁移到 SQLite：
+
+常用库存维护脚本：
+
+- `npm run inventory:reconcile:dry-run`：扫描 `materials.stock_quantity` 与 `inventory_location_balances` 的差异，输出 dry-run 对账报告
 
 ```bash
 npm run db:migrate:formulas

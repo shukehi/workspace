@@ -451,6 +451,28 @@ function handleExportInventory() {
   });
 }
 
+function handleExportReconciliation() {
+  const mismatchedItems = filteredItems.value.filter((item) => {
+    const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+    return Number(item.stock_quantity || 0) !== locationTotal;
+  });
+
+  if (mismatchedItems.length === 0) {
+    toast({
+      title: '暂无可导出的对账异常',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  store.exportReconciliationToCSV(mismatchedItems);
+  toast({
+    title: '导出成功',
+    description: `已导出 ${mismatchedItems.length} 条对账异常物料`,
+    variant: 'success',
+  });
+}
+
 function handleExportOutbounds() {
   store.fetchAllInventoryOutbounds({
     outboundNo: outboundNoFilter.value.trim() || undefined,
@@ -843,6 +865,9 @@ onMounted(() => {
               </Button>
               <Button variant="outline" @click="reconciliationOnly = !reconciliationOnly">
                 {{ reconciliationOnly ? '显示全部库存' : '仅看对账异常' }}
+              </Button>
+              <Button variant="outline" @click="handleExportReconciliation">
+                导出对账异常
               </Button>
               <Button @click="openOutboundDialog">
                 <Send class="w-4 h-4 mr-2" />
