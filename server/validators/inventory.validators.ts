@@ -51,13 +51,16 @@ export function validateInventoryUpdateBody(body: unknown): ValidationIssue[] {
     }
 
     const issues: ValidationIssue[] = [];
-    const stockQuantity = Number(body.stock_quantity);
-    if (!Number.isFinite(stockQuantity)) {
+    if (body.stock_quantity !== undefined && !Number.isFinite(Number(body.stock_quantity))) {
         issues.push(createIssue('body', 'stock_quantity', '库存数量必须为有效数字'));
     }
 
     if (body.min_stock !== undefined && !Number.isFinite(Number(body.min_stock))) {
         issues.push(createIssue('body', 'min_stock', '安全库存必须为有效数字'));
+    }
+
+    if (body.stock_quantity === undefined && body.min_stock === undefined) {
+        issues.push(createIssue('body', 'min_stock', '至少需要提供安全库存'));
     }
 
     return issues;

@@ -1,4 +1,5 @@
 import inventoryService from './inventory.service';
+import inventoryAdjustmentService from './inventory-adjustment.service';
 import inventoryReceiptService from './inventory-receipt.service';
 import inventoryLocationService from './inventory-location.service';
 import inventoryOutboundService from './inventory-outbound.service';
@@ -8,6 +9,7 @@ import inventoryOutboundService from './inventory-outbound.service';
  */
 export {
     inventoryService,
+    inventoryAdjustmentService,
     inventoryReceiptService,
     inventoryLocationService,
     inventoryOutboundService,

@@ -18,3 +18,17 @@ export async function listMaterials(): Promise<any[]> {
 export async function findMaterialById(id: number | string): Promise<any> {
     return await Material.findByPk(id);
 }
+
+export async function findMaterialWithBalancesById(id: number | string): Promise<any> {
+    return await Material.findByPk(id, {
+        include: [{
+            model: InventoryLocationBalance,
+            as: 'locationBalances',
+            required: false,
+            include: [
+                { model: Warehouse, as: 'warehouse', required: false },
+                { model: InventoryLocation, as: 'location', required: false },
+            ],
+        }],
+    });
+}

@@ -2,6 +2,7 @@ export type InventoryReceiptDirection = 'in' | 'reversal';
 export type WarehouseStatus = 'active' | 'inactive';
 export type InventoryOutboundDirection = 'out' | 'reversal';
 export type InventoryDocumentStatus = 'posted' | 'reversed';
+export type InventoryMovementSourceType = 'manual_adjustment' | 'receipt_in' | 'receipt_reversal' | 'outbound' | 'outbound_reversal' | 'baseline_repair';
 export type FormulaStatus = 'draft' | 'published' | 'archived';
 export type FormulaRevisionState = 'draft' | 'published' | 'archived';
 export type MappingProfileCode = 'packaging' | 'cylinder' | 'lock' | 'lock_fork' | 'handle';
@@ -408,6 +409,44 @@ export interface InventoryOutboundItemCreationAttributes {
 
 export interface InventoryOutboundWithItemsAttributes extends InventoryOutboundAttributes {
     items?: InventoryOutboundItemAttributes[];
+}
+
+export interface InventoryMovementAttributes {
+    id: number;
+    material_id: number;
+    warehouse_id: number;
+    location_id: number;
+    source_type: InventoryMovementSourceType;
+    source_id: string;
+    source_line_key: string;
+    delta_quantity: number;
+    balance_after: number;
+    stock_after: number;
+    reason: string;
+    operator?: string | null;
+    remark: string;
+    occurred_at: Date;
+    metadata_json: string;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface InventoryMovementCreationAttributes {
+    id?: number;
+    material_id: number;
+    warehouse_id: number;
+    location_id: number;
+    source_type: InventoryMovementSourceType;
+    source_id: string;
+    source_line_key: string;
+    delta_quantity: number;
+    balance_after: number;
+    stock_after: number;
+    reason: string;
+    operator?: string | null;
+    remark?: string;
+    occurred_at: Date | string;
+    metadata_json?: string;
 }
 
 export interface FormulaDefinitionAttributes {

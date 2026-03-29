@@ -6,6 +6,7 @@ import InventoryReceipt from './InventoryReceipt';
 import Warehouse from './Warehouse';
 import InventoryLocation from './InventoryLocation';
 import InventoryLocationBalance from './InventoryLocationBalance';
+import InventoryMovement from './InventoryMovement';
 import InventoryOutbound from './InventoryOutbound';
 import InventoryOutboundItem from './InventoryOutboundItem';
 import Material from './Material';
@@ -31,6 +32,7 @@ import type {
     WarehouseAttributes, WarehouseCreationAttributes,
     InventoryLocationAttributes, InventoryLocationCreationAttributes,
     InventoryLocationBalanceAttributes, InventoryLocationBalanceCreationAttributes,
+    InventoryMovementAttributes, InventoryMovementCreationAttributes,
     InventoryOutboundAttributes, InventoryOutboundCreationAttributes,
     InventoryOutboundItemAttributes, InventoryOutboundItemCreationAttributes,
     FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes,
@@ -79,6 +81,11 @@ export type InventoryLocationBalanceInstance = ModelInstance<InventoryLocationBa
     warehouse?: WarehouseInstance | null;
     location?: InventoryLocationInstance | null;
 };
+export type InventoryMovementInstance = ModelInstance<InventoryMovementAttributes, InventoryMovementCreationAttributes> & {
+    material?: MaterialInstance | null;
+    warehouse?: WarehouseInstance | null;
+    location?: InventoryLocationInstance | null;
+};
 export type InventoryOutboundInstance = ModelInstance<InventoryOutboundAttributes, InventoryOutboundCreationAttributes> & {
     sourceOutbound?: InventoryOutboundInstance | null;
     warehouse?: WarehouseInstance | null;
@@ -115,6 +122,12 @@ Warehouse.hasMany(InventoryLocationBalance, { foreignKey: 'warehouse_id', as: 'l
 InventoryLocationBalance.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
 InventoryLocation.hasMany(InventoryLocationBalance, { foreignKey: 'location_id', as: 'balances', onDelete: 'CASCADE' });
 InventoryLocationBalance.belongsTo(InventoryLocation, { foreignKey: 'location_id', as: 'location' });
+Material.hasMany(InventoryMovement, { foreignKey: 'material_id', as: 'inventoryMovements', onDelete: 'RESTRICT' });
+InventoryMovement.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
+Warehouse.hasMany(InventoryMovement, { foreignKey: 'warehouse_id', as: 'inventoryMovements', onDelete: 'RESTRICT' });
+InventoryMovement.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
+InventoryLocation.hasMany(InventoryMovement, { foreignKey: 'location_id', as: 'inventoryMovements', onDelete: 'RESTRICT' });
+InventoryMovement.belongsTo(InventoryLocation, { foreignKey: 'location_id', as: 'location' });
 Warehouse.hasMany(InventoryReceipt, { foreignKey: 'warehouse_id', as: 'inventoryReceipts', onDelete: 'RESTRICT' });
 InventoryReceipt.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
 InventoryLocation.hasMany(InventoryReceipt, { foreignKey: 'location_id', as: 'inventoryReceipts', onDelete: 'RESTRICT' });
@@ -166,6 +179,7 @@ export {
     Warehouse,
     InventoryLocation,
     InventoryLocationBalance,
+    InventoryMovement,
     InventoryOutbound,
     InventoryOutboundItem,
     Material,

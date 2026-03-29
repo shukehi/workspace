@@ -11,6 +11,7 @@ import printRoutes from './print';
 import orderRoutes from './order';
 import materialRoutes from './material';
 import inventoryRoutes from './inventory';
+import inventoryAdjustmentRoutes from './inventoryAdjustments';
 import inventoryReceiptRoutes from './inventoryReceipts';
 import inventoryLocationRoutes from './inventoryLocations';
 import inventoryOutboundRoutes from './inventoryOutbounds';
@@ -41,6 +42,7 @@ router.get('/contracts', async (req: Request, res: Response) => {
 router.use('/contracts', contractRoutes);
 router.use('/materials', materialRoutes);
 router.use('/inventory', inventoryRoutes);
+router.use('/inventory-adjustments', inventoryAdjustmentRoutes);
 router.use('/inventory-receipts', inventoryReceiptRoutes);
 router.use('/inventory-locations', inventoryLocationRoutes);
 router.use('/inventory-outbounds', inventoryOutboundRoutes);

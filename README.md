@@ -6,7 +6,7 @@
 
 - 前端主应用：`src/`（Vue 3 + Pinia + Vue Router + TypeScript）
 - 后端服务：`server/`（Express + Sequelize + SQLite）
-- 当前质量基线：`npm run type-check`、`npm run type-check:server`、`npm test` 已通过
+- 当前常用验证命令：`npm run type-check`、`npm run type-check:server`、`npm test`
 - 打印预览：当前页面为 `src/views/PrintDocument.vue`（路由 `/print-document`）
 - Mock 模式：仅在 `VITE_USE_MOCK=true` 时启用
 
@@ -251,7 +251,8 @@ node --test tests/repository-structure-guard.test.js
 - `POST /api/materials`：新增物料
 - `PUT /api/materials/:id`：更新物料
 - `GET /api/inventory`：库存列表（支持仓库/库位/关键字/低库存筛选）
-- `PUT /api/inventory/:id`：更新库存（兼容旧入口，不属于正式仓库流程）
+- `PUT /api/inventory/:id`：仅更新安全库存 `min_stock`；若传入 `stock_quantity` 会返回 `STOCK_QUANTITY_IMMUTABLE`
+- `POST /api/inventory-adjustments`：手工调账；需传稳定的 `operation_key`，同步更新总库存、库位余额，并写入 `inventory_movements`
 - `GET /api/inventory-receipts`：入库记录列表
 - `GET /api/inventory-receipts/:id`：入库记录详情
 - `POST /api/inventory-receipts/:id/reverse`：撤销入库

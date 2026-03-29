@@ -128,6 +128,7 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
     const inventoryLocationBalances = await queryInterface.describeTable('inventory_location_balances');
     const inventoryOutbounds = await queryInterface.describeTable('inventory_outbounds');
     const inventoryOutboundItems = await queryInterface.describeTable('inventory_outbound_items');
+    const inventoryMovements = await queryInterface.describeTable('inventory_movements');
 
     assert.ok(orders.category);
     assert.ok(orders.dedupe_key);
@@ -146,6 +147,9 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
     assert.ok(inventoryLocationBalances.location_id);
     assert.ok(inventoryOutbounds.outbound_no);
     assert.ok(inventoryOutboundItems.outbound_id);
+    assert.ok(inventoryMovements.source_type);
+    assert.ok(inventoryMovements.source_id);
+    assert.ok(inventoryMovements.source_line_key);
 
     const [defaultWarehouses] = await sequelize.query(`SELECT code FROM warehouses ORDER BY id`);
     assert.deepEqual((defaultWarehouses as Array<{ code: string }>).map((row) => row.code), ['DEFAULT']);
@@ -167,6 +171,7 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
       '20260318-006-add-query-indexes',
       '20260320-007-add-inventory-location-and-outbound',
       '20260320-008-add-inventory-reversal-guards',
+      '20260329-009-add-inventory-movements',
     ]);
   } finally {
     await sequelize.close();

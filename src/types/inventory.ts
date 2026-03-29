@@ -110,3 +110,42 @@ export interface InventoryOutboundListResponse {
     page: number;
     pageSize: number;
 }
+
+export interface InventoryAdjustment {
+    id: number;
+    source_type: 'manual_adjustment';
+    source_id: string;
+    source_line_key: string;
+    material_id: number;
+    material_code: string;
+    material_name: string;
+    warehouse_id: number;
+    warehouse_name: string;
+    location_id: number;
+    location_code: string;
+    location_name: string;
+    delta_quantity: number;
+    balance_after: number;
+    stock_after: number;
+    reason: string;
+    operator?: string | null;
+    remark?: string | null;
+    occurred_at: string | null;
+}
+
+export interface InventoryAdjustmentPayload {
+    material_id: number;
+    warehouse_id: number;
+    location_id: number;
+    operation_key: string;
+    delta_quantity: number;
+    reason: string;
+    operator?: string;
+    remark?: string;
+    occurred_at?: string;
+}
+
+export interface InventoryAdjustmentResponse {
+    movement: InventoryAdjustment;
+    item: InventoryItem;
+}

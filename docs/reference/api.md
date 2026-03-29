@@ -66,6 +66,7 @@ http://47.98.198.45:8802/getOutContractDetail
 
 - `GET /api/inventory`
 - `PUT /api/inventory/:id`
+- `POST /api/inventory-adjustments`
 - `GET /api/inventory-receipts`
 - `GET /api/inventory-receipts/:id`
 - `POST /api/inventory-receipts/:id/reverse`
@@ -81,9 +82,10 @@ http://47.98.198.45:8802/getOutContractDetail
 
 - `GET /api/inventory` 当前支持 `warehouseId / locationId / keyword / lowStockOnly`
 - `GET /api/inventory` 返回总库存，并附带 `locations[]` 库位余额摘要
+- `POST /api/inventory-adjustments` 用于单物料单库位手工调账，必填 `material_id / warehouse_id / location_id / operation_key / delta_quantity / reason`
 - `GET /api/inventory-receipts` 当前支持 `orderNo / orderId / warehouseId / locationId / keyword / direction / reverseReason / page / pageSize`
 - 正式出库通过 `inventory-outbounds` 维护；出库冲销会创建反向出库单回补原库位余额和总库存
-- `PUT /api/inventory/:id` 仍保留兼容，但不再是正式仓库流程推荐入口
+- `PUT /api/inventory/:id` 仍保留兼容，但仅允许更新 `min_stock`；若请求体包含 `stock_quantity`，接口返回 `STOCK_QUANTITY_IMMUTABLE`
 
 ## 2. 配置域 API
 
@@ -145,7 +147,7 @@ http://47.98.198.45:8802/getOutContractDetail
 10. 采购管理页摘要卡片里的 `待处理单` 会筛选 `draft / submitted / processing`，`今日新增` 会按 `created_at` 日期筛选
 11. `/api/materials` 对应库存/入库实际使用的 `materials` 数据库表；`/api/config/materials` / `material-catalog` 对应材料目录工作流，二者不会自动双向同步
 12. 采购入库只按 `order_items.material_id -> materials.code/id` 匹配；仅更新材料目录或 mapping 而未补齐 `materials` 表时，仍会触发 `MATERIAL_NOT_FOUND`
-13. 当前采购入库、入库撤销、正式出库、出库冲销都会同时更新 `Material.stock_quantity` 和库位余额；库存页手工改库存仅视为兼容入口
+13. 当前采购入库、入库撤销、正式出库、出库冲销都会同时更新 `Material.stock_quantity` 和库位余额；手工调账请走 `/api/inventory-adjustments`
 
 ## 4. 关联文档
 

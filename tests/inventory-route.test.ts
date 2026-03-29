@@ -8,9 +8,10 @@ import type { Router } from 'express'
 const TEST_DB = path.join('/tmp', 'order-search-inventory-route.test.sqlite');
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, Warehouse } = require('../server/models') as typeof import('../server/models');
+const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, InventoryMovement, Warehouse } = require('../server/models') as typeof import('../server/models');
 import type { MaterialInstance } from '../server/models';
 const inventoryRoutes = (require('../server/routes/inventory') as { default: Router }).default;
+const inventoryAdjustmentRoutes = (require('../server/routes/inventoryAdjustments') as { default: Router }).default;
 const inventoryReceiptRoutes = (require('../server/routes/inventoryReceipts') as { default: Router }).default;
 const inventoryLocationRoutes = (require('../server/routes/inventoryLocations') as { default: Router }).default;
 const inventoryOutboundRoutes = (require('../server/routes/inventoryOutbounds') as { default: Router }).default;
@@ -28,6 +29,7 @@ async function startServer() {
   const app = express();
   app.use(express.json());
   app.use('/api/inventory', inventoryRoutes);
+  app.use('/api/inventory-adjustments', inventoryAdjustmentRoutes);
   app.use('/api/inventory-receipts', inventoryReceiptRoutes);
   app.use('/api/inventory-locations', inventoryLocationRoutes);
   app.use('/api/inventory-outbounds', inventoryOutboundRoutes);
@@ -51,7 +53,7 @@ test.before(async () => {
   baseUrl = started.baseUrl;
 });
 
-test('GET /api/inventory and PUT /api/inventory/:id', async () => {
+test('GET /api/inventory and PUT /api/inventory/:id updates min stock only', async () => {
   const material = await Material.create({
     code: `TEST-MAT-${Date.now()}`,
     name: 'Inventory Test Material',
@@ -77,13 +79,17 @@ test('GET /api/inventory and PUT /api/inventory/:id', async () => {
   const updateRes = await fetch(`${baseUrl}/api/inventory/${material.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stock_quantity: 99, min_stock: 20 })
+    body: JSON.stringify({ min_stock: 20 })
   });
 
   assert.equal(updateRes.status, 200);
   const updated = getBody(await updateRes.json()) as { stock_quantity: number; min_stock: number };
-  assert.equal(updated.stock_quantity, 99);
+  assert.equal(updated.stock_quantity, 12);
   assert.equal(updated.min_stock, 20);
+
+  const refreshedMaterial = await Material.findByPk(material.id) as MaterialInstance | null;
+  assert.equal(Number(refreshedMaterial?.stock_quantity || 0), 12);
+  assert.equal(Number(refreshedMaterial?.min_stock || 0), 20);
 });
 
 test('GET /api/inventory supports warehouse/location filters and returns location summaries', async () => {
@@ -164,6 +170,262 @@ test('PUT /api/inventory/:id rejects invalid stock values with validation error'
   assert.equal(Array.isArray(body.issues), true);
   assert.equal(body.issues[0].target, 'body');
   assert.equal(body.issues[0].field, 'stock_quantity');
+});
+
+test('PUT /api/inventory/:id rejects direct stock quantity updates', async () => {
+  const material = await Material.create({
+    code: `TEST-MAT-IMMUTABLE-${Date.now()}`,
+    name: 'Immutable Material',
+    model: 'IMM-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 8,
+    min_stock: 2
+  }) as MaterialInstance;
+
+  const res = await fetch(`${baseUrl}/api/inventory/${material.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stock_quantity: 10 })
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'STOCK_QUANTITY_IMMUTABLE');
+  assert.equal(body.field, 'stock_quantity');
+
+  const refreshedMaterial = await Material.findByPk(material.id) as MaterialInstance | null;
+  assert.equal(Number(refreshedMaterial?.stock_quantity || 0), 8);
+  assert.equal(Number(refreshedMaterial?.min_stock || 0), 2);
+});
+
+test('POST /api/inventory-adjustments updates stock, location balance and creates movement', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  assert.equal(locationRes.status, 200);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-ADJ-${Date.now()}`,
+    name: 'Adjustment Material',
+    model: 'ADJ-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 5,
+    min_stock: 1
+  }) as MaterialInstance;
+
+  await InventoryLocationBalance.create({
+    material_id: material.id,
+    warehouse_id: warehouseId,
+    location_id: locationId,
+    quantity: 5,
+  });
+
+  const res = await fetch(`${baseUrl}/api/inventory-adjustments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      operation_key: `adj-${material.id}-positive`,
+      delta_quantity: 3,
+      reason: '盘点补差',
+      operator: '仓管B',
+      remark: '补录库存'
+    })
+  });
+
+  assert.equal(res.status, 201);
+  const body = getBody(await res.json()) as {
+    movement: { delta_quantity: number; balance_after: number; stock_after: number; reason: string };
+    item: { id: number; stock_quantity: number; locations: Array<{ quantity: number }> };
+  };
+  assert.equal(body.movement.delta_quantity, 3);
+  assert.equal(body.movement.balance_after, 8);
+  assert.equal(body.movement.stock_after, 8);
+  assert.equal(body.movement.reason, '盘点补差');
+  assert.equal(body.item.id, material.id);
+  assert.equal(body.item.stock_quantity, 8);
+  assert.equal(body.item.locations[0].quantity, 8);
+
+  const refreshedMaterial = await Material.findByPk(material.id) as MaterialInstance | null;
+  const refreshedBalance = await InventoryLocationBalance.findOne({
+    where: {
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+    }
+  });
+  const movement = await InventoryMovement.findOne({
+    where: {
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      source_type: 'manual_adjustment',
+    }
+  });
+
+  assert.equal(Number(refreshedMaterial?.stock_quantity || 0), 8);
+  assert.equal(Number(refreshedBalance?.quantity || 0), 8);
+  assert.ok(movement);
+});
+
+test('POST /api/inventory-adjustments rejects negative result balance', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  assert.equal(locationRes.status, 200);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-ADJ-NEG-${Date.now()}`,
+    name: 'Adjustment Negative Material',
+    model: 'ADJ-NEG-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 2,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  await InventoryLocationBalance.create({
+    material_id: material.id,
+    warehouse_id: warehouseId,
+    location_id: locationId,
+    quantity: 2,
+  });
+
+  const res = await fetch(`${baseUrl}/api/inventory-adjustments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      operation_key: `adj-${material.id}-negative`,
+      delta_quantity: -5,
+      reason: '盘亏调整'
+    })
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'INVENTORY_BALANCE_NEGATIVE');
+
+  const refreshedMaterial = await Material.findByPk(material.id) as MaterialInstance | null;
+  const refreshedBalance = await InventoryLocationBalance.findOne({
+    where: {
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+    }
+  });
+  const movements = await InventoryMovement.count({
+    where: {
+      material_id: material.id,
+      source_type: 'manual_adjustment',
+    }
+  });
+
+  assert.equal(Number(refreshedMaterial?.stock_quantity || 0), 2);
+  assert.equal(Number(refreshedBalance?.quantity || 0), 2);
+  assert.equal(movements, 0);
+});
+
+test('POST /api/inventory-adjustments is idempotent for the same operation_key', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  assert.equal(locationRes.status, 200);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-ADJ-IDEMP-${Date.now()}`,
+    name: 'Adjustment Idempotent Material',
+    model: 'ADJ-IDEMP-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 4,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  await InventoryLocationBalance.create({
+    material_id: material.id,
+    warehouse_id: warehouseId,
+    location_id: locationId,
+    quantity: 4,
+  });
+
+  const payload = {
+    material_id: material.id,
+    warehouse_id: warehouseId,
+    location_id: locationId,
+    operation_key: `adj-${material.id}-retry`,
+    delta_quantity: 2,
+    reason: '重试补差',
+    operator: '仓管C',
+  };
+
+  const [firstRes, secondRes] = await Promise.all([
+    fetch(`${baseUrl}/api/inventory-adjustments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+    fetch(`${baseUrl}/api/inventory-adjustments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  ]);
+
+  assert.equal(firstRes.status, 201);
+  assert.equal(secondRes.status, 201);
+
+  const firstBody = getBody(await firstRes.json()) as { movement: { id: number }; item: { stock_quantity: number } };
+  const secondBody = getBody(await secondRes.json()) as { movement: { id: number }; item: { stock_quantity: number } };
+
+  assert.equal(firstBody.movement.id, secondBody.movement.id);
+  assert.equal(firstBody.item.stock_quantity, 6);
+  assert.equal(secondBody.item.stock_quantity, 6);
+
+  const refreshedMaterial = await Material.findByPk(material.id) as MaterialInstance | null;
+  const refreshedBalance = await InventoryLocationBalance.findOne({
+    where: {
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+    }
+  });
+  const movements = await InventoryMovement.count({
+    where: {
+      material_id: material.id,
+      source_type: 'manual_adjustment',
+      source_id: payload.operation_key,
+    }
+  });
+
+  assert.equal(Number(refreshedMaterial?.stock_quantity || 0), 6);
+  assert.equal(Number(refreshedBalance?.quantity || 0), 6);
+  assert.equal(movements, 1);
 });
 
 test('PUT /api/inventory/:id rejects invalid id param with validation error', async () => {

@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
 import type {
     InventoryItem,
+    InventoryAdjustmentPayload,
+    InventoryAdjustmentResponse,
     InventoryLocation,
     InventoryLocationListResponse,
     InventoryOutbound,
@@ -163,11 +165,10 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
-    async function updateStock(id: number, newQuantity: number, minStock?: number) {
+    async function updateMinStock(id: number, minStock: number) {
         try {
             const res = await api.put<InventoryItem>(`/inventory/${id}`, {
-                stock_quantity: newQuantity,
-                ...(minStock !== undefined ? { min_stock: minStock } : {}),
+                min_stock: minStock,
             });
             const index = items.value.findIndex((item) => item.id === id);
             if (index !== -1) {
@@ -176,6 +177,25 @@ export const useInventoryStore = defineStore('inventory', () => {
             return res;
         } catch (e) {
             console.error('Failed to update stock', e);
+            throw e;
+        }
+    }
+
+    async function createInventoryAdjustment(payload: InventoryAdjustmentPayload) {
+        try {
+            const res = await api.post<InventoryAdjustmentResponse>('/inventory-adjustments', payload);
+            const item = res?.item;
+            if (item && typeof item.id === 'number') {
+                const index = items.value.findIndex((inventoryItem) => inventoryItem.id === item.id);
+                if (index !== -1) {
+                    items.value[index] = item;
+                } else {
+                    items.value.unshift(item);
+                }
+            }
+            return res;
+        } catch (e) {
+            console.error('Failed to create inventory adjustment', e);
             throw e;
         }
     }
@@ -482,7 +502,8 @@ export const useInventoryStore = defineStore('inventory', () => {
         fetchAllInventoryOutbounds,
         createInventoryOutbound,
         reverseInventoryOutbound,
-        updateStock,
+        createInventoryAdjustment,
+        updateMinStock,
         exportReceiptsToCSV,
         exportInventoryToCSV,
         exportOutboundsToCSV,

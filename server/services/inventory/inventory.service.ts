@@ -5,7 +5,7 @@ import { toInventoryItem } from './inventory.mapper';
 import { ensureDefaultWarehouseAndLocation } from './inventory-defaults';
 
 type InventoryPayload = {
-  stock_quantity: number | string;
+  stock_quantity?: number | string;
   min_stock?: number | string;
 };
 
@@ -59,15 +59,25 @@ async function updateInventoryItem(id: number | string, payload: InventoryPayloa
     });
   }
 
-  const nextQty = Number(payload.stock_quantity);
+  if (Object.prototype.hasOwnProperty.call(payload, 'stock_quantity')) {
+    throw new AppError({
+      code: ERROR_CODES.STOCK_QUANTITY_IMMUTABLE,
+      status: 400,
+      details: {
+        field: 'stock_quantity',
+        message: '库存数量不可直接修改，请走调账',
+      },
+    });
+  }
+
   const nextMin = payload.min_stock === undefined ? material.min_stock : Number(payload.min_stock);
 
   await material.update({
-    stock_quantity: nextQty,
     min_stock: nextMin,
   });
 
-  return toInventoryItem(material);
+  const refreshed = await repository.findMaterialWithBalancesById(material.id);
+  return toInventoryItem(refreshed || material);
 }
 
 const inventoryService = { listInventory, updateInventoryItem };
