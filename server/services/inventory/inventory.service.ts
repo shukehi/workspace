@@ -29,6 +29,9 @@ async function listInventory(query: Record<string, unknown> = {}) {
   return materials
     .map(toInventoryItem)
     .filter((item) => {
+      if (Number(item.stock_quantity || 0) <= 0) {
+        return false;
+      }
       if (warehouseId && !item.locations.some((entry: Record<string, unknown>) => Number(entry.warehouseId) === warehouseId && Number(entry.quantity || 0) > 0)) {
         return false;
       }

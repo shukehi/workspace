@@ -94,6 +94,37 @@ test('GET /api/inventory and PUT /api/inventory/:id updates min stock only', asy
   assert.equal(Number(refreshedMaterial?.min_stock || 0), 20);
 });
 
+test('GET /api/inventory hides zero-stock materials from inventory list', async () => {
+  const zeroStockMaterial = await Material.create({
+    code: `TEST-MAT-ZERO-${Date.now()}`,
+    name: 'Zero Stock Material',
+    model: 'ZERO-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 0,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  const positiveStockMaterial = await Material.create({
+    code: `TEST-MAT-POS-${Date.now()}`,
+    name: 'Positive Stock Material',
+    model: 'POS-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 3,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  const res = await fetch(`${baseUrl}/api/inventory`);
+  assert.equal(res.status, 200);
+  const rows = getBody(await res.json()) as Array<{ id: number }>;
+
+  assert.equal(rows.some((item) => item.id === zeroStockMaterial.id), false);
+  assert.equal(rows.some((item) => item.id === positiveStockMaterial.id), true);
+});
+
 test('GET /api/inventory supports warehouse/location filters and returns location summaries', async () => {
   const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
   assert.equal(locationRes.status, 200);

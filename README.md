@@ -53,6 +53,7 @@
 - 正式出库通过独立出库单与冲销单实现；`Material.stock_quantity` 保留为总库存缓存，库位余额由独立表维护
 - 库存导出已按当前 tab 提供不同结果：库位余额、入库记录、正式出库记录
 - 物料库存 tab 额外支持“导出对账异常”，用于导出 `总库存 != 库位汇总` 的物料
+- 物料库存列表默认隐藏 `当前库存 <= 0` 的物料；如需清理数据库记录，请先跑零库存清理 dry-run
 
 ## 技术栈
 
@@ -296,6 +297,7 @@ JSON 配方迁移到 SQLite：
 常用库存维护脚本：
 
 - `npm run inventory:reconcile:dry-run`：扫描 `materials.stock_quantity` 与 `inventory_location_balances` 的差异，输出 dry-run 对账报告
+- `npm run inventory:cleanup-zero-stock:dry-run`：扫描 `stock_quantity <= 0` 且无任何库存/单据引用的物料候选，供人工确认后再清理
 
 ```bash
 npm run db:migrate:formulas

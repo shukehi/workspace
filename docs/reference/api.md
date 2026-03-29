@@ -152,6 +152,7 @@ http://47.98.198.45:8802/getOutContractDetail
 12. 采购入库只按 `order_items.material_id -> materials.code/id` 匹配；仅更新材料目录或 mapping 而未补齐 `materials` 表时，仍会触发 `MATERIAL_NOT_FOUND`
 13. 当前采购入库、入库撤销、正式出库、出库冲销都会同时更新 `Material.stock_quantity` 和库位余额；手工调账请走 `/api/inventory-adjustments`
 14. 如需对历史库存做基线扫描，可运行 `npm run inventory:reconcile:dry-run` 输出 dry-run 对账报告
+15. 如需清理数据库中无引用的零库存物料，可先运行 `npm run inventory:cleanup-zero-stock:dry-run` 查看候选，再显式执行带确认 token 的清理脚本
 
 ## 4. 关联文档
 
