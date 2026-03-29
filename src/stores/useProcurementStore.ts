@@ -22,6 +22,12 @@ import type {
     StockInPayload,
 } from '@/types/order';
 
+function isDuplicateOrderConflict(error: unknown): boolean {
+    const status = (error as any)?.response?.status;
+    const code = (error as any)?.response?.data?.code || (error as any)?.response?.data?.error;
+    return status === 409 && code === 'DUPLICATE_ORDER';
+}
+
 export const useProcurementStore = defineStore('procurement', () => {
     // AbortController for cancelling in-flight fetchOrders requests on rapid filter changes
     let fetchOrdersController: AbortController | null = null;
@@ -176,7 +182,9 @@ export const useProcurementStore = defineStore('procurement', () => {
             purchaseOrders.value.unshift(normalized);
             return normalized;
         } catch (e) {
-            console.error('Failed to add order', e);
+            if (!isDuplicateOrderConflict(e)) {
+                console.error('Failed to add order', e);
+            }
             throw e;
         }
     }

@@ -45,6 +45,13 @@ export function resolveApiErrorMessage(error: unknown): string {
     return firstServerError || fallbackMessage;
 }
 
+function isDuplicateOrderConflict(error: unknown): boolean {
+    const responseData = (((error as any)?.response?.data) || {}) as ApiErrorResponse;
+    const status = (error as any)?.response?.status;
+    const code = responseData?.code || responseData?.error;
+    return status === 409 && code === 'DUPLICATE_ORDER';
+}
+
 axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
         return normalizeApiEnvelope(response.data);
@@ -59,7 +66,11 @@ axiosInstance.interceptors.response.use(
         const url = error?.config?.url;
         const status = error?.response?.status;
 
-        console.error('[API Error]', message, { status, method, url, errors: serverErrors });
+        if (isDuplicateOrderConflict(error)) {
+            console.warn('[API Conflict]', message, { status, method, url, errors: serverErrors });
+        } else {
+            console.error('[API Error]', message, { status, method, url, errors: serverErrors });
+        }
         return Promise.reject(error);
     }
 );

@@ -18,6 +18,7 @@ import { useRouter } from 'vue-router';
 import { useSourceStore } from '@/stores/useSourceStore';
 import { parseQuantityPair } from '@/lib/erp-engine/parsers';
 import { useToastStore } from '@/stores/useToastStore';
+import type { Order, OrderItem } from '@/types/order';
 
 const props = defineProps<{
   disabled?: boolean;
@@ -31,9 +32,17 @@ const generator = new POGenerator({ sourceStore });
 const router = useRouter();
 const { toast } = useToastStore();
 
-const proposals = ref<any[]>([]);
+type ProposalGroup = {
+  supplierName: string;
+  category: string;
+  items: OrderItem[];
+  totalCost: number;
+};
+
+const proposals = ref<ProposalGroup[]>([]);
 const pendingGroups = ref<{supplier: string; category: string}[]>([]);
 const isGenerating = ref(false);
+const duplicateProposalKeys = ref<Set<string>>(new Set());
 
 const availableCategories = computed(() => {
     return Array.from(new Set(proposals.value.map(p => p.category)));
@@ -52,8 +61,83 @@ const selectAllState = computed<boolean | 'indeterminate'>(() => {
 });
 const selectedGroups = computed<{supplier: string; category: string}[]>(() => {
     return proposals.value
-        .filter(p => selectedCategories.value.includes(p.category))
+        .filter((p) => selectedCategories.value.includes(p.category) && !duplicateProposalKeys.value.has(buildProposalKey(p)))
         .map(p => ({ supplier: p.supplierName, category: p.category }));
+});
+
+function normalizeText(value: unknown): string {
+    if (value === undefined || value === null) return '';
+    return String(value).trim();
+}
+
+function normalizeNumber(value: unknown): number {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return 0;
+    return Number(parsed.toFixed(4));
+}
+
+function serializeItemFingerprint(item: Partial<OrderItem> | null | undefined) {
+    return {
+        supplier: normalizeText(item?.supplier),
+        internal_name: normalizeText(item?.internal_name),
+        external_name: normalizeText(item?.external_name),
+        type: normalizeText(item?.type || item?.name),
+        spec: normalizeText(item?.spec || item?.model),
+        mb: normalizeText(item?.mb),
+        eccentricity: normalizeText(item?.eccentricity),
+        quantity: normalizeNumber(item?.quantity),
+        quantity_left: normalizeNumber(item?.quantity_left),
+        quantity_right: normalizeNumber(item?.quantity_right),
+        unit: normalizeText(item?.unit),
+        remark: normalizeText(item?.remark),
+    };
+}
+
+function buildOrderFingerprint(input: { source_contract_code?: string; category?: string; supplier?: string; items?: Partial<OrderItem>[] }) {
+    const items = Array.isArray(input.items)
+        ? input.items
+            .map((item) => serializeItemFingerprint(item))
+            .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+        : [];
+
+    return JSON.stringify({
+        sourceContractCode: normalizeText(input.source_contract_code),
+        category: normalizeText(input.category),
+        supplier: normalizeText(input.supplier),
+        items,
+    });
+}
+
+function buildProposalKey(group: Pick<ProposalGroup, 'category' | 'supplierName'>) {
+    return `${group.category}__${group.supplierName}`;
+}
+
+function resolveDuplicateProposalKeys(groups: ProposalGroup[], existingOrders: Order[], contractCode: string) {
+    const existingFingerprints = new Set(
+        existingOrders
+            .filter((order) => normalizeText(order.source_contract_code) === contractCode)
+            .map((order) => buildOrderFingerprint(order))
+    );
+
+    return new Set(
+        groups
+            .filter((group) => existingFingerprints.has(buildOrderFingerprint({
+                source_contract_code: contractCode,
+                category: group.category,
+                supplier: group.supplierName,
+                items: group.items,
+            })))
+            .map((group) => buildProposalKey(group))
+    );
+}
+
+const duplicateCategoryCounts = computed<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    proposals.value.forEach((group) => {
+        if (!duplicateProposalKeys.value.has(buildProposalKey(group))) return;
+        counts[group.category] = (counts[group.category] || 0) + 1;
+    });
+    return counts;
 });
 
 const confirmButtonText = computed(() => {
@@ -109,13 +193,22 @@ const toggleAllCategories = (checked: boolean | 'indeterminate') => {
 // Load proposals when dialog opens
 watch(open, (isOpen) => {
     if (isOpen && sourceStore.hasOrder) {
-        const results = generator.generateProposal();
-        proposals.value = results;
-        // Default: no category selected, wait for user explicit choice
-        selectedCategories.value = [];
+        void (async () => {
+            const results = generator.generateProposal();
+            proposals.value = results;
+            selectedCategories.value = [];
+            const contractCode = normalizeText(sourceStore.currentOrder?.code);
+            if (!contractCode) {
+                duplicateProposalKeys.value = new Set();
+                return;
+            }
+            const existingOrders = await procurementStore.fetchAllOrders();
+            duplicateProposalKeys.value = resolveDuplicateProposalKeys(results, existingOrders, contractCode);
+        })();
     } else if (!isOpen) {
         selectedCategories.value = [];
         pendingGroups.value = [];
+        duplicateProposalKeys.value = new Set();
     }
 });
 
@@ -132,6 +225,15 @@ const generateWithOption = async (mergeSameSpec: boolean) => {
 
         // Add to store sequentially to avoid SQLite write lock under concurrent POSTs
         for (const order of orders) {
+            if (duplicateProposalKeys.value.has(`${order.category}__${order.supplier}`)) {
+                duplicateOrders.push({
+                    order_no: String(order.order_no || '-'),
+                    category: String(order.category || '-'),
+                    supplier: String(order.supplier || '-'),
+                    status: '已存在',
+                });
+                continue;
+            }
             try {
                 const created = await procurementStore.addOrder(order);
                 createdOrders.push(created);
@@ -275,6 +377,12 @@ const handleConfirm = () => {
                     </div>
                     <div class="col-span-4 font-medium text-foreground">
                         {{ cat }}
+                        <span
+                            v-if="duplicateCategoryCounts[cat] > 0"
+                            class="ml-2 text-xs text-amber-600"
+                        >
+                            已存在 {{ duplicateCategoryCounts[cat] }} 张
+                        </span>
                     </div>
                     <div class="col-span-3 text-right text-muted-foreground">
                         {{ proposals.filter(p => p.category === cat).length }}
