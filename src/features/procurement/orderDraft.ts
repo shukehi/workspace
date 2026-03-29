@@ -1,4 +1,6 @@
 import type { Order, OrderItem } from '@/types/order';
+import { normalizePrintCategory } from '@/features/procurement/docModel';
+import { syncOrderItemQuantity } from '@/features/procurement/order-sheet.schema';
 
 let draftItemKeySequence = 0;
 
@@ -26,13 +28,17 @@ export function cloneOrderDraft(order: Order): Order {
 export function normalizeOrderDraft(order: Order): Order {
   const draft = cloneOrderDraft(order);
   if (!draft.metadata) draft.metadata = {};
+  const category = normalizePrintCategory(draft.category);
 
-  draft.items = (draft.items || []).map((item) => ({
-    ...item,
-    item_key: resolveStableItemKey(item),
-    spec: item.spec || item.model || '-',
-    mb: item.mb || item.orientation || '-'
-  }));
+  draft.items = (draft.items || []).map((item) => {
+    const normalizedItem = syncOrderItemQuantity({
+      ...item,
+      item_key: resolveStableItemKey(item),
+      spec: item.spec || item.model || '-',
+      mb: item.mb || item.orientation || '-'
+    }, category);
+    return normalizedItem;
+  });
 
   return draft;
 }
