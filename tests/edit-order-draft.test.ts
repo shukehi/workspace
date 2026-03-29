@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bootstrapOrderDraft, createEmptyItem, createEmptyOrderDraft } from '../src/features/procurement/editOrderDraft';
+import { bootstrapOrderDraft, buildManualOrderNo, createEmptyItem, createEmptyOrderDraft } from '../src/features/procurement/editOrderDraft';
 import { stripBlankManualItems, validateManualOrderDraft } from '../src/features/procurement/manualOrderValidation';
 import type { Order } from '../src/types/order';
 
@@ -22,9 +22,15 @@ test('createEmptyOrderDraft seeds packaging order defaults', () => {
   assert.equal(draft.status, 'draft');
   assert.equal(Array.isArray(draft.items), true);
   assert.equal(draft.items.length, 1);
-  assert.match(draft.order_no, /^PO-MANUAL-/);
+  assert.match(draft.order_no, /^PM-\d{6}-\d{4}$/);
+  assert.equal(draft.metadata?.template_type, 'packaging');
   assert.ok(draft.metadata?.printColumnWidths);
   assert.equal(draft.metadata?.aggregateSideQuantities, false);
+});
+
+test('buildManualOrderNo uses date token with four-digit sequence', () => {
+  const orderNo = buildManualOrderNo(new Date('2026-03-29T08:35:00.000Z'), 1007);
+  assert.equal(orderNo, 'PM-260329-1007');
 });
 
 test('bootstrapOrderDraft preserves edit payload and resolved widths', () => {
@@ -70,8 +76,54 @@ test('bootstrapOrderDraft preserves edit payload and resolved widths', () => {
 
   const { draft, widths } = bootstrapOrderDraft({ mode: 'edit', order });
   assert.equal(draft.order_no, 'PO-88');
+  assert.equal(draft.metadata?.template_type, 'packaging');
   assert.equal(draft.metadata?.printColumnWidths?.productModelName, widths.productModelName);
   assert.equal(typeof widths.remark, 'number');
+});
+
+test('bootstrapOrderDraft infers template_type for legacy categories', () => {
+  const order: Order = {
+    id: 99,
+    order_no: 'PO-99',
+    supplier: '测试供应商',
+    category: '拉手',
+    status: 'draft',
+    total_amount: 0,
+    created_at: '2026-03-09T10:00:00.000Z',
+    delivery_date: '2026-03-12T10:00:00.000Z',
+    remark: '',
+    items: [],
+    metadata: {
+      customer_name: '客户B',
+      printColumnWidths: {},
+    },
+  };
+
+  const { draft } = bootstrapOrderDraft({ mode: 'edit', order });
+  assert.equal(draft.metadata?.template_type, 'double-door-accessory');
+});
+
+test('bootstrapOrderDraft prefers category over persisted mismatched template_type', () => {
+  const order: Order = {
+    id: 100,
+    order_no: 'PO-100',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    total_amount: 0,
+    created_at: '2026-03-09T10:00:00.000Z',
+    delivery_date: '2026-03-12T10:00:00.000Z',
+    remark: '',
+    items: [],
+    metadata: {
+      customer_name: '客户C',
+      template_type: 'general-accessory',
+      printColumnWidths: {},
+    },
+  };
+
+  const { draft } = bootstrapOrderDraft({ mode: 'edit', order });
+  assert.equal(draft.metadata?.template_type, 'packaging');
 });
 
 test('validateManualOrderDraft rejects blank manual placeholder rows', () => {

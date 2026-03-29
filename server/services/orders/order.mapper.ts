@@ -1,5 +1,6 @@
 import { buildOrderItemKey } from '../orderItemKey';
 import type { PlainRecord } from '../../shared/types';
+import { ensureOrderTemplateType } from './order.template';
 
 /**
  * 标准化日期字段
@@ -91,6 +92,7 @@ export function normalizeOrderItemForPersistence(item: any): any {
  */
 export function serializeOrder(order: any): any {
     if (!order) return null;
+    const metadata = ensureOrderTemplateType(order.metadata, order.category);
     return {
         id: order.id,
         order_no: order.order_no,
@@ -99,7 +101,7 @@ export function serializeOrder(order: any): any {
         supplier: order.supplier,
         source_contract_code: order.source_contract_code,
         remark: order.remark ?? '',
-        metadata: order.metadata ?? {},
+        metadata,
         items: Array.isArray(order.items) ? order.items.map(serializeOrderItem) : [],
         total_amount: Array.isArray(order.items)
             ? order.items.reduce((sum: number, item: any) => sum + Number(item.price ?? 0) * Number(item.quantity ?? 0), 0)
@@ -142,4 +144,3 @@ export function toDuplicateOrderSummary(order: any): any {
         source_contract_code: order.source_contract_code,
     };
 }
-

@@ -9,22 +9,19 @@ import {
 import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import { getDefaultWidths, resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
+import { resolveTemplateTypeFromPrintCategory } from '@/features/procurement/templateType';
 import type { Order, OrderItem } from '@/types/order';
 
 export function nowStamp() {
   return new Date().toISOString();
 }
 
-export function buildManualOrderNo() {
-  const now = new Date();
+export function buildManualOrderNo(date = new Date(), sequence = 1001) {
   const pad = (value: number) => String(value).padStart(2, '0');
-  const yyyy = now.getFullYear();
-  const mm = pad(now.getMonth() + 1);
-  const dd = pad(now.getDate());
-  const hh = pad(now.getHours());
-  const mi = pad(now.getMinutes());
-  const ss = pad(now.getSeconds());
-  return `PO-MANUAL-${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+  const yy = String(date.getFullYear()).slice(-2);
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  return `PM-${yy}${mm}${dd}-${String(sequence).padStart(4, '0')}`;
 }
 
 export function createEmptyItem(category: PrintCategory): OrderItem {
@@ -135,6 +132,7 @@ export function createEmptyOrderDraft(categoryRaw = '包装'): Order {
       internal_name: '',
       external_name: '',
       order_source: 'manual',
+      template_type: resolveTemplateTypeFromPrintCategory(category),
       aggregateSideQuantities: false,
       printColumnWidths: { ...getDefaultWidths(category) },
     },

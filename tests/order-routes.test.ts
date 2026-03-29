@@ -583,6 +583,88 @@ test('PUT /api/orders/:id allows editable changes on locked legacy manual orders
   assert.equal(body.metadata.customer_name, '');
 });
 
+test('POST /api/orders assigns sequential manual order numbers from 1001', async () => {
+  const payload = {
+    order_no: 'PM-260329-1001',
+    supplier: '方亮包装',
+    category: '包装',
+    status: 'draft',
+    created_at: '2026-03-29T08:35:00.000Z',
+    delivery_date: '2026-03-29T10:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    items: [
+      {
+        name: '纸箱',
+        spec: '960*2050',
+        quantity_left: 1,
+        quantity_right: 1,
+        quantity: 2,
+        unit: '套',
+      },
+    ],
+  };
+
+  const firstRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const first = getBody(await firstRes.json()) as { order_no: string };
+
+  const secondRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...payload,
+      created_at: '2026-03-29T09:20:00.000Z',
+      metadata: {
+        ...payload.metadata,
+        customer_name: '客户B',
+      },
+    }),
+  });
+  const second = getBody(await secondRes.json()) as { order_no: string };
+
+  assert.equal(first.order_no, 'PM-260329-1001');
+  assert.equal(second.order_no, 'PM-260329-1002');
+});
+
+test('POST /api/orders returns inferred template_type for manual orders', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'PM-260329-1001',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      created_at: '2026-03-29T08:35:00.000Z',
+      delivery_date: '2026-03-29T10:00:00.000Z',
+      metadata: {
+        order_source: 'manual',
+        customer_name: '客户A',
+      },
+      items: [
+        {
+          name: '纸箱',
+          spec: '960*2050',
+          quantity_left: 1,
+          quantity_right: 1,
+          quantity: 2,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  const body = getBody(await res.json()) as { metadata: { template_type: string } };
+  assert.equal(body.metadata.template_type, 'packaging');
+});
+
 test('GET /api/orders/:id rejects invalid id param with validation error', async () => {
   const res = await fetch(`${baseUrl}/api/orders/not-a-number`);
 

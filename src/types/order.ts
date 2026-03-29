@@ -66,6 +66,7 @@ export interface Order {
         internal_name?: string;
         external_name?: string;
         order_source?: 'auto' | 'manual';
+        template_type?: 'packaging' | 'cylinder' | 'double-door-accessory' | 'general-accessory';
         source_contract_code?: string;
         aggregateSideQuantities?: boolean;
         riskWarningDismissed?: boolean;

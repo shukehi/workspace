@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import type { PlainRecord } from '../../shared/types';
+import { deriveTemplateTypeFromCategory } from './order.template';
 
 export function normalizeDedupeText(value: unknown): string {
     if (value === undefined || value === null) return '';
@@ -16,13 +17,23 @@ export function resolveSourceContractCode(data: PlainRecord | null | undefined, 
     return normalizeDedupeText(data?.source_contract_code || data?.metadata?.source_contract_code || fallback);
 }
 
-export function normalizeMetadata(data: PlainRecord | null | undefined, fallback: PlainRecord = {}): PlainRecord {
+export function normalizeMetadata(
+    data: PlainRecord | null | undefined,
+    fallback: PlainRecord = {},
+    category: unknown = undefined,
+): PlainRecord {
     const next = data && typeof data === 'object' ? { ...data } : { ...fallback };
     const sourceContractCode = resolveSourceContractCode({ source_contract_code: next.source_contract_code, metadata: next });
     if (sourceContractCode) {
         next.source_contract_code = sourceContractCode;
     } else {
         delete next.source_contract_code;
+    }
+    const derivedTemplateType = deriveTemplateTypeFromCategory(category);
+    if (derivedTemplateType) {
+        next.template_type = derivedTemplateType;
+    } else {
+        delete next.template_type;
     }
     return next;
 }
@@ -71,4 +82,3 @@ export function buildOrderDedupeKey(data: PlainRecord | null | undefined): strin
         .update(JSON.stringify(payload))
         .digest('hex');
 }
-

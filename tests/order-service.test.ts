@@ -1229,6 +1229,211 @@ test('OrderService allows locked manual orders to update editable fields even wi
   assert.equal(updated.metadata?.customer_name, '');
 });
 
+test('OrderService assigns sequential manual order numbers for generated placeholders', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const first = await orderService.createOrder({
+    order_no: 'PM-260329-1001',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    created_at: '2026-03-29T08:35:00.000Z',
+    delivery_date: '2026-03-29T10:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    items: [
+      {
+        name: '纸箱',
+        spec: '960*2050',
+        quantity: 2,
+        quantity_left: 1,
+        quantity_right: 1,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  const second = await orderService.createOrder({
+    order_no: 'PM-260329-1001',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    created_at: '2026-03-29T09:12:00.000Z',
+    delivery_date: '2026-03-29T12:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户B',
+    },
+    items: [
+      {
+        name: '木箱',
+        spec: '980*2100',
+        quantity: 2,
+        quantity_left: 1,
+        quantity_right: 1,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  assert.equal(first.order_no, 'PM-260329-1001');
+  assert.equal(second.order_no, 'PM-260329-1002');
+  assert.equal(first.metadata?.template_type, 'packaging');
+  assert.equal(second.metadata?.template_type, 'packaging');
+});
+
+test('OrderService continues manual order sequence past 9999 in a single day', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Order.create({
+    order_no: 'PM-260329-9999',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-29T09:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    remark: '',
+  });
+  await Order.create({
+    order_no: 'PM-260329-10000',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-29T09:10:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户B',
+    },
+    remark: '',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: 'PM-260329-1001',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    created_at: '2026-03-29T11:00:00.000Z',
+    delivery_date: '2026-03-29T12:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户C',
+    },
+    items: [
+      {
+        name: '纸箱',
+        spec: '960*2050',
+        quantity: 2,
+        quantity_left: 1,
+        quantity_right: 1,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  assert.equal(created.order_no, 'PM-260329-10001');
+});
+
+test('OrderService infers template_type for legacy orders without metadata field', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await Order.create({
+    order_no: uniqueOrderNo('LEGACY-TEMPLATE'),
+    supplier: '测试供应商',
+    category: '拉手',
+    status: 'draft',
+    delivery_date: '2026-03-29T09:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    remark: '',
+  });
+
+  const loaded = await orderService.getOrderById(created.id);
+  assert.equal(loaded?.metadata?.template_type, 'double-door-accessory');
+});
+
+test('OrderService overrides client template_type from category on write', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('TEMPLATE-MISMATCH'),
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-29T12:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+      template_type: 'general-accessory',
+    },
+    items: [
+      {
+        name: '纸箱',
+        spec: '960*2050',
+        quantity: 2,
+        quantity_left: 1,
+        quantity_right: 1,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  assert.equal(created.metadata?.template_type, 'packaging');
+});
+
+test('OrderService does not invent template_type for uncategorized legacy orders', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await Order.create({
+    order_no: uniqueOrderNo('LEGACY-NO-CATEGORY'),
+    supplier: '测试供应商',
+    category: null,
+    status: 'draft',
+    delivery_date: '2026-03-29T09:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    remark: '',
+  });
+
+  const loaded = await orderService.getOrderById(created.id);
+  assert.equal('template_type' in (loaded?.metadata || {}), false);
+});
+
+test('OrderService prefers category over persisted mismatched template_type on read', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await Order.create({
+    order_no: uniqueOrderNo('LEGACY-MISMATCHED-TEMPLATE'),
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-29T09:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+      template_type: 'general-accessory',
+    },
+    remark: '',
+  });
+
+  const loaded = await orderService.getOrderById(created.id);
+  assert.equal(loaded?.metadata?.template_type, 'packaging');
+});
+
 test.after(async () => {
   if (createdOrderIds.length > 0) {
     await OrderItem.destroy({ where: { order_id: createdOrderIds } });

@@ -1,6 +1,7 @@
 import type { Order, OrderItem } from '@/types/order';
 import { normalizePrintCategory } from '@/features/procurement/docModel';
 import { syncOrderItemQuantity } from '@/features/procurement/order-sheet.schema';
+import { normalizeTemplateType } from '@/features/procurement/templateType';
 
 let draftItemKeySequence = 0;
 
@@ -29,6 +30,7 @@ export function normalizeOrderDraft(order: Order): Order {
   const draft = cloneOrderDraft(order);
   if (!draft.metadata) draft.metadata = {};
   const category = normalizePrintCategory(draft.category);
+  draft.metadata.template_type = normalizeTemplateType(draft.metadata.template_type, draft.category);
 
   draft.items = (draft.items || []).map((item) => {
     const normalizedItem = syncOrderItemQuantity({

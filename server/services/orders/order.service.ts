@@ -29,6 +29,7 @@ import {
     normalizeMetadata,
     resolveSourceContractCode,
 } from './order.dedupe';
+import { normalizeTemplateType } from './order.template';
 import {
     areAllOrderItemsReceived,
     assertOrderReadyForStockIn,
@@ -74,6 +75,32 @@ function normalizeBulkOrderIds(idsInput: unknown): number[] {
     return ids;
 }
 
+function formatManualOrderDateToken(value: unknown): string {
+    const parsed = value instanceof Date ? value : new Date(String(value || ''));
+    const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yy}${mm}${dd}`;
+}
+
+function isGeneratedManualOrderNo(value: unknown): boolean {
+    return /^PM-\d{6}-\d{4}$/.test(String(value || '').trim());
+}
+
+function buildManualOrderNo(dateToken: string, sequence: number): string {
+    return `PM-${dateToken}-${String(sequence).padStart(4, '0')}`;
+}
+
+function isUniqueOrderNoError(error: unknown): boolean {
+    const record = (error || {}) as PlainRecord;
+    const message = String(record.message || '');
+    return record.name === 'SequelizeUniqueConstraintError'
+        || message.includes('UNIQUE constraint failed: orders.order_no')
+        || message.includes('UNIQUE constraint failed')
+        || message.includes('idx_orders_order_no_unique');
+}
+
 function serializeBulkArriveError(error: unknown): { code: string; message: string } {
     const record = (error || {}) as PlainRecord;
     const code = typeof record.code === 'string'
@@ -96,6 +123,16 @@ class OrderService {
     ReceivedQuantityExceededError?: typeof ReceivedQuantityExceededError;
     buildOrderDedupeKey?: typeof buildOrderDedupeKey;
     toDuplicateOrderSummary?: typeof toDuplicateOrderSummary;
+
+    async allocateNextManualOrderNo(createdAt: unknown, transaction?: Transaction) {
+        const dateToken = formatManualOrderDateToken(createdAt);
+        const prefix = `PM-${dateToken}-`;
+        const latestSequence = await orderRepository.findMaxOrderNoSequenceByPrefix(prefix, transaction);
+        const nextSequence = Number.isInteger(latestSequence) && latestSequence >= 1001
+            ? latestSequence + 1
+            : 1001;
+        return buildManualOrderNo(dateToken, nextSequence);
+    }
 
     async reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: Transaction | undefined) {
         if (!sourceContractCode || !dedupeKey || !orderId) return null;
@@ -239,99 +276,113 @@ class OrderService {
     }
 
     async createOrder(data: OrderCreateInput) {
-        const transaction = await sequelize.transaction();
-        try {
-            const createIssues = validateManualCreateOrder(data);
-            if (createIssues.length > 0) {
-                throw new AppError({
-                    code: ERROR_CODES.VALIDATION_ERROR,
-                    status: 400,
-                    details: {
-                        issues: createIssues.map((issue) => ({
-                            target: 'body',
-                            field: issue.field,
-                            message: issue.message,
-                        })),
-                    },
+        const shouldAutoAssignManualOrderNo = data.metadata?.order_source === 'manual' && isGeneratedManualOrderNo(data.order_no);
+
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+            const transaction = await sequelize.transaction();
+            try {
+                const createInput = shouldAutoAssignManualOrderNo
+                    ? { ...data, order_no: await this.allocateNextManualOrderNo(data.created_at, transaction) }
+                    : data;
+                const normalizedCategory = createInput.category || data.category;
+                const createIssues = validateManualCreateOrder(createInput);
+                if (createIssues.length > 0) {
+                    throw new AppError({
+                        code: ERROR_CODES.VALIDATION_ERROR,
+                        status: 400,
+                        details: {
+                            issues: createIssues.map((issue) => ({
+                                target: 'body',
+                                field: issue.field,
+                                message: issue.message,
+                            })),
+                        },
+                    });
+                }
+
+                const sourceContractCode = resolveSourceContractCode(createInput);
+                const metadata = normalizeMetadata(createInput.metadata, {}, normalizedCategory);
+                const normalizedStatus = normalizeStatus(createInput.status, 'draft');
+                const sanitizedItems = sanitizeManualCreateItems(createInput.items as any[] | undefined, createInput.category);
+                const normalizedData: PlainRecord = {
+                    ...createInput,
+                    category: normalizedCategory,
+                    source_contract_code: sourceContractCode,
+                    metadata,
+                    status: normalizedStatus,
+                    items: sanitizedItems.length > 0 ? sanitizedItems : createInput.items,
+                };
+                const dedupeKey = buildOrderDedupeKey(normalizedData);
+                const duplicate = await this.findDuplicateAutoOrder(normalizedData, transaction);
+                if (duplicate) {
+                    throw new DuplicateOrderError(duplicate);
+                }
+
+                if (!data.created_at) {
+                    console.warn('[OrderService] createOrder payload missing created_at, falling back to current timestamp', {
+                        order_no: data.order_no,
+                        category: data.category,
+                        supplier: data.supplier
+                    });
+                }
+
+                const order = await orderRepository.createOrder({
+                    order_no: normalizedData.order_no,
+                    supplier: normalizedData.supplier,
+                    source_contract_code: sourceContractCode || null,
+                    dedupe_key: dedupeKey || null,
+                    category: normalizedData.category || null,
+                    status: normalizedStatus,
+                    remark: normalizeOrderRemark(normalizedData.remark),
+                    metadata,
+                    created_at: normalizedData.created_at || new Date().toISOString(),
+                    delivery_date: normalizedData.delivery_date,
+                    arrived_at: normalizedData.arrived_at || null,
+                    arrived_by: normalizedData.arrived_by || null,
+                    arrived_remark: normalizeOrderRemark(normalizedData.arrived_remark),
+                    stocked_in_at: normalizedData.stocked_in_at || null,
+                    stocked_in_by: normalizedData.stocked_in_by || null,
+                    stocked_in_remark: normalizeOrderRemark(normalizedData.stocked_in_remark)
+                }, transaction);
+
+                if (normalizedData.items && normalizedData.items.length > 0) {
+                    const items = normalizedData.items.map((item: PlainRecord) => ({
+                        ...normalizeOrderItemForPersistence(item),
+                        id: undefined,
+                        order_id: order.id
+                    }));
+                    await orderRepository.bulkCreateOrderItems(items, transaction);
+                }
+
+                await this.reserveIdempotencyKey({
+                    sourceContractCode,
+                        dedupeKey,
+                        orderId: order.id
+                    }, transaction);
+
+                await transaction.commit();
+                const persisted = await this.getOrderById(order.id);
+                if (persisted) return persisted;
+
+                console.warn('[OrderService] createOrder fallback: persisted order not found after commit', {
+                    id: order.id,
+                    order_no: createInput.order_no
                 });
-            }
 
-            const sourceContractCode = resolveSourceContractCode(data);
-            const metadata = normalizeMetadata(data.metadata);
-            const normalizedStatus = normalizeStatus(data.status, 'draft');
-            const sanitizedItems = sanitizeManualCreateItems(data.items as any[] | undefined, data.category);
-            const normalizedData: PlainRecord = {
-                ...data,
-                source_contract_code: sourceContractCode,
-                metadata,
-                status: normalizedStatus,
-                items: sanitizedItems.length > 0 ? sanitizedItems : data.items,
-            };
-            const dedupeKey = buildOrderDedupeKey(normalizedData);
-            const duplicate = await this.findDuplicateAutoOrder(normalizedData, transaction);
-            if (duplicate) {
-                throw new DuplicateOrderError(duplicate);
-            }
-
-            if (!data.created_at) {
-                console.warn('[OrderService] createOrder payload missing created_at, falling back to current timestamp', {
-                    order_no: data.order_no,
-                    category: data.category,
-                    supplier: data.supplier
+                return serializeOrder({
+                    ...order.get({ plain: true }),
+                    items: Array.isArray(normalizedData.items) ? normalizedData.items : []
                 });
+            } catch (error) {
+                await transaction.rollback();
+                if (shouldAutoAssignManualOrderNo && isUniqueOrderNoError(error) && attempt < 4) {
+                    continue;
+                }
+                throw error;
             }
-
-            const order = await orderRepository.createOrder({
-                order_no: normalizedData.order_no,
-                supplier: normalizedData.supplier,
-                source_contract_code: sourceContractCode || null,
-                dedupe_key: dedupeKey || null,
-                category: normalizedData.category || null,
-                status: normalizedStatus,
-                remark: normalizeOrderRemark(normalizedData.remark),
-                metadata,
-                created_at: normalizedData.created_at || new Date().toISOString(),
-                delivery_date: normalizedData.delivery_date,
-                arrived_at: normalizedData.arrived_at || null,
-                arrived_by: normalizedData.arrived_by || null,
-                arrived_remark: normalizeOrderRemark(normalizedData.arrived_remark),
-                stocked_in_at: normalizedData.stocked_in_at || null,
-                stocked_in_by: normalizedData.stocked_in_by || null,
-                stocked_in_remark: normalizeOrderRemark(normalizedData.stocked_in_remark)
-            }, transaction);
-
-            if (normalizedData.items && normalizedData.items.length > 0) {
-                const items = normalizedData.items.map((item: PlainRecord) => ({
-                    ...normalizeOrderItemForPersistence(item),
-                    id: undefined,
-                    order_id: order.id
-                }));
-                await orderRepository.bulkCreateOrderItems(items, transaction);
-            }
-
-            await this.reserveIdempotencyKey({
-                sourceContractCode,
-                dedupeKey,
-                orderId: order.id
-            }, transaction);
-
-            await transaction.commit();
-            const persisted = await this.getOrderById(order.id);
-            if (persisted) return persisted;
-
-            console.warn('[OrderService] createOrder fallback: persisted order not found after commit', {
-                id: order.id,
-                order_no: data.order_no
-            });
-
-            return serializeOrder({
-                ...order.get({ plain: true }),
-                items: Array.isArray(normalizedData.items) ? normalizedData.items : []
-            });
-        } catch (error) {
-            await transaction.rollback();
-            throw error;
         }
+
+        throw new Error('Failed to allocate unique manual order number');
     }
 
     async updateOrder(id: number | string, data: OrderUpdateInput) {
@@ -342,9 +393,11 @@ class OrderService {
             assertEditableOrderFields(order, data as Record<string, unknown>);
 
             const existing = await this.getOrderById(id);
+            const nextCategory = data.category === undefined ? order.category : data.category;
             const nextMetadata = normalizeMetadata(
                 data.metadata === undefined ? order.metadata : data.metadata,
-                order.metadata || {}
+                order.metadata || {},
+                nextCategory
             );
             const nextSourceContractCode = resolveSourceContractCode({
                 source_contract_code: data.source_contract_code,
@@ -352,7 +405,6 @@ class OrderService {
             }, order.source_contract_code || '');
             const mergedItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
             const nextSupplier = data.supplier === undefined ? order.supplier : data.supplier;
-            const nextCategory = data.category === undefined ? order.category : data.category;
             const nextStatus = data.status === undefined
                 ? normalizeStatus(order.status)
                 : assertValidStatusTransition(order.status, data.status);
@@ -479,6 +531,12 @@ class OrderService {
             return serializeOrder({
                 ...order.get({ plain: true }),
                 created_at: data.created_at !== undefined ? data.created_at : order.created_at,
+                category: nextCategory,
+                metadata: {
+                    ...(order.metadata || {}),
+                    ...nextMetadata,
+                    template_type: normalizeTemplateType(nextMetadata.template_type, nextCategory),
+                },
                 items: Array.isArray(data.items) ? data.items : await orderRepository.findOrderItemsByOrderId(Number(id))
             });
         } catch (error) {
