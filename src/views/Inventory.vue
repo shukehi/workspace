@@ -21,7 +21,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Download, MapPin, Package, RefreshCcw, Search, ScrollText, Send, Warehouse } from 'lucide-vue-next';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
-import type { InventoryItem, InventoryLocation, InventoryOutbound, InventoryReceipt } from '@/types/inventory';
+import type { InventoryItem, InventoryLocation, InventoryMovement, InventoryOutbound, InventoryReceipt } from '@/types/inventory';
 
 const PROCUREMENT_REFRESH_SIGNAL_KEY = 'procurement-orders-refresh-signal';
 
@@ -39,7 +39,9 @@ const debouncedSearchQuery = refDebounced(searchQuery, 300);
 const selectedWarehouseFilter = ref(String(route.query.warehouseId || ''));
 const selectedLocationFilter = ref(String(route.query.locationId || ''));
 const lowStockOnly = ref(String(route.query.lowStockOnly || '').toLowerCase() === 'true');
+const reconciliationOnly = ref(false);
 const selectedInventoryRows = ref<InventoryItem[]>([]);
+const selectedMovementItem = ref<InventoryItem | null>(null);
 
 const outboundDialogOpen = ref(false);
 const outboundSaving = ref(false);
@@ -120,7 +122,35 @@ const filteredItems = computed(() => {
   if (activeCategory.value !== 'ALL') {
     list = list.filter((item) => item.category === activeCategory.value);
   }
+  if (reconciliationOnly.value) {
+    list = list.filter((item) => {
+      const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+      return Number(item.stock_quantity || 0) !== locationTotal;
+    });
+  }
   return list;
+});
+
+const reconciliationSummary = computed(() => {
+  const rows = store.items.map((item) => {
+    const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+    const diff = Number(item.stock_quantity || 0) - locationTotal;
+    return {
+      item,
+      locationTotal,
+      diff,
+      hasDiff: diff !== 0,
+    };
+  });
+
+  const mismatched = rows.filter((row) => row.hasDiff);
+  const totalAbsoluteDiff = mismatched.reduce((sum, row) => sum + Math.abs(row.diff), 0);
+
+  return {
+    mismatchedCount: mismatched.length,
+    totalAbsoluteDiff,
+    matchedCount: rows.length - mismatched.length,
+  };
 });
 
 const filteredReceipts = computed(() => store.sortedReceipts);
@@ -177,6 +207,26 @@ const outboundSummary = computed(() => {
 });
 
 const outboundTotalPages = computed(() => Math.max(1, Math.ceil((store.outboundsTotal || 0) / (store.outboundsPageSize || 50))));
+const selectedMovementSummary = computed(() => {
+  if (!selectedMovementItem.value) return null;
+  const rows = store.sortedMovements;
+  const netChange = rows.reduce((sum, row) => sum + Number(row.delta_quantity || 0), 0);
+  const lastMovement = rows[0];
+  return {
+    total: store.movementsTotal,
+    netChange,
+    lastOccurredAt: lastMovement?.occurred_at || lastMovement?.created_at || '',
+  };
+});
+
+function formatMovementSourceLabel(sourceType: InventoryMovement['source_type']) {
+  if (sourceType === 'manual_adjustment') return '手工调账';
+  if (sourceType === 'receipt_in') return '采购入库';
+  if (sourceType === 'receipt_reversal') return '入库撤销';
+  if (sourceType === 'outbound') return '正式出库';
+  if (sourceType === 'outbound_reversal') return '出库冲销';
+  return sourceType || '-';
+}
 
 const currentExportLabel = computed(() => {
   if (activeTab.value === 'inventory') return '导出库位余额';
@@ -209,7 +259,11 @@ function createReceiptColumns() {
   });
 }
 
-const inventoryColumns = createInventoryColumns();
+const inventoryColumns = createInventoryColumns({
+  onViewMovement: (item) => {
+    openMovementSheet(item).catch(() => undefined);
+  },
+});
 const receiptColumns = createReceiptColumns();
 const outboundColumns = createInventoryOutboundColumns({
   onViewDetail: async (outbound) => {
@@ -561,6 +615,28 @@ function closeOutboundDetail() {
   selectedOutboundDetail.value = null;
 }
 
+async function openMovementSheet(item: InventoryItem) {
+  selectedMovementItem.value = item;
+  try {
+    await store.fetchInventoryMovements({
+      materialId: item.id,
+      page: 1,
+      pageSize: 20,
+    });
+  } catch {
+    selectedMovementItem.value = null;
+    toast({
+      title: '轨迹加载失败',
+      description: '无法获取该物料的库存变动记录，请稍后重试',
+      variant: 'destructive',
+    });
+  }
+}
+
+function closeMovementSheet() {
+  selectedMovementItem.value = null;
+}
+
 watch(selectedWarehouseFilter, (warehouseId) => {
   if (!warehouseId) {
     selectedLocationFilter.value = '';
@@ -697,6 +773,32 @@ onMounted(() => {
               <p class="text-xs text-muted-foreground mt-1">用于批量登记出库</p>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-xs text-muted-foreground">对账异常物料</CardTitle>
+              <AlertCircle class="h-4 w-4 text-rose-500" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-semibold" :class="{ 'text-rose-600': reconciliationSummary.mismatchedCount > 0 }">
+                {{ reconciliationSummary.mismatchedCount }}
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">总库存与库位汇总不一致</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-xs text-muted-foreground">累计差异量</CardTitle>
+              <ScrollText class="h-4 w-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-semibold" :class="{ 'text-amber-600': reconciliationSummary.totalAbsoluteDiff > 0 }">
+                {{ reconciliationSummary.totalAbsoluteDiff }}
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">按绝对值汇总的库存差异</p>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
@@ -713,7 +815,7 @@ onMounted(() => {
               </button>
             </div>
 
-            <div class="grid gap-3 lg:grid-cols-[1.1fr_1.1fr_1.4fr_auto_auto]">
+            <div class="grid gap-3 lg:grid-cols-[1.1fr_1.1fr_1.4fr_auto_auto_auto]">
               <select v-model="selectedWarehouseFilter" class="h-10 rounded-md border bg-background px-3 text-sm">
                 <option value="">全部仓库</option>
                 <option v-for="warehouse in store.warehouses" :key="warehouse.id" :value="String(warehouse.id)">
@@ -738,6 +840,9 @@ onMounted(() => {
               </div>
               <Button variant="outline" @click="lowStockOnly = !lowStockOnly">
                 {{ lowStockOnly ? '仅看全部库存' : '仅看低库存' }}
+              </Button>
+              <Button variant="outline" @click="reconciliationOnly = !reconciliationOnly">
+                {{ reconciliationOnly ? '显示全部库存' : '仅看对账异常' }}
               </Button>
               <Button @click="openOutboundDialog">
                 <Send class="w-4 h-4 mr-2" />
@@ -1211,6 +1316,81 @@ onMounted(() => {
           </div>
           <div class="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
             {{ selectedOutboundDetail.remark || '无额外备注' }}
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+
+    <Sheet :open="Boolean(selectedMovementItem)" @update:open="(open) => { if (!open) closeMovementSheet(); }">
+      <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>库存影响轨迹</SheetTitle>
+          <SheetDescription>
+            查看单个物料最近的库存变动来源、库位余额和总库存结果。
+          </SheetDescription>
+        </SheetHeader>
+        <div v-if="selectedMovementItem" class="mt-6 space-y-4">
+          <div class="grid gap-3 md:grid-cols-2">
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">物料</div>
+              <div class="mt-1 font-medium">{{ selectedMovementItem.model || selectedMovementItem.name }}</div>
+              <div class="text-xs text-muted-foreground mt-1">{{ selectedMovementItem.code }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">当前总库存</div>
+              <div class="mt-1 font-medium">{{ selectedMovementItem.stock_quantity }} {{ selectedMovementItem.unit }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">最近 20 条净变动</div>
+              <div class="mt-1 font-medium">{{ selectedMovementSummary?.netChange ?? 0 }} {{ selectedMovementItem.unit }}</div>
+            </div>
+            <div class="rounded-md border bg-muted/30 p-3">
+              <div class="text-xs text-muted-foreground">最近动作时间</div>
+              <div class="mt-1 font-medium">
+                {{ selectedMovementSummary?.lastOccurredAt ? String(selectedMovementSummary.lastOccurredAt).slice(0, 19).replace('T', ' ') : '-' }}
+              </div>
+            </div>
+          </div>
+          <div class="rounded-md border">
+            <div class="grid gap-3 border-b bg-muted/20 px-4 py-3 text-xs font-medium text-muted-foreground md:grid-cols-[150px_110px_130px_1fr_120px_120px]">
+              <div>发生时间</div>
+              <div>变动类型</div>
+              <div>库位</div>
+              <div>原因/备注</div>
+              <div>数量变化</div>
+              <div>变更后库存</div>
+            </div>
+            <div v-if="store.movementsLoading" class="px-4 py-6 text-sm text-muted-foreground">
+              正在加载库存轨迹...
+            </div>
+            <div v-else-if="store.sortedMovements.length === 0" class="px-4 py-6 text-sm text-muted-foreground">
+              暂无库存轨迹记录。
+            </div>
+            <div v-else class="divide-y">
+              <div
+                v-for="movement in store.sortedMovements"
+                :key="movement.id"
+                class="grid gap-3 px-4 py-3 text-sm md:grid-cols-[150px_110px_130px_1fr_120px_120px]"
+              >
+                <div>{{ String(movement.occurred_at || movement.created_at || '-').slice(0, 19).replace('T', ' ') }}</div>
+                <div>{{ formatMovementSourceLabel(movement.source_type) }}</div>
+                <div>{{ movement.location_name || movement.location_code || '-' }}</div>
+                <div class="text-muted-foreground">
+                  <div class="font-medium text-foreground">{{ movement.reason || '-' }}</div>
+                  <div class="text-xs mt-1">{{ movement.remark || movement.operator || '-' }}</div>
+                </div>
+                <div :class="Number(movement.delta_quantity || 0) >= 0 ? 'font-medium text-emerald-600' : 'font-medium text-rose-600'">
+                  {{ Number(movement.delta_quantity || 0) > 0 ? '+' : '' }}{{ movement.delta_quantity }}
+                </div>
+                <div>
+                  <div>总库存 {{ movement.stock_after }}</div>
+                  <div class="text-xs text-muted-foreground mt-1">库位 {{ movement.balance_after }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-xs text-muted-foreground">
+            当前仅展示最近 {{ store.movementsPageSize }} 条轨迹，共 {{ selectedMovementSummary?.total ?? 0 }} 条。
           </div>
         </div>
       </SheetContent>

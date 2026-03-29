@@ -149,3 +149,33 @@ export interface InventoryAdjustmentResponse {
     movement: InventoryAdjustment;
     item: InventoryItem;
 }
+
+export interface InventoryMovement {
+    id: number;
+    source_type: 'manual_adjustment' | 'receipt_in' | 'receipt_reversal' | 'outbound' | 'outbound_reversal' | string;
+    source_id: string;
+    source_line_key: string;
+    material_id: number;
+    material_code: string;
+    material_name: string;
+    warehouse_id: number;
+    warehouse_name: string;
+    location_id: number;
+    location_code: string;
+    location_name: string;
+    delta_quantity: number;
+    balance_after: number;
+    stock_after: number;
+    reason: string;
+    operator?: string | null;
+    remark?: string | null;
+    occurred_at: string | null;
+    created_at?: string | null;
+}
+
+export interface InventoryMovementListResponse {
+    rows: InventoryMovement[];
+    total: number;
+    page: number;
+    pageSize: number;
+}

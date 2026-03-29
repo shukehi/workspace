@@ -2,6 +2,7 @@ import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { InventoryItem } from '@/types/inventory';
 import { AlertTriangle } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
 
 function renderLocationSummary(item: InventoryItem) {
     const locations = Array.isArray(item.locations) ? item.locations : [];
@@ -21,7 +22,14 @@ function renderLocationSummary(item: InventoryItem) {
     }, summary || '未分配库位');
 }
 
-export const createInventoryColumns = (): ColumnDef<InventoryItem>[] => [
+function getLocationTotal(item: InventoryItem) {
+    return (Array.isArray(item.locations) ? item.locations : [])
+        .reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+}
+
+export const createInventoryColumns = (actions: {
+    onViewMovement?: (item: InventoryItem) => void;
+} = {}): ColumnDef<InventoryItem>[] => [
     {
         accessorKey: 'model',
         header: '物料型号',
@@ -59,6 +67,24 @@ export const createInventoryColumns = (): ColumnDef<InventoryItem>[] => [
         cell: ({ row }) => renderLocationSummary(row.original),
     },
     {
+        id: 'location_total',
+        header: '库位汇总',
+        cell: ({ row }) => h('div', { class: 'text-sm text-muted-foreground' }, `${getLocationTotal(row.original)} ${row.original.unit}`),
+    },
+    {
+        id: 'reconciliation',
+        header: '对账差异',
+        cell: ({ row }) => {
+            const item = row.original;
+            const diff = Number(item.stock_quantity || 0) - getLocationTotal(item);
+            if (diff === 0) {
+                return h('div', { class: 'text-xs text-emerald-600 font-medium' }, '已对平');
+            }
+            const sign = diff > 0 ? '+' : '';
+            return h('div', { class: 'text-xs text-rose-600 font-medium' }, `${sign}${diff} ${item.unit}`);
+        },
+    },
+    {
         accessorKey: 'supplier',
         header: '常规供应商',
         cell: ({ row }) => h('div', { class: 'text-muted-foreground' }, row.getValue('supplier') || '-'),
@@ -69,6 +95,24 @@ export const createInventoryColumns = (): ColumnDef<InventoryItem>[] => [
         cell: ({ row }) => {
             const date = new Date(row.getValue<string>('last_updated'));
             return h('div', { class: 'text-muted-foreground text-xs' }, date.toLocaleDateString());
+        },
+    },
+    {
+        id: 'actions',
+        header: '操作',
+        cell: ({ row }) => {
+            if (!actions.onViewMovement) {
+                return h('div', { class: 'text-muted-foreground text-xs' }, '-');
+            }
+            return h(Button, {
+                variant: 'ghost',
+                size: 'sm',
+                class: 'h-8 px-2 text-muted-foreground hover:text-cyan-700',
+                onClick: (e: MouseEvent) => {
+                    e.stopPropagation();
+                    actions.onViewMovement?.(row.original);
+                },
+            }, () => '轨迹');
         },
     },
 ];

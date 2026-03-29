@@ -7,6 +7,8 @@ import type {
     InventoryAdjustmentResponse,
     InventoryLocation,
     InventoryLocationListResponse,
+    InventoryMovement,
+    InventoryMovementListResponse,
     InventoryOutbound,
     InventoryOutboundListResponse,
     InventoryReceipt,
@@ -38,6 +40,18 @@ type OutboundQuery = {
     operator?: string;
     warehouseId?: number | string;
     locationId?: number | string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    pageSize?: number;
+};
+
+type MovementQuery = {
+    materialId?: number | string;
+    warehouseId?: number | string;
+    locationId?: number | string;
+    sourceType?: string;
+    keyword?: string;
     startDate?: string;
     endDate?: string;
     page?: number;
@@ -96,11 +110,13 @@ export const useInventoryStore = defineStore('inventory', () => {
     const warehouses = ref<Warehouse[]>([]);
     const locations = ref<InventoryLocation[]>([]);
     const outbounds = ref<InventoryOutbound[]>([]);
+    const movements = ref<InventoryMovement[]>([]);
 
     const loading = ref(false);
     const receiptsLoading = ref(false);
     const locationsLoading = ref(false);
     const outboundsLoading = ref(false);
+    const movementsLoading = ref(false);
 
     const receiptsTotal = ref(0);
     const receiptsPage = ref(1);
@@ -108,6 +124,9 @@ export const useInventoryStore = defineStore('inventory', () => {
     const outboundsTotal = ref(0);
     const outboundsPage = ref(1);
     const outboundsPageSize = ref(50);
+    const movementsTotal = ref(0);
+    const movementsPage = ref(1);
+    const movementsPageSize = ref(20);
 
     const sortedItems = computed(() => {
         return [...items.value].sort((a, b) =>
@@ -138,6 +157,13 @@ export const useInventoryStore = defineStore('inventory', () => {
 
     const activeLocations = computed(() => {
         return locations.value.filter((location) => location.status === 'active');
+    });
+
+    const sortedMovements = computed(() => {
+        return [...movements.value].sort((a, b) =>
+            new Date(b.occurred_at || b.created_at || 0).getTime()
+            - new Date(a.occurred_at || a.created_at || 0).getTime()
+        );
     });
 
     function buildInventoryQuery(params: InventoryQuery = {}) {
@@ -321,6 +347,20 @@ export const useInventoryStore = defineStore('inventory', () => {
         return query.toString() ? `?${query.toString()}` : '';
     }
 
+    function buildMovementQuery(params: MovementQuery = {}) {
+        const query = new URLSearchParams();
+        appendIfPresent(query, 'materialId', params.materialId);
+        appendIfPresent(query, 'warehouseId', params.warehouseId);
+        appendIfPresent(query, 'locationId', params.locationId);
+        appendIfPresent(query, 'sourceType', params.sourceType);
+        appendIfPresent(query, 'keyword', params.keyword);
+        appendIfPresent(query, 'startDate', params.startDate);
+        appendIfPresent(query, 'endDate', params.endDate);
+        appendIfPresent(query, 'page', params.page);
+        appendIfPresent(query, 'pageSize', params.pageSize);
+        return query.toString() ? `?${query.toString()}` : '';
+    }
+
     async function fetchInventoryOutbounds(params: OutboundQuery = {}) {
         outboundsLoading.value = true;
         try {
@@ -342,6 +382,26 @@ export const useInventoryStore = defineStore('inventory', () => {
 
     async function fetchInventoryOutbound(id: number | string) {
         return await api.get<InventoryOutbound>(`/inventory-outbounds/${id}`);
+    }
+
+    async function fetchInventoryMovements(params: MovementQuery = {}) {
+        movementsLoading.value = true;
+        try {
+            const suffix = buildMovementQuery(params);
+            const res = await api.get<InventoryMovementListResponse>(`/inventory-movements${suffix}`);
+            movements.value = Array.isArray(res?.rows) ? res.rows : [];
+            movementsTotal.value = Number(res?.total || 0);
+            movementsPage.value = Number(res?.page || params.page || 1);
+            movementsPageSize.value = Number(res?.pageSize || params.pageSize || 20);
+            return res;
+        } catch (e) {
+            movements.value = [];
+            movementsTotal.value = 0;
+            console.error('Failed to fetch inventory movements', e);
+            throw e;
+        } finally {
+            movementsLoading.value = false;
+        }
     }
 
     async function fetchAllInventoryOutbounds(params: Omit<OutboundQuery, 'page' | 'pageSize'> = {}) {
@@ -474,20 +534,26 @@ export const useInventoryStore = defineStore('inventory', () => {
         warehouses,
         locations,
         outbounds,
+        movements,
         receiptsTotal,
         receiptsPage,
         receiptsPageSize,
         outboundsTotal,
         outboundsPage,
         outboundsPageSize,
+        movementsTotal,
+        movementsPage,
+        movementsPageSize,
         loading,
         receiptsLoading,
         locationsLoading,
         outboundsLoading,
+        movementsLoading,
         sortedItems,
         lowStockItems,
         sortedReceipts,
         sortedOutbounds,
+        sortedMovements,
         activeLocations,
         fetchInventory,
         fetchInventoryReceipts,
@@ -499,6 +565,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         updateInventoryLocation,
         fetchInventoryOutbounds,
         fetchInventoryOutbound,
+        fetchInventoryMovements,
         fetchAllInventoryOutbounds,
         createInventoryOutbound,
         reverseInventoryOutbound,
