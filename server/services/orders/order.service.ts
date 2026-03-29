@@ -321,18 +321,20 @@ class OrderService {
                 const sourceContractCode = resolveSourceContractCode(createInput);
                 const metadata = normalizeMetadata(createInput.metadata, {}, normalizedCategory);
                 const normalizedStatus = normalizeStatus(createInput.status, 'draft');
-                const sanitizedItems = sanitizeManualCreateItems(
-                    createInput.items as any[] | undefined,
-                    createInput.category,
-                    metadata.template_type,
-                );
+                const sanitizedItems = metadata.order_source === 'manual'
+                    ? sanitizeManualCreateItems(
+                        createInput.items as any[] | undefined,
+                        createInput.category,
+                        metadata.template_type,
+                    )
+                    : (createInput.items as any[] | undefined);
                 const normalizedData: PlainRecord = {
                     ...createInput,
                     category: normalizedCategory,
                     source_contract_code: sourceContractCode,
                     metadata,
                     status: normalizedStatus,
-                    items: sanitizedItems.length > 0 ? sanitizedItems : createInput.items,
+                    items: sanitizedItems,
                 };
                 const dedupeKey = buildOrderDedupeKey(normalizedData);
                 const duplicate = await this.findDuplicateAutoOrder(normalizedData, transaction);
@@ -435,12 +437,16 @@ class OrderService {
                 ? normalizeStatus(order.status)
                 : assertValidStatusTransition(order.status, data.status);
             const nextCreatedAt = data.created_at !== undefined ? data.created_at : order.created_at;
-            const sanitizedItems = sanitizeManualCreateItems(
-                mergedItems as any[] | undefined,
-                nextCategory,
-                nextMetadata.template_type,
-            );
-            const nextItems = sanitizedItems.length > 0 ? sanitizedItems : mergedItems;
+            const nextItems = nextMetadata.order_source === 'manual'
+                ? (() => {
+                    const sanitizedItems = sanitizeManualCreateItems(
+                        mergedItems as any[] | undefined,
+                        nextCategory,
+                        nextMetadata.template_type,
+                    );
+                    return sanitizedItems.length > 0 ? sanitizedItems : mergedItems;
+                })()
+                : mergedItems;
             const mergedOrderForValidation: OrderCreateInput = {
                 order_no: data.order_no === undefined ? order.order_no : data.order_no,
                 supplier: nextSupplier || '',

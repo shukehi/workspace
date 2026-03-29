@@ -5,12 +5,24 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import type { Router } from 'express'
+import { createRequire } from 'node:module';
 
+const _require = createRequire(import.meta.url);
 const tempDbPath = path.join(os.tmpdir(), `order-routes-${Date.now()}.sqlite`);
+
+function purgeDatabaseCache() {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+}
+
+// Purge and set environment before requiring models
+purgeDatabaseCache();
 process.env.DB_STORAGE = tempDbPath;
 
 const { initDB, sequelize, Material, Order, OrderItem } = require('../server/models') as typeof import('../server/models');
-import type { MaterialInstance } from '../server/models';
 const orderRoutes = (require('../server/routes/order') as { default: Router }).default;
 
 let server: ReturnType<ReturnType<typeof express>['listen']>
@@ -151,6 +163,68 @@ test('PUT /api/orders/:id keeps normalized order payload shape', async () => {
   assert.equal(updated.status, 'submitted');
   assert.equal(updated.created_at, updatedAt);
   assert.equal(Array.isArray(updated.items), true);
+});
+
+test('PUT /api/orders/:id preserves non-manual order items on metadata-only edits', async () => {
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-PO-KEEP-ITEMS-001',
+      supplier: '汇成',
+      category: '锁具',
+      status: 'draft',
+      metadata: {
+        order_source: 'auto',
+        source_contract_code: 'CT-ROUTE-KEEP-ITEMS-001',
+      },
+      created_at: '2026-03-29T09:05:00.000Z',
+      items: [
+        {
+          supplier: '汇成',
+          type: '锁体A',
+          name: '锁体A',
+          spec: '主锁',
+          quantity: 5,
+          unit: '把',
+        },
+        {
+          supplier: '汇成',
+          type: '',
+          name: '',
+          spec: '',
+          quantity: 0,
+          unit: '把',
+          remark: '',
+        },
+        {
+          supplier: '汇成',
+          type: '锁体B',
+          name: '锁体B',
+          spec: '',
+          quantity: 0,
+          unit: '把',
+          remark: '',
+        },
+      ],
+    }),
+  });
+  assert.equal(createRes.status, 200);
+  const created = getBody(await createRes.json()) as { id: number; items: unknown[] };
+  assert.equal(created.items.length, 3);
+
+  const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      remark: '只更新备注',
+    }),
+  });
+
+  assert.equal(updateRes.status, 200);
+  const updated = getBody(await updateRes.json()) as { items: unknown[]; remark: string };
+  assert.equal(updated.items.length, 3);
+  assert.equal(updated.remark, '只更新备注');
 });
 
 test('POST /api/orders/:id/arrive marks processing order as arrived', async () => {

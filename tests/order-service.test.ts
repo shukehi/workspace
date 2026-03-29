@@ -2,8 +2,21 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module';
 
-const TEST_DB = path.join('/tmp', 'order-search-order-service.test.sqlite');
+const _require = createRequire(import.meta.url);
+const TEST_DB = path.join('/tmp', `order-service-${Date.now()}.test.sqlite`);
+
+function purgeDatabaseCache() {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+}
+
+// Purge and set environment before requiring models
+purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
 const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models') as typeof import('../server/models');
@@ -387,6 +400,60 @@ test('OrderService can restore a cancelled auto order only when idempotency key 
       return true;
     }
   );
+});
+
+test('OrderService updateOrder preserves non-manual order items instead of sanitizing them', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('AUTO-KEEP-ITEMS'),
+    supplier: '汇成',
+    category: '锁具',
+    status: 'draft',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-KEEP-ITEMS-001',
+    },
+    created_at: '2026-03-29T09:00:00.000Z',
+    items: [
+      {
+        supplier: '汇成',
+        type: '锁体A',
+        name: '锁体A',
+        spec: '主锁',
+        quantity: 5,
+        unit: '把',
+      },
+      {
+        supplier: '汇成',
+        type: '',
+        name: '',
+        spec: '',
+        quantity: 0,
+        unit: '把',
+        remark: '',
+      },
+      {
+        supplier: '汇成',
+        type: '锁体B',
+        name: '锁体B',
+        spec: '',
+        quantity: 0,
+        unit: '把',
+        remark: '',
+      }
+    ],
+  } as OrderCreateInput);
+
+  assert.equal(created.items.length, 3);
+
+  const updated = await orderService.updateOrder(created.id, {
+    remark: '只更新备注',
+  });
+
+  assert.equal(updated.items.length, 3);
+  assert.equal(updated.remark, '只更新备注');
 });
 
 test('OrderService supports processing to arrived transition and restores cancelled auto orders to arrived', async () => {
