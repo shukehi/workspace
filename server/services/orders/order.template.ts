@@ -6,6 +6,12 @@ export type ProcurementTemplateType =
     | 'double-door-accessory'
     | 'general-accessory';
 
+export type ProcurementSchemaCategory =
+    | 'packaging'
+    | 'cylinder'
+    | 'lockset'
+    | 'lock';
+
 function isKnownTemplateType(raw: string): raw is ProcurementTemplateType {
     return raw === 'packaging'
         || raw === 'cylinder'
@@ -44,6 +50,18 @@ export function normalizeTemplateType(
 
 export function deriveTemplateTypeFromCategory(categoryRaw: unknown): ProcurementTemplateType | undefined {
     return resolveTemplateTypeFromCategory(categoryRaw);
+}
+
+export function resolveSchemaCategory(
+    templateTypeRaw: unknown,
+    categoryRaw: unknown,
+): ProcurementSchemaCategory {
+    const templateType = normalizeTemplateType(templateTypeRaw, categoryRaw);
+    if (templateType === 'packaging') return 'packaging';
+    if (templateType === 'cylinder') return 'cylinder';
+    if (templateType === 'double-door-accessory') return 'lockset';
+    if (templateType === 'general-accessory') return 'lock';
+    return 'packaging';
 }
 
 export function ensureOrderTemplateType<T extends OrderMetadata | Record<string, unknown>>(

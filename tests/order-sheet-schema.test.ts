@@ -9,6 +9,8 @@ import {
   resolveAggregateQuantityDisplayWidth,
   resolveAggregateRemarkColumnWidth
 } from '../src/features/procurement/order-sheet.schema';
+import { resolveSchemaPrintCategory } from '../src/features/procurement/templateType';
+import { resolveSchemaCategory } from '../server/services/orders/order.template';
 
 test('schema: packaging columns keep expected order', () => {
   const schema = getSheetSchema('packaging');
@@ -30,6 +32,19 @@ test('schema: handle columns include left/right quantity before unit', () => {
 test('schema: lockset columns align with single-quantity procurement sheet', () => {
   const schema = getSheetSchema('lockset');
   assert.deepEqual(schema.columns.map((c) => c.key), ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark']);
+});
+
+test('schema: template mapping unifies double-door and general-accessory templates', () => {
+  assert.equal(resolveSchemaPrintCategory('double-door-accessory', '拉手'), 'lockset');
+  assert.equal(resolveSchemaPrintCategory('general-accessory', '五金/配件'), 'lock');
+
+  const generalAccessorySchema = getSheetSchema(resolveSchemaPrintCategory('general-accessory', '五金/配件'));
+  assert.deepEqual(generalAccessorySchema.columns.map((c) => c.key), ['no', 'type', 'spec', 'quantity', 'unit', 'remark']);
+});
+
+test('schema: frontend and backend share the same fallback category for uncategorized orders', () => {
+  assert.equal(resolveSchemaPrintCategory(undefined, undefined), 'packaging');
+  assert.equal(resolveSchemaCategory(undefined, undefined), 'packaging');
 });
 
 test('schema: all spec-like fields use 规格 label across categories', () => {

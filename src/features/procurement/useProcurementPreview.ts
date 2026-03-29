@@ -4,6 +4,7 @@ import { ORDER_STATUS_LABELS } from '@/shared/constants/order';
 import { resolveProcurementCategoryLabel, type PrintMode } from '@/features/procurement/docModel';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
 import { useOrderActions } from '@/features/procurement/composables/useOrderActions';
+import { resolveOrderSchemaPrintCategory } from '@/features/procurement/templateType';
 export { hasValidDeliveryDate } from '@/features/procurement/orderRules';
 
 type ToastFn = (payload: {
@@ -49,7 +50,7 @@ export function createProcurementPreview(options: {
       return resolveSheetWidths('packaging', null, { preferLocalWhenMissing: true });
     }
     return resolveSheetWidths(
-      options.order.value.category,
+      resolveOrderSchemaPrintCategory(options.order.value),
       options.order.value.metadata?.printColumnWidths,
       { preferLocalWhenMissing: true }
     );

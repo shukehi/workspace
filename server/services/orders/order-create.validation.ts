@@ -1,4 +1,5 @@
 import type { OrderCreateInput, OrderItemCreationAttributes, OrderMetadata, OrderUpdateInput } from '../../models/types';
+import { resolveSchemaCategory } from './order.template';
 
 interface ValidationIssue {
     field: string;
@@ -9,21 +10,11 @@ function toTrimmedString(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
-function normalizeCategory(value: unknown): 'packaging' | 'cylinder' | 'lock' | 'lockset' | 'handle' | 'hardware' {
-    const raw = toTrimmedString(value);
-    if (raw === '包装' || raw === 'packaging') return 'packaging';
-    if (raw === '锁芯' || raw === 'cylinder') return 'cylinder';
-    if (raw === '锁叉' || raw === 'lock') return 'lock';
-    if (raw === '锁具' || raw === 'lockset') return 'lockset';
-    if (raw === '拉手' || raw === 'handle') return 'handle';
-    return 'hardware';
+function supportsSplitQuantityColumns(category: ReturnType<typeof resolveSchemaCategory>): boolean {
+    return category === 'packaging' || category === 'lockset';
 }
 
-function supportsSplitQuantityColumns(category: ReturnType<typeof normalizeCategory>): boolean {
-    return category === 'packaging' || category === 'lockset' || category === 'handle';
-}
-
-function resolveDescriptor(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof normalizeCategory>): string {
+function resolveDescriptor(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof resolveSchemaCategory>): string {
     if (category === 'packaging') {
         return (
             toTrimmedString(item.name)
@@ -34,7 +25,7 @@ function resolveDescriptor(item: Partial<OrderItemCreationAttributes>, category:
     return toTrimmedString(item.type) || toTrimmedString(item.name);
 }
 
-function resolveSpecLike(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof normalizeCategory>): string {
+function resolveSpecLike(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof resolveSchemaCategory>): string {
     if (category === 'cylinder') {
         return (
             toTrimmedString(item.eccentricity)
@@ -45,14 +36,14 @@ function resolveSpecLike(item: Partial<OrderItemCreationAttributes>, category: R
     return toTrimmedString(item.spec) || toTrimmedString(item.model);
 }
 
-function resolveQuantity(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof normalizeCategory>): number {
+function resolveQuantity(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof resolveSchemaCategory>): number {
     if (supportsSplitQuantityColumns(category)) {
         return Number(item.quantity_left || 0) + Number(item.quantity_right || 0);
     }
     return Number(item.quantity || 0);
 }
 
-function hasMeaningfulInput(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof normalizeCategory>): boolean {
+function hasMeaningfulInput(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof resolveSchemaCategory>): boolean {
     if (resolveDescriptor(item, category)) return true;
     if (resolveSpecLike(item, category)) return true;
     if (toTrimmedString(item.remark)) return true;
@@ -60,7 +51,7 @@ function hasMeaningfulInput(item: Partial<OrderItemCreationAttributes>, category
     return resolveQuantity(item, category) > 0;
 }
 
-function resolveValidatedQuantity(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof normalizeCategory>): number {
+function resolveValidatedQuantity(item: Partial<OrderItemCreationAttributes>, category: ReturnType<typeof resolveSchemaCategory>): number {
     const splitQuantity = resolveQuantity(item, category);
     if (splitQuantity > 0) return splitQuantity;
     if (supportsSplitQuantityColumns(category)) {
@@ -82,8 +73,9 @@ function isValidIsoDate(value: unknown): boolean {
 export function sanitizeManualCreateItems(
     items: Partial<OrderItemCreationAttributes>[] | undefined,
     categoryRaw: unknown,
+    templateTypeRaw?: unknown,
 ): Partial<OrderItemCreationAttributes>[] {
-    const category = normalizeCategory(categoryRaw);
+    const category = resolveSchemaCategory(templateTypeRaw, categoryRaw);
     return (items || []).filter((item) => hasMeaningfulInput(item, category));
 }
 
@@ -92,8 +84,12 @@ export function validateManualCreateOrder(data: OrderCreateInput): ValidationIss
     if (!isManual) return [];
 
     const issues: ValidationIssue[] = [];
-    const category = normalizeCategory(data.category);
-    const items = sanitizeManualCreateItems(data.items as Partial<OrderItemCreationAttributes>[] | undefined, data.category);
+    const category = resolveSchemaCategory(data.metadata?.template_type, data.category);
+    const items = sanitizeManualCreateItems(
+        data.items as Partial<OrderItemCreationAttributes>[] | undefined,
+        data.category,
+        data.metadata?.template_type,
+    );
 
     if (!toTrimmedString(data.order_no)) {
         issues.push({ field: 'order_no', message: 'order_no is required' });

@@ -163,3 +163,67 @@ test('buildProcurementDocModel uses aggregate quantity column when order metadat
   assert.equal(doc.pages[0].rows[doc.pages[0].rows.length - 1].values.quantity, 5);
   assert.ok((doc.pages[0].columns.find((column) => column.key === 'remark')?.width || 0) > 160);
 });
+
+test('buildProcurementDocModel prefers template schema over legacy category for unified accessory templates', () => {
+  const doc = buildProcurementDocModel({
+    order: {
+      order_no: 'PO-BUILDER-005',
+      category: '五金/配件',
+      supplier: '五金供应商',
+      metadata: {
+        customer_name: '客户D',
+        template_type: 'general-accessory',
+      },
+      items: [
+        { type: '锁叉A', spec: 'A-1', quantity: 3, unit: '个', remark: '测试' },
+      ],
+    },
+  });
+
+  assert.equal(doc.category, 'hardware');
+  assert.equal(doc.pages[0].category, 'hardware');
+  assert.deepEqual(doc.pages[0].columns.map((column) => column.key), ['no', 'type', 'spec', 'quantity', 'unit', 'remark']);
+  assert.equal(doc.pages[0].rows[0].values.unit, '个');
+});
+
+test('buildProcurementDocModel keeps handle default unit while using shared double-door schema', () => {
+  const doc = buildProcurementDocModel({
+    order: {
+      order_no: 'PO-BUILDER-006',
+      category: '拉手',
+      supplier: '拉手供应商',
+      metadata: {
+        customer_name: '客户E',
+        template_type: 'double-door-accessory',
+      },
+      items: [
+        { type: '拉手A', spec: 'H-1', quantity_left: 1, quantity_right: 2, remark: '测试' },
+      ],
+    },
+  });
+
+  assert.equal(doc.category, 'handle');
+  assert.equal(doc.pages[0].category, 'handle');
+  assert.deepEqual(doc.pages[0].columns.map((column) => column.key), ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark']);
+  assert.equal(doc.pages[0].rows[0].values.unit, '付');
+});
+
+test('buildProcurementDocModel falls back to schema category when business category is missing', () => {
+  const doc = buildProcurementDocModel({
+    order: {
+      order_no: 'PO-BUILDER-007',
+      supplier: '未分类供应商',
+      metadata: {
+        customer_name: '客户F',
+        template_type: 'general-accessory',
+      },
+      items: [
+        { type: '配件A', spec: 'G-1', quantity: 2, remark: '测试' },
+      ],
+    },
+  });
+
+  assert.equal(doc.category, 'lock');
+  assert.equal(doc.pages[0].category, 'lock');
+  assert.deepEqual(doc.pages[0].columns.map((column) => column.key), ['no', 'type', 'spec', 'quantity', 'unit', 'remark']);
+});

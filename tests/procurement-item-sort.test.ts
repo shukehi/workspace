@@ -21,3 +21,13 @@ test('resolveProcurementItems preserves manual order in edit mode', () => {
   const visible = resolveProcurementItems('锁叉', items, { preserveManualOrder: true });
   assert.deepEqual(visible.map((item) => item.type), ['B款-下头', 'A款-上头']);
 });
+
+test('resolveProcurementItems does not apply lock-fork sorting to hardware category', () => {
+  const items = [
+    { type: 'B款-下头', spec: '10', remark: 'CM 2100' },
+    { type: 'A款-上头', spec: '10', remark: 'CM 2100' },
+  ];
+
+  const visible = resolveProcurementItems('五金/配件', items);
+  assert.deepEqual(visible.map((item) => item.type), ['B款-下头', 'A款-上头']);
+});

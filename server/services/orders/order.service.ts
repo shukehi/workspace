@@ -321,7 +321,11 @@ class OrderService {
                 const sourceContractCode = resolveSourceContractCode(createInput);
                 const metadata = normalizeMetadata(createInput.metadata, {}, normalizedCategory);
                 const normalizedStatus = normalizeStatus(createInput.status, 'draft');
-                const sanitizedItems = sanitizeManualCreateItems(createInput.items as any[] | undefined, createInput.category);
+                const sanitizedItems = sanitizeManualCreateItems(
+                    createInput.items as any[] | undefined,
+                    createInput.category,
+                    metadata.template_type,
+                );
                 const normalizedData: PlainRecord = {
                     ...createInput,
                     category: normalizedCategory,
@@ -431,7 +435,11 @@ class OrderService {
                 ? normalizeStatus(order.status)
                 : assertValidStatusTransition(order.status, data.status);
             const nextCreatedAt = data.created_at !== undefined ? data.created_at : order.created_at;
-            const sanitizedItems = sanitizeManualCreateItems(mergedItems as any[] | undefined, nextCategory);
+            const sanitizedItems = sanitizeManualCreateItems(
+                mergedItems as any[] | undefined,
+                nextCategory,
+                nextMetadata.template_type,
+            );
             const nextItems = sanitizedItems.length > 0 ? sanitizedItems : mergedItems;
             const mergedOrderForValidation: OrderCreateInput = {
                 order_no: data.order_no === undefined ? order.order_no : data.order_no,

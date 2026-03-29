@@ -17,6 +17,7 @@ import {
   resolveAggregateRemarkColumnWidth,
 } from '@/features/procurement/order-sheet.schema';
 import { resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
+import { resolveSchemaPrintCategory } from '@/features/procurement/templateType';
 
 type AnyRecord = Record<string, any>;
 
@@ -46,6 +47,7 @@ type NormalizedItem = {
 type NormalizedSource = {
   poNumber: string;
   category: PrintCategory;
+  schemaCategory: PrintCategory;
   printMode: PrintMode;
   customerName: string;
   orderRemark: string;
@@ -214,7 +216,14 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
     ? order.list
     : (Array.isArray(order?.items) ? order.items : []);
 
-  const category = normalizePrintCategory(input.category || order.category);
+  const categoryRaw = String(input.category || order.category || '').trim() || undefined;
+  const schemaCategory = resolveSchemaPrintCategory(
+    metadata.template_type,
+    categoryRaw,
+  );
+  const businessCategory = categoryRaw
+    ? normalizePrintCategory(categoryRaw)
+    : schemaCategory;
   const printMode = normalizePrintMode(input.printMode || order.printMode);
   const today = new Date().toISOString().slice(0, 10);
   const orderDate = normalizeDateString(order.orderDate || order.created_at) || today;
@@ -262,7 +271,8 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
 
   return {
     poNumber,
-    category,
+    category: businessCategory,
+    schemaCategory,
     printMode,
     customerName,
     orderRemark,
@@ -277,8 +287,9 @@ function normalizeSource(input: PrintDocBuildInput): NormalizedSource {
   };
 }
 
-function normalizeItem(item: AnyRecord, category: PrintCategory, source: NormalizedSource): NormalizedItem {
-  if (category === 'packaging') {
+function normalizeItem(item: AnyRecord, source: NormalizedSource): NormalizedItem {
+  const { category, schemaCategory } = source;
+  if (schemaCategory === 'packaging') {
     const qty = resolveLeftRightQty(item);
     return {
       supplier: String(item?.supplier || source.supplier || '默认供应商'),
@@ -297,7 +308,7 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
     };
   }
 
-  if (category === 'cylinder') {
+  if (schemaCategory === 'cylinder') {
     return {
       supplier: String(item?.supplier || source.supplier || '未分类'),
       internal_name: '-',
@@ -315,7 +326,7 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
     };
   }
 
-  if (category === 'lock' || category === 'lockset' || category === 'handle') {
+  if (schemaCategory === 'lock' || schemaCategory === 'lockset') {
     const qty = resolveLeftRightQty(item);
     return {
       supplier: String(item?.supplier || source.supplier || '未分类'),
@@ -326,9 +337,9 @@ function normalizeItem(item: AnyRecord, category: PrintCategory, source: Normali
       spec: String(item?.spec || item?.model || '-'),
       mb: String(item?.mb || item?.orientation || '-'),
       eccentricity: String(item?.eccentricity || '-'),
-      qtyLeft: category === 'handle' || category === 'lockset' ? Number(qty.left || 0) : 0,
-      qtyRight: category === 'handle' || category === 'lockset' ? Number(qty.right || 0) : 0,
-      quantity: category === 'handle' || category === 'lockset'
+      qtyLeft: schemaCategory === 'lockset' ? Number(qty.left || 0) : 0,
+      qtyRight: schemaCategory === 'lockset' ? Number(qty.right || 0) : 0,
+      quantity: schemaCategory === 'lockset'
         ? Number(qty.left || 0) + Number(qty.right || 0)
         : Number(item?.quantity || 0),
       unit: String(item?.unit || (category === 'handle' ? '付' : (category === 'lockset' ? '套' : '个'))),
@@ -408,7 +419,7 @@ function getCellValue(item: NormalizedItem, field: string, rowNumber: number, ca
 }
 
 function buildTotalRow(category: PrintCategory, fields: string[], items: NormalizedItem[]): ProcurementDocRow {
-  if (category === 'packaging' || category === 'handle' || category === 'lockset') {
+  if (category === 'packaging' || category === 'lockset') {
     const totalLeft = items.reduce((sum, item) => sum + Number(item.qtyLeft || 0), 0);
     const totalRight = items.reduce((sum, item) => sum + Number(item.qtyRight || 0), 0);
     if (fields.includes('quantity')) {
@@ -467,7 +478,7 @@ function buildPage(
   aligns: Array<'left' | 'center' | 'right'>
 ): ProcurementDocPage {
   const widthState = resolveSheetWidths(
-    source.category,
+    source.schemaCategory,
     source.printColumnWidths,
     { preferLocalWhenMissing: false }
   );
@@ -500,18 +511,18 @@ function buildPage(
       width: fittedWidths[field],
       numeric: field === 'qtyLeft' || field === 'qtyRight' || field === 'quantity',
     })),
-    rows: buildRows(source.category, fields, group.items),
+    rows: buildRows(source.schemaCategory, fields, group.items),
   };
 }
 
 export function buildProcurementDocModel(input: PrintDocBuildInput): ProcurementDocModel {
   const source = normalizeSource(input);
-  const schema = getSheetSchema(source.category, {
+  const schema = getSheetSchema(source.schemaCategory, {
     aggregateSideQuantities: source.aggregateSideQuantities,
   });
   const normalizedItems = sortProcurementItems(
     source.category,
-    source.items.map((item) => normalizeItem(item, source.category, source))
+    source.items.map((item) => normalizeItem(item, source))
   );
   const grouped = groupItems(normalizedItems, source);
 

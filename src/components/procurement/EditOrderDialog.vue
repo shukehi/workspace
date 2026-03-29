@@ -18,6 +18,7 @@ import {
   type PrintCategory
 } from '@/features/procurement/docModel';
 import { syncOrderItemQuantity } from '@/features/procurement/order-sheet.schema';
+import { resolveOrderSchemaPrintCategory } from '@/features/procurement/templateType';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   PROCUREMENT_DOCUMENT_CREATE_TITLE,
@@ -66,7 +67,7 @@ const validationVisible = ref(false);
 
 const isCreateMode = computed(() => props.mode === 'create');
 const isRestrictedDetailEdit = computed(() => !isCreateMode.value && form.value.status === 'arrived');
-const currentCategory = computed<PrintCategory>(() => normalizePrintCategory(form.value.category));
+const currentCategory = computed<PrintCategory>(() => resolveOrderSchemaPrintCategory(form.value));
 const currentDefaultWidths = computed(() => getDefaultWidths(currentCategory.value));
 const supportsAggregateQuantityToggle = computed(() => {
   return currentCategory.value === 'packaging' || currentCategory.value === 'handle' || currentCategory.value === 'lockset';

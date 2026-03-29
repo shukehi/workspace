@@ -1,6 +1,7 @@
 import type { Order, OrderItem } from '@/types/order';
-import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import type { PrintCategory } from '@/features/procurement/docModel';
 import { resolveOrderItemQuantity, supportsSplitQuantityColumns } from '@/features/procurement/order-sheet.schema';
+import { resolveOrderSchemaPrintCategory, resolveSchemaPrintCategory } from '@/features/procurement/templateType';
 
 export interface ManualOrderValidationIssue {
   path: string;
@@ -61,8 +62,12 @@ function isValidIsoDate(value: unknown): boolean {
   return !Number.isNaN(parsed.getTime());
 }
 
-export function stripBlankManualItems(items: Partial<OrderItem>[] | undefined, categoryRaw: string | undefined): Partial<OrderItem>[] {
-  const category = normalizePrintCategory(categoryRaw);
+export function stripBlankManualItems(
+  items: Partial<OrderItem>[] | undefined,
+  categoryRaw: string | undefined,
+  templateTypeRaw?: unknown,
+): Partial<OrderItem>[] {
+  const category = resolveSchemaPrintCategory(templateTypeRaw, categoryRaw);
   return (items || []).filter((item) => hasMeaningfulInput(item, category));
 }
 
@@ -72,10 +77,14 @@ export function validateManualOrderDraft(order: Partial<Order>): string[] {
 
 export function collectManualOrderValidationIssues(order: Partial<Order>): ManualOrderValidationIssue[] {
   const issues: ManualOrderValidationIssue[] = [];
-  const category = normalizePrintCategory(order.category);
+  const category = resolveOrderSchemaPrintCategory(order);
   const customerName = toTrimmedString(order.metadata?.customer_name);
   const supplier = toTrimmedString(order.supplier);
-  const items = stripBlankManualItems(order.items as Partial<OrderItem>[] | undefined, order.category);
+  const items = stripBlankManualItems(
+    order.items as Partial<OrderItem>[] | undefined,
+    order.category,
+    order.metadata?.template_type,
+  );
 
   if (!toTrimmedString(order.order_no)) {
     issues.push({ path: 'order_no', message: '订单号不能为空' });

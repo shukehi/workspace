@@ -1,4 +1,5 @@
 import { normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import type { Order } from '@/types/order';
 
 export type ProcurementTemplateType =
   | 'packaging'
@@ -34,4 +35,20 @@ export function normalizeTemplateType(
   const raw = String(templateTypeRaw || '').trim().toLowerCase();
   if (isKnownTemplateType(raw)) return raw;
   return undefined;
+}
+
+export function resolveSchemaPrintCategory(
+  templateTypeRaw: unknown,
+  categoryRaw: string | undefined,
+): PrintCategory {
+  const templateType = normalizeTemplateType(templateTypeRaw, categoryRaw);
+  if (templateType === 'packaging') return 'packaging';
+  if (templateType === 'cylinder') return 'cylinder';
+  if (templateType === 'double-door-accessory') return 'lockset';
+  if (templateType === 'general-accessory') return 'lock';
+  return normalizePrintCategory(categoryRaw);
+}
+
+export function resolveOrderSchemaPrintCategory(order: Partial<Order> | null | undefined): PrintCategory {
+  return resolveSchemaPrintCategory(order?.metadata?.template_type, order?.category);
 }

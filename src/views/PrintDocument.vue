@@ -8,6 +8,7 @@ import { buildPurchaseOrderPdfFilename } from '@/features/procurement/pdfFilenam
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import { resolveSheetWidths, fitPrintColumnWidths } from '@/features/procurement/sheetWidthResolver';
 import { validateForPrinting } from '@/features/procurement/orderRules';
+import { resolveOrderSchemaPrintCategory } from '@/features/procurement/templateType';
 
 type PrintSourcePayload = {
   poNumber?: string;
@@ -37,7 +38,7 @@ const modeLabels: Record<PrintMode, string> = {
 const previewWidthState = computed(() => {
   const order = source.value?.order;
   return resolveSheetWidths(
-    order?.category || 'packaging',
+    resolveOrderSchemaPrintCategory(order),
     order?.metadata?.printColumnWidths,
     { preferLocalWhenMissing: true }
   );

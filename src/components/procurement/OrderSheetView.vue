@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { Order, OrderItem } from '@/types/order';
 import { resolveDisplayCustomerName } from '@/features/procurement/customerName';
-import { normalizeDateString, normalizePrintCategory, type PrintCategory } from '@/features/procurement/docModel';
+import { normalizeDateString, type PrintCategory } from '@/features/procurement/docModel';
 import { PROCUREMENT_DOCUMENT_TITLE } from '@/features/procurement/documentTitles';
 import { resolveProcurementItems } from '@/features/procurement/itemSort';
 import {
@@ -21,6 +21,7 @@ import {
   resolveAggregateRemarkColumnWidth,
 } from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
+import { resolveOrderSchemaPrintCategory } from '@/features/procurement/templateType';
 
 type Mode = 'edit' | 'preview';
 type CustomerNameDisplayMode = 'full' | 'salesDepartment';
@@ -55,12 +56,12 @@ const emit = defineEmits<{
 
 const isEditMode = computed(() => props.mode === 'edit');
 const isRestrictedEditMode = computed(() => isEditMode.value && props.restrictDetailEditing);
-const category = computed<PrintCategory>(() => normalizePrintCategory(props.order.category));
+const category = computed<PrintCategory>(() => resolveOrderSchemaPrintCategory(props.order));
 const isPackaging = computed(() => category.value === 'packaging');
 const usesSplitQuantityColumns = computed(() => supportsSplitQuantityColumns(category.value));
 const showsAggregatedQuantity = computed(() => props.aggregateSideQuantities && usesSplitQuantityColumns.value);
 const items = computed(() => resolveProcurementItems(
-  category.value,
+  props.order.category,
   (props.order.items || []) as OrderItem[],
   { preserveManualOrder: isEditMode.value }
 ));
