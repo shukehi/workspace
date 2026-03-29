@@ -29,6 +29,7 @@ type ExcludedCylinderRow = { id: string; value: string };
 
 const searchQuery = ref('');
 const activeTab = ref<'base' | 'rules' | 'mappings'>('base');
+const baselineSnapshot = ref('');
 
 // --- 数据列表管理 ---
 const primaryDimensions = useEditableList<DimensionRow>(() => ({ id: '', thickness: '', code: '', eccentricity: '' }));
@@ -93,6 +94,7 @@ const mappingFiltered = computed(() => {
   if (!kw) return mappings.list.value;
   return mappings.list.value.filter(m => m.name.toLowerCase().includes(kw) || m.supplier.toLowerCase().includes(kw) || m.template.toLowerCase().includes(kw));
 });
+const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
 
 // --- 重置逻辑 ---
 function resetWithPayload(data: CylinderMappingConfig) {
@@ -115,6 +117,7 @@ function resetWithPayload(data: CylinderMappingConfig) {
   mappings.reset(mapToRows(adapted.mappings, 'name', (n, m) => ({ name: n, supplier: m.supplier, template: m.template } as any)));
   customLogos.reset(adapted.customLogos.map(v => ({ id: '', value: v } as any)));
   excludedCylinders.reset(adapted.excludedCylinders.map(v => ({ id: '', value: v } as any)));
+  baselineSnapshot.value = JSON.stringify(payload.value);
 }
 
 const editor = useMappingConfigEditor<CylinderMappingConfig>({
@@ -140,7 +143,18 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout title="锁芯配置" description="维护锁芯规格、规则与供应商映射。" :editor="editor" :clientIssues="clientIssues">
+  <ConfigPageLayout
+    title="锁芯配置"
+    description="维护锁芯规格、规则与供应商映射。"
+    :editor="editor"
+    :clientIssues="clientIssues"
+    workflow-meta-variant="inline"
+    actions-position="header"
+  >
+    <template #header-extra>
+      <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
+    </template>
+
     <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
       <button v-for="t in [{id:'base',label:'基础与副锁',hasIssue:hasBaseIssues},{id:'rules',label:'特殊规则',hasIssue:hasRulesIssues},{id:'mappings',label:'映射与排除',hasIssue:hasMappingsIssues}]" :key="t.id"
         @click="activeTab = t.id as any"
@@ -209,9 +223,12 @@ onMounted(editor.load);
 
     <div v-show="activeTab === 'mappings'" class="flex flex-col gap-6">
       <Card>
-        <CardHeader><CardTitle>型号映射</CardTitle><Input v-model="searchQuery" class="h-9 max-w-sm mt-2" placeholder="搜索型号、供应商..." /></CardHeader>
+        <CardHeader class="flex-row items-center justify-between gap-4">
+          <CardTitle>型号映射</CardTitle>
+          <Input v-model="searchQuery" class="h-9 w-full max-w-sm" placeholder="搜索型号、供应商..." />
+        </CardHeader>
         <CardContent>
-          <ConfigTable :columns="[{key:'name',label:'型号',width:'30%'},{key:'supplier',label:'供应商',width:'20%'},{key:'template',label:'模板',width:'40%'}]" :rows="mappingFiltered" @add="mappings.add()" @remove="mappings.remove">
+          <ConfigTable :columns="[{key:'name',label:'型号',width:'30%'},{key:'supplier',label:'供应商',width:'20%'},{key:'template',label:'模板',width:'40%'}]" :rows="mappingFiltered" scroll-mode="page" @add="mappings.add()" @remove="mappings.remove">
             <template #cell-name="{row}"><Input v-model="row.name" /></template>
             <template #cell-supplier="{row}"><Input v-model="row.supplier" /></template>
             <template #cell-template="{row}"><Input v-model="row.template" /></template>

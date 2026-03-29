@@ -179,6 +179,8 @@ onMounted(editor.load);
     description="维护拉手单双活映射、门厚配件包与人工处理策略。"
     :editor="editor"
     :clientIssues="clientIssues"
+    workflow-meta-variant="inline"
+    actions-position="header"
   >
     <template #header-extra>
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
@@ -247,11 +249,12 @@ onMounted(editor.load);
 
     <div v-show="activeTab === 'mappings'" class="flex flex-col gap-6">
       <Card class="min-h-0">
-        <CardHeader class="space-y-3">
-          <div><CardTitle>型号映射</CardTitle><CardDescription>内部拉手名称映射到供应商名称。</CardDescription></div>
-          <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
-            <div class="space-y-1"><label class="text-sm font-medium">搜索</label><Input v-model="searchQuery" placeholder="搜索型号、供应商或名称" /></div>
+        <CardHeader class="flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>型号映射</CardTitle>
+            <CardDescription>内部拉手名称映射到供应商名称。</CardDescription>
           </div>
+          <Input v-model="searchQuery" class="w-full max-w-sm" placeholder="搜索型号、供应商或名称" />
         </CardHeader>
         <CardContent class="min-h-0">
           <ConfigTable 
@@ -262,7 +265,7 @@ onMounted(editor.load);
               {key:'materialCode',label:'物料编码',width:'28%'}
             ]" 
             :rows="filteredRows" 
-            max-height="520px"
+            scroll-mode="page"
             @add="mappings.add()" 
             @remove="mappings.remove"
           >

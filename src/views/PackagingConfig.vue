@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
@@ -88,26 +87,35 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout title="包装配置" description="管理包装名称映射。" :editor="editor" :clientIssues="clientIssues">
+  <ConfigPageLayout
+    title="包装配置"
+    description="管理包装名称映射。"
+    :editor="editor"
+    :clientIssues="clientIssues"
+    workflow-meta-variant="inline"
+    actions-position="header"
+  >
     <template #header-extra>
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
 
     <Card>
       <CardHeader><CardTitle>基础配置</CardTitle></CardHeader>
-      <CardContent class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent>
         <div class="space-y-2"><label class="text-sm font-medium">默认供应商</label><Input v-model="supplierName" :placeholder="`例如：${DEFAULT_PACKAGING_SUPPLIER}`" /></div>
-        <div class="space-y-2"><label class="text-sm font-medium">搜索映射</label><Input v-model="searchQuery" placeholder="搜索内容..." /></div>
       </CardContent>
     </Card>
 
     <Card>
-      <CardHeader><CardTitle>映射列表</CardTitle></CardHeader>
+      <CardHeader class="flex-row items-center justify-between gap-4">
+        <CardTitle>映射列表</CardTitle>
+        <Input v-model="searchQuery" class="w-full max-w-sm" placeholder="搜索内容..." />
+      </CardHeader>
       <CardContent>
         <ConfigTable 
           :columns="[{key:'key',label:'包装名称',width:'46%'},{key:'value',label:'采购名称',width:'44%'}]" 
           :rows="filteredRows" 
-          max-height="520px"
+          scroll-mode="page"
           @add="mappings.add()" 
           @remove="mappings.remove"
         >

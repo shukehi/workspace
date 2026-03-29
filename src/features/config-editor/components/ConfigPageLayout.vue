@@ -5,19 +5,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import MappingJsonDialog from '@/features/config-editor/components/MappingJsonDialog.vue';
 import type { MappingValidationIssue } from '@/types/mapping';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   title: string;
   description: string;
   editor: any;
   clientIssues: MappingValidationIssue[];
   showJsonCopyButton?: boolean;
   jsonDialogDescription?: string;
-}>();
+  workflowMetaVariant?: 'cards' | 'inline';
+  actionsPosition?: 'bottom' | 'header';
+}>(), {
+  workflowMetaVariant: 'cards',
+  actionsPosition: 'bottom',
+});
 
 const showIssuesPanel = computed(() => props.clientIssues.length > 0 || props.editor.serverIssues.value.length > 0);
 const hasWorkflowMeta = computed(() => {
   return props.editor.latestRevision?.value !== undefined;
 });
+const latestAuditLog = computed(() => props.editor.auditLogs?.value?.[0] || null);
+const latestAuditTime = computed(() => (
+  latestAuditLog.value?.createdAt
+    ? new Date(latestAuditLog.value.createdAt).toLocaleString()
+    : '暂无记录'
+));
 </script>
 
 <template>
@@ -30,7 +41,14 @@ const hasWorkflowMeta = computed(() => {
         </div>
         <slot name="header-extra"></slot>
       </div>
-      <slot name="header-right"></slot>
+      <div v-if="$slots['header-right'] || actionsPosition === 'header'" class="flex flex-wrap items-center justify-end gap-3">
+        <slot name="header-right"></slot>
+        <template v-if="actionsPosition === 'header'">
+          <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新配置</Button>
+          <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
+          <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存配置</Button>
+        </template>
+      </div>
     </div>
 
     <Card v-if="editor.loadError.value">
@@ -39,7 +57,7 @@ const hasWorkflowMeta = computed(() => {
       </CardContent>
     </Card>
 
-    <div v-if="hasWorkflowMeta" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div v-if="hasWorkflowMeta && workflowMetaVariant === 'cards'" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-xs text-muted-foreground">Latest Revision</CardTitle>
@@ -69,13 +87,25 @@ const hasWorkflowMeta = computed(() => {
           <CardTitle class="text-xs text-muted-foreground">最近动作</CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="text-sm font-medium">{{ editor.auditLogs?.value?.[0]?.action || '-' }}</div>
+          <div class="text-sm font-medium">{{ latestAuditLog?.action || '-' }}</div>
           <div class="text-xs text-muted-foreground mt-1">
-            {{ editor.auditLogs?.value?.[0]?.createdAt ? new Date(editor.auditLogs.value[0].createdAt).toLocaleString() : '暂无记录' }}
+            {{ latestAuditTime }}
           </div>
         </CardContent>
       </Card>
     </div>
+
+    <Card v-else-if="hasWorkflowMeta && workflowMetaVariant === 'inline'" class="border-dashed bg-background/90">
+      <CardContent class="px-4 py-3">
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+          <div class="text-muted-foreground">当前版本 <span class="ml-1 font-semibold text-foreground">{{ editor.latestRevision.value || '-' }}</span></div>
+          <div class="text-muted-foreground">草稿版本 <span class="ml-1 font-semibold text-foreground">{{ editor.draftRevision?.value ?? '-' }}</span></div>
+          <div class="text-muted-foreground">已发布版本 <span class="ml-1 font-semibold text-foreground">{{ editor.publishedRevision?.value ?? '-' }}</span></div>
+          <div class="text-muted-foreground">最近动作 <span class="ml-1 font-semibold text-foreground">{{ latestAuditLog?.action || '-' }}</span></div>
+          <div class="text-muted-foreground">时间 <span class="ml-1 font-medium text-foreground">{{ latestAuditTime }}</span></div>
+        </div>
+      </CardContent>
+    </Card>
 
     <div
       :class="[
@@ -153,7 +183,7 @@ const hasWorkflowMeta = computed(() => {
     />
 
     <!-- Action Bar -->
-    <div class="sticky bottom-0 -mx-6 md:-mx-8 -mb-6 md:-mb-8 p-4 mt-auto border-t bg-background/95 backdrop-blur z-10 flex items-center justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <div v-if="actionsPosition === 'bottom'" class="sticky bottom-0 -mx-6 md:-mx-8 -mb-6 md:-mb-8 p-4 mt-auto border-t bg-background/95 backdrop-blur z-10 flex items-center justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
       <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新配置</Button>
       <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
       <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存配置</Button>

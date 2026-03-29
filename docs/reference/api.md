@@ -60,6 +60,7 @@ http://47.98.198.45:8802/getOutContractDetail
 - 若取消单恢复到有效状态时幂等 key 已被其他有效单占用，`PUT /api/orders/:id` 也会返回 `409`
 - `409` 响应会包含 `existingOrder`，用于前端提示用户查看已存在采购单
 - 手动录入且未携带 `source_contract_code` 的采购单不参与该防重
+- 订单 `metadata` 当前还承载两个前端展示控制字段：`aggregateSideQuantities`（预览/打印/PDF 是否显示总数量）和 `riskWarningDismissed`（是否人工取消 `!` 风险警告）
 
 ## 1.2 库存域 API
 

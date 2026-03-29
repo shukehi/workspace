@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Trash2, Plus } from 'lucide-vue-next';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   title?: string;
   description?: string;
   columns: {
@@ -12,7 +12,10 @@ const props = defineProps<{
   }[];
   rows: any[];
   maxHeight?: string;
-}>();
+  scrollMode?: 'internal' | 'page';
+}>(), {
+  scrollMode: 'internal',
+});
 
 const emit = defineEmits<{
   (e: 'add'): void;
@@ -37,11 +40,17 @@ const emit = defineEmits<{
     </div>
 
     <div 
-      class="overflow-auto rounded-md border" 
-      :style="{ maxHeight: maxHeight || '400px' }"
+      :class="[
+        'rounded-md border',
+        props.scrollMode === 'internal' ? 'overflow-auto' : 'overflow-visible',
+      ]"
+      :style="props.scrollMode === 'internal' ? { maxHeight: maxHeight || '400px' } : undefined"
     >
       <table class="w-full text-sm text-left border-separate border-spacing-0">
-        <thead class="sticky top-0 z-20 bg-muted text-xs text-muted-foreground shadow-sm">
+        <thead :class="[
+          'bg-muted text-xs text-muted-foreground shadow-sm',
+          props.scrollMode === 'internal' ? 'sticky top-0 z-20' : '',
+        ]">
           <tr>
             <th 
               v-for="col in columns" 

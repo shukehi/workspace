@@ -35,6 +35,7 @@ const hangingFeetStandard = ref(DEFAULT_HANGING_FEET_STANDARD);
 const heightReference = ref(DEFAULT_HEIGHT_REFERENCE);
 const highHeightRules = ref<LockForkMappingConfig['highHeightRules']>({});
 const activeTab = ref<'base' | 'lockType' | 'edges' | 'suppliers'>('base');
+const baselineSnapshot = ref('');
 
 // --- 数据列表管理 ---
 const baseDimensions = useEditableList<BaseDimensionRow>(() => ({
@@ -92,6 +93,7 @@ const hasBaseIssues = computed(() => [...clientIssues.value, ...editor.serverIss
 const hasLockTypeIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('lockTypes[')));
 const hasEdgesIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('edgeTypes[') || i.path.startsWith('hangingFeet.')));
 const hasSuppliersIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('suppliers[')));
+const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
 
 // --- 重置与编辑器 ---
 function resetWithPayload(raw: LockForkMappingConfig) {
@@ -110,6 +112,7 @@ function resetWithPayload(raw: LockForkMappingConfig) {
   hangingFeetStandard.value = String(data.hangingFeet.standard);
   hangingFeetKeywords.reset(data.hangingFeet.keywords.map(v => ({ id: '', value: v } as any)));
   heightReference.value = String(data.heightReference);
+  baselineSnapshot.value = JSON.stringify(payload.value);
 }
 
 const editor = useMappingConfigEditor<LockForkMappingConfig>({
@@ -132,7 +135,18 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout title="锁叉配置" description="维护锁叉拨片基础参数。" :editor="editor" :clientIssues="clientIssues">
+  <ConfigPageLayout
+    title="锁叉配置"
+    description="维护锁叉拨片基础参数。"
+    :editor="editor"
+    :clientIssues="clientIssues"
+    workflow-meta-variant="inline"
+    actions-position="header"
+  >
+    <template #header-extra>
+      <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
+    </template>
+
     <Card class="border-amber-300 bg-amber-50/60"><CardHeader><CardTitle>规则说明</CardTitle><CardDescription>10cm 门厚 T型 边型 内开门使用正常锁叉。</CardDescription></CardHeader></Card>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

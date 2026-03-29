@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
@@ -32,6 +32,7 @@ const searchQuery = ref('');
 const baselineSnapshot = ref('');
 const previewPrimaryInput = ref('');
 const previewSecondaryInput = ref('');
+const showMatchTester = ref(false);
 
 const mappings = useEditableList<MappingRow>(() => ({
   id: '', model: '', supplier: '', vendorName: '', primarySpec: '', secondarySpec: '', remark: ''
@@ -125,42 +126,37 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout title="锁具配置" description="维护锁具主副锁标签及型号映射。" :editor="editor" :clientIssues="clientIssues">
+  <ConfigPageLayout
+    title="锁具配置"
+    description="维护锁具主副锁标签及型号映射。"
+    :editor="editor"
+    :clientIssues="clientIssues"
+    workflow-meta-variant="inline"
+    actions-position="header"
+  >
     <template #header-extra>
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
 
-    <div class="grid gap-4 lg:grid-cols-2">
-      <Card>
-        <CardHeader><CardTitle>基础策略</CardTitle></CardHeader>
-        <CardContent class="grid gap-4 md:grid-cols-2">
-          <label class="grid gap-2 text-sm"><span class="font-medium">默认单位</span><Input v-model="defaultUnit" /></label>
-          <label class="grid gap-2 text-sm"><span class="font-medium">主锁标签</span><Input v-model="primaryLabel" /></label>
-          <label class="grid gap-2 text-sm"><span class="font-medium">副锁标签</span><Input v-model="secondaryLabel" /></label>
-        </CardContent>
-      </Card>
-      <Card><CardHeader><CardTitle>维护说明</CardTitle></CardHeader><CardContent class="text-sm text-muted-foreground space-y-1"><p>型号按 normalize 规则匹配，忽略空格，统一括号。</p><p>未命中型号时，供应商标记为“待人工处理”。</p></CardContent></Card>
-    </div>
-
     <Card>
-      <CardHeader><CardTitle>测试匹配</CardTitle></CardHeader>
-      <CardContent class="grid gap-4 lg:grid-cols-2">
-        <div v-for="m in [{label:'主锁文本',val:previewPrimaryInput,match:previewPrimaryMatch},{label:'副锁文本',val:previewSecondaryInput,match:previewSecondaryMatch}]" :key="m.label" class="space-y-3">
-          <label class="grid gap-2 text-sm"><span class="font-medium">{{ m.label }}</span><Input v-model="(m as any).val" /></label>
-          <div class="rounded-lg border bg-muted/20 p-3 text-sm space-y-1">
-            <div class="font-medium">{{ m.match?.matched ? '已命中规则' : '未命中' }}</div>
-            <div class="text-muted-foreground">供应商：{{ m.match?.supplier || '-' }}</div>
-            <div class="text-muted-foreground">采购名称：{{ m.match?.vendorName || '-' }}</div>
-            <div class="text-muted-foreground">规格：{{ m.match?.spec || '-' }}</div>
-          </div>
-        </div>
+      <CardHeader class="pb-3">
+        <CardTitle>基础策略</CardTitle>
+      </CardHeader>
+      <CardContent class="grid gap-4 xl:grid-cols-3">
+        <label class="grid gap-2 text-sm"><span class="font-medium">默认单位</span><Input v-model="defaultUnit" /></label>
+        <label class="grid gap-2 text-sm"><span class="font-medium">主锁标签</span><Input v-model="primaryLabel" /></label>
+        <label class="grid gap-2 text-sm"><span class="font-medium">副锁标签</span><Input v-model="secondaryLabel" /></label>
       </CardContent>
     </Card>
 
-    <Card>
-      <CardHeader class="flex-row items-center justify-between">
+    <div class="rounded-lg border border-dashed bg-background/80 px-4 py-3 text-sm text-muted-foreground">
+      型号按 normalize 规则匹配，忽略空格并统一括号。未命中型号时，供应商会标记为“待人工处理”。
+    </div>
+
+    <Card class="flex-1">
+      <CardHeader class="flex-row items-center justify-between gap-4">
         <CardTitle>型号映射</CardTitle>
-        <Input v-model="searchQuery" class="w-64" placeholder="搜索型号..." />
+        <Input v-model="searchQuery" class="w-full max-w-xs" placeholder="搜索型号..." />
       </CardHeader>
       <CardContent>
         <ConfigTable 
@@ -168,7 +164,8 @@ onMounted(editor.load);
             {key:'model',label:'ERP 型号'},{key:'supplier',label:'供应商'},{key:'vendorName',label:'采购名称'},
             {key:'primarySpec',label:'主锁规格'},{key:'secondarySpec',label:'副锁规格'},{key:'remark',label:'备注'}
           ]" 
-          :rows="filteredRows" 
+          :rows="filteredRows"
+          scroll-mode="page"
           @add="mappings.add()" @remove="mappings.remove"
         >
           <template #cell-model="{row}"><Input v-model="row.model" /></template>
@@ -178,6 +175,43 @@ onMounted(editor.load);
           <template #cell-secondarySpec="{row}"><Input v-model="row.secondarySpec" /></template>
           <template #cell-remark="{row}"><Input v-model="row.remark" /></template>
         </ConfigTable>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader class="flex-row items-center justify-between gap-4 pb-3">
+        <div class="space-y-1">
+          <CardTitle>测试匹配</CardTitle>
+          <p class="text-sm text-muted-foreground">用于快速验证主锁和副锁文本能否命中当前映射。</p>
+        </div>
+        <Button variant="ghost" size="sm" class="shrink-0" @click="showMatchTester = !showMatchTester">
+          {{ showMatchTester ? '收起' : '展开' }}
+        </Button>
+      </CardHeader>
+      <CardContent v-if="showMatchTester" class="grid gap-4 lg:grid-cols-2">
+        <div class="space-y-3">
+          <label class="grid gap-2 text-sm"><span class="font-medium">主锁文本</span><Input v-model="previewPrimaryInput" /></label>
+          <div class="rounded-lg border bg-muted/20 p-3 text-sm space-y-1">
+            <div class="font-medium">{{ previewPrimaryMatch?.matched ? '已命中规则' : '未命中' }}</div>
+            <div class="text-muted-foreground">供应商：{{ previewPrimaryMatch?.supplier || '-' }}</div>
+            <div class="text-muted-foreground">采购名称：{{ previewPrimaryMatch?.vendorName || '-' }}</div>
+            <div class="text-muted-foreground">规格：{{ previewPrimaryMatch?.spec || '-' }}</div>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <label class="grid gap-2 text-sm"><span class="font-medium">副锁文本</span><Input v-model="previewSecondaryInput" /></label>
+          <div class="rounded-lg border bg-muted/20 p-3 text-sm space-y-1">
+            <div class="font-medium">{{ previewSecondaryMatch?.matched ? '已命中规则' : '未命中' }}</div>
+            <div class="text-muted-foreground">供应商：{{ previewSecondaryMatch?.supplier || '-' }}</div>
+            <div class="text-muted-foreground">采购名称：{{ previewSecondaryMatch?.vendorName || '-' }}</div>
+            <div class="text-muted-foreground">规格：{{ previewSecondaryMatch?.spec || '-' }}</div>
+          </div>
+        </div>
+      </CardContent>
+      <CardContent v-else class="pt-0">
+        <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+          默认收起，避免挤占首屏。需要时展开后可直接验证主锁/副锁文本匹配结果。
+        </div>
       </CardContent>
     </Card>
   </ConfigPageLayout>

@@ -16,6 +16,8 @@
 - `eccentricity`：偏心（锁芯专用）
 - `quantity_left` / `quantity_right`：左右数量（包装 / 拉手 / 锁具）
 - `quantity`：总数量
+- `metadata.aggregateSideQuantities`：数量展示开关；`true` 时预览/打印/PDF 优先显示总数量列
+- `metadata.riskWarningDismissed`：订单级风险提示人工取消标记；仅影响 `!` 风险展示与筛选，不改变明细原始风险原因
 
 禁止用 `remark` 承担结构化字段语义（仅允许人工备注和调试信息）。
 
@@ -47,7 +49,8 @@ ERP 输入：
 - 外协名称：`external_name`
 - 规格：`spec`
 - 门边：`mb`
-- 左右数量：`quantity_left/quantity_right`
+- `metadata.aggregateSideQuantities = false`：显示 `quantity_left/quantity_right`
+- `metadata.aggregateSideQuantities = true`：显示 `quantity`
 
 ### 2.2 锁芯（category = `锁芯`）
 
@@ -131,7 +134,8 @@ ERP 输入：
 
 - 产品名称：`type`
 - 规格：`spec`
-- 左右数量：`quantity_left/quantity_right`
+- `metadata.aggregateSideQuantities = false`：显示 `quantity_left/quantity_right`
+- `metadata.aggregateSideQuantities = true`：显示 `quantity`
 - 备注：`remark`
 
 规则说明：
@@ -173,7 +177,8 @@ ERP 输入：
 
 - 产品名称：`type`
 - 规格：`spec`
-- 左右数量：`quantity_left/quantity_right`
+- `metadata.aggregateSideQuantities = false`：显示 `quantity_left/quantity_right`
+- `metadata.aggregateSideQuantities = true`：显示 `quantity`
 - 备注：`remark`
 
 ## 3. Validation Requirement
@@ -207,7 +212,21 @@ ERP 输入：
 - 打印/PDF 部门提取：`/src/features/procurement/customerName.ts`
 - 打印页入口：`/src/views/PrintDocument.vue`
 
-## 5. Date Display Contract
+## 5. Risk Display Contract
+
+采购订单风险提示需要区分“风险检测结果”和“人工处理状态”：
+
+- 风险检测结果来自明细命中规则后的实时判断，不得写回覆盖原始明细字段
+- `metadata.riskWarningDismissed = true` 时，采购列表、编辑页、风险筛选与风险计数都应视为“已人工取消 ! 警告”
+- 若订单后续已不再命中风险条件，允许在保存时自动清掉 `riskWarningDismissed`
+
+当前实现位置：
+
+- 风险判断：`/src/features/procurement/orderRisk.ts`
+- 编辑页人工取消入口：`/src/components/procurement/EditOrderDialog.vue`
+- 列表服务端筛选：`/server/services/orders/order.repository.ts`
+
+## 6. Date Display Contract
 
 订单日期字段在采购管理列表、预览、打印/PDF 中都必须按同一“业务日期”口径展示：
 
@@ -221,7 +240,7 @@ ERP 输入：
 - 预览/编辑展示：`/src/components/procurement/OrderSheetView.vue`
 - 日期归一化：`/src/features/procurement/docModel.ts`
 
-## 6. Title Display Contract
+## 7. Title Display Contract
 
 采购订单相关页面的主标题必须统一使用：
 
@@ -239,19 +258,21 @@ ERP 输入：
 - 不允许按物料类别显示不同的“包装采购订单 / 锁芯采购订单 / 锁具采购订单”等主标题
 - 分类信息应继续通过类别徽标、字段内容或文件名表达，不再混入主标题
 
-## 7. Known Anti-Patterns
+## 8. Known Anti-Patterns
 
 - 把包装映射 `mappings[bz]` 当供应商使用（错误）
 - 锁芯/锁叉只写 `name/model` 不写 `type/spec/eccentricity`
 - 锁具已拆左右数量，却仍按单数量列读取或打印
+- `metadata.aggregateSideQuantities = true` 时仍打印左右数量列，或只在编辑页合并数量而未同步到打印/PDF
 - 锁具左右互换规则不区分 `spec` 第 3 段，直接全文搜索“内开”
 - 锁具备注自动拼接 `主锁/副锁`、`spec` 或 `customerName`
 - 预览层通过 `remark` 反解析结构化数据
 - 把打印/PDF 的客户名称脱敏规则错误应用到预览或编辑模式
+- 人工取消 `!` 警告后只隐藏图标，但列表风险筛选/风险计数仍把订单算作风险单
 - 列表页使用浏览器本地时区格式化日期，导致与预览/PDF 差一天
 - Mock 返回结构和真实后端不一致
 
-## 8. Change Checklist
+## 9. Change Checklist
 
 修改任何 PO 字段前，必须同时检查：
 
