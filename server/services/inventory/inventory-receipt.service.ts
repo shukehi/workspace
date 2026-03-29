@@ -1,9 +1,9 @@
 import type { Transaction } from 'sequelize';
 import { sequelize } from '../../models';
 import ERROR_CODES from '../../app/errors/errorCodes';
-import * as balanceRepository from './inventory-balance.repository';
 import * as repository from './inventory-receipt.repository';
 import { resolveWarehouseAndLocation } from './inventory-location.service';
+import { applyInventoryMovement } from './inventory-movement.service';
 import {
   normalizeReceiptDate,
   normalizeReverseQuantity,
@@ -43,14 +43,6 @@ class InventoryReceiptService {
       const item = receiptItem!.orderItem;
       const material = await repository.findMaterialForItem(item, transaction);
       const quantity = receiptItem!.quantity;
-      const balance = await balanceRepository.findOrCreateBalance(material.id, warehouse.id, location.id, transaction);
-
-      await material.update({
-        stock_quantity: Number(material.stock_quantity || 0) + quantity,
-      }, { transaction });
-      await balance.update({
-        quantity: Number(balance.quantity || 0) + quantity,
-      }, { transaction });
 
       const receipt = await repository.createReceipt({
         order_id: order.id,
@@ -69,6 +61,26 @@ class InventoryReceiptService {
         operator: operator || null,
         remark,
       }, transaction);
+
+      await applyInventoryMovement({
+        material,
+        warehouseId: warehouse.id,
+        locationId: location.id,
+        sourceType: 'receipt_in',
+        sourceId: String(receipt.id),
+        sourceLineKey: String(item.id || material.id),
+        deltaQuantity: quantity,
+        reason: '采购入库',
+        operator: operator || null,
+        remark,
+        occurredAt: receiptDate,
+        metadata: {
+          receipt_id: receipt.id,
+          order_id: order.id,
+          direction: 'in',
+        },
+        transaction: transaction!,
+      });
 
       created.push(receipt);
     }
@@ -107,7 +119,6 @@ class InventoryReceiptService {
       }
 
       const material = await repository.findMaterialForItem({ material_id: receipt.material_id }, transaction);
-      const balance = await balanceRepository.findOrCreateBalance(material.id, Number(receipt.warehouse_id), Number(receipt.location_id), transaction);
       const quantity = Number(receipt.quantity || 0);
       if (quantity <= 0) {
         throw createReceiptError('INVALID_RECEIPT_QUANTITY');
@@ -139,7 +150,8 @@ class InventoryReceiptService {
         throw createReceiptError(ERROR_CODES.RECEIPT_REVERSE_CONFLICT, { receiptId: receipt.id });
       }
 
-      const availableBalance = Number(balance.quantity || 0);
+      const balance = await repository.findLocationBalance(material.id, Number(receipt.warehouse_id), Number(receipt.location_id), transaction);
+      const availableBalance = Number(balance?.quantity || 0);
       const availableStock = Number(material.stock_quantity || 0);
       if (requestedQuantity > availableBalance || requestedQuantity > availableStock) {
         throw createReceiptError(ERROR_CODES.RECEIPT_INSUFFICIENT_BALANCE, {
@@ -151,13 +163,6 @@ class InventoryReceiptService {
           requestedQuantity,
         });
       }
-
-      await material.update({
-        stock_quantity: Number(material.stock_quantity || 0) - requestedQuantity,
-      }, { transaction });
-      await balance.update({
-        quantity: Number(balance.quantity || 0) - requestedQuantity,
-      }, { transaction });
 
       const nextReceived = Number(orderItem.received_quantity || 0) - requestedQuantity;
       await orderItem.update({
@@ -182,6 +187,28 @@ class InventoryReceiptService {
         operator: payload.operator ? String(payload.operator).trim() : null,
         remark: payload.remark ? String(payload.remark) : '',
       }, transaction);
+
+      await applyInventoryMovement({
+        material,
+        warehouseId: Number(receipt.warehouse_id),
+        locationId: Number(receipt.location_id),
+        sourceType: 'receipt_reversal',
+        sourceId: String(reversal.id),
+        sourceLineKey: String(receipt.order_item_id || material.id),
+        deltaQuantity: -requestedQuantity,
+        reason: reverseReason,
+        operator: payload.operator ? String(payload.operator).trim() : null,
+        remark: payload.remark ? String(payload.remark) : '',
+        occurredAt: reversalDate,
+        metadata: {
+          receipt_id: reversal.id,
+          source_receipt_id: receipt.id,
+          order_id: receipt.order_id,
+          direction: 'reversal',
+        },
+        insufficientBalanceCode: ERROR_CODES.RECEIPT_INSUFFICIENT_BALANCE,
+        transaction,
+      });
 
       const refreshedItems = order.items || [];
       const allReceived = refreshedItems.every((item: PlainRecord) => {

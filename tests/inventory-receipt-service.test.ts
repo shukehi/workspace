@@ -6,7 +6,7 @@ import path from 'node:path';
 const TEST_DB = path.join('/tmp', `order-search-inventory-receipt-service-${process.pid}-${Date.now()}.test.sqlite`);
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material, InventoryReceipt } = require('../server/models') as typeof import('../server/models');
+const { sequelize, Material, InventoryMovement, InventoryReceipt } = require('../server/models') as typeof import('../server/models');
 const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
 const { inventoryReceiptService } = require('../server/services/inventory') as typeof import('../server/services/inventory');
 import type { MaterialInstance } from '../server/models';
@@ -93,6 +93,32 @@ test('inventoryReceiptService returns a conflict when reverse lock cannot be cla
   } finally {
     InventoryReceipt.removeHook('beforeBulkUpdate', hookName);
   }
+});
+
+test('inventoryReceiptService writes receipt and reversal movements', async () => {
+  const receipt = await createOriginalReceipt();
+
+  const receiptMovements = await InventoryMovement.findAll({
+    where: {
+      source_type: 'receipt_in',
+      source_id: String(receipt.id),
+    },
+  });
+  assert.equal(receiptMovements.length, 1);
+  assert.equal(Number(receiptMovements[0].delta_quantity || 0), 2);
+
+  const reversal = await inventoryReceiptService.reverseReceipt(receipt.id, {
+    reverse_reason: 'entry_error',
+  });
+
+  const reversalMovements = await InventoryMovement.findAll({
+    where: {
+      source_type: 'receipt_reversal',
+      source_id: String(reversal.id),
+    },
+  });
+  assert.equal(reversalMovements.length, 1);
+  assert.equal(Number(reversalMovements[0].delta_quantity || 0), -2);
 });
 
 test.after(async () => {

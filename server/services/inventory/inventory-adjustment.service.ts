@@ -1,5 +1,5 @@
-import { Op, type Transaction } from 'sequelize';
-import { InventoryLocation, InventoryLocationBalance, InventoryMovement, Material, Warehouse, sequelize } from '../../models';
+import type { Transaction } from 'sequelize';
+import { InventoryLocation, InventoryMovement, Material, Warehouse, sequelize } from '../../models';
 import type {
     InventoryLocationInstance,
     InventoryMovementInstance,
@@ -11,6 +11,7 @@ import ERROR_CODES from '../../app/errors/errorCodes';
 import * as balanceRepository from './inventory-balance.repository';
 import * as inventoryRepository from './inventory.repository';
 import { resolveWarehouseAndLocation } from './inventory-location.service';
+import { applyInventoryMovement } from './inventory-movement.service';
 import { toInventoryItem } from './inventory.mapper';
 
 type InventoryAdjustmentPayload = {
@@ -31,16 +32,6 @@ function normalizeText(value: unknown): string {
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function readAffectedRows(result: unknown): number {
-    if (Array.isArray(result) && Array.isArray(result[0]) && typeof result[0][1] === 'number') {
-        return result[0][1];
-    }
-    if (Array.isArray(result) && typeof result[1] === 'number') {
-        return result[1];
-    }
-    return Number(result || 0);
 }
 
 function isMovementDuplicate(error: unknown) {
@@ -173,91 +164,6 @@ function serializeMovement(
     };
 }
 
-async function adjustMaterialAndBalance(
-    material: MaterialInstance,
-    warehouseId: number,
-    locationId: number,
-    deltaQuantity: number,
-    transaction: Transaction,
-) {
-    await balanceRepository.findOrCreateBalance(material.id, warehouseId, locationId, transaction);
-
-    const insufficientGuard = deltaQuantity < 0
-        ? {
-            quantity: {
-                [Op.gte]: Math.abs(deltaQuantity),
-            },
-        }
-        : {};
-
-    const balanceIncrementResult = await InventoryLocationBalance.increment(
-        { quantity: deltaQuantity },
-        {
-            where: {
-                material_id: material.id,
-                warehouse_id: warehouseId,
-                location_id: locationId,
-                ...insufficientGuard,
-            },
-            transaction,
-        }
-    );
-
-    if (readAffectedRows(balanceIncrementResult) !== 1) {
-        const balance = await balanceRepository.findBalance(material.id, warehouseId, locationId, transaction);
-        throw new AppError({
-            code: ERROR_CODES.INVENTORY_BALANCE_NEGATIVE,
-            status: 400,
-            details: {
-                materialId: material.id,
-                warehouseId,
-                locationId,
-                deltaQuantity,
-                availableBalance: Number(balance?.quantity || 0),
-                availableStock: Number(material.stock_quantity || 0),
-            },
-        });
-    }
-
-    const materialIncrementResult = await Material.increment(
-        { stock_quantity: deltaQuantity },
-        {
-            where: {
-                id: material.id,
-                ...(deltaQuantity < 0 ? {
-                    stock_quantity: {
-                        [Op.gte]: Math.abs(deltaQuantity),
-                    },
-                } : {}),
-            },
-            transaction,
-        }
-    );
-
-    if (readAffectedRows(materialIncrementResult) !== 1) {
-        throw new AppError({
-            code: ERROR_CODES.INVENTORY_BALANCE_NEGATIVE,
-            status: 400,
-            details: {
-                materialId: material.id,
-                warehouseId,
-                locationId,
-                deltaQuantity,
-                availableBalance: Number(material.stock_quantity || 0),
-                availableStock: Number(material.stock_quantity || 0),
-            },
-        });
-    }
-
-    const balance = await balanceRepository.findBalance(material.id, warehouseId, locationId, transaction);
-    const refreshedMaterial = await Material.findByPk(material.id, { transaction }) as MaterialInstance | null;
-
-    return {
-        balanceAfter: Number(balance?.quantity || 0),
-        stockAfter: Number(refreshedMaterial?.stock_quantity || 0),
-    };
-}
-
 class InventoryAdjustmentService {
     async create(payload: InventoryAdjustmentPayload = {}) {
         const materialId = Number(payload.material_id);
@@ -282,32 +188,30 @@ class InventoryAdjustmentService {
                 });
             }
 
-            const adjustment = await adjustMaterialAndBalance(material, warehouse.id, location.id, deltaQuantity, transaction);
-            const movement = await InventoryMovement.create({
-                material_id: material.id,
-                warehouse_id: warehouse.id,
-                location_id: location.id,
-                source_type: 'manual_adjustment',
-                source_id: operationKey,
-                source_line_key: `${material.id}:${warehouse.id}:${location.id}`,
-                delta_quantity: deltaQuantity,
-                balance_after: adjustment.balanceAfter,
-                stock_after: adjustment.stockAfter,
+            const adjustment = await applyInventoryMovement({
+                material,
+                warehouseId: warehouse.id,
+                locationId: location.id,
+                sourceType: 'manual_adjustment',
+                sourceId: operationKey,
+                sourceLineKey: `${material.id}:${warehouse.id}:${location.id}`,
+                deltaQuantity,
                 reason,
                 operator: normalizeText(payload.operator) || null,
                 remark: normalizeText(payload.remark),
-                occurred_at: occurredAt,
-                metadata_json: JSON.stringify({
+                occurredAt,
+                metadata: {
                     category: 'manual_adjustment',
                     operation_key: operationKey,
-                }),
-            }, { transaction }) as InventoryMovementInstance;
+                },
+                transaction,
+            });
 
             await transaction.commit();
 
             const refreshedMaterial = await inventoryRepository.findMaterialWithBalancesById(material.id);
             return {
-                movement: serializeMovement(movement, material, warehouse, location),
+                movement: adjustment.serializedMovement,
                 item: toInventoryItem(refreshedMaterial || material),
             };
         } catch (error) {

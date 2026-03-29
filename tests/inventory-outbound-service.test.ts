@@ -10,6 +10,7 @@ const {
   sequelize,
   Material,
   InventoryLocationBalance,
+  InventoryMovement,
 } = require('../server/models') as typeof import('../server/models');
 const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
 const { inventoryOutboundService } = require('../server/services/inventory') as typeof import('../server/services/inventory');
@@ -92,6 +93,15 @@ test('inventoryOutboundService creates outbound and decrements location balance'
     },
   });
   assert.equal(Number(balance?.quantity || 0), 4);
+
+  const movements = await InventoryMovement.findAll({
+    where: {
+      source_type: 'outbound',
+      source_id: String(outbound.id),
+    },
+  });
+  assert.equal(movements.length, 1);
+  assert.equal(Number(movements[0].delta_quantity || 0), -2);
 });
 
 test('inventoryOutboundService rejects insufficient location balance', async () => {
@@ -152,6 +162,22 @@ test('inventoryOutboundService reverse restores stock and marks source as revers
     },
   });
   assert.equal(Number(balance?.quantity || 0), 5);
+
+  const outboundMovements = await InventoryMovement.findAll({
+    where: {
+      source_type: 'outbound',
+      source_id: String(outbound.id),
+    },
+  });
+  const reversalMovements = await InventoryMovement.findAll({
+    where: {
+      source_type: 'outbound_reversal',
+      source_id: String(reversal.id),
+    },
+  });
+  assert.equal(outboundMovements.length, 1);
+  assert.equal(reversalMovements.length, 1);
+  assert.equal(Number(reversalMovements[0].delta_quantity || 0), 3);
 });
 
 test('inventoryOutboundService rejects duplicate reverse attempts', async () => {

@@ -6,9 +6,9 @@ import type {
 import type { InventoryOutboundItemCreationAttributes } from '../../models/types';
 import AppError from '../../app/errors/AppError';
 import ERROR_CODES from '../../app/errors/errorCodes';
-import * as balanceRepository from './inventory-balance.repository';
 import { ensureDefaultWarehouseAndLocation } from './inventory-defaults';
 import { resolveWarehouseAndLocation } from './inventory-location.service';
+import { applyInventoryMovement } from './inventory-movement.service';
 import * as repository from './inventory-outbound.repository';
 
 function normalizeText(value: unknown): string {
@@ -156,35 +156,6 @@ function matchesQuery(outbound: SerializedOutbound, query: Record<string, unknow
     ].some((candidate) => String(candidate || '').toLowerCase().includes(keyword));
 }
 
-async function adjustMaterialAndBalance(
-    material: MaterialInstance,
-    warehouseId: number,
-    locationId: number,
-    delta: number,
-    transaction: Transaction,
-) {
-    const balance = await balanceRepository.findOrCreateBalance(material.id, warehouseId, locationId, transaction);
-    const nextBalance = Number(balance.quantity || 0) + delta;
-    const nextStock = Number(material.stock_quantity || 0) + delta;
-
-    if (nextBalance < 0 || nextStock < 0) {
-        throw new AppError({
-            code: ERROR_CODES.OUTBOUND_INSUFFICIENT_BALANCE,
-            status: 400,
-            details: {
-                materialId: material.id,
-                warehouseId,
-                locationId,
-                requestedQuantity: Math.abs(delta),
-                availableQuantity: Number(balance.quantity || 0),
-            },
-        });
-    }
-
-    await balance.update({ quantity: nextBalance }, { transaction });
-    await material.update({ stock_quantity: nextStock }, { transaction });
-}
-
 class InventoryOutboundService {
     async list(query: Record<string, unknown> = {}) {
         await ensureDefaultWarehouseAndLocation();
@@ -259,7 +230,25 @@ class InventoryOutboundService {
                 }
 
                 const quantity = normalizeQuantity(rawItem.quantity);
-                await adjustMaterialAndBalance(material, warehouse.id, location.id, -quantity, transaction);
+                await applyInventoryMovement({
+                    material,
+                    warehouseId: warehouse.id,
+                    locationId: location.id,
+                    sourceType: 'outbound',
+                    sourceId: String(outbound.id),
+                    sourceLineKey: String(material.id),
+                    deltaQuantity: -quantity,
+                    reason,
+                    operator: normalizeText(payload.operator) || null,
+                    remark: normalizeText(payload.remark),
+                    occurredAt: normalizeDate(payload.outbound_date),
+                    metadata: {
+                        outbound_id: outbound.id,
+                        direction: 'out',
+                    },
+                    insufficientBalanceCode: ERROR_CODES.OUTBOUND_INSUFFICIENT_BALANCE,
+                    transaction,
+                });
                 rows.push({
                     outbound_id: outbound.id,
                     material_id: material.id,
@@ -331,7 +320,26 @@ class InventoryOutboundService {
                         details: { materialId: item.material_id },
                     });
                 }
-                await adjustMaterialAndBalance(material, sourcePlain.warehouse_id, sourcePlain.location_id, Number(item.quantity || 0), transaction);
+                await applyInventoryMovement({
+                    material,
+                    warehouseId: sourcePlain.warehouse_id,
+                    locationId: sourcePlain.location_id,
+                    sourceType: 'outbound_reversal',
+                    sourceId: String(reversal.id),
+                    sourceLineKey: String(item.material_id),
+                    deltaQuantity: Number(item.quantity || 0),
+                    reason,
+                    operator: normalizeText(payload.operator) || null,
+                    remark: normalizeText(payload.remark),
+                    occurredAt: normalizeDate(payload.outbound_date),
+                    metadata: {
+                        outbound_id: reversal.id,
+                        source_outbound_id: source.id,
+                        direction: 'reversal',
+                    },
+                    insufficientBalanceCode: ERROR_CODES.OUTBOUND_INSUFFICIENT_BALANCE,
+                    transaction,
+                });
                 rows.push({
                     outbound_id: reversal.id,
                     material_id: item.material_id,
