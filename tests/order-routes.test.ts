@@ -9,7 +9,7 @@ import type { Router } from 'express'
 const tempDbPath = path.join(os.tmpdir(), `order-routes-${Date.now()}.sqlite`);
 process.env.DB_STORAGE = tempDbPath;
 
-const { initDB, sequelize, Material } = require('../server/models') as typeof import('../server/models');
+const { initDB, sequelize, Material, Order, OrderItem } = require('../server/models') as typeof import('../server/models');
 import type { MaterialInstance } from '../server/models';
 const orderRoutes = (require('../server/routes/order') as { default: Router }).default;
 
@@ -447,6 +447,140 @@ test('POST /api/orders rejects invalid status type with validation error', async
   assert.equal(Array.isArray(body.issues), true);
   assert.equal(body.issues[0].target, 'body');
   assert.equal(body.issues[0].field, 'status');
+});
+
+test('POST /api/orders rejects blank manual orders', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'PO-MANUAL-BLANK-001',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      delivery_date: '2026-03-29T00:00:00.000Z',
+      metadata: {
+        order_source: 'manual',
+        customer_name: '',
+      },
+      items: [
+        {
+          name: '',
+          spec: '',
+          quantity_left: 0,
+          quantity_right: 0,
+          quantity: 0,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+  assert.deepEqual(
+    body.issues.map((issue: { field: string }) => issue.field),
+    ['metadata.customer_name', 'items'],
+  );
+});
+
+test('PUT /api/orders/:id rejects invalid edits to manual orders', async () => {
+  const createRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'PO-MANUAL-EDIT-001',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      delivery_date: '2026-03-29T00:00:00.000Z',
+      metadata: {
+        order_source: 'manual',
+        customer_name: '客户A',
+      },
+      items: [
+        {
+          name: '纸箱',
+          spec: '960*2050',
+          quantity_left: 1,
+          quantity_right: 1,
+          quantity: 2,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+  const created = getBody(await createRes.json()) as { id: number; metadata: { order_source: string } };
+
+  const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      metadata: {
+        order_source: 'manual',
+        customer_name: '',
+      },
+      items: [
+        {
+          name: '',
+          spec: '',
+          quantity_left: 0,
+          quantity_right: 0,
+          quantity: 0,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+
+  assert.equal(updateRes.status, 400);
+  const body = await updateRes.json();
+  assert.equal(body.error, 'VALIDATION_ERROR');
+  assert.equal(Array.isArray(body.issues), true);
+});
+
+test('PUT /api/orders/:id allows editable changes on locked legacy manual orders', async () => {
+  const created = await Order.create({
+    order_no: 'PO-MANUAL-ARRIVED-LEGACY-001',
+    supplier: '方亮包装',
+    category: '包装',
+    status: 'arrived',
+    delivery_date: '2026-03-29T00:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '',
+    },
+    remark: '',
+  });
+  await OrderItem.create({
+    order_id: created.id,
+    name: '纸箱',
+    spec: '960*2050',
+    quantity: 2,
+    ordered_quantity: 2,
+    received_quantity: 2,
+    quantity_left: 1,
+    quantity_right: 1,
+    unit: '套',
+    price: 0,
+  });
+
+  const updateRes = await fetch(`${baseUrl}/api/orders/${created.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      remark: '允许修改备注',
+      delivery_date: '2026-03-30T00:00:00.000Z',
+    }),
+  });
+
+  assert.equal(updateRes.status, 200);
+  const body = getBody(await updateRes.json()) as { remark: string; delivery_date: string; metadata: { customer_name: string } };
+  assert.equal(body.remark, '允许修改备注');
+  assert.equal(body.delivery_date, '2026-03-30T00:00:00.000Z');
+  assert.equal(body.metadata.customer_name, '');
 });
 
 test('GET /api/orders/:id rejects invalid id param with validation error', async () => {

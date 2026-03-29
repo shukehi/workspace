@@ -1,5 +1,7 @@
 export { };
 
+import { validateManualCreateOrder } from '../services/orders/order-create.validation';
+
 interface ValidationIssue {
     field: string;
     message: string;
@@ -94,6 +96,7 @@ export function validateOrderCreateBody(body: unknown): ValidationIssue[] {
     pushIfPresentIsNotString(issues, payload, 'created_at');
     pushIfPresentIsNotString(issues, payload, 'delivery_date');
     pushIfPresentIsNotArray(issues, payload, 'items');
+    issues.push(...validateManualCreateOrder(payload as any));
 
     return issues;
 }

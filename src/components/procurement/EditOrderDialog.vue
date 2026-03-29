@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, nextTick } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,7 @@ import {
   createEmptyItem,
   nowStamp,
 } from '@/features/procurement/editOrderDraft';
+import { collectManualOrderValidationIssues, stripBlankManualItems, validateManualOrderDraft } from '@/features/procurement/manualOrderValidation';
 import { isOrderRiskDismissed, resolveOrderRisk } from '@/features/procurement/orderRisk';
 
 type DialogMode = 'edit' | 'create';
@@ -54,11 +55,14 @@ const emit = defineEmits<{
 }>();
 
 const store = useProcurementStore();
+const dialogBodyRef = ref<HTMLElement | null>(null);
 const form = ref<Partial<Order>>({});
 const saving = ref(false);
 const initialSnapshot = ref('');
 const columnWidths = ref<Record<string, number>>({ ...getDefaultWidths('packaging') });
 const aggregateSideQuantities = ref(false);
+const validationErrors = ref<ReturnType<typeof collectManualOrderValidationIssues>>([]);
+const validationVisible = ref(false);
 
 const isCreateMode = computed(() => props.mode === 'create');
 const isRestrictedDetailEdit = computed(() => !isCreateMode.value && form.value.status === 'arrived');
@@ -118,11 +122,75 @@ const hasUnsavedChanges = computed(() => {
   }
 });
 
+function isManualOrder(order: Partial<Order> | null | undefined) {
+  return order?.metadata?.order_source === 'manual';
+}
+
+function updateValidationErrors(order: Partial<Order> | null | undefined) {
+  if (!isManualOrder(order)) {
+    validationErrors.value = [];
+    return;
+  }
+
+  if (isRestrictedDetailEdit.value) {
+    const deliveryDate = order?.delivery_date;
+    const parsed = deliveryDate ? new Date(String(deliveryDate)) : null;
+    validationErrors.value = parsed && !Number.isNaN(parsed.getTime())
+      ? []
+      : [{ path: 'delivery_date', message: '交货日期不能为空' }];
+    return;
+  }
+
+  validationErrors.value = collectManualOrderValidationIssues(order as Partial<Order>);
+}
+
+async function focusFirstInvalidField() {
+  await nextTick();
+  const root = dialogBodyRef.value;
+  if (!root) return;
+
+  const firstInvalid = root.querySelector<HTMLElement>('[aria-invalid="true"]');
+  if (!firstInvalid) return;
+
+  firstInvalid.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if ('focus' in firstInvalid) {
+    firstInvalid.focus({ preventScroll: true });
+  }
+}
+
+const orderSheetValidationState = computed(() => {
+  if (!validationVisible.value) {
+    return { fields: {}, rows: {}, cells: {} };
+  }
+  const fields: Record<string, string> = {};
+  const rows: Record<number, string[]> = {};
+  const cells: Record<string, string> = {};
+
+  validationErrors.value.forEach((issue) => {
+    if (issue.rowIndex === undefined) {
+      if (!fields[issue.path]) fields[issue.path] = issue.message;
+      return;
+    }
+
+    if (!rows[issue.rowIndex]) rows[issue.rowIndex] = [];
+    rows[issue.rowIndex].push(issue.message);
+
+    if (issue.columnKey) {
+      const cellKey = `${issue.rowIndex}:${issue.columnKey}`;
+      if (!cells[cellKey]) cells[cellKey] = issue.message;
+    }
+  });
+
+  return { fields, rows, cells };
+});
+
 function bootstrapEditOrder(order: Order) {
   const { draft, widths } = bootstrapOrderDraft({ mode: 'edit', order });
   form.value = draft;
   columnWidths.value = widths;
   aggregateSideQuantities.value = supportsAggregateQuantityToggle.value && Boolean(draft.metadata?.aggregateSideQuantities);
+  validationVisible.value = false;
+  updateValidationErrors(draft);
   initialSnapshot.value = JSON.stringify(draft);
 }
 
@@ -133,6 +201,8 @@ function bootstrapCreateOrder() {
   aggregateSideQuantities.value = false;
   if (!form.value.metadata) form.value.metadata = {};
   form.value.metadata.aggregateSideQuantities = false;
+  validationVisible.value = false;
+  updateValidationErrors(form.value);
   initialSnapshot.value = JSON.stringify(draft);
 }
 
@@ -156,6 +226,10 @@ watch(
 watch(
   form,
   (next) => {
+    updateValidationErrors(next);
+    if (hasUnsavedChanges.value) {
+      validationVisible.value = true;
+    }
     if (!props.open || isCreateMode.value) return;
     if (!next || !next.id || !next.order_no || !next.created_at || !next.status || !Array.isArray(next.items)) return;
     emit('draft-change', cloneOrderDraft(next as Order));
@@ -190,6 +264,18 @@ function validateBeforeSave(order: Partial<Order>) {
   if (!Array.isArray(order.items) || order.items.length === 0) {
     return '请至少添加一条明细';
   }
+  if (isManualOrder(order)) {
+    if (isRestrictedDetailEdit.value) {
+      if (!order.delivery_date || Number.isNaN(new Date(String(order.delivery_date)).getTime())) {
+        return '交货日期不能为空';
+      }
+      return '';
+    }
+    const issues = validateManualOrderDraft(order);
+    if (issues.length > 0) {
+      return issues[0];
+    }
+  }
   return '';
 }
 
@@ -207,6 +293,9 @@ const handleSave = async () => {
     ...item,
     supplier: item.supplier || draft.supplier,
   }, currentCategory.value));
+  if (isManualOrder(draft)) {
+    draft.items = stripBlankManualItems(draft.items, draft.category) as Order['items'];
+  }
   draft.remark = String(draft.remark || '');
   if (resolveOrderRisk(draft, { ignoreDismissed: true }).level === null && draft.metadata?.riskWarningDismissed) {
     draft.metadata.riskWarningDismissed = false;
@@ -216,7 +305,9 @@ const handleSave = async () => {
 
   const validateError = validateBeforeSave(draft);
   if (validateError) {
-    alert(validateError);
+    validationVisible.value = true;
+    updateValidationErrors(draft);
+    void focusFirstInvalidField();
     return;
   }
 
@@ -377,7 +468,15 @@ const handleCategoryChange = (event: Event) => {
         已到货订单仅允许修改交货日期和整单备注，明细内容已冻结。
       </div>
 
-      <div class="flex-1 overflow-auto p-6 bg-muted/20">
+      <div
+        v-else-if="validationVisible && validationErrors.length > 0"
+        class="px-6 py-3 border-b bg-red-50 text-red-700 text-xs"
+      >
+        <div class="font-medium">录入信息未通过校验</div>
+        <div class="mt-1">{{ validationErrors[0]?.message }}</div>
+      </div>
+
+      <div ref="dialogBodyRef" class="flex-1 overflow-auto p-6 bg-muted/20">
         <OrderSheetView
           v-if="form"
           :order="form"
@@ -386,6 +485,7 @@ const handleCategoryChange = (event: Event) => {
           :column-widths="columnWidths"
           :default-widths="currentDefaultWidths"
           :aggregate-side-quantities="aggregateSideQuantities"
+          :validation-errors="orderSheetValidationState"
           :hidden-columns="isCreateMode ? ['mb'] : []"
           @update:column-widths="handleColumnWidthsChange"
         />

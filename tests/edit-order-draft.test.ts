@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bootstrapOrderDraft, createEmptyItem, createEmptyOrderDraft } from '../src/features/procurement/editOrderDraft';
+import { stripBlankManualItems, validateManualOrderDraft } from '../src/features/procurement/manualOrderValidation';
 import type { Order } from '../src/types/order';
 
 test('createEmptyItem creates category-specific packaging fields', () => {
@@ -71,4 +72,27 @@ test('bootstrapOrderDraft preserves edit payload and resolved widths', () => {
   assert.equal(draft.order_no, 'PO-88');
   assert.equal(draft.metadata?.printColumnWidths?.productModelName, widths.productModelName);
   assert.equal(typeof widths.remark, 'number');
+});
+
+test('validateManualOrderDraft rejects blank manual placeholder rows', () => {
+  const draft = createEmptyOrderDraft('包装');
+  const issues = validateManualOrderDraft(draft);
+
+  assert.deepEqual(issues, ['客户名称不能为空', '第 1 行缺少产品名称', '第 1 行数量（左/右）必须大于 0']);
+  assert.equal(Array.isArray(stripBlankManualItems(draft.items, draft.category)), true);
+});
+
+test('validateManualOrderDraft accepts populated manual rows', () => {
+  const draft = createEmptyOrderDraft('包装');
+  draft.metadata = {
+    ...draft.metadata,
+    customer_name: '客户A',
+  };
+  draft.items[0].name = '纸箱';
+  draft.items[0].spec = '960*2050';
+  draft.items[0].quantity_left = 1;
+  draft.items[0].quantity_right = 1;
+  draft.items[0].quantity = 2;
+
+  assert.deepEqual(validateManualOrderDraft(draft), []);
 });

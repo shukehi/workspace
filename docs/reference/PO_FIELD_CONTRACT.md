@@ -188,9 +188,28 @@ ERP 输入：
 - 类别校验（按 category 的必填字段）
 - 通用校验（`material_id/name/model/quantity/unit`）
 
+手动录入采购单额外约束：
+
+- 仅当 `metadata.order_source = manual` 时生效
+- 订单头至少要求：`order_no`、`supplier`、`metadata.customer_name`、`delivery_date`
+- 明细至少保留 1 条有效行；纯空白占位行不得作为有效明细落库
+- 有效明细必须满足：
+  - 产品名称有效
+  - 规格有效
+  - 数量大于 0
+- 对包装 / 锁具 / 拉手这类支持左右数量的采购单，数量校验优先使用 `quantity_left + quantity_right`，无左右数量时才回退 `quantity`
+
+更新约束：
+
+- `draft / submitted / processing` 状态下，手动单更新沿用完整录入校验
+- `arrived / completed` 状态下，订单明细、供应商、客户名称等字段已锁定；此时只允许校验当前仍可编辑的字段（如 `delivery_date`、整单备注），不得因为历史脏数据阻断合法更新
+
 当前实现位置：
 
-- `/src/services/poGenerator.ts`
+- 前端手动录入校验：`/src/features/procurement/manualOrderValidation.ts`
+- 前端录入/编辑弹窗：`/src/components/procurement/EditOrderDialog.vue`
+- 后端创建/更新校验：`/server/services/orders/order-create.validation.ts`
+- 后端订单更新入口：`/server/services/orders/order.service.ts`
 
 ## 4. Header Display Contract
 

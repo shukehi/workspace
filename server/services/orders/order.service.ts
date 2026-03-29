@@ -1,5 +1,7 @@
 import type { OrderAttributes, OrderListQuery, OrderCreateInput, OrderUpdateInput } from '../../models/types';
 import type { Transaction } from 'sequelize';
+import AppError from '../../app/errors/AppError';
+import ERROR_CODES from '../../app/errors/errorCodes';
 import { createPaginationResponse } from '../../shared/contracts/pagination';
 import { Op } from 'sequelize';
 import { sequelize } from '../../models';
@@ -41,6 +43,7 @@ import {
     OrderEditLockedError,
     ReceivedQuantityExceededError,
 } from './order.errors';
+import { sanitizeManualCreateItems, validateLockedManualOrderUpdate, validateManualCreateOrder } from './order-create.validation';
 import type { PlainRecord } from '../../shared/types';
 
 function normalizeOrderRemark(remark: unknown): string {
@@ -238,14 +241,31 @@ class OrderService {
     async createOrder(data: OrderCreateInput) {
         const transaction = await sequelize.transaction();
         try {
+            const createIssues = validateManualCreateOrder(data);
+            if (createIssues.length > 0) {
+                throw new AppError({
+                    code: ERROR_CODES.VALIDATION_ERROR,
+                    status: 400,
+                    details: {
+                        issues: createIssues.map((issue) => ({
+                            target: 'body',
+                            field: issue.field,
+                            message: issue.message,
+                        })),
+                    },
+                });
+            }
+
             const sourceContractCode = resolveSourceContractCode(data);
             const metadata = normalizeMetadata(data.metadata);
             const normalizedStatus = normalizeStatus(data.status, 'draft');
+            const sanitizedItems = sanitizeManualCreateItems(data.items as any[] | undefined, data.category);
             const normalizedData: PlainRecord = {
                 ...data,
                 source_contract_code: sourceContractCode,
                 metadata,
                 status: normalizedStatus,
+                items: sanitizedItems.length > 0 ? sanitizedItems : data.items,
             };
             const dedupeKey = buildOrderDedupeKey(normalizedData);
             const duplicate = await this.findDuplicateAutoOrder(normalizedData, transaction);
@@ -330,13 +350,49 @@ class OrderService {
                 source_contract_code: data.source_contract_code,
                 metadata: nextMetadata
             }, order.source_contract_code || '');
-            const nextItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
+            const mergedItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
             const nextSupplier = data.supplier === undefined ? order.supplier : data.supplier;
             const nextCategory = data.category === undefined ? order.category : data.category;
             const nextStatus = data.status === undefined
                 ? normalizeStatus(order.status)
                 : assertValidStatusTransition(order.status, data.status);
             const nextCreatedAt = data.created_at !== undefined ? data.created_at : order.created_at;
+            const sanitizedItems = sanitizeManualCreateItems(mergedItems as any[] | undefined, nextCategory);
+            const nextItems = sanitizedItems.length > 0 ? sanitizedItems : mergedItems;
+            const mergedOrderForValidation: OrderCreateInput = {
+                order_no: data.order_no === undefined ? order.order_no : data.order_no,
+                supplier: nextSupplier || '',
+                category: nextCategory || '',
+                status: nextStatus,
+                remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
+                metadata: nextMetadata,
+                created_at: nextCreatedAt,
+                delivery_date: data.delivery_date === undefined ? order.delivery_date : data.delivery_date,
+                arrived_at: data.arrived_at === undefined ? order.arrived_at : data.arrived_at,
+                arrived_by: data.arrived_by === undefined ? order.arrived_by : data.arrived_by,
+                arrived_remark: data.arrived_remark === undefined ? order.arrived_remark : normalizeOrderRemark(data.arrived_remark),
+                stocked_in_at: data.stocked_in_at === undefined ? order.stocked_in_at : data.stocked_in_at,
+                stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
+                stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark),
+                items: nextItems as any[],
+            };
+            const lockedStatus = ['arrived', 'completed'].includes(normalizeStatus(order.status));
+            const updateIssues = lockedStatus
+                ? validateLockedManualOrderUpdate(data, nextMetadata)
+                : validateManualCreateOrder(mergedOrderForValidation);
+            if (updateIssues.length > 0) {
+                throw new AppError({
+                    code: ERROR_CODES.VALIDATION_ERROR,
+                    status: 400,
+                    details: {
+                        issues: updateIssues.map((issue) => ({
+                            target: 'body',
+                            field: issue.field,
+                            message: issue.message,
+                        })),
+                    },
+                });
+            }
             const nextDedupeKey = buildOrderDedupeKey({
                 source_contract_code: nextSourceContractCode,
                 category: nextCategory,
@@ -391,7 +447,7 @@ class OrderService {
             }
 
             if (data.items) {
-                const items = data.items.map((item: PlainRecord) => ({
+                const items = nextItems.map((item: PlainRecord) => ({
                     ...normalizeOrderItemForPersistence(item),
                     id: undefined,
                     order_id: id

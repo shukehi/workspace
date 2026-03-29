@@ -1079,6 +1079,7 @@ test('OrderService does not dedupe manual orders without source contract code', 
     category: '包装',
     status: 'draft',
     remark: '',
+    delivery_date: '2026-03-12T10:00:00.000Z',
     metadata: {
       order_source: 'manual',
       customer_name: '客户B',
@@ -1102,6 +1103,130 @@ test('OrderService does not dedupe manual orders without source contract code', 
   assert.equal(first.id !== second.id, true);
   assert.equal(first.source_contract_code ?? null, null);
   assert.equal(second.source_contract_code ?? null, null);
+});
+
+test('OrderService rejects manual orders with only placeholder items', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await assert.rejects(
+    () => orderService.createOrder({
+      order_no: uniqueOrderNo('MANUAL-INVALID'),
+      supplier: '测试供应商',
+      category: '包装',
+      status: 'draft',
+      delivery_date: '2026-03-11T10:00:00.000Z',
+      metadata: {
+        order_source: 'manual',
+        customer_name: '',
+      },
+      items: [
+        {
+          name: '',
+          spec: '',
+          quantity: 0,
+          quantity_left: 0,
+          quantity_right: 0,
+          unit: '套',
+        },
+      ],
+    } as OrderCreateInput),
+    (error: any) => {
+      assert.equal(error.code, 'VALIDATION_ERROR');
+      assert.equal(Array.isArray(error.details?.issues), true);
+      return true;
+    },
+  );
+});
+
+test('OrderService rejects invalid edits to existing manual orders', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('MANUAL-EDIT'),
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-11T10:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户B',
+    },
+    items: [
+      {
+        name: '纸箱',
+        spec: '960*2050',
+        quantity: 2,
+        quantity_left: 1,
+        quantity_right: 1,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  await assert.rejects(
+    () => orderService.updateOrder(created.id, {
+      metadata: {
+        ...created.metadata,
+        customer_name: '',
+      },
+      items: [
+        {
+          ...created.items[0],
+          name: '',
+          spec: '',
+          quantity: 0,
+          quantity_left: 0,
+          quantity_right: 0,
+        },
+      ],
+    } as OrderUpdateInput),
+    (error: any) => {
+      assert.equal(error.code, 'VALIDATION_ERROR');
+      assert.equal(Array.isArray(error.details?.issues), true);
+      return true;
+    },
+  );
+});
+
+test('OrderService allows locked manual orders to update editable fields even with legacy invalid data', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await Order.create({
+    order_no: uniqueOrderNo('MANUAL-ARRIVED-LEGACY'),
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'arrived',
+    delivery_date: '2026-03-11T10:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '',
+    },
+    remark: '',
+  });
+  await OrderItem.create({
+    order_id: created.id,
+    name: '纸箱',
+    spec: '960*2050',
+    quantity: 2,
+    ordered_quantity: 2,
+    received_quantity: 2,
+    quantity_left: 1,
+    quantity_right: 1,
+    unit: '套',
+    price: 0,
+  });
+
+  const updated = await orderService.updateOrder(created.id, {
+    remark: '允许修改备注',
+    delivery_date: '2026-03-20T00:00:00.000Z',
+  } as OrderUpdateInput);
+
+  assert.equal(updated.remark, '允许修改备注');
+  assert.equal(updated.delivery_date, '2026-03-20T00:00:00.000Z');
+  assert.equal(updated.metadata?.customer_name, '');
 });
 
 test.after(async () => {

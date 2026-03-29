@@ -60,6 +60,10 @@ http://47.98.198.45:8802/getOutContractDetail
 - 若取消单恢复到有效状态时幂等 key 已被其他有效单占用，`PUT /api/orders/:id` 也会返回 `409`
 - `409` 响应会包含 `existingOrder`，用于前端提示用户查看已存在采购单
 - 手动录入且未携带 `source_contract_code` 的采购单不参与该防重
+- 手动录入单在 `POST /api/orders` 与可编辑状态下的 `PUT /api/orders/:id` 都会执行业务校验：`metadata.customer_name / supplier / delivery_date` 必填，且至少存在 1 条有效明细
+- 手动录入单的“有效明细”必须满足：产品名称有效、规格有效、数量大于 0；纯占位空行会在保存前被忽略
+- 对 `arrived / completed` 的手动录入单，`PUT /api/orders/:id` 仍受 `ORDER_EDIT_LOCKED` 约束；此时后端只校验当前允许修改的字段（例如 `delivery_date / remark`），不会因为历史脏的客户名或明细而阻断备注/交期更新
+- 手动录入单校验失败时返回 `400 VALIDATION_ERROR`，错误详情位于 `issues[]`
 - 订单 `metadata` 当前还承载两个前端展示控制字段：`aggregateSideQuantities`（预览/打印/PDF 是否显示总数量）和 `riskWarningDismissed`（是否人工取消 `!` 风险警告）
 
 ## 1.2 库存域 API

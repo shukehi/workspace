@@ -24,6 +24,11 @@ import { computeItemQuantitySummary } from '@/features/procurement/quantitySumma
 
 type Mode = 'edit' | 'preview';
 type CustomerNameDisplayMode = 'full' | 'salesDepartment';
+type ValidationState = {
+  fields?: Record<string, string>;
+  rows?: Record<number, string[]>;
+  cells?: Record<string, string>;
+};
 
 const props = withDefaults(defineProps<{
   order: Partial<Order>;
@@ -34,12 +39,14 @@ const props = withDefaults(defineProps<{
   aggregateSideQuantities?: boolean;
   customerNameDisplay?: CustomerNameDisplayMode;
   restrictDetailEditing?: boolean;
+  validationErrors?: ValidationState;
 }>(), {
   mode: 'preview',
   hiddenColumns: () => [],
   aggregateSideQuantities: false,
   customerNameDisplay: 'full',
   restrictDetailEditing: false,
+  validationErrors: () => ({ fields: {}, rows: {}, cells: {} }),
 });
 
 const emit = defineEmits<{
@@ -198,6 +205,18 @@ function getRowKey(item: Partial<OrderItem>, idx: number) {
   return `draft-row-${idx}`;
 }
 
+function getFieldError(path: string) {
+  return props.validationErrors?.fields?.[path] || '';
+}
+
+function getCellError(rowIndex: number, columnKey: string) {
+  return props.validationErrors?.cells?.[`${rowIndex}:${columnKey}`] || '';
+}
+
+function getRowErrors(rowIndex: number) {
+  return props.validationErrors?.rows?.[rowIndex] || [];
+}
+
 onBeforeUnmount(() => {
   stopResizing();
 });
@@ -213,14 +232,30 @@ onBeforeUnmount(() => {
         :class="isPackaging ? 'md:grid-cols-3 order-sheet-info-grid-packaging' : 'md:grid-cols-2 order-sheet-info-grid-default'"
       >
         <div class="space-y-3">
-          <div class="flex items-center gap-2">
-            <Label class="min-w-16">客户名称:</Label>
-            <Input v-if="isEditMode && !isRestrictedEditMode" v-model="order.metadata!.customer_name" placeholder="内部" class="h-8 text-xs" />
-            <span v-else class="text-xs">{{ displayCustomerName || '-' }}</span>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <Label class="min-w-16">客户名称:</Label>
+              <Input
+                v-if="isEditMode && !isRestrictedEditMode"
+                v-model="order.metadata!.customer_name"
+                placeholder="内部"
+                :aria-invalid="!!getFieldError('metadata.customer_name')"
+                :class="['h-8 text-xs', getFieldError('metadata.customer_name') ? 'border-red-500 bg-red-50' : '']"
+              />
+              <span v-else class="text-xs">{{ displayCustomerName || '-' }}</span>
+            </div>
+            <div v-if="getFieldError('metadata.customer_name')" class="pl-[4.5rem] text-[11px] text-red-600">
+              {{ getFieldError('metadata.customer_name') }}
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <Label class="min-w-16">订单号:</Label>
-            <span class="font-medium">{{ order.order_no || '-' }}</span>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <Label class="min-w-16">订单号:</Label>
+              <span class="font-medium">{{ order.order_no || '-' }}</span>
+            </div>
+            <div v-if="getFieldError('order_no')" class="pl-[4.5rem] text-[11px] text-red-600">
+              {{ getFieldError('order_no') }}
+            </div>
           </div>
         </div>
 
@@ -243,19 +278,40 @@ onBeforeUnmount(() => {
             <Input v-if="isEditMode && !isRestrictedEditMode" type="date" v-model="formattedOrderDate" class="h-8 text-xs w-36" />
             <span v-else class="text-xs">{{ formattedOrderDate || '-' }}</span>
           </div>
-          <div class="flex items-center gap-2">
-            <Label class="min-w-16">交货日期:</Label>
-            <Input v-if="isEditMode" type="date" v-model="formattedDeliveryDate" class="h-8 text-xs w-36" />
-            <span v-else class="text-xs">{{ formattedDeliveryDate || '-' }}</span>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <Label class="min-w-16">交货日期:</Label>
+              <Input
+                v-if="isEditMode"
+                type="date"
+                v-model="formattedDeliveryDate"
+                :aria-invalid="!!getFieldError('delivery_date')"
+                :class="['h-8 text-xs w-36', getFieldError('delivery_date') ? 'border-red-500 bg-red-50' : '']"
+              />
+              <span v-else class="text-xs">{{ formattedDeliveryDate || '-' }}</span>
+            </div>
+            <div v-if="getFieldError('delivery_date')" class="pl-[4.5rem] text-[11px] text-red-600">
+              {{ getFieldError('delivery_date') }}
+            </div>
           </div>
         </div>
       </div>
 
       <div class="mt-4 pt-4 border-t border-dashed">
-        <div class="flex items-center gap-2">
-          <Label class="min-w-16">供应商:</Label>
-          <Input v-if="isEditMode && !isRestrictedEditMode" v-model="order.supplier" class="h-8 text-xs w-64" />
-          <span v-else class="text-xs">{{ order.supplier || '-' }}</span>
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <Label class="min-w-16">供应商:</Label>
+            <Input
+              v-if="isEditMode && !isRestrictedEditMode"
+              v-model="order.supplier"
+              :aria-invalid="!!getFieldError('supplier')"
+              :class="['h-8 text-xs w-64', getFieldError('supplier') ? 'border-red-500 bg-red-50' : '']"
+            />
+            <span v-else class="text-xs">{{ order.supplier || '-' }}</span>
+          </div>
+          <div v-if="getFieldError('supplier')" class="pl-[4.5rem] text-[11px] text-red-600">
+            {{ getFieldError('supplier') }}
+          </div>
         </div>
         <div class="mt-3 flex items-start gap-2">
           <Label class="min-w-16 pt-2">整单备注:</Label>
@@ -298,7 +354,8 @@ onBeforeUnmount(() => {
           </tr>
         </thead>
         <tbody class="divide-y">
-          <tr v-for="(item, idx) in items" :key="getRowKey(item, idx)" class="hover:bg-muted/30">
+          <template v-for="(item, idx) in items" :key="getRowKey(item, idx)">
+          <tr class="hover:bg-muted/30">
             <td
               v-for="column in schema.columns"
               :key="`cell-${idx}-${column.key}`"
@@ -318,7 +375,11 @@ onBeforeUnmount(() => {
                   :value="getEditableValue(item, column.key)"
                   :type="column.inputType"
                   class="w-full h-full p-2 bg-transparent outline-none focus:bg-muted/40"
-                  :class="column.align === 'center' ? 'text-center' : ''"
+                  :aria-invalid="!!getCellError(idx, column.key)"
+                  :class="[
+                    column.align === 'center' ? 'text-center' : '',
+                    getCellError(idx, column.key) ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-500' : '',
+                  ]"
                   @input="handleCellInput(item, column.key, ($event.target as HTMLInputElement).value)"
                 />
               </template>
@@ -335,6 +396,12 @@ onBeforeUnmount(() => {
               </template>
             </td>
           </tr>
+          <tr v-if="getRowErrors(idx).length > 0" class="bg-red-50/80">
+            <td :colspan="schema.columns.length" class="px-3 py-2 text-[11px] text-red-700">
+              {{ getRowErrors(idx).join('；') }}
+            </td>
+          </tr>
+          </template>
           <tr v-if="isPackaging && items.length < 5" v-for="i in (5 - items.length)" :key="`empty-${i}`">
             <td v-for="column in schema.columns" :key="`empty-cell-${i}-${column.key}`" class="border-r last:border-r-0 p-2">&nbsp;</td>
           </tr>
