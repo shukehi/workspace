@@ -12,6 +12,7 @@ const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, Invento
 import type { MaterialInstance } from '../server/models';
 const inventoryRoutes = (require('../server/routes/inventory') as { default: Router }).default;
 const inventoryAdjustmentRoutes = (require('../server/routes/inventoryAdjustments') as { default: Router }).default;
+const inventoryMovementRoutes = (require('../server/routes/inventoryMovements') as { default: Router }).default;
 const inventoryReceiptRoutes = (require('../server/routes/inventoryReceipts') as { default: Router }).default;
 const inventoryLocationRoutes = (require('../server/routes/inventoryLocations') as { default: Router }).default;
 const inventoryOutboundRoutes = (require('../server/routes/inventoryOutbounds') as { default: Router }).default;
@@ -30,6 +31,7 @@ async function startServer() {
   app.use(express.json());
   app.use('/api/inventory', inventoryRoutes);
   app.use('/api/inventory-adjustments', inventoryAdjustmentRoutes);
+  app.use('/api/inventory-movements', inventoryMovementRoutes);
   app.use('/api/inventory-receipts', inventoryReceiptRoutes);
   app.use('/api/inventory-locations', inventoryLocationRoutes);
   app.use('/api/inventory-outbounds', inventoryOutboundRoutes);
@@ -426,6 +428,82 @@ test('POST /api/inventory-adjustments is idempotent for the same operation_key',
   assert.equal(Number(refreshedMaterial?.stock_quantity || 0), 6);
   assert.equal(Number(refreshedBalance?.quantity || 0), 6);
   assert.equal(movements, 1);
+});
+
+test('GET /api/inventory-movements returns paged ledger rows with filters', async () => {
+  const locationRes = await fetch(`${baseUrl}/api/inventory-locations`);
+  assert.equal(locationRes.status, 200);
+  const locationPayload = getBody(await locationRes.json()) as {
+    warehouses: Array<{ id: number }>;
+    locations: Array<{ id: number }>;
+  };
+
+  const warehouseId = locationPayload.warehouses[0].id;
+  const locationId = locationPayload.locations[0].id;
+
+  const material = await Material.create({
+    code: `TEST-MAT-MOV-${Date.now()}`,
+    name: 'Movement Material',
+    model: 'MOV-MODEL',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'pcs',
+    stock_quantity: 3,
+    min_stock: 0
+  }) as MaterialInstance;
+
+  await InventoryLocationBalance.create({
+    material_id: material.id,
+    warehouse_id: warehouseId,
+    location_id: locationId,
+    quantity: 3,
+  });
+
+  const matchedAdjustmentRes = await fetch(`${baseUrl}/api/inventory-adjustments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      operation_key: `mov-${material.id}-query-match`,
+      delta_quantity: 1,
+      reason: '查询测试',
+    })
+  });
+  assert.equal(matchedAdjustmentRes.status, 201);
+
+  const unmatchedAdjustmentRes = await fetch(`${baseUrl}/api/inventory-adjustments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      material_id: material.id,
+      warehouse_id: warehouseId,
+      location_id: locationId,
+      operation_key: `mov-${material.id}-query-unmatched`,
+      delta_quantity: 1,
+      reason: '盘点补差',
+    })
+  });
+  assert.equal(unmatchedAdjustmentRes.status, 201);
+
+  const listRes = await fetch(`${baseUrl}/api/inventory-movements?materialId=${material.id}&sourceType=manual_adjustment&keyword=查询&page=1&pageSize=1`);
+  assert.equal(listRes.status, 200);
+  const payload = getBody(await listRes.json()) as {
+    rows: Array<{ material_id: number; source_type: string; delta_quantity: number; reason: string }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+
+  assert.equal(payload.page, 1);
+  assert.equal(payload.pageSize, 1);
+  assert.equal(payload.total, 1);
+  assert.equal(payload.rows.length, 1);
+  assert.equal(payload.rows[0].material_id, material.id);
+  assert.equal(payload.rows[0].source_type, 'manual_adjustment');
+  assert.equal(payload.rows[0].delta_quantity, 1);
+  assert.equal(payload.rows[0].reason, '查询测试');
 });
 
 test('PUT /api/inventory/:id rejects invalid id param with validation error', async () => {
