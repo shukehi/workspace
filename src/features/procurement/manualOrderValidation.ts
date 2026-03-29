@@ -1,7 +1,12 @@
 import type { Order, OrderItem } from '@/types/order';
 import type { PrintCategory } from '@/features/procurement/docModel';
 import { resolveOrderItemQuantity, supportsSplitQuantityColumns } from '@/features/procurement/order-sheet.schema';
-import { resolveOrderSchemaPrintCategory, resolveSchemaPrintCategory } from '@/features/procurement/templateType';
+import {
+  normalizeTemplateType,
+  resolveOrderSchemaPrintCategory,
+  resolveSchemaPrintCategory,
+  resolveTemplateCategories,
+} from '@/features/procurement/templateType';
 
 export interface ManualOrderValidationIssue {
   path: string;
@@ -78,6 +83,8 @@ export function validateManualOrderDraft(order: Partial<Order>): string[] {
 export function collectManualOrderValidationIssues(order: Partial<Order>): ManualOrderValidationIssue[] {
   const issues: ManualOrderValidationIssue[] = [];
   const category = resolveOrderSchemaPrintCategory(order);
+  const templateType = normalizeTemplateType(order.metadata?.template_type, order.category);
+  const rawCategory = toTrimmedString(order.category);
   const customerName = toTrimmedString(order.metadata?.customer_name);
   const supplier = toTrimmedString(order.supplier);
   const items = stripBlankManualItems(
@@ -94,6 +101,9 @@ export function collectManualOrderValidationIssues(order: Partial<Order>): Manua
   }
   if (!customerName) {
     issues.push({ path: 'metadata.customer_name', message: '客户名称不能为空' });
+  }
+  if (templateType && resolveTemplateCategories(templateType).length > 1 && !rawCategory) {
+    issues.push({ path: 'category', message: '请选择业务类别' });
   }
   if (!isValidIsoDate(order.delivery_date)) {
     issues.push({ path: 'delivery_date', message: '交货日期不能为空' });

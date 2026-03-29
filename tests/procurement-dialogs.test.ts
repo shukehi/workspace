@@ -78,6 +78,26 @@ test('useProcurementDialogs manages edit and preview orchestration', async () =>
   assert.equal(toasts.length, 0);
 });
 
+test('useProcurementDialogs stores create template context for manual entry', () => {
+  const dialogs = useProcurementDialogs({
+    store: {
+      deleteOrder: async () => {},
+      bulkDelete: async () => {},
+    },
+    toast: () => {}
+  });
+
+  dialogs.openManualEntry({ templateType: 'double-door-accessory' });
+  assert.equal(dialogs.isEditDialogOpen.value, true);
+  assert.equal(dialogs.editDialogMode.value, 'create');
+  assert.equal(dialogs.createTemplateType.value, 'double-door-accessory');
+  assert.equal(dialogs.createCategory.value, null);
+
+  dialogs.openManualEntry({ templateType: 'general-accessory', category: '五金/配件' });
+  assert.equal(dialogs.createTemplateType.value, 'general-accessory');
+  assert.equal(dialogs.createCategory.value, '五金/配件');
+});
+
 test('useProcurementDialogs builds delete confirmations and clears selection after bulk delete', async () => {
   const deletedIds: number[] = [];
   const toasts: Array<{ title: string; description?: string; variant?: string }> = [];

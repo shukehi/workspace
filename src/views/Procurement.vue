@@ -24,6 +24,7 @@ import { useProcurementRouteQuery } from '@/features/procurement/composables/use
 import { useOrderActions } from '@/features/procurement/composables/useOrderActions';
 import { useStockInQueue } from '@/features/procurement/composables/useStockInQueue';
 import { useProcurementBulkActions } from '@/features/procurement/composables/useProcurementBulkActions';
+import { PROCUREMENT_TEMPLATE_OPTIONS } from '@/features/procurement/templateType';
 import { SIGNALS } from '@/shared/constants/storage';
 
 const PROCUREMENT_REFRESH_SIGNAL_KEY = SIGNALS.PROCUREMENT_REFRESH;
@@ -69,6 +70,7 @@ const handleSummaryFilter = (type: 'pending' | 'today' | 'completed' | 'total') 
 
 const {
   isEditDialogOpen, isPreviewDialogOpen, selectedOrder, editDialogMode,
+  createTemplateType, createCategory,
   previewOrder, canEditOrder, confirmState, openEdit, openPreview,
   openManualEntry, syncDraftForPreview, previewDraft, editFromPreview,
   requestDelete, requestBulkDelete,
@@ -154,10 +156,19 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
           <Download class="w-3.5 h-3.5 mr-1.5" />
           导出
         </Button>
-        <Button size="sm" variant="secondary" class="h-8 text-xs px-3" @click="openManualEntry">
-          <Plus class="w-3.5 h-3.5 mr-1.5" />
-          录入
-        </Button>
+        <div class="flex items-center gap-1 rounded-md border bg-background/80 p-1">
+          <Plus class="ml-1 w-3.5 h-3.5 text-muted-foreground" />
+          <Button
+            v-for="option in PROCUREMENT_TEMPLATE_OPTIONS"
+            :key="option.value"
+            size="sm"
+            variant="ghost"
+            class="h-8 text-xs px-2.5"
+            @click="openManualEntry({ templateType: option.value })"
+          >
+            {{ option.label }}
+          </Button>
+        </div>
       </div>
     </div>
 
@@ -206,7 +217,16 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
       @status="handleBulkStatusUpdate" @arrive="handleBulkArrive" @stock-in="openStockInQueue(selectedRows)" @export="handleExport" @delete="handleBulkDelete" @clear="clearSelection"
     />
 
-    <EditOrderDialog v-model:open="isEditDialogOpen" :order="selectedOrder" :mode="editDialogMode" @saved="loadProcurementOrders()" @draft-change="syncDraftForPreview" @preview="previewDraft" />
+    <EditOrderDialog
+      v-model:open="isEditDialogOpen"
+      :order="selectedOrder"
+      :mode="editDialogMode"
+      :create-template-type="createTemplateType"
+      :create-category="createCategory"
+      @saved="loadProcurementOrders()"
+      @draft-change="syncDraftForPreview"
+      @preview="previewDraft"
+    />
     <ProcurementPreviewModal v-model:open="isPreviewDialogOpen" :order="previewOrder" :can-edit="canEditOrder(previewOrder)" @edit="editFromPreview" />
     <ProcurementStockInDialog
       :open="stockInDialogOpen"

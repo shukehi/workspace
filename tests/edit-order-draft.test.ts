@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bootstrapOrderDraft, buildManualOrderNo, createEmptyItem, createEmptyOrderDraft } from '../src/features/procurement/editOrderDraft';
+import {
+  bootstrapOrderDraft,
+  buildManualOrderNo,
+  createEmptyItem,
+  createEmptyOrderDraft,
+  createEmptyOrderDraftByTemplate,
+} from '../src/features/procurement/editOrderDraft';
 import { stripBlankManualItems, validateManualOrderDraft } from '../src/features/procurement/manualOrderValidation';
 import type { Order } from '../src/types/order';
 
@@ -26,6 +32,18 @@ test('createEmptyOrderDraft seeds packaging order defaults', () => {
   assert.equal(draft.metadata?.template_type, 'packaging');
   assert.ok(draft.metadata?.printColumnWidths);
   assert.equal(draft.metadata?.aggregateSideQuantities, false);
+});
+
+test('createEmptyOrderDraftByTemplate maps merged templates to business categories', () => {
+  const doubleDoorDraft = createEmptyOrderDraftByTemplate('double-door-accessory');
+  assert.equal(doubleDoorDraft.category, '锁具');
+  assert.equal(doubleDoorDraft.metadata?.template_type, 'double-door-accessory');
+  assert.equal(doubleDoorDraft.items[0]?.unit, '套');
+
+  const generalAccessoryDraft = createEmptyOrderDraftByTemplate('general-accessory');
+  assert.equal(generalAccessoryDraft.category, '锁叉');
+  assert.equal(generalAccessoryDraft.metadata?.template_type, 'general-accessory');
+  assert.equal(generalAccessoryDraft.items[0]?.unit, '个');
 });
 
 test('buildManualOrderNo uses date token with four-digit sequence', () => {
@@ -132,6 +150,24 @@ test('validateManualOrderDraft rejects blank manual placeholder rows', () => {
 
   assert.deepEqual(issues, ['客户名称不能为空', '第 1 行缺少产品名称', '第 1 行数量（左/右）必须大于 0']);
   assert.equal(Array.isArray(stripBlankManualItems(draft.items, draft.category)), true);
+});
+
+test('validateManualOrderDraft requires business category for merged templates', () => {
+  const draft = createEmptyOrderDraftByTemplate('double-door-accessory');
+  draft.category = '';
+  draft.supplier = '测试供应商';
+  draft.metadata = {
+    ...draft.metadata,
+    customer_name: '客户A',
+    template_type: 'double-door-accessory',
+  };
+  draft.items[0].type = '锁具A';
+  draft.items[0].spec = 'S-1';
+  draft.items[0].quantity_left = 1;
+  draft.items[0].quantity_right = 1;
+  draft.items[0].quantity = 2;
+
+  assert.deepEqual(validateManualOrderDraft(draft), ['请选择业务类别']);
 });
 
 test('validateManualOrderDraft accepts populated manual rows', () => {

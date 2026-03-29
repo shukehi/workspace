@@ -12,13 +12,17 @@ import { useProcurementStore } from '@/stores/useProcurementStore';
 import type { Order } from '@/types/order';
 import { cloneOrderDraft } from '@/features/procurement/orderDraft';
 import {
-  normalizePrintCategory,
-  PROCUREMENT_CATEGORY_ORDER,
-  PROCUREMENT_CATEGORY_META,
   type PrintCategory
 } from '@/features/procurement/docModel';
 import { syncOrderItemQuantity } from '@/features/procurement/order-sheet.schema';
-import { resolveOrderSchemaPrintCategory } from '@/features/procurement/templateType';
+import {
+  PROCUREMENT_TEMPLATE_OPTIONS,
+  resolveOrderSchemaPrintCategory,
+  resolvePrimaryCategoryForTemplate,
+  resolveSchemaPrintCategory,
+  resolveTemplateCategories,
+  type ProcurementTemplateType,
+} from '@/features/procurement/templateType';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
 import {
   PROCUREMENT_DOCUMENT_CREATE_TITLE,
@@ -33,6 +37,7 @@ import {
   bootstrapOrderDraft,
   buildManualOrderNo,
   createEmptyItem,
+  createEmptyOrderDraftByTemplate,
   nowStamp,
 } from '@/features/procurement/editOrderDraft';
 import { collectManualOrderValidationIssues, stripBlankManualItems, validateManualOrderDraft } from '@/features/procurement/manualOrderValidation';
@@ -44,8 +49,12 @@ const props = withDefaults(defineProps<{
   open: boolean;
   order: Order | null;
   mode?: DialogMode;
+  createTemplateType?: ProcurementTemplateType;
+  createCategory?: string | null;
 }>(), {
   mode: 'edit',
+  createTemplateType: 'packaging',
+  createCategory: null,
 });
 
 const emit = defineEmits<{
@@ -94,10 +103,17 @@ const riskStatusLabel = computed(() => {
   return '';
 });
 
-const categoryOptions: Array<{ value: string; label: string }> = PROCUREMENT_CATEGORY_ORDER.map((category) => ({
-  value: PROCUREMENT_CATEGORY_META[category].orderCategory,
-  label: PROCUREMENT_CATEGORY_META[category].filterLabel,
-}));
+const currentTemplateType = computed<ProcurementTemplateType>(() => {
+  const raw = String(form.value.metadata?.template_type || '').trim() as ProcurementTemplateType;
+  return PROCUREMENT_TEMPLATE_OPTIONS.some((option) => option.value === raw) ? raw : 'packaging';
+});
+const currentTemplateOption = computed(() => {
+  return PROCUREMENT_TEMPLATE_OPTIONS.find((option) => option.value === currentTemplateType.value) || PROCUREMENT_TEMPLATE_OPTIONS[0];
+});
+const currentTemplateCategoryOptions = computed(() => {
+  return resolveTemplateCategories(currentTemplateType.value).map((category) => ({ value: category, label: category }));
+});
+const requiresBusinessCategoryChoice = computed(() => currentTemplateCategoryOptions.value.length > 1);
 
 watch(columnWidths, (next) => {
   const category = currentCategory.value;
@@ -202,13 +218,49 @@ function bootstrapCreateOrder() {
   aggregateSideQuantities.value = false;
   if (!form.value.metadata) form.value.metadata = {};
   form.value.metadata.aggregateSideQuantities = false;
+  applyCreateTemplate(props.createTemplateType, props.createCategory || undefined);
   validationVisible.value = false;
   updateValidationErrors(form.value);
-  initialSnapshot.value = JSON.stringify(draft);
+  initialSnapshot.value = JSON.stringify(form.value);
+}
+
+function applyCreateTemplate(templateType: ProcurementTemplateType, nextCategory?: string) {
+  if (!form.value) return;
+  const requiresCategoryChoice = resolveTemplateCategories(templateType).length > 1;
+  const category = nextCategory || (requiresCategoryChoice ? '' : resolvePrimaryCategoryForTemplate(templateType));
+  const schemaCategory = resolveSchemaPrintCategory(templateType, category);
+  const defaults = getDefaultWidths(schemaCategory);
+  const rebuilt = requiresCategoryChoice && !category
+    ? createEmptyOrderDraftByTemplate(templateType)
+    : createEmptyOrderDraftByTemplate(templateType);
+  const nextItem = createEmptyItem(schemaCategory);
+  if (category === '拉手') nextItem.unit = '付';
+
+  form.value.category = category || undefined;
+  form.value.supplier = category ? rebuilt.supplier : '';
+  form.value.items = [nextItem];
+  if (!form.value.metadata) form.value.metadata = {};
+  form.value.metadata.template_type = templateType;
+  form.value.metadata.aggregateSideQuantities = false;
+  form.value.metadata.printColumnWidths = { ...defaults };
+  if (templateType !== 'packaging') {
+    form.value.metadata.internal_name = '';
+    form.value.metadata.external_name = '';
+  }
+  aggregateSideQuantities.value = false;
+  columnWidths.value = { ...defaults };
+
+  applyPackagingHeaderNames(form.value as Order);
 }
 
 watch(
-  () => ({ open: props.open, mode: props.mode, order: props.order }),
+  () => ({
+    open: props.open,
+    mode: props.mode,
+    order: props.order,
+    createTemplateType: props.createTemplateType,
+    createCategory: props.createCategory,
+  }),
   ({ open, mode, order }) => {
     if (!open) return;
 
@@ -383,27 +435,16 @@ const removeLastItemRow = () => {
   form.value.items.pop();
 };
 
-const handleCategoryChange = (event: Event) => {
+const handleTemplateChange = (event: Event) => {
+  if (!isCreateMode.value || !form.value) return;
+  const templateType = (event.target as HTMLSelectElement).value as ProcurementTemplateType;
+  applyCreateTemplate(templateType);
+};
+
+const handleBusinessCategoryChange = (event: Event) => {
   if (!isCreateMode.value || !form.value) return;
   const nextCategory = (event.target as HTMLSelectElement).value;
-  form.value.category = nextCategory;
-  aggregateSideQuantities.value = false;
-
-  const category = normalizePrintCategory(nextCategory);
-  const defaults = getDefaultWidths(category);
-  columnWidths.value = { ...defaults };
-  if (!form.value.metadata) form.value.metadata = {};
-  form.value.metadata.aggregateSideQuantities = false;
-  form.value.metadata.printColumnWidths = { ...defaults };
-
-  if (!Array.isArray(form.value.items) || form.value.items.length === 0) {
-    form.value.items = [createEmptyItem(category)];
-  } else {
-    form.value.items = form.value.items.map(() => createEmptyItem(category));
-  }
-
-  const asOrder = form.value as Order;
-  applyPackagingHeaderNames(asOrder);
+  applyCreateTemplate(currentTemplateType.value, nextCategory);
 };
 </script>
 
@@ -448,14 +489,27 @@ const handleCategoryChange = (event: Event) => {
             </button>
             <span :class="aggregateSideQuantities ? 'text-foreground font-medium' : ''">总数量</span>
           </div>
-          <select
-            v-if="isCreateMode"
-            class="h-8 rounded-md border bg-background px-2 text-xs"
-            :value="form.category || '包装'"
-            @change="handleCategoryChange"
-          >
-            <option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
+          <div v-if="isCreateMode" class="flex items-center gap-2">
+            <select
+              class="h-8 rounded-md border bg-background px-2 text-xs"
+              :value="currentTemplateType"
+              @change="handleTemplateChange"
+            >
+              <option v-for="option in PROCUREMENT_TEMPLATE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+            <select
+              v-if="requiresBusinessCategoryChoice"
+              class="h-8 rounded-md border bg-background px-2 text-xs"
+              :value="form.category || ''"
+              @change="handleBusinessCategoryChange"
+            >
+              <option value="">请选择业务类别</option>
+              <option v-for="option in currentTemplateCategoryOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+            <span v-else class="inline-flex h-8 items-center rounded-md border bg-muted/40 px-2 text-xs text-muted-foreground">
+              {{ currentTemplateOption.label }}
+            </span>
+          </div>
           <Button v-if="!isCreateMode" variant="outline" size="sm" :disabled="saving" @click="handlePreview">预览</Button>
           <Button variant="outline" size="sm" :disabled="saving || isRestrictedDetailEdit" @click="addItemRow">新增明细</Button>
           <Button variant="outline" size="sm" :disabled="saving || isRestrictedDetailEdit || !form.items || form.items.length <= 1" @click="removeLastItemRow">删除末行</Button>

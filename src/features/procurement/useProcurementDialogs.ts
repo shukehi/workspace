@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
+import type { ProcurementTemplateType } from '@/features/procurement/templateType';
 import type { Order } from '@/types/order';
 
 type ConfirmVariant = 'danger' | 'warning' | 'info' | 'question';
@@ -33,6 +34,8 @@ export function useProcurementDialogs(options: {
   const selectedOrder = ref<Order | null>(null);
   const draftOrderForPreview = ref<Order | null>(null);
   const editDialogMode = ref<'edit' | 'create'>('edit');
+  const createTemplateType = ref<ProcurementTemplateType>('packaging');
+  const createCategory = ref<string | null>(null);
 
   const confirmState = ref<ConfirmState>({
     show: false,
@@ -64,6 +67,8 @@ export function useProcurementDialogs(options: {
       notifyEditLocked(order);
       return;
     }
+    createTemplateType.value = 'packaging';
+    createCategory.value = null;
     editDialogMode.value = 'edit';
     const draft = prepareOrderDraft(order);
     selectedOrder.value = draft;
@@ -76,6 +81,8 @@ export function useProcurementDialogs(options: {
       notifyEditLocked(order);
       return;
     }
+    createTemplateType.value = 'packaging';
+    createCategory.value = null;
     editDialogMode.value = 'edit';
     const draft = prepareOrderDraft(order);
     selectedOrder.value = draft;
@@ -84,13 +91,20 @@ export function useProcurementDialogs(options: {
   }
 
   function openPreview(order: Order) {
+    createTemplateType.value = 'packaging';
+    createCategory.value = null;
     const draft = prepareOrderDraft(order);
     selectedOrder.value = draft;
     draftOrderForPreview.value = draft;
     isPreviewDialogOpen.value = true;
   }
 
-  function openManualEntry() {
+  function openManualEntry(options?: {
+    templateType?: ProcurementTemplateType;
+    category?: string | null;
+  }) {
+    createTemplateType.value = options?.templateType || 'packaging';
+    createCategory.value = options?.category || null;
     editDialogMode.value = 'create';
     selectedOrder.value = null;
     draftOrderForPreview.value = null;
@@ -183,6 +197,8 @@ export function useProcurementDialogs(options: {
     isPreviewDialogOpen,
     selectedOrder,
     editDialogMode,
+    createTemplateType,
+    createCategory,
     previewOrder,
     canEditOrder,
     confirmState,

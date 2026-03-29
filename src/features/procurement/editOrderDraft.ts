@@ -9,7 +9,11 @@ import {
 import { resolvePackagingHeaderNames } from '@/features/procurement/packagingNameResolver';
 import { prepareOrderDraft } from '@/features/procurement/prepareOrderDraft';
 import { getDefaultWidths, resolveSheetWidths } from '@/features/procurement/sheetWidthResolver';
-import { resolveTemplateTypeFromPrintCategory } from '@/features/procurement/templateType';
+import {
+  resolvePrimaryCategoryForTemplate,
+  resolveTemplateTypeFromPrintCategory,
+  type ProcurementTemplateType,
+} from '@/features/procurement/templateType';
 import type { Order, OrderItem } from '@/types/order';
 
 export function nowStamp() {
@@ -145,12 +149,16 @@ export function createEmptyOrderDraft(categoryRaw = '包装'): Order {
   return normalizeOrderDraft(draft);
 }
 
+export function createEmptyOrderDraftByTemplate(templateType: ProcurementTemplateType): Order {
+  return createEmptyOrderDraft(resolvePrimaryCategoryForTemplate(templateType));
+}
+
 export function bootstrapOrderDraft(options: {
   mode: 'edit' | 'create';
   order?: Order | null;
 }) {
   const draft = options.mode === 'create'
-    ? createEmptyOrderDraft('包装')
+    ? createEmptyOrderDraftByTemplate('packaging')
     : prepareOrderDraft(options.order as Order);
 
   const resolved = resolveSheetWidths(
