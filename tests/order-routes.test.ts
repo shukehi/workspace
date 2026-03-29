@@ -486,6 +486,54 @@ test('POST /api/orders rejects blank manual orders', async () => {
   );
 });
 
+test('POST /api/orders returns duplicate error for conflicting manual order numbers', async () => {
+  const payload = {
+    order_no: 'ROUTE-MANUAL-DUP-001',
+    supplier: '方亮包装',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-29T00:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    items: [
+      {
+        name: '纸箱',
+        spec: '960*2050',
+        quantity_left: 1,
+        quantity_right: 1,
+        quantity: 2,
+        unit: '套',
+      },
+    ],
+  };
+
+  const firstRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(firstRes.status, 200);
+
+  const duplicateRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...payload,
+      metadata: {
+        ...payload.metadata,
+        customer_name: '客户B',
+      },
+    }),
+  });
+
+  assert.equal(duplicateRes.status, 409);
+  const body = await duplicateRes.json();
+  assert.equal(body.error, 'DUPLICATE_ORDER');
+  assert.equal(body.existingOrder.order_no, payload.order_no);
+});
+
 test('PUT /api/orders/:id rejects invalid edits to manual orders', async () => {
   const createRes = await fetch(`${baseUrl}/api/orders`, {
     method: 'POST',
@@ -539,6 +587,75 @@ test('PUT /api/orders/:id rejects invalid edits to manual orders', async () => {
   const body = await updateRes.json();
   assert.equal(body.error, 'VALIDATION_ERROR');
   assert.equal(Array.isArray(body.issues), true);
+});
+
+test('PUT /api/orders/:id returns duplicate error for conflicting order numbers', async () => {
+  const firstRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-MANUAL-UPDATE-DUP-001',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      delivery_date: '2026-03-29T00:00:00.000Z',
+      metadata: {
+        order_source: 'manual',
+        customer_name: '客户A',
+      },
+      items: [
+        {
+          name: '纸箱',
+          spec: '960*2050',
+          quantity_left: 1,
+          quantity_right: 1,
+          quantity: 2,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+  const first = getBody(await firstRes.json()) as { id: number; order_no: string };
+
+  const secondRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'ROUTE-MANUAL-UPDATE-DUP-002',
+      supplier: '方亮包装',
+      category: '包装',
+      status: 'draft',
+      delivery_date: '2026-03-30T00:00:00.000Z',
+      metadata: {
+        order_source: 'manual',
+        customer_name: '客户B',
+      },
+      items: [
+        {
+          name: '木箱',
+          spec: '980*2100',
+          quantity_left: 1,
+          quantity_right: 1,
+          quantity: 2,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+  const second = getBody(await secondRes.json()) as { id: number };
+
+  const updateRes = await fetch(`${baseUrl}/api/orders/${second.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: first.order_no,
+    }),
+  });
+
+  assert.equal(updateRes.status, 409);
+  const body = await updateRes.json();
+  assert.equal(body.error, 'DUPLICATE_ORDER');
+  assert.equal(body.existingOrder.order_no, first.order_no);
 });
 
 test('PUT /api/orders/:id allows editable changes on locked legacy manual orders', async () => {

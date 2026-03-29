@@ -134,6 +134,22 @@ class OrderService {
         return buildManualOrderNo(dateToken, nextSequence);
     }
 
+    async assertUniqueOrderNo(orderNo: unknown, excludeId?: number | string, transaction?: Transaction) {
+        const normalizedOrderNo = String(orderNo || '').trim();
+        if (!normalizedOrderNo) return;
+
+        const existing = await orderRepository.findOrderByOrderNo(normalizedOrderNo, transaction);
+        if (!existing) return;
+
+        const existingId = Number(existing.id);
+        const normalizedExcludeId = Number(excludeId);
+        if (Number.isInteger(existingId) && Number.isInteger(normalizedExcludeId) && existingId === normalizedExcludeId) {
+            return;
+        }
+
+        throw new DuplicateOrderError(existing);
+    }
+
     async reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: Transaction | undefined) {
         if (!sourceContractCode || !dedupeKey || !orderId) return null;
         try {
@@ -277,6 +293,7 @@ class OrderService {
 
     async createOrder(data: OrderCreateInput) {
         const shouldAutoAssignManualOrderNo = data.metadata?.order_source === 'manual' && isGeneratedManualOrderNo(data.order_no);
+        let lastAttemptedOrderNo = String(data.order_no || '').trim();
 
         for (let attempt = 0; attempt < 5; attempt += 1) {
             const transaction = await sequelize.transaction();
@@ -284,6 +301,7 @@ class OrderService {
                 const createInput = shouldAutoAssignManualOrderNo
                     ? { ...data, order_no: await this.allocateNextManualOrderNo(data.created_at, transaction) }
                     : data;
+                lastAttemptedOrderNo = String(createInput.order_no || '').trim() || lastAttemptedOrderNo;
                 const normalizedCategory = createInput.category || data.category;
                 const createIssues = validateManualCreateOrder(createInput);
                 if (createIssues.length > 0) {
@@ -317,6 +335,7 @@ class OrderService {
                 if (duplicate) {
                     throw new DuplicateOrderError(duplicate);
                 }
+                await this.assertUniqueOrderNo(normalizedData.order_no, undefined, transaction);
 
                 if (!data.created_at) {
                     console.warn('[OrderService] createOrder payload missing created_at, falling back to current timestamp', {
@@ -377,6 +396,9 @@ class OrderService {
                 await transaction.rollback();
                 if (shouldAutoAssignManualOrderNo && isUniqueOrderNoError(error) && attempt < 4) {
                     continue;
+                }
+                if (isUniqueOrderNoError(error)) {
+                    await this.assertUniqueOrderNo(lastAttemptedOrderNo || data.order_no);
                 }
                 throw error;
             }
@@ -465,6 +487,7 @@ class OrderService {
             if (duplicate) {
                 throw new DuplicateOrderError(duplicate);
             }
+            await this.assertUniqueOrderNo(mergedOrderForValidation.order_no, id, transaction);
 
             const isAutoOrder = Boolean(nextSourceContractCode && nextDedupeKey);
             const statusTransition = `${order.status}->${nextStatus}`;
@@ -541,6 +564,9 @@ class OrderService {
             });
         } catch (error) {
             await transaction.rollback();
+            if (isUniqueOrderNoError(error)) {
+                await this.assertUniqueOrderNo(data.order_no === undefined ? undefined : data.order_no, id);
+            }
             throw error;
         }
     }

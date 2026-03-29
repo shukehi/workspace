@@ -8,6 +8,7 @@ process.env.DB_STORAGE = TEST_DB;
 
 const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models') as typeof import('../server/models');
 const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
+const orderRepository = require('../server/services/orders/order.repository') as typeof import('../server/services/orders/order.repository');
 import type { MaterialInstance, InventoryReceiptInstance, OrderInstance } from '../server/models';
 import type { OrderCreateInput, OrderUpdateInput } from '../server/models/types';
 
@@ -1105,6 +1106,144 @@ test('OrderService does not dedupe manual orders without source contract code', 
   assert.equal(second.source_contract_code ?? null, null);
 });
 
+test('OrderService rejects duplicate manual order numbers with domain error', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const first = await orderService.createOrder({
+    order_no: 'MANUAL-DUP-001',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-12T10:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户B',
+    },
+    created_at: '2026-03-11T10:00:00.000Z',
+    items: [
+      {
+        supplier: '测试供应商',
+        name: '包装箱',
+        model: 'PK-1',
+        spec: '900*2050',
+        quantity: 2,
+        unit: '套',
+      }
+    ]
+  } as OrderCreateInput);
+
+  await assert.rejects(
+    () => orderService.createOrder({
+      order_no: 'MANUAL-DUP-001',
+      supplier: '测试供应商',
+      category: '包装',
+      status: 'draft',
+      delivery_date: '2026-03-12T10:00:00.000Z',
+      metadata: {
+        order_source: 'manual',
+        customer_name: '客户C',
+      },
+      created_at: '2026-03-11T11:00:00.000Z',
+      items: [
+        {
+          supplier: '测试供应商',
+          name: '包装箱',
+          model: 'PK-2',
+          spec: '920*2050',
+          quantity: 1,
+          unit: '套',
+        }
+      ]
+    } as OrderCreateInput),
+    (error: { code: string; existingOrder: { order_no: string; id: number } }) => {
+      assert.equal(error.code, 'DUPLICATE_ORDER');
+      assert.equal(error.existingOrder.order_no, first.order_no);
+      assert.equal(error.existingOrder.id, first.id);
+      return true;
+    },
+  );
+});
+
+test('OrderService reports duplicate order after placeholder retry exhaustion using last allocated number', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const originalAllocateNextManualOrderNo = orderService.allocateNextManualOrderNo.bind(orderService);
+  const originalAssertUniqueOrderNo = orderService.assertUniqueOrderNo.bind(orderService);
+  const originalOrderCreate = Order.create;
+
+  const allocatedOrderNos = [
+    'PM-260329-1001',
+    'PM-260329-1002',
+    'PM-260329-1003',
+    'PM-260329-1004',
+    'PM-260329-1005',
+  ];
+  let allocationIndex = 0;
+  let uniquenessCheckCount = 0;
+  const existingOrder = {
+    id: 99,
+    order_no: 'PM-260329-1005',
+    status: 'draft',
+    category: '包装',
+    supplier: '测试供应商',
+    source_contract_code: null,
+  } as any;
+
+  orderService.allocateNextManualOrderNo = async () => allocatedOrderNos[allocationIndex++] || allocatedOrderNos[allocatedOrderNos.length - 1];
+  orderService.assertUniqueOrderNo = async (orderNo: unknown, excludeId?: number | string, transaction?: any) => {
+    uniquenessCheckCount += 1;
+    if (uniquenessCheckCount <= allocatedOrderNos.length) return;
+    if (String(orderNo || '').trim() === existingOrder.order_no) {
+      throw new orderService.DuplicateOrderError(existingOrder);
+    }
+    return await originalAssertUniqueOrderNo(orderNo, excludeId, transaction);
+  };
+  Order.create = (async () => {
+    const error = new Error('UNIQUE constraint failed: orders.order_no') as Error & { name: string };
+    error.name = 'SequelizeUniqueConstraintError';
+    throw error;
+  }) as typeof Order.create;
+
+  try {
+    await assert.rejects(
+      () => orderService.createOrder({
+        order_no: 'PM-260329-1001',
+        supplier: '测试供应商',
+        category: '包装',
+        status: 'draft',
+        delivery_date: '2026-03-12T10:00:00.000Z',
+        metadata: {
+          order_source: 'manual',
+          customer_name: '客户B',
+        },
+        created_at: '2026-03-29T10:00:00.000Z',
+        items: [
+          {
+            supplier: '测试供应商',
+            name: '包装箱',
+            model: 'PK-1',
+            spec: '900*2050',
+            quantity: 2,
+            unit: '套',
+          }
+        ]
+      } as OrderCreateInput),
+      (error: { code: string; existingOrder: { order_no: string; id: number } }) => {
+        assert.equal(error.code, 'DUPLICATE_ORDER');
+        assert.equal(error.existingOrder.order_no, existingOrder.order_no);
+        assert.equal(error.existingOrder.id, existingOrder.id);
+        return true;
+      },
+    );
+  } finally {
+    orderService.allocateNextManualOrderNo = originalAllocateNextManualOrderNo;
+    orderService.assertUniqueOrderNo = originalAssertUniqueOrderNo;
+    Order.create = originalOrderCreate;
+  }
+});
+
 test('OrderService rejects manual orders with only placeholder items', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });
@@ -1185,6 +1324,64 @@ test('OrderService rejects invalid edits to existing manual orders', async () =>
     (error: any) => {
       assert.equal(error.code, 'VALIDATION_ERROR');
       assert.equal(Array.isArray(error.details?.issues), true);
+      return true;
+    },
+  );
+});
+
+test('OrderService rejects updating manual order number to an existing value', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const first = await orderService.createOrder({
+    order_no: 'MANUAL-UPDATE-DUP-001',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-11T10:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    items: [
+      {
+        name: '纸箱A',
+        spec: '960*2050',
+        quantity: 2,
+        quantity_left: 1,
+        quantity_right: 1,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+  const second = await orderService.createOrder({
+    order_no: 'MANUAL-UPDATE-DUP-002',
+    supplier: '测试供应商',
+    category: '包装',
+    status: 'draft',
+    delivery_date: '2026-03-11T11:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户B',
+    },
+    items: [
+      {
+        name: '纸箱B',
+        spec: '980*2100',
+        quantity: 2,
+        quantity_left: 1,
+        quantity_right: 1,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  await assert.rejects(
+    () => orderService.updateOrder(second.id, { order_no: first.order_no } as OrderUpdateInput),
+    (error: { code: string; existingOrder: { order_no: string; id: number } }) => {
+      assert.equal(error.code, 'DUPLICATE_ORDER');
+      assert.equal(error.existingOrder.order_no, first.order_no);
+      assert.equal(error.existingOrder.id, first.id);
       return true;
     },
   );

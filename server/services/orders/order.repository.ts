@@ -346,11 +346,45 @@ export async function findOrderById(
     return await Order.findByPk(id, { transaction }) as unknown as OrderInstance | null;
 }
 
+export async function findOrderByOrderNo(
+    orderNo: string,
+    transaction?: LooseTransaction,
+): Promise<OrderInstance | null> {
+    return await Order.findOne({
+        where: { order_no: orderNo },
+        transaction,
+    }) as unknown as OrderInstance | null;
+}
+
 export async function createOrder(
     values: OrderCreationAttributes,
     transaction?: LooseTransaction,
 ): Promise<OrderInstance> {
     return await Order.create(values, { transaction }) as unknown as OrderInstance;
+}
+
+export async function findMaxOrderNoSequenceByPrefix(
+    prefix: string,
+    transaction?: LooseTransaction,
+): Promise<number> {
+    const sequelize = getOrderSequelize();
+    const rows = await sequelize.query<{ max_sequence: number | string | null }>(
+        `
+            SELECT MAX(CAST(SUBSTR(order_no, :startPosition) AS INTEGER)) AS max_sequence
+            FROM orders
+            WHERE order_no LIKE :prefixLike
+        `,
+        {
+            replacements: {
+                prefixLike: `${prefix}%`,
+                startPosition: prefix.length + 1,
+            },
+            type: QueryTypes.SELECT,
+            transaction,
+        }
+    );
+
+    return toNumber(rows[0]?.max_sequence);
 }
 
 export async function bulkCreateOrderItems(

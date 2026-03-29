@@ -99,8 +99,16 @@ async function createLegacySchema(storagePath: string) {
     VALUES ('LEGACY-PO-001', 'Legacy Supplier', 'completed', '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
   await sequelize.query(`
+    INSERT INTO orders (order_no, supplier, status, metadata, created_at, delivery_date, updated_at)
+    VALUES ('LEGACY-PO-001', 'Legacy Supplier Duplicate', 'completed', '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+  await sequelize.query(`
     INSERT INTO inventory_receipts (order_id, order_no, order_item_id, material_id, item_name, supplier, quantity, unit, receipt_date, operator, remark, created_at, updated_at)
     VALUES (1, 'LEGACY-PO-001', NULL, 'LEGACY-MAT-001', 'Legacy Material', 'Legacy Supplier', 7, 'pcs', CURRENT_TIMESTAMP, 'Legacy User', '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+  await sequelize.query(`
+    INSERT INTO inventory_receipts (order_id, order_no, order_item_id, material_id, item_name, supplier, quantity, unit, receipt_date, operator, remark, created_at, updated_at)
+    VALUES (2, 'LEGACY-PO-001', NULL, 'LEGACY-MAT-001', 'Legacy Material', 'Legacy Supplier Duplicate', 3, 'pcs', CURRENT_TIMESTAMP, 'Legacy User', '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
 
   await sequelize.close();
@@ -150,6 +158,11 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
     assert.ok(inventoryMovements.source_type);
     assert.ok(inventoryMovements.source_id);
     assert.ok(inventoryMovements.source_line_key);
+    const [orderIndexes] = await sequelize.query(`PRAGMA index_list('orders')`);
+    assert.equal(
+      (orderIndexes as Array<{ name: string; unique: number }>).some((row) => row.name === 'idx_orders_order_no_unique' && Number(row.unique) === 1),
+      true
+    );
 
     const [defaultWarehouses] = await sequelize.query(`SELECT code FROM warehouses ORDER BY id`);
     assert.deepEqual((defaultWarehouses as Array<{ code: string }>).map((row) => row.code), ['DEFAULT']);
@@ -160,6 +173,29 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
     assert.equal(Number((receiptRows as Array<{ location_id: number }>)[0].location_id) > 0, true);
     const [balanceRows] = await sequelize.query(`SELECT quantity FROM inventory_location_balances ORDER BY id`);
     assert.equal(Number((balanceRows as Array<{ quantity: number }>)[0].quantity), 7);
+    const [dedupedOrders] = await sequelize.query(`SELECT id, order_no FROM orders ORDER BY id`);
+    assert.deepEqual(
+      dedupedOrders as Array<{ id: number; order_no: string }>,
+      [
+        { id: 1, order_no: 'LEGACY-PO-001' },
+        { id: 2, order_no: 'LEGACY-PO-001-DUP2' },
+      ]
+    );
+    const [dedupedReceipts] = await sequelize.query(`SELECT order_id, order_no FROM inventory_receipts ORDER BY id`);
+    assert.deepEqual(
+      dedupedReceipts as Array<{ order_id: number; order_no: string }>,
+      [
+        { order_id: 1, order_no: 'LEGACY-PO-001' },
+        { order_id: 2, order_no: 'LEGACY-PO-001-DUP2' },
+      ]
+    );
+    const [duplicateCounts] = await sequelize.query(`
+      SELECT order_no, COUNT(*) AS count
+      FROM orders
+      GROUP BY order_no
+      HAVING COUNT(*) > 1
+    `);
+    assert.equal((duplicateCounts as Array<{ order_no: string; count: number }>).length, 0);
 
     const [rows] = await sequelize.query(`SELECT id FROM ${MIGRATIONS_TABLE} ORDER BY id`);
     assert.deepEqual((rows as { id: string }[]).map((row) => row.id), [
@@ -172,6 +208,7 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
       '20260320-007-add-inventory-location-and-outbound',
       '20260320-008-add-inventory-reversal-guards',
       '20260329-009-add-inventory-movements',
+      '20260329-010-add-order-no-unique-index',
     ]);
   } finally {
     await sequelize.close();

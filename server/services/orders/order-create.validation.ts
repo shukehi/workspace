@@ -70,6 +70,9 @@ function resolveValidatedQuantity(item: Partial<OrderItemCreationAttributes>, ca
 }
 
 function isValidIsoDate(value: unknown): boolean {
+    if (value instanceof Date) {
+        return !Number.isNaN(value.getTime());
+    }
     const raw = toTrimmedString(value);
     if (!raw) return false;
     const parsed = new Date(raw);

@@ -16,7 +16,7 @@ const Order: ModelDefined<OrderAttributes, OrderCreationAttributes> = sequelize.
     },
     order_no: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
     },
     supplier: {
         type: DataTypes.STRING,
