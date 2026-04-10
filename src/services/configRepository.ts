@@ -25,13 +25,6 @@ async function defaultFetchJson(url: string) {
     }
 }
 
-const STATIC_MAPPING_PATHS: Record<Exclude<MappingKind, 'packaging'>, string> = {
-    cylinder: '/data/cylinder-mapping.json',
-    lock: '/data/lock-mapping.json',
-    lockFork: '/data/lock-fork-mapping.json',
-    handle: '/data/handle-mapping.json',
-};
-
 export class ApiWithStaticFallbackConfigRepository implements ConfigRepository {
     constructor(private readonly fetchJson: FetchJson = defaultFetchJson) {}
 
@@ -70,26 +63,7 @@ export class ApiWithStaticFallbackConfigRepository implements ConfigRepository {
         if (workflowPayload !== null) {
             return { payload: workflowPayload, source: 'api' };
         }
-
-        const apiPath = `/api/config/${kind === 'lockFork' ? 'lock-fork' : kind}`;
-        const apiPayload = await this.fetchJson(apiPath);
-        if (apiPayload !== null) {
-            return { payload: apiPayload, source: 'api' };
-        }
-
-        if (kind === 'packaging') {
-            const staticPayload = await this.fetchJson('/data/packaging-mapping.json');
-            if (staticPayload === null) {
-                return { payload: null, source: 'empty' };
-            }
-            return { payload: staticPayload, source: 'static' };
-        }
-
-        const staticPayload = await this.fetchJson(STATIC_MAPPING_PATHS[kind]);
-        if (staticPayload === null) {
-            return { payload: null, source: 'empty' };
-        }
-        return { payload: staticPayload, source: 'static' };
+        throw new Error(`Failed to load published mapping for ${workflowType}`);
     }
 }
 

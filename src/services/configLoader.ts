@@ -130,7 +130,7 @@ export class ConfigLoaderService {
         const result = await this.repository.readMapping(kind);
         this.loadSources[kind] = result.source;
         if (result.payload === null) {
-            console.warn(`⚠️ load${kind}Mapping failed`);
+            console.warn(`⚠️ load${kind}Mapping failed: missing published payload`);
             return;
         }
         this.applyRuntimeMapping(kind, result.payload);

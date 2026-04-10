@@ -27,6 +27,8 @@
         "db:backfill:order-item-material-ids": "node server/scripts/backfill_order_item_material_ids.js",
         "inventory:reconcile:dry-run": "tsx server/scripts/reconcile_inventory_baseline.ts --json",
         "inventory:cleanup-zero-stock:dry-run": "tsx server/scripts/cleanup_zero_stock_materials.ts --json",
+        "mapping:check:published": "tsx server/scripts/check_mapping_published_state.ts",
+        "mapping:seed:published": "tsx server/scripts/seed_mapping_profiles.ts",
         "db:migrate:formulas": "node server/scripts/migrate_formulas_to_sqlite.js",
         "db:migrate:formula-keys": "node server/scripts/migrate_formula_keys_to_generated_format.js",
         "db:export:formulas": "node server/scripts/export_formulas_to_json.js",
