@@ -60,7 +60,7 @@ test('useOrderActions markArrived calls the arrive endpoint with POST', async ()
   assert.equal(toasts.at(-1)?.title, '到货登记成功');
 });
 
-test('useOrderActions performCopyScreenshot writes screenshot and order number to clipboard', async () => {
+test('useOrderActions performCopyScreenshot writes screenshot image to clipboard', async () => {
   const requests: Array<{ kind: 'post' | 'postBlob'; url: string; data?: unknown }> = [];
   const toasts: Array<{ title: string; description?: string; variant?: string }> = [];
   const clipboardWrites: any[] = [];
@@ -110,7 +110,7 @@ test('useOrderActions performCopyScreenshot writes screenshot and order number t
 
   const clipboardItem = clipboardWrites[0][0] as FakeClipboardItem;
   assert.ok(clipboardItem.payload['image/png']);
-  assert.ok(clipboardItem.payload['text/plain']);
-  assert.ok(clipboardItem.payload['text/html']);
-  assert.equal(toasts.at(-1)?.title, '截图与订单号已复制');
+  assert.equal('text/plain' in clipboardItem.payload, false);
+  assert.equal('text/html' in clipboardItem.payload, false);
+  assert.equal(toasts.at(-1)?.title, '截图已复制');
 });

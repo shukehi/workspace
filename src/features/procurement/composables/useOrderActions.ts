@@ -56,32 +56,6 @@ export function useOrderActions(options: OrderActionOptions) {
     ClipboardItem: (typeof ClipboardItem !== 'undefined' ? ClipboardItem : undefined),
   };
 
-  function escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  async function blobToDataUrl(blob: Blob): Promise<string> {
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    let base64 = '';
-    if (typeof Buffer !== 'undefined') {
-      base64 = Buffer.from(bytes).toString('base64');
-    } else {
-      const chunkSize = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, i + chunkSize);
-        base64 += String.fromCharCode(...chunk);
-      }
-      base64 = btoa(base64);
-    }
-    const mime = blob.type || 'application/octet-stream';
-    return `data:${mime};base64,${base64}`;
-  }
-
   /**
    * 状态更新逻辑封装
    */
@@ -172,15 +146,12 @@ export function useOrderActions(options: OrderActionOptions) {
   }
 
   /**
-   * 复制截图到系统剪贴板（附带订单号文本）
+   * 复制订单截图到系统剪贴板
    */
   async function performCopyScreenshot(order: Order, printMode: string = 'signature') {
     const validation = validateForPrinting(order);
     if (!validation.canProceed) return;
     if (validation.needsConfirm && !browser.confirm(validation.message)) return;
-
-    const orderNo = String(order.order_no || '').trim() || '未命名订单';
-    const textPayload = `订单号：${orderNo}`;
 
     try {
       isActionInProgress.value = true;
@@ -198,28 +169,21 @@ export function useOrderActions(options: OrderActionOptions) {
       const clipboard = browser.clipboard;
       const ClipboardItemCtor = browser.ClipboardItem;
       if (!clipboard?.write || !ClipboardItemCtor) {
-        if (clipboard?.writeText) {
-          await clipboard.writeText(textPayload);
-        }
         options.toast({
           title: '当前环境不支持图片剪贴板',
-          description: '已复制订单号文本，可在目标应用粘贴后手动补图。',
+          description: '当前浏览器无法直接写入图片到系统剪贴板。',
           variant: 'destructive'
         });
         return;
       }
 
-      const imageDataUrl = await blobToDataUrl(pngBlob);
-      const htmlPayload = `<p>${escapeHtml(textPayload)}</p><img src="${imageDataUrl}" alt="${escapeHtml(orderNo)}" />`;
       const clipboardItem = new ClipboardItemCtor({
         'image/png': pngBlob,
-        'text/plain': new Blob([textPayload], { type: 'text/plain;charset=utf-8' }),
-        'text/html': new Blob([htmlPayload], { type: 'text/html;charset=utf-8' }),
       });
       await clipboard.write([clipboardItem]);
 
       options.toast({
-        title: '截图与订单号已复制',
+        title: '截图已复制',
         description: '可直接在邮件或即时通讯工具中粘贴。',
         variant: 'success'
       });

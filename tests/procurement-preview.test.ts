@@ -107,7 +107,7 @@ test('createProcurementPreview creates snapshot, prints, and exports pdf', async
   assert.equal(clipboardWrites.length, 1);
   const clipboardItem = clipboardWrites[0][0] as FakeClipboardItem;
   assert.ok(clipboardItem.payload['image/png']);
-  assert.ok(clipboardItem.payload['text/plain']);
-  assert.ok(clipboardItem.payload['text/html']);
-  assert.equal(toasts.at(-1)?.title, '截图与订单号已复制');
+  assert.equal('text/plain' in clipboardItem.payload, false);
+  assert.equal('text/html' in clipboardItem.payload, false);
+  assert.equal(toasts.at(-1)?.title, '截图已复制');
 });
