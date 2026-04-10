@@ -7,10 +7,11 @@ import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayo
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
+import { useRuleExplainPreview } from '@/features/config-editor/composables/useRuleExplainPreview';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
 import { refreshCylinderRuntime } from '@/services/configRuntime';
-import { adaptCylinderMapping, validateCylinderMapping } from '@/services/mappings';
+import { adaptCylinderAccessoryPackRulesToRuleSet, adaptCylinderMapping, validateCylinderMapping } from '@/services/mappings';
 import type {
   CylinderAccessoryPackRule,
   CylinderMappingConfig,
@@ -132,6 +133,16 @@ const mappingFiltered = computed(() => {
   return mappings.list.value.filter(m => m.name.toLowerCase().includes(kw) || m.supplier.toLowerCase().includes(kw) || m.template.toLowerCase().includes(kw));
 });
 const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
+const accessoryRuleSet = computed(() => adaptCylinderAccessoryPackRulesToRuleSet(payload.value));
+const accessoryExplain = useRuleExplainPreview(
+  () => accessoryRuleSet.value,
+  {
+    fshz: '一号铝小面板',
+    sxhz: '',
+    thickness: '7',
+    qtyTotal: 70,
+  }
+);
 
 // --- 重置逻辑 ---
 function resetWithPayload(data: CylinderMappingConfig) {
@@ -310,6 +321,72 @@ onMounted(editor.load);
             <Button variant="ghost" size="sm" class="w-full text-muted-foreground" @click="secondaryAccessoryPackRules.remove(r.id)">删除此规则</Button>
           </div>
           <Button variant="outline" size="sm" class="w-full border-dashed" @click="secondaryAccessoryPackRules.add()">+ 新增副锁护罩配件包规则</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>规则试跑</CardTitle>
+          <CardDescription>输入样本字段，查看副锁护罩配件包规则的命中轨迹与最终输出。</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-muted-foreground">副锁护罩 (fshz)</label>
+              <Input :model-value="String(accessoryExplain.snapshot.fshz || '')" @update:model-value="accessoryExplain.setField('fshz', $event)" placeholder="一号铝小面板" />
+            </div>
+            <div>
+              <label class="text-xs text-muted-foreground">主锁护罩 (sxhz)</label>
+              <Input :model-value="String(accessoryExplain.snapshot.sxhz || '')" @update:model-value="accessoryExplain.setField('sxhz', $event)" placeholder="可留空" />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="text-xs text-muted-foreground">门厚</label>
+              <Input :model-value="String(accessoryExplain.snapshot.thickness || '')" @update:model-value="accessoryExplain.setField('thickness', $event)" placeholder="7" />
+            </div>
+            <div>
+              <label class="text-xs text-muted-foreground">总数量</label>
+              <Input :model-value="String(accessoryExplain.snapshot.qtyTotal || '')" @update:model-value="accessoryExplain.setField('qtyTotal', Number($event || 0))" type="number" min="0" />
+            </div>
+            <div class="flex items-end">
+              <Button variant="outline" size="sm" class="w-full" @click="accessoryExplain.reset()">重置样本</Button>
+            </div>
+          </div>
+
+          <div class="rounded-md border bg-muted/20 p-3 space-y-2">
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-medium">命中规则数</span>
+              <span>{{ accessoryExplain.matchedCount }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-medium">最终生效规则</span>
+              <span>{{ accessoryExplain.result.value.winningRules.join(', ') || '无' }}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div class="rounded-md border p-3 bg-background">
+              <div class="text-sm font-medium mb-2">命中轨迹</div>
+              <div class="space-y-2">
+                <div
+                  v-for="trace in accessoryExplain.result.value.traces"
+                  :key="trace.ruleId"
+                  class="rounded border px-3 py-2 text-xs"
+                  :class="trace.matched ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-slate-50 text-slate-600'"
+                >
+                  <div class="font-medium">{{ trace.ruleId }}</div>
+                  <div>priority={{ trace.priority }} · stage={{ trace.stage }} · {{ trace.matched ? 'matched' : trace.skippedReason }}</div>
+                </div>
+                <div v-if="accessoryExplain.result.value.traces.length === 0" class="text-xs text-muted-foreground">当前没有可解释的 accessory 规则。</div>
+              </div>
+            </div>
+
+            <div class="rounded-md border p-3 bg-background">
+              <div class="text-sm font-medium mb-2">最终输出</div>
+              <pre class="text-xs whitespace-pre-wrap break-all text-slate-700">{{ JSON.stringify(accessoryExplain.result.value.output, null, 2) }}</pre>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
