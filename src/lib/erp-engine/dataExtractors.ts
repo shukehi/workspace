@@ -45,6 +45,15 @@ type HandleResultRow = {
     quantityRight: number;
     quantity: number;
 };
+type HardwareAccessoryResultRow = {
+    materialId: string;
+    supplier: string;
+    type: string;
+    spec: string;
+    remark: string;
+    unit: string;
+    quantity: number;
+};
 
 /**
  * 提取锁芯采购数据
@@ -255,6 +264,75 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
     }
 
     return Object.values(cylinderMap);
+}
+
+export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDER_MAPPING: GenericMap = {}): HardwareAccessoryResultRow[] {
+    const accessoryMap: Record<string, HardwareAccessoryResultRow> = {};
+    const rules = Array.isArray(CYLINDER_MAPPING.secondaryAccessoryPackRules)
+        ? CYLINDER_MAPPING.secondaryAccessoryPackRules
+        : [];
+
+    if (rules.length === 0) return [];
+
+    const toText = (value: unknown) => (typeof value === 'string' ? value.trim() : String(value || '').trim());
+    const resolveThickness = (item: OrderItem) => {
+        const directThickness = toText(item.mshd);
+        if (directThickness) return directThickness;
+        const parts = toText(item.spec).split('/');
+        return parts.length >= 2 ? parts[1].trim() : '';
+    };
+
+    orderList.forEach((item) => {
+        const getConditionValue = (field: unknown) => {
+            const key = toText(field);
+            if (!key) return '';
+            return toText((item as GenericMap)[key]);
+        };
+
+        const thickness = resolveThickness(item);
+        const qtyPair = parseQuantityPair(item.qty);
+        const totalQty = qtyPair.left + qtyPair.right;
+        if (totalQty <= 0) return;
+
+        rules.forEach((rule: GenericMap) => {
+            const fieldName = toText(rule.conditionField) || 'fshz';
+            const fieldValue = getConditionValue(fieldName);
+            const keyword = toText(rule.keyword);
+            if (!keyword || !fieldValue.includes(keyword)) return;
+
+            const packs = rule.thicknessAccessoryPacks && typeof rule.thicknessAccessoryPacks === 'object'
+                ? rule.thicknessAccessoryPacks
+                : {};
+            const materialCodes = rule.thicknessMaterialCodes && typeof rule.thicknessMaterialCodes === 'object'
+                ? rule.thicknessMaterialCodes
+                : {};
+            const packName = toText(packs[thickness]);
+            const materialId = toText(materialCodes[thickness]);
+            if (!packName || !materialId) return;
+
+            const supplier = toText(rule.supplier) || '待人工处理';
+            const type = toText(rule.itemName) || keyword;
+            const remark = toText(rule.remark);
+            const unit = toText(rule.unit) || '个';
+            const key = `${materialId}|${supplier}|${type}|${packName}|${remark}|${unit}`;
+
+            if (accessoryMap[key]) {
+                accessoryMap[key].quantity += totalQty;
+            } else {
+                accessoryMap[key] = {
+                    materialId,
+                    supplier,
+                    type,
+                    spec: packName,
+                    remark,
+                    unit,
+                    quantity: totalQty,
+                };
+            }
+        });
+    });
+
+    return Object.values(accessoryMap);
 }
 
 /**

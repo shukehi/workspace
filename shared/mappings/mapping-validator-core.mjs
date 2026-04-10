@@ -195,6 +195,52 @@ function validateCylinderRuleGroup(path, rules, validThicknessSet, issues) {
   });
 }
 
+function validateCylinderAccessoryPackRules(path, rules, issues) {
+  rules.forEach((rule, index) => {
+    const rulePath = `${path}[${index}]`;
+    const rawRule = asRecord(rule);
+    const conditionField = toTrimmedString(rawRule.conditionField);
+    const keyword = toTrimmedString(rawRule.keyword);
+    const supplier = toTrimmedString(rawRule.supplier);
+    const packs = asRecord(rawRule.thicknessAccessoryPacks);
+    const codes = asRecord(rawRule.thicknessMaterialCodes);
+
+    if (!conditionField) {
+      issues.push(createIssue(`${rulePath}.conditionField`, 'required', 'conditionField 不能为空'));
+    }
+    if (!keyword) {
+      issues.push(createIssue(`${rulePath}.keyword`, 'required', 'keyword 不能为空'));
+    }
+    if (!supplier) {
+      issues.push(createIssue(`${rulePath}.supplier`, 'required', 'supplier 不能为空'));
+    }
+    if (!isPlainObject(rawRule.thicknessAccessoryPacks)) {
+      issues.push(createIssue(`${rulePath}.thicknessAccessoryPacks`, 'invalid-type', 'thicknessAccessoryPacks 必须是对象'));
+      return;
+    }
+    if (Object.keys(packs).length === 0) {
+      issues.push(createIssue(`${rulePath}.thicknessAccessoryPacks`, 'required', 'thicknessAccessoryPacks 不能为空'));
+      return;
+    }
+    if (!isPlainObject(rawRule.thicknessMaterialCodes)) {
+      issues.push(createIssue(`${rulePath}.thicknessMaterialCodes`, 'invalid-type', 'thicknessMaterialCodes 必须是对象'));
+      return;
+    }
+
+    Object.entries(packs).forEach(([thickness, label]) => {
+      if (!toTrimmedString(thickness)) {
+        issues.push(createIssue(`${rulePath}.thicknessAccessoryPacks`, 'required', '门厚 key 不能为空'));
+      }
+      if (!toTrimmedString(label)) {
+        issues.push(createIssue(`${rulePath}.thicknessAccessoryPacks[${quotePathSegment(thickness)}]`, 'required', '配件包名称不能为空'));
+      }
+      if (!toTrimmedString(codes[thickness])) {
+        issues.push(createIssue(`${rulePath}.thicknessMaterialCodes[${quotePathSegment(thickness)}]`, 'required', '物料编码不能为空'));
+      }
+    });
+  });
+}
+
 function validateRawCylinderMappings(value, issues) {
   const mappings = asRecord(asRecord(value).mappings);
 
@@ -229,6 +275,7 @@ function validateCylinderMapping(value) {
   validateCylinderDimensionMap('secondaryDimensions', adapted.secondaryDimensions, issues);
   validateCylinderRuleGroup('specialRules', Array.isArray(rawRecord.specialRules) ? rawRecord.specialRules : [], new Set(Object.keys(adapted.dimensions)), issues);
   validateCylinderRuleGroup('secondarySpecialRules', Array.isArray(rawRecord.secondarySpecialRules) ? rawRecord.secondarySpecialRules : [], new Set(Object.keys(adapted.secondaryDimensions)), issues);
+  validateCylinderAccessoryPackRules('secondaryAccessoryPackRules', Array.isArray(rawRecord.secondaryAccessoryPackRules) ? rawRecord.secondaryAccessoryPackRules : [], issues);
 
   Object.entries(adapted.mappings).forEach(([name, mapping]) => {
     const path = `mappings[${quotePathSegment(name)}]`;

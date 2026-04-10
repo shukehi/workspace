@@ -17,6 +17,24 @@
             "eccentricity": "41*79/中心孔偏心"
         }
     },
+    "secondaryDimensions": {
+        "7": {
+            "code": "",
+            "eccentricity": "",
+            "variants": {
+                "内开": {
+                    "code": "90",
+                    "eccentricity": "30*60/中心孔偏心",
+                    "remark": "旋钮在长一边"
+                },
+                "外开": {
+                    "code": "90",
+                    "eccentricity": "35*55/中心孔偏心",
+                    "remark": "旋钮在短一边"
+                }
+            }
+        }
+    },
     "specialRules": [
         {
             "conditionField": "sxhz",
@@ -64,24 +82,6 @@
             }
         }
     ],
-    "secondaryDimensions": {
-        "7": {
-            "code": "",
-            "eccentricity": "",
-            "variants": {
-                "内开": {
-                    "code": "90",
-                    "eccentricity": "30*60/中心孔偏心",
-                    "remark": "旋钮在长一边"
-                },
-                "外开": {
-                    "code": "90",
-                    "eccentricity": "35*55/中心孔偏心",
-                    "remark": "旋钮在短一边"
-                }
-            }
-        }
-    },
     "secondarySpecialRules": [
         {
             "conditionField": "fshz",
@@ -93,6 +93,27 @@
                     "eccentricity": "37*68/中心孔偏心",
                     "remark": "旋钮在一边"
                 }
+            }
+        }
+    ],
+    "secondaryAccessoryPackRules": [
+        {
+            "conditionField": "fshz",
+            "keyword": "一号铝小面板",
+            "supplier": "待人工处理",
+            "itemName": "一号铝小面板",
+            "unit": "套",
+            "thicknessAccessoryPacks": {
+                "5": "5公分配件包",
+                "7": "7公分配件包",
+                "9": "9公分配件包",
+                "10": "10公分配件包"
+            },
+            "thicknessMaterialCodes": {
+                "5": "ACC-FSHZ-YHLXMB-5",
+                "7": "ACC-FSHZ-YHLXMB-7",
+                "9": "ACC-FSHZ-YHLXMB-9",
+                "10": "ACC-FSHZ-YHLXMB-10"
             }
         }
     ],

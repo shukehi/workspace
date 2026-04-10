@@ -87,6 +87,27 @@ test('server mapping validator: cylinder custom logos reject duplicates case-ins
   assert.ok(issues.some((item) => item.path === 'customLogos[1]' && item.code === 'duplicate'));
 });
 
+test('server mapping validator: cylinder accessory pack rules require thickness material codes', () => {
+  const issues = validateCylinderMapping({
+    dimensions: {
+      7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
+    },
+    secondaryAccessoryPackRules: [
+      {
+        conditionField: 'fshz',
+        keyword: '一号铝小面板',
+        supplier: '配件供应商',
+        thicknessAccessoryPacks: {
+          '7': '7公分配件包',
+        },
+        thicknessMaterialCodes: {},
+      },
+    ],
+  });
+
+  assert.ok(issues.some((item) => item.path === 'secondaryAccessoryPackRules[0].thicknessMaterialCodes["7"]'));
+});
+
 test('server mapping validator: lock-fork high-height rules expose nested paths', () => {
   const issues = validateLockForkMapping({
     highHeightRules: {

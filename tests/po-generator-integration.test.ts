@@ -26,6 +26,7 @@ function createDeps(): RuleContext {
         locks: [{ supplier: '汇成', type: '智能锁体A', spec: '主锁', unit: '把', quantityLeft: 3, quantityRight: 5, quantity: 8, remark: '单活' }],
         handles: [{ supplier: '供应商X', materialId: 'HANDLE-MAT-002', type: 'DJ-6847双活供应商名', spec: '10公分配件包', quantityLeft: 2, quantityRight: 4, quantity: 6 }],
         lockForks: [{ supplier: '应志友', type: '锁叉A', spec: '570*301 = 871', quantity: 12 }],
+        accessories: [{ supplier: '配件供应商', materialId: 'ACC-PACK-7', type: '一号铝小面板', spec: '7公分配件包', quantity: 4, unit: '套', remark: '副锁护罩' }],
         packaging: {
           p1: {
             internalName: '包装A',
@@ -59,6 +60,7 @@ test('po generator integration: compose groups and create selected category orde
   const proposal = generator.generateProposal({ mergeSameSpec: true });
   const proposalKeys = proposal.map((g) => `${g.category}_${g.supplierName}`).sort();
   assert.deepEqual(proposalKeys, [
+    '五金/配件_配件供应商',
     '包装_方亮包装',
     '拉手_供应商X',
     '锁具_汇成',
@@ -69,6 +71,7 @@ test('po generator integration: compose groups and create selected category orde
 
   const orders = generator.createOrders([
     { category: '包装', supplier: '方亮包装' },
+    { category: '五金/配件', supplier: '配件供应商' },
     { category: '锁芯', supplier: '忠恒' },
     { category: '锁具', supplier: '汇成' },
     { category: '拉手', supplier: '供应商X' },
@@ -76,9 +79,17 @@ test('po generator integration: compose groups and create selected category orde
     { category: '颜色', supplier: '原料供应商' },
   ], { mergeSameSpec: true });
 
-  assert.equal(orders.length, 6);
+  assert.equal(orders.length, 7);
+  assert.deepEqual(orders.map((order) => order.order_no), [
+    'PO-CT-001-01',
+    'PO-CT-001-02',
+    'PO-CT-001-03',
+    'PO-CT-001-04',
+    'PO-CT-001-05',
+    'PO-CT-001-06',
+    'PO-CT-001-07',
+  ]);
   orders.forEach((order) => {
-    assert.equal(order.order_no, 'PO-CT-001');
     assert.equal(order.source_contract_code, 'CT-001');
     assert.equal(order.metadata?.customer_name, '客户A');
     assert.equal(order.metadata?.order_source, 'auto');
@@ -97,6 +108,11 @@ test('po generator integration: compose groups and create selected category orde
   const cylinderOrder = orders.find((o) => o.category === '锁芯');
   assert.ok(cylinderOrder);
   assert.equal(cylinderOrder!.items[0].material_id, '锁芯A');
+
+  const accessoryOrder = orders.find((o) => o.category === '五金/配件');
+  assert.ok(accessoryOrder);
+  assert.equal(accessoryOrder!.items[0].material_id, 'ACC-PACK-7');
+  assert.equal(accessoryOrder!.items[0].unit, '套');
 
   const lockOrder = orders.find((o) => o.category === '锁具');
   assert.ok(lockOrder);
@@ -118,4 +134,22 @@ test('po generator integration: compose groups and create selected category orde
   const rawMaterialOrder = orders.find((o) => o.category === '颜色');
   assert.ok(rawMaterialOrder);
   assert.equal(rawMaterialOrder!.items[0].material_id, 'RM-001');
+});
+
+test('po generator integration: order numbers stay stable for the same supplier/category group', () => {
+  const deps = createDeps();
+  const generator = new POGenerator(deps);
+
+  const [first] = generator.createOrders([
+    { category: '锁具', supplier: '汇成' },
+  ], { mergeSameSpec: true });
+
+  const [second] = generator.createOrders([
+    { category: '锁具', supplier: '汇成' },
+  ], { mergeSameSpec: true });
+
+  assert.ok(first);
+  assert.ok(second);
+  assert.equal(first.order_no, second.order_no);
+  assert.equal(first.order_no, 'PO-CT-001-01');
 });

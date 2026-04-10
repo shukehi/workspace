@@ -29,6 +29,17 @@ export interface CylinderSpecialRule {
   variants: Record<string, CylinderDimensionVariant>;
 }
 
+export interface CylinderAccessoryPackRule {
+  conditionField: string;
+  keyword: string;
+  supplier: string;
+  thicknessAccessoryPacks: Record<string, string>;
+  thicknessMaterialCodes: Record<string, string>;
+  itemName?: string;
+  unit?: string;
+  remark?: string;
+}
+
 export interface CylinderMappingEntry {
   supplier: string;
   template: string;
@@ -39,6 +50,7 @@ export interface CylinderMappingConfig {
   specialRules: CylinderSpecialRule[];
   secondaryDimensions: Record<string, CylinderDimensionRule>;
   secondarySpecialRules: CylinderSpecialRule[];
+  secondaryAccessoryPackRules: CylinderAccessoryPackRule[];
   mappings: Record<string, CylinderMappingEntry>;
   customLogos: string[];
   excludedCylinders: string[];

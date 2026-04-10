@@ -12,6 +12,7 @@ import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappin
 import { refreshCylinderRuntime } from '@/services/configRuntime';
 import { adaptCylinderMapping, validateCylinderMapping } from '@/services/mappings';
 import type {
+  CylinderAccessoryPackRule,
   CylinderMappingConfig,
   CylinderDimensionVariant,
   CylinderSpecialRule
@@ -23,6 +24,17 @@ type DimensionRow = { id: string; thickness: string; code: string; eccentricity:
 type VariantRow = { id: string; name: string; code: string; eccentricity: string; remark?: string };
 type DimensionGroup = { id: string; thickness: string; variants: VariantRow[] };
 type RuleRow = { id: string; conditionField: string; keyword: string; thickness: string; variants: VariantRow[] };
+type AccessoryRuleRow = {
+  id: string;
+  conditionField: string;
+  keyword: string;
+  supplier: string;
+  itemName: string;
+  unit: string;
+  remark: string;
+  thicknessAccessoryPacks: Record<'5' | '7' | '9' | '10', string>;
+  thicknessMaterialCodes: Record<'5' | '7' | '9' | '10', string>;
+};
 type MappingRow = { id: string; name: string; supplier: string; template: string };
 type LogoRow = { id: string; value: string };
 type ExcludedCylinderRow = { id: string; value: string };
@@ -36,6 +48,17 @@ const primaryDimensions = useEditableList<DimensionRow>(() => ({ id: '', thickne
 const secondaryDimensions = useEditableList<DimensionGroup>(() => ({ id: '', thickness: '', variants: [{ id: 'v1', name: '', code: '', eccentricity: '' }] }));
 const specialRules = useEditableList<RuleRow>(() => ({ id: '', conditionField: '', keyword: '', thickness: '', variants: [{ id: 'v1', name: '', code: '', eccentricity: '' }] }));
 const secondarySpecialRules = useEditableList<RuleRow>(() => ({ id: '', conditionField: '', keyword: '', thickness: '', variants: [{ id: 'v1', name: '', code: '', eccentricity: '' }] }));
+const secondaryAccessoryPackRules = useEditableList<AccessoryRuleRow>(() => ({
+  id: '',
+  conditionField: 'fshz',
+  keyword: '',
+  supplier: '',
+  itemName: '',
+  unit: '个',
+  remark: '',
+  thicknessAccessoryPacks: { '5': '', '7': '', '9': '', '10': '' },
+  thicknessMaterialCodes: { '5': '', '7': '', '9': '', '10': '' }
+}));
 const mappings = useEditableList<MappingRow>(() => ({ id: '', name: '', supplier: '', template: '' }));
 const customLogos = useEditableList<LogoRow>(() => ({ id: '', value: '' }));
 const excludedCylinders = useEditableList<ExcludedCylinderRow>(() => ({ id: '', value: '' }));
@@ -70,6 +93,20 @@ const payload = computed<CylinderMappingConfig>(() => ({
     thickness: r.thickness,
     variants: toVariantMap(r.variants)
   })),
+  secondaryAccessoryPackRules: secondaryAccessoryPackRules.list.value.map((r) => ({
+    conditionField: r.conditionField,
+    keyword: r.keyword,
+    supplier: r.supplier,
+    thicknessAccessoryPacks: Object.fromEntries(
+      Object.entries(r.thicknessAccessoryPacks).filter(([, value]) => value.trim())
+    ),
+    thicknessMaterialCodes: Object.fromEntries(
+      Object.entries(r.thicknessMaterialCodes).filter(([, value]) => value.trim())
+    ),
+    ...(r.itemName ? { itemName: r.itemName } : {}),
+    ...(r.unit ? { unit: r.unit } : {}),
+    ...(r.remark ? { remark: r.remark } : {})
+  })),
   mappings: rowsToMap(mappings.list.value, 'name', (m) => ({ supplier: m.supplier, template: m.template })),
   customLogos: customLogos.list.value.map((l) => l.value),
   excludedCylinders: excludedCylinders.list.value.map((e) => e.value)
@@ -86,7 +123,7 @@ const clientIssues = computed(() => {
 });
 
 const hasBaseIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('dimensions[') || i.path.startsWith('secondaryDimensions[')));
-const hasRulesIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('specialRules[') || i.path.startsWith('secondarySpecialRules[')));
+const hasRulesIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('specialRules[') || i.path.startsWith('secondarySpecialRules[') || i.path.startsWith('secondaryAccessoryPackRules[')));
 const hasMappingsIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('mappings[') || i.path.startsWith('customLogos[') || i.path.startsWith('excludedCylinders[')));
 
 const mappingFiltered = computed(() => {
@@ -111,8 +148,29 @@ function resetWithPayload(data: CylinderMappingConfig) {
     thickness: r.thickness,
     variants: mapToRows(r.variants, 'name', (n, v) => ({ name: n, code: v.code, eccentricity: v.eccentricity, remark: v.remark } as any))
   });
+  const accessoryRuleToRow = (r: CylinderAccessoryPackRule) => ({
+    conditionField: r.conditionField,
+    keyword: r.keyword,
+    supplier: r.supplier,
+    itemName: r.itemName || '',
+    unit: r.unit || '个',
+    remark: r.remark || '',
+    thicknessAccessoryPacks: {
+      '5': r.thicknessAccessoryPacks?.['5'] || '',
+      '7': r.thicknessAccessoryPacks?.['7'] || '',
+      '9': r.thicknessAccessoryPacks?.['9'] || '',
+      '10': r.thicknessAccessoryPacks?.['10'] || '',
+    },
+    thicknessMaterialCodes: {
+      '5': r.thicknessMaterialCodes?.['5'] || '',
+      '7': r.thicknessMaterialCodes?.['7'] || '',
+      '9': r.thicknessMaterialCodes?.['9'] || '',
+      '10': r.thicknessMaterialCodes?.['10'] || '',
+    }
+  });
   specialRules.reset(adapted.specialRules.map(r => ({ id: '', ...ruleToRow(r) } as any)));
   secondarySpecialRules.reset(adapted.secondarySpecialRules.map(r => ({ id: '', ...ruleToRow(r) } as any)));
+  secondaryAccessoryPackRules.reset(adapted.secondaryAccessoryPackRules.map(r => ({ id: '', ...accessoryRuleToRow(r) } as any)));
   
   mappings.reset(mapToRows(adapted.mappings, 'name', (n, m) => ({ name: n, supplier: m.supplier, template: m.template } as any)));
   customLogos.reset(adapted.customLogos.map(v => ({ id: '', value: v } as any)));
@@ -217,6 +275,41 @@ onMounted(editor.load);
             <Button variant="ghost" size="sm" class="w-full text-muted-foreground" @click="(title === 'specialRules' ? specialRules : secondarySpecialRules).remove(r.id)">删除此规则</Button>
           </div>
           <Button variant="outline" size="sm" class="w-full border-dashed" @click="(title === 'specialRules' ? specialRules : secondarySpecialRules).add()">+ 新增{{ title }}</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>副锁护罩配件包</CardTitle>
+          <CardDescription>`fshz` 命中关键字后，按门厚输出到“五金/配件”采购单。</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div v-for="r in secondaryAccessoryPackRules.list.value" :key="r.id" class="rounded-md border p-3 bg-background space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div><label class="text-xs text-muted-foreground">条件字段</label><Input v-model="r.conditionField" placeholder="fshz" /></div>
+              <div><label class="text-xs text-muted-foreground">关键字</label><Input v-model="r.keyword" placeholder="一号铝小面板" /></div>
+              <div><label class="text-xs text-muted-foreground">供应商</label><Input v-model="r.supplier" placeholder="供应商名称" /></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div><label class="text-xs text-muted-foreground">采购名称</label><Input v-model="r.itemName" placeholder="默认使用关键字" /></div>
+              <div><label class="text-xs text-muted-foreground">单位</label><Input v-model="r.unit" placeholder="个" /></div>
+              <div><label class="text-xs text-muted-foreground">备注</label><Input v-model="r.remark" placeholder="可选备注" /></div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div v-for="thickness in ['5', '7', '9', '10']" :key="thickness">
+                <label class="text-xs text-muted-foreground">{{ thickness }} 公分配件包</label>
+                <Input v-model="r.thicknessAccessoryPacks[thickness as '5' | '7' | '9' | '10']" :placeholder="`${thickness}公分配件包`" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div v-for="thickness in ['5', '7', '9', '10']" :key="`${thickness}-code`">
+                <label class="text-xs text-muted-foreground">{{ thickness }} 公分物料编码</label>
+                <Input v-model="r.thicknessMaterialCodes[thickness as '5' | '7' | '9' | '10']" :placeholder="`ACC-${thickness}`" />
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" class="w-full text-muted-foreground" @click="secondaryAccessoryPackRules.remove(r.id)">删除此规则</Button>
+          </div>
+          <Button variant="outline" size="sm" class="w-full border-dashed" @click="secondaryAccessoryPackRules.add()">+ 新增副锁护罩配件包规则</Button>
         </CardContent>
       </Card>
     </div>

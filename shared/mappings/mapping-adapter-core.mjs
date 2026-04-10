@@ -124,6 +124,73 @@ function adaptCylinderSpecialRules(value) {
   return value.map((item) => adaptCylinderSpecialRule(item)).filter(Boolean);
 }
 
+function adaptThicknessAccessoryPacks(value) {
+  const record = asRecord(value);
+  const packs = {};
+
+  Object.entries(record).forEach(([rawKey, rawValue]) => {
+    const key = toTrimmedString(rawKey);
+    const label = toTrimmedString(rawValue);
+    if (!key || !label) return;
+    packs[key] = label;
+  });
+
+  return packs;
+}
+
+function adaptThicknessMaterialCodes(value) {
+  const record = asRecord(value);
+  const codes = {};
+
+  Object.entries(record).forEach(([rawKey, rawValue]) => {
+    const key = toTrimmedString(rawKey);
+    const code = toTrimmedString(rawValue);
+    if (!key || !code) return;
+    codes[key] = code;
+  });
+
+  return codes;
+}
+
+function adaptCylinderAccessoryPackRule(value) {
+  const record = asRecord(value);
+  const conditionField = toTrimmedString(record.conditionField);
+  const keyword = toTrimmedString(record.keyword);
+  const supplier = toTrimmedString(record.supplier);
+  const itemName = toTrimmedString(record.itemName);
+  const unit = toTrimmedString(record.unit);
+  const remark = toTrimmedString(record.remark);
+  const thicknessAccessoryPacks = adaptThicknessAccessoryPacks(record.thicknessAccessoryPacks);
+  const thicknessMaterialCodes = adaptThicknessMaterialCodes(record.thicknessMaterialCodes);
+
+  if (
+    !conditionField
+    && !keyword
+    && !supplier
+    && !itemName
+    && !unit
+    && !remark
+    && Object.keys(thicknessAccessoryPacks).length === 0
+    && Object.keys(thicknessMaterialCodes).length === 0
+  ) return null;
+
+  return {
+    conditionField,
+    keyword,
+    supplier,
+    thicknessAccessoryPacks,
+    thicknessMaterialCodes,
+    ...(itemName ? { itemName } : {}),
+    ...(unit ? { unit } : {}),
+    ...(remark ? { remark } : {}),
+  };
+}
+
+function adaptCylinderAccessoryPackRules(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => adaptCylinderAccessoryPackRule(item)).filter(Boolean);
+}
+
 function adaptCylinderMappingEntry(value) {
   const record = asRecord(value);
   const supplier = toTrimmedString(record.supplier);
@@ -308,6 +375,7 @@ function adaptCylinderMapping(value) {
     secondaryDimensions: adaptCylinderDimensionMap(record.secondaryDimensions),
     specialRules: adaptCylinderSpecialRules(record.specialRules),
     secondarySpecialRules: adaptCylinderSpecialRules(record.secondarySpecialRules),
+    secondaryAccessoryPackRules: adaptCylinderAccessoryPackRules(record.secondaryAccessoryPackRules),
     mappings: adaptCylinderMappings(record.mappings),
     customLogos: adaptStringList(record.customLogos),
     excludedCylinders: (() => {

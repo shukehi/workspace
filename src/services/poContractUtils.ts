@@ -146,13 +146,37 @@ export function createHandleOrderItem(params: {
     };
 }
 
+export function createHardwareOrderItem(params: {
+    materialId: string;
+    supplier: string;
+    type: string;
+    spec: string;
+    quantity: number;
+    unit?: string;
+    remark?: string;
+}): OrderItem {
+    return {
+        id: 0,
+        material_id: params.materialId,
+        supplier: params.supplier,
+        name: params.type || '五金配件',
+        model: params.spec || '-',
+        type: params.type || '五金配件',
+        spec: params.spec || '-',
+        quantity: params.quantity,
+        unit: params.unit || '个',
+        remark: params.remark || ''
+    };
+}
+
 export function findMissingCategoryFields(category: string, items: OrderItem[]) {
     const requiredByCategory: Record<string, string[]> = {
         '包装': ['supplier', 'internal_name', 'external_name', 'spec', 'mb', 'quantity'],
         '锁芯': ['supplier', 'type', 'eccentricity', 'quantity'],
         '锁具': ['supplier', 'type', 'spec', 'quantity_left', 'quantity_right', 'quantity'],
         '锁叉': ['supplier', 'type', 'spec', 'quantity'],
-        '拉手': ['supplier', 'type', 'spec', 'quantity_left', 'quantity_right', 'quantity']
+        '拉手': ['supplier', 'type', 'spec', 'quantity_left', 'quantity_right', 'quantity'],
+        '五金/配件': ['supplier', 'type', 'spec', 'quantity']
     };
     const required = requiredByCategory[category];
     if (!required) return [];

@@ -7,12 +7,17 @@ import {
   buildCylinderGroups,
   buildLockGroups,
   buildHandleGroups,
+  buildAccessoryGroups,
   buildLockForkGroups,
   buildPackagingGroups,
   type RuleContext,
   type SourceStorePort,
   type SupplierGroup,
 } from '@/services/po-rules';
+
+function buildAutoOrderNo(contractCode: string, sequence: number) {
+  return `PO-${contractCode}-${String(sequence).padStart(2, '0')}`;
+}
 
 export class POGenerator {
   private sourceStore: SourceStorePort;
@@ -78,6 +83,7 @@ export class POGenerator {
     this.mergeGroups(proposal, buildCylinderGroups(this.ruleContext));
     this.mergeGroups(proposal, buildLockGroups(this.ruleContext));
     this.mergeGroups(proposal, buildHandleGroups(this.ruleContext));
+    this.mergeGroups(proposal, buildAccessoryGroups(this.ruleContext));
     this.mergeGroups(proposal, buildLockForkGroups(this.ruleContext));
     this.mergeGroups(proposal, buildPackagingGroups(this.ruleContext, { mergeSameSpec }));
 
@@ -94,6 +100,7 @@ export class POGenerator {
     const orders: Order[] = [];
     const contractCode = this.sourceStore.currentOrder?.code || 'UNKNOWN';
     const customerName = this.sourceStore.currentOrder?.customerName || '';
+    let nextSequence = 1;
 
     proposal.forEach((group) => {
       const isSelected = selectedGroups.some(
@@ -101,9 +108,12 @@ export class POGenerator {
       );
       if (!isSelected) return;
 
+      const orderNo = buildAutoOrderNo(contractCode, nextSequence);
+      nextSequence += 1;
+
       orders.push({
         id: 0,
-        order_no: `PO-${contractCode}`,
+        order_no: orderNo,
         supplier: group.supplierName,
         source_contract_code: contractCode,
         category: group.category,
@@ -119,8 +129,8 @@ export class POGenerator {
         },
       });
 
-      this.validateCategoryItems(group.category, group.items, `PO-${contractCode}`);
-      this.validateCommonItemFields(group.category, group.items, `PO-${contractCode}`);
+      this.validateCategoryItems(group.category, group.items, orderNo);
+      this.validateCommonItemFields(group.category, group.items, orderNo);
     });
 
     return orders;
