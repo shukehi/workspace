@@ -209,7 +209,29 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
       '20260320-008-add-inventory-reversal-guards',
       '20260329-009-add-inventory-movements',
       '20260329-010-add-order-no-unique-index',
+      '20260410-011-seed-secondary-shield-accessory-materials',
     ]);
+
+    const [accessoryMaterials] = await sequelize.query(`
+      SELECT code, supplier, category, unit
+      FROM materials
+      WHERE code IN (
+        'ACC-FSHZ-YHLXMB-5',
+        'ACC-FSHZ-YHLXMB-7',
+        'ACC-FSHZ-YHLXMB-9',
+        'ACC-FSHZ-YHLXMB-10'
+      )
+      ORDER BY code
+    `);
+    assert.deepEqual(
+      accessoryMaterials as Array<{ code: string; supplier: string; category: string; unit: string }>,
+      [
+        { code: 'ACC-FSHZ-YHLXMB-10', supplier: '巨力', category: '五金/配件', unit: '套' },
+        { code: 'ACC-FSHZ-YHLXMB-5', supplier: '巨力', category: '五金/配件', unit: '套' },
+        { code: 'ACC-FSHZ-YHLXMB-7', supplier: '巨力', category: '五金/配件', unit: '套' },
+        { code: 'ACC-FSHZ-YHLXMB-9', supplier: '巨力', category: '五金/配件', unit: '套' },
+      ]
+    );
   } finally {
     await sequelize.close();
     purgeServerModules();

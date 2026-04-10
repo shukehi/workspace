@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { initDB, sequelize, MappingProfile, MappingRevision } from '../models';
+import type { MappingProfileInstance, MappingRevisionInstance } from '../models';
 import type { MappingProfileCode } from '../models/types';
 import { PROFILE_CODE_LIST, REVISION_STATES } from '../services/mappings/mapping.constants';
 
@@ -26,7 +27,7 @@ async function run() {
         for (const profileCode of PROFILE_CODE_LIST as MappingProfileCode[]) {
             const profile = await MappingProfile.findOne({
                 where: { profile_code: profileCode },
-            });
+            }) as MappingProfileInstance | null;
 
             if (!profile) {
                 rows.push({
@@ -43,14 +44,14 @@ async function run() {
             const latestRevision = await MappingRevision.findOne({
                 where: { profile_id: profile.id },
                 order: [['revision', 'DESC']],
-            });
+            }) as MappingRevisionInstance | null;
             const publishedRevision = await MappingRevision.findOne({
                 where: {
                     profile_id: profile.id,
                     state: REVISION_STATES.PUBLISHED,
                 },
                 order: [['revision', 'DESC']],
-            });
+            }) as MappingRevisionInstance | null;
 
             rows.push({
                 profileCode,

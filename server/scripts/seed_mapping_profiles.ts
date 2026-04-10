@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { initDB, sequelize, MappingProfile, MappingRevision } from '../models';
+import type { MappingProfileInstance, MappingRevisionInstance } from '../models';
 import { CONFIG_FILES } from '../config/paths';
 import { PROFILE_CODE_LIST } from '../services/mappings/mapping.constants';
 import {
@@ -67,14 +68,14 @@ async function run() {
 
             const existingProfile = await MappingProfile.findOne({
                 where: { profile_code: profileCode },
-            });
+            }) as MappingProfileInstance | null;
             const latestRevision = existingProfile
                 ? await MappingRevision.findOne({
                     where: {
                         profile_id: existingProfile.id,
                     },
                     order: [['revision', 'DESC']],
-                })
+                }) as MappingRevisionInstance | null
                 : null;
             const hasPublished = existingProfile
                 ? Boolean(await MappingRevision.findOne({
@@ -82,7 +83,7 @@ async function run() {
                         profile_id: existingProfile.id,
                         state: 'published',
                     },
-                }))
+                }) as MappingRevisionInstance | null)
                 : false;
 
             if (hasPublished) {
