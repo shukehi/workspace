@@ -70,6 +70,7 @@ mappings:
 
 - `/api/config/packaging`
 - `/api/config/cylinder`
+- `/api/config/lock`
 - `/api/config/lock-fork`
 - `/api/config/handle`
 - `/api/config/packaging-mapping`
@@ -79,10 +80,11 @@ mappings:
 - 不允许新增前端功能直接依赖 B 类接口
 - B 类接口应在返回日志、代码注释或文档中明确标记为 compatibility only
 - B 类接口继续保留的前提是：其底层必须 workflow-backed，不能再回退为纯文件直写
+- 当前 mapping B 类接口已经完成这一点：它们不再读写 `data/config/*.json`
 
 ### C 类：静态 fallback 资源
 
-这些资源只能作为开发/故障兜底，不应被当成正式真源。
+这些资源只能作为迁移基线或历史参考，不应被当成正式真源。
 
 - `/data/materials-catalog.json`
 - `/data/packaging-mapping.json`
@@ -93,17 +95,19 @@ mappings:
 结论：
 
 - C 类不是业务真源
-- 前端可以在 repository 内部保留 fallback，但页面、业务逻辑、编辑能力都不能显式依赖这些路径
+- 对 mapping 来说，前端运行时已经不再保留这些 fallback
+- materials 当前仍保留文件兜底语义，mapping 不再保留
 
 ## 当前状态判断
 
 按现在仓库实现，已经达到的状态：
 
 1. materials 前端读取优先使用 workflow published
-2. mappings 前端读取优先使用 workflow published
+2. mappings 前端读取已只使用 workflow published
 3. mapping 配置页编辑已走 workflow `detail -> draft -> publish`
-4. legacy mapping route 已 workflow-backed
+4. legacy mapping route 已 workflow-backed，且不再读写本地 JSON
 5. legacy materials route 已 workflow-backed
+6. 前端启动时若缺 published mapping，会直接 fail closed，而不是继续以空默认值运行
 
 也就是说，legacy route 现在主要不是“真源”，而是“兼容入口”。
 
@@ -152,14 +156,14 @@ legacy route 可以保留，但不能继续叠新行为，例如：
 
 ### 第二步：前端进一步缩小 fallback 暴露面
 
-- 将 `configLoader` 内剩余 fallback 语义继续往 repository/facade 内部收
-- 页面层不再感知 legacy 或 static 路径
+- 已完成：mapping 运行时已不再保留 legacy/static fallback
+- 待继续：materials 是否也要完全移除 fallback 需单独决策
 
 ### 第三步：给 legacy route 增加显式兼容标识
 
-建议在以下文件中加入简短注释：
+建议在以下文件中保持简短注释：
 
-- [`server/routes/configData.js`](/Users/aries/Dve/workspace/server/routes/configData.js)
+- [`server/routes/configData.ts`](/Users/aries/Dve/workspace/server/routes/configData.ts)
 
 标明：
 
@@ -210,6 +214,6 @@ legacy route 可以保留，但不能继续叠新行为，例如：
 
 ## 结论
 
-当前最合理的策略不是马上删掉 legacy 接口，而是把它们明确降级为 compatibility only，并通过文档、review 和 guard test 阻止新代码继续接入。
+当前 mapping 域已经进入下一阶段：legacy 接口虽然还在，但数据库 published 已是唯一运行时真源，兼容层也不再做文件同步。接下来最合理的策略是继续通过文档、review 和 guard test 阻止新代码接入 legacy 路径，并在条件成熟后直接删除这些兼容接口。
 
 这样能在不打断现有系统的情况下，逐步结束配置域的双轨制。

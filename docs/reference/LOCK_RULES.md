@@ -97,9 +97,13 @@ qty = 15/20
 
 ### 配置文件
 
-文件位置：
+运行时真源：
 
-`/data/config/lock-mapping.json`
+- `GET /api/config/mappings/lock/published`
+
+兼容基线文件：
+
+- `/data/config/lock-mapping.json`
 
 当前支持字段：
 
@@ -207,6 +211,11 @@ SD-9030 ( 6607大锁 )
 
 - 路由：`/config/lock`
 - 页面：`src/views/LockConfig.vue`
+
+说明：
+
+- 页面保存走 workflow `detail -> draft -> publish`
+- legacy `/api/config/lock` 当前仅作为兼容桥接，不再读写本地 JSON
 
 页面支持：
 

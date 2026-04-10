@@ -7,9 +7,10 @@
 1. [概述](#概述)
 2. [主锁芯规则](#主锁芯规则)
 3. [副锁芯规则](#副锁芯规则)
-4. [钥匙配置规则](#钥匙配置规则)
-5. [Logo刻标检测](#logo刻标检测)
-6. [配置文件说明](#配置文件说明)
+4. [副锁护罩配件包规则](#副锁护罩配件包规则)
+5. [钥匙配置规则](#钥匙配置规则)
+6. [Logo刻标检测](#logo刻标检测)
+7. [配置文件说明](#配置文件说明)
 
 ---
 
@@ -98,6 +99,57 @@
 
 ---
 
+## 副锁护罩配件包规则
+
+### 1. 触发来源
+
+系统会额外检查副锁护罩字段，并在命中规则时生成一张 `五金/配件` 采购需求。
+
+当前默认规则：
+
+- 条件字段：`fshz`
+- 关键字：`一号铝小面板`
+
+### 2. 门厚到配件包映射
+
+| 门厚 | 配件包规格 | 物料编码 |
+|------|-----------|---------|
+| 5cm  | 5公分配件包  | `ACC-FSHZ-YHLXMB-5` |
+| 7cm  | 7公分配件包  | `ACC-FSHZ-YHLXMB-7` |
+| 9cm  | 9公分配件包  | `ACC-FSHZ-YHLXMB-9` |
+| 10cm | 10公分配件包 | `ACC-FSHZ-YHLXMB-10` |
+
+### 3. 当前默认供应商
+
+- `巨力`
+
+### 4. 输出契约
+
+命中后会生成 `五金/配件` 采购明细，核心字段包括：
+
+- `supplier`
+- `type`
+- `spec`
+- `unit`
+- `quantity`
+- `material_id`
+
+其中：
+
+- `type` 当前默认是 `一号铝小面板`
+- `spec` 按门厚映射到 `X公分配件包`
+- `material_id` 使用规则里显式配置的 `materialCode`
+
+### 5. 入库约束
+
+这类五金/配件单据若需完成采购入库，必须确保对应 `materialCode` 已经存在于 `materials` 表。
+
+否则 stock-in 会报：
+
+- `MATERIAL_NOT_FOUND`
+
+---
+
 ## 钥匙配置规则
 
 主锁芯的钥匙配置根据**客户部门**和**锁芯型号**自动确定：
@@ -156,7 +208,13 @@
 ## 配置文件说明
 
 ### 文件位置
-`/data/config/cylinder-mapping.json`
+运行时真源：
+
+- `GET /api/config/mappings/cylinder/published`
+
+兼容基线文件：
+
+- `/data/config/cylinder-mapping.json`
 
 ### 配置结构
 
@@ -191,6 +249,21 @@
   },
   "secondarySpecialRules": [
     // 副锁芯特殊规则
+  ],
+  "secondaryAccessoryPackRules": [
+    {
+      "conditionField": "fshz",
+      "keyword": "一号铝小面板",
+      "supplier": "巨力",
+      "itemName": "一号铝小面板",
+      "unit": "套",
+      "thicknessAccessoryPacks": {
+        "7": "7公分配件包"
+      },
+      "thicknessMaterialCodes": {
+        "7": "ACC-FSHZ-YHLXMB-7"
+      }
+    }
   ],
   "mappings": {
     // 锁芯名称映射
@@ -262,6 +335,37 @@
 "NEW_LOGO_NAME"
 ```
 
+#### 5. 添加新的副锁护罩配件包规则
+
+在 `secondaryAccessoryPackRules` 中添加：
+
+```json
+{
+  "conditionField": "fshz",
+  "keyword": "一号铝小面板",
+  "supplier": "巨力",
+  "itemName": "一号铝小面板",
+  "unit": "套",
+  "thicknessAccessoryPacks": {
+    "5": "5公分配件包",
+    "7": "7公分配件包",
+    "9": "9公分配件包",
+    "10": "10公分配件包"
+  },
+  "thicknessMaterialCodes": {
+    "5": "ACC-FSHZ-YHLXMB-5",
+    "7": "ACC-FSHZ-YHLXMB-7",
+    "9": "ACC-FSHZ-YHLXMB-9",
+    "10": "ACC-FSHZ-YHLXMB-10"
+  }
+}
+```
+
+注意：
+
+- `conditionField` 现在会被运行时真正读取
+- `thicknessMaterialCodes` 是必填项，否则生成出的五金/配件单据无法可靠入库
+
 ---
 
 ## 常见问题
@@ -277,6 +381,9 @@
 
 ### Q4: 特殊护罩规则不生效怎么办？
 **A**: 确认 `sxhz` 或 `fshz` 字段的值**完全包含**配置中的关键字（如"16-7-5+ZS17"）。
+
+### Q5: 副锁护罩配件包为什么生成后还不能入库？
+**A**: 先检查规则里的 `thicknessMaterialCodes` 是否已配置，再检查对应 `materialCode` 是否已经存在于 `materials` 表。两者缺一都会导致 stock-in 阶段报 `MATERIAL_NOT_FOUND`。
 
 ---
 
@@ -296,4 +403,4 @@
 ---
 
 **文档维护者**：系统开发团队  
-**最后更新**：2026年1月6日
+**最后更新**：2026年4月10日

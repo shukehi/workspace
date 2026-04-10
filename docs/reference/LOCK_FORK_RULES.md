@@ -230,7 +230,25 @@ spec = "970*2040/10/内开外包"
 ## 配置文件说明
 
 ### 文件位置
-`/data/config/lock-fork-mapping.json`
+运行时真源：
+
+- `GET /api/config/mappings/lock_fork/published`
+
+兼容基线文件：
+
+- `/data/config/lock-fork-mapping.json`
+
+### 配置页面
+
+系统提供锁叉配置页：
+
+- 路由：`/config/lock-fork`
+- 页面：`src/views/LockForkConfig.vue`
+
+说明：
+
+- 页面保存走 workflow `detail -> draft -> publish`
+- legacy `/api/config/lock-fork` 当前仅作为兼容桥接，不再读写本地 JSON
 
 ### 配置结构
 
