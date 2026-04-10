@@ -35,7 +35,11 @@ test('config source guard: legacy config endpoints stay isolated to repository a
   );
   assert.deepEqual(
     rgFiles('/api/config/packaging', ['src', 'tests']).sort(),
-    ['tests/config-endpoint-source-guard.test.ts', 'tests/config-loader-mapping.test.ts', 'tests/config-routes.test.ts'],
+    ['tests/config-endpoint-source-guard.test.ts', 'tests/config-routes.test.ts'],
+  );
+  assert.deepEqual(
+    rgFiles('/api/config/cylinder', ['src', 'tests']).sort(),
+    ['tests/config-endpoint-source-guard.test.ts'],
   );
   assert.deepEqual(
     rgFiles('/api/config/lock', ['src', 'tests']).sort(),
@@ -43,16 +47,16 @@ test('config source guard: legacy config endpoints stay isolated to repository a
   );
   assert.deepEqual(
     rgFiles('/api/config/handle', ['src', 'tests']).sort(),
-    ['tests/config-endpoint-source-guard.test.ts', 'tests/config-loader-mapping.test.ts', 'tests/config-routes.test.ts'],
+    ['tests/config-endpoint-source-guard.test.ts', 'tests/config-routes.test.ts'],
   );
 });
 
-test('config source guard: static JSON fallback reads stay inside configRepository', () => {
-  assert.deepEqual(rgFiles('/data/packaging-mapping\\.json'), ['src/services/configRepository.ts']);
-  assert.deepEqual(rgFiles('/data/cylinder-mapping\\.json'), ['src/services/configRepository.ts']);
-  assert.deepEqual(rgFiles('/data/lock-mapping\\.json'), ['src/services/configRepository.ts']);
-  assert.deepEqual(rgFiles('/data/lock-fork-mapping\\.json'), ['src/services/configRepository.ts']);
-  assert.deepEqual(rgFiles('/data/handle-mapping\\.json'), ['src/services/configRepository.ts']);
+test('config source guard: static JSON fallback reads are removed for mappings', () => {
+  assert.deepEqual(rgFiles('/data/packaging-mapping\\.json'), []);
+  assert.deepEqual(rgFiles('/data/cylinder-mapping\\.json'), []);
+  assert.deepEqual(rgFiles('/data/lock-mapping\\.json'), []);
+  assert.deepEqual(rgFiles('/data/lock-fork-mapping\\.json'), []);
+  assert.deepEqual(rgFiles('/data/handle-mapping\\.json'), []);
   assert.deepEqual(rgFiles('/data/materials-catalog\\.json'), ['src/services/configRepository.ts']);
 });
 

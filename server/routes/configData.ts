@@ -21,18 +21,9 @@ import {
     validateLockForkMapping,
     validateHandleMapping,
 } from '../services/mappings/mapping.validator';
-import {
-    CONFIG_FILES,
-    ensureProjectDirs,
-} from '../config/paths';
+import { CONFIG_FILES, ensureProjectDirs } from '../config/paths';
 
 const MATERIALS_FILE = CONFIG_FILES.materialsCatalog;
-const PACKAGING_RUNTIME_FILE = CONFIG_FILES.packagingMapping;
-const CYLINDER_RUNTIME_FILE = CONFIG_FILES.cylinderMapping;
-const LOCK_RUNTIME_FILE = CONFIG_FILES.lockMapping;
-const LOCK_FORK_RUNTIME_FILE = CONFIG_FILES.lockForkMapping;
-const HANDLE_RUNTIME_FILE = CONFIG_FILES.handleMapping;
-
 ensureProjectDirs();
 
 const router: Router = Router();
@@ -78,28 +69,10 @@ router.post('/materials', async (req: Request, res: Response) => {
 
 type PlainRecord = Record<string, unknown>;
 
-function readLegacyMappingRuntime(
-    runtimeFile: string,
-    adapt: (raw: unknown) => unknown,
-    validate: (raw: unknown) => unknown[],
-    logContext: string
-): PlainRecord {
-    ensureJsonFile(runtimeFile, {});
-    const rawText = fs.readFileSync(runtimeFile, 'utf8');
-    const raw = JSON.parse(rawText || '{}');
-    const payload = adapt(raw) as PlainRecord;
-    const issues = validate(raw);
-    if (issues.length > 0) {
-        console.warn(`[configData] ${logContext} mapping validation issues:`, issues);
-    }
-    return payload;
-}
-
 interface LegacyMappingRouteConfig {
     profileName: string;
     workflowProfileCode?: string;
     endpoint: string;
-    runtimeFile: string;
     adapt: (raw: unknown) => unknown;
     validate: (raw: unknown) => unknown[];
     readErrorMessage: string;
@@ -111,20 +84,10 @@ function registerLegacyCompatibleMappingRoute(config: LegacyMappingRouteConfig):
 
     router.get(config.endpoint, async (req: Request, res: Response) => {
         try {
-            const legacyPayload = readLegacyMappingRuntime(
-                config.runtimeFile,
-                config.adapt,
-                config.validate,
-                config.profileName
-            );
-            const result = await MappingService.ensurePublishedMapping(workflowProfileCode, {
-                legacyPayload,
-                operator: 'system-admin',
-                changeNote: `seed legacy ${config.profileName} runtime`
-            });
+            const result = await MappingService.getPublishedMapping(workflowProfileCode);
 
             if (!result || !result.ok || !result.payload) {
-                res.status(result?.status || 500).json({
+                res.status(result?.status || 404).json({
                     success: false,
                     errors: result?.errors || [],
                     error: config.readErrorMessage
@@ -132,7 +95,6 @@ function registerLegacyCompatibleMappingRoute(config: LegacyMappingRouteConfig):
                 return;
             }
 
-            MappingService.syncLegacyRuntimeFile(config.runtimeFile, result.payload);
             res.json(result.payload);
         } catch (error) {
             console.error(`Error reading ${config.profileName} mapping:`, error);
@@ -183,7 +145,6 @@ function registerLegacyCompatibleMappingRoute(config: LegacyMappingRouteConfig):
                 return;
             }
 
-            MappingService.syncLegacyRuntimeFile(config.runtimeFile, payload);
             res.json({ ok: true, data: payload, revision: published.revision });
         } catch (error) {
             console.error(`Error saving ${config.profileName} mapping:`, error);
@@ -195,7 +156,6 @@ function registerLegacyCompatibleMappingRoute(config: LegacyMappingRouteConfig):
 registerLegacyCompatibleMappingRoute({
     profileName: 'packaging',
     endpoint: '/packaging',
-    runtimeFile: PACKAGING_RUNTIME_FILE,
     adapt: adaptPackagingMapping,
     validate: validatePackagingMapping,
     readErrorMessage: 'Failed to read packaging mapping',
@@ -205,7 +165,6 @@ registerLegacyCompatibleMappingRoute({
 registerLegacyCompatibleMappingRoute({
     profileName: 'cylinder',
     endpoint: '/cylinder',
-    runtimeFile: CYLINDER_RUNTIME_FILE,
     adapt: adaptCylinderMapping,
     validate: validateCylinderMapping,
     readErrorMessage: 'Failed to read cylinder mapping',
@@ -215,7 +174,6 @@ registerLegacyCompatibleMappingRoute({
 registerLegacyCompatibleMappingRoute({
     profileName: 'lock',
     endpoint: '/lock',
-    runtimeFile: LOCK_RUNTIME_FILE,
     adapt: adaptLockMapping,
     validate: validateLockMapping,
     readErrorMessage: 'Failed to read lock mapping',
@@ -226,7 +184,6 @@ registerLegacyCompatibleMappingRoute({
     profileName: 'lock-fork',
     workflowProfileCode: 'lock_fork',
     endpoint: '/lock-fork',
-    runtimeFile: LOCK_FORK_RUNTIME_FILE,
     adapt: adaptLockForkMapping,
     validate: validateLockForkMapping,
     readErrorMessage: 'Failed to read lock-fork mapping',
@@ -236,7 +193,6 @@ registerLegacyCompatibleMappingRoute({
 registerLegacyCompatibleMappingRoute({
     profileName: 'handle',
     endpoint: '/handle',
-    runtimeFile: HANDLE_RUNTIME_FILE,
     adapt: adaptHandleMapping,
     validate: validateHandleMapping,
     readErrorMessage: 'Failed to read handle mapping',
@@ -245,20 +201,10 @@ registerLegacyCompatibleMappingRoute({
 
 router.get('/packaging-mapping', async (_req: Request, res: Response) => {
     try {
-        const legacyPayload = readLegacyMappingRuntime(
-            PACKAGING_RUNTIME_FILE,
-            adaptPackagingMapping,
-            validatePackagingMapping,
-            'packaging'
-        );
-        const result = await MappingService.ensurePublishedMapping('packaging', {
-            legacyPayload,
-            operator: 'system-admin',
-            changeNote: 'seed legacy packaging runtime'
-        });
+        const result = await MappingService.getPublishedMapping('packaging');
 
         if (!result || !result.ok || !result.payload) {
-            res.status(result?.status || 500).json({
+            res.status(result?.status || 404).json({
                 success: false,
                 errors: result?.errors || [],
                 error: 'Failed to read packaging mapping'
@@ -266,7 +212,6 @@ router.get('/packaging-mapping', async (_req: Request, res: Response) => {
             return;
         }
 
-        MappingService.syncLegacyRuntimeFile(PACKAGING_RUNTIME_FILE, result.payload);
         res.json(result.payload);
     } catch (error) {
         console.error('Error reading packaging mapping:', error);

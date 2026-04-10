@@ -1,20 +1,33 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import express from 'express'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 import type { Router } from 'express'
 
-const tempDbPath = path.join(os.tmpdir(), `formula-routes-${Date.now()}.sqlite`);
+const _require = createRequire(import.meta.url);
+const tempDbPath = path.join(os.tmpdir(), `test-config-routes-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
 process.env.DB_STORAGE = tempDbPath;
 
-const configRoutes = (require('../server/routes/configData') as { default: Router }).default;
-const formulasConfigRoutes = (require('../server/routes/formulasConfig') as { default: Router }).default;
-const materialsConfigRoutes = (require('../server/routes/materialsConfig') as { default: Router }).default;
-const MappingService = require('../server/services/mappings') as typeof import('../server/services/mappings');
-const { CONFIG_FILES, ensureProjectDirs } = require('../server/config/paths') as typeof import('../server/config/paths');
-const { initDB, sequelize, Material } = require('../server/models') as typeof import('../server/models');
+const configRoutes = (_require('../server/routes/configData') as { default: Router }).default;
+const formulasConfigRoutes = (_require('../server/routes/formulasConfig') as { default: Router }).default;
+const materialsConfigRoutes = (_require('../server/routes/materialsConfig') as { default: Router }).default;
+const MappingService = _require('../server/services/mappings') as typeof import('../server/services/mappings');
+const { CONFIG_FILES, ensureProjectDirs } = _require('../server/config/paths') as typeof import('../server/config/paths');
+const { initDB, sequelize, Material } = _require('../server/models') as typeof import('../server/models');
 
 let server: ReturnType<ReturnType<typeof express>['listen']>
 let baseUrl: string
@@ -30,6 +43,27 @@ const originalLockFile = fs.existsSync(lockFile)
 const originalHandleFile = fs.existsSync(handleFile)
   ? fs.readFileSync(handleFile, 'utf8')
   : null;
+
+async function seedPublishedMapping(profileCode: 'packaging' | 'handle' | 'lock' | 'cylinder' | 'lock_fork', payload: Record<string, unknown>) {
+  const detail = await MappingService.getMappingDetail(profileCode);
+  const currentRevision = detail && detail.ok
+    ? detail.mapping.latestRevision?.revision ?? 0
+    : 0;
+  const draft = await MappingService.updateDraft(profileCode, {
+    revision: currentRevision,
+    payload,
+    changeNote: 'test seed',
+    operator: 'test-user',
+  });
+  assert.equal(draft.ok, true);
+  const published = await MappingService.publish(profileCode, {
+    fromRevision: draft.revision.revision,
+    changeNote: 'test publish',
+    operator: 'test-user',
+  });
+  assert.equal(published.ok, true);
+  return published;
+}
 
 async function startServer() {
   const app = express();
@@ -152,6 +186,13 @@ test('GET /api/config/formulas returns paged shape', async () => {
 });
 
 test('GET /api/config/packaging-mapping returns canonical DTO shape', async () => {
+  await seedPublishedMapping('packaging', {
+    supplierName: '方亮包装',
+    mappings: {
+      包装A: '外协包装A',
+    },
+  });
+
   const res = await fetch(`${baseUrl}/api/config/packaging-mapping`);
   assert.equal(res.status, 200);
 
@@ -163,7 +204,7 @@ test('GET /api/config/packaging-mapping returns canonical DTO shape', async () =
 });
 
 test('legacy handle mapping endpoints seed and publish workflow revisions', async () => {
-  fs.writeFileSync(handleFile, JSON.stringify({
+  const initialPayload = {
     defaultSupplier: '旧拉手供应商',
     unmatchedSupplier: '待人工处理',
     manualReviewLabel: '未匹配拉手(待人工处理)',
@@ -174,7 +215,8 @@ test('legacy handle mapping endpoints seed and publish workflow revisions', asyn
         materialCode: 'HANDLE-LEGACY-001'
       },
     },
-  }, null, 2));
+  };
+  await seedPublishedMapping('handle', initialPayload);
 
   const getRes = await fetch(`${baseUrl}/api/config/handle`);
   assert.equal(getRes.status, 200);
@@ -214,13 +256,12 @@ test('legacy handle mapping endpoints seed and publish workflow revisions', asyn
   assert.equal(workflowAfterPut!.ok, true);
   assert.equal(workflowAfterPut!.mapping.publishedRevision.revision, 4);
   assert.deepEqual(workflowAfterPut!.mapping.publishedPayload, putBody.data);
-
-  const syncedLegacyFile = JSON.parse(fs.readFileSync(handleFile, 'utf8'));
-  assert.deepEqual(syncedLegacyFile, putBody.data);
+  const handleFileAfter = fs.existsSync(handleFile) ? JSON.parse(fs.readFileSync(handleFile, 'utf8')) : null;
+  assert.notDeepEqual(handleFileAfter, putBody.data);
 });
 
 test('legacy lock mapping endpoints seed and publish workflow revisions', async () => {
-  fs.writeFileSync(lockFile, JSON.stringify({
+  const initialPayload = {
     defaultUnit: '套',
     primaryLabel: '主锁',
     secondaryLabel: '副锁',
@@ -231,7 +272,8 @@ test('legacy lock mapping endpoints seed and publish workflow revisions', async 
         primarySpec: '主锁体'
       },
     },
-  }, null, 2));
+  };
+  await seedPublishedMapping('lock', initialPayload);
 
   const getRes = await fetch(`${baseUrl}/api/config/lock`);
   assert.equal(getRes.status, 200);
@@ -268,9 +310,8 @@ test('legacy lock mapping endpoints seed and publish workflow revisions', async 
   const workflowAfterPut = await MappingService.getMappingDetail('lock');
   assert.equal(workflowAfterPut!.ok, true);
   assert.deepEqual(workflowAfterPut!.mapping.publishedPayload, putBody.data);
-
-  const syncedLegacyFile = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
-  assert.deepEqual(syncedLegacyFile, putBody.data);
+  const lockFileAfter = fs.existsSync(lockFile) ? JSON.parse(fs.readFileSync(lockFile, 'utf8')) : null;
+  assert.notDeepEqual(lockFileAfter, putBody.data);
 });
 
 test('materials routes: legacy endpoint and workflow endpoints expose published catalog consistently', async () => {
