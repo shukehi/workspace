@@ -53,7 +53,15 @@ test('preview helpers resolve category, status, and delivery date validity', () 
 test('createProcurementPreview creates snapshot, prints, and exports pdf', async () => {
   const opened: Array<[string, string | undefined, string | undefined]> = [];
   const downloads: Array<{ url: string; data: unknown; filename: string }> = [];
+  const clipboardWrites: any[] = [];
   const toasts: Array<{ title: string; description?: string; variant?: string }> = [];
+
+  class FakeClipboardItem {
+    payload: Record<string, Blob | string | PromiseLike<Blob | string>>;
+    constructor(payload: Record<string, Blob | string | PromiseLike<Blob | string>>) {
+      this.payload = payload;
+    }
+  }
 
   const preview = createProcurementPreview({
     order: ref(createOrder()),
@@ -63,6 +71,7 @@ test('createProcurementPreview creates snapshot, prints, and exports pdf', async
     },
     apiClient: {
       post: async () => ({ snapshotId: 'snapshot-1' }) as any,
+      postBlob: async () => new Blob(['fake-image'], { type: 'image/png' }),
       downloadPDF: async (url, data, filename) => {
         downloads.push({ url, data, filename });
       },
@@ -72,7 +81,13 @@ test('createProcurementPreview creates snapshot, prints, and exports pdf', async
       open: (url?: string | URL, target?: string, features?: string) => {
         opened.push([String(url), target, features]);
         return null;
-      }
+      },
+      clipboard: {
+        write: async (items: any[]) => {
+          clipboardWrites.push(items);
+        },
+      },
+      ClipboardItem: FakeClipboardItem as any,
     }
   });
 
@@ -87,4 +102,12 @@ test('createProcurementPreview creates snapshot, prints, and exports pdf', async
   assert.equal(downloads[0].url, '/pdf/generate');
   assert.equal(downloads[0].filename, '测试供应商 包装 PO-31 颐家采购订单.pdf');
   assert.equal(toasts.at(-1)?.title, '导出成功');
+
+  await preview.handleCopyScreenshot();
+  assert.equal(clipboardWrites.length, 1);
+  const clipboardItem = clipboardWrites[0][0] as FakeClipboardItem;
+  assert.ok(clipboardItem.payload['image/png']);
+  assert.ok(clipboardItem.payload['text/plain']);
+  assert.ok(clipboardItem.payload['text/html']);
+  assert.equal(toasts.at(-1)?.title, '截图与订单号已复制');
 });

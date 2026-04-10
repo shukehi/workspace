@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, Printer } from 'lucide-vue-next';
+import { Copy, Download, Loader2, Printer } from 'lucide-vue-next';
 import { useToastStore } from '@/stores/useToastStore';
 import type { Order } from '@/types/order';
 import OrderSheetView from '@/components/procurement/OrderSheetView.vue';
@@ -37,6 +37,7 @@ const {
   previewColumnWidths,
   handlePrint,
   handleExportPdf,
+  handleCopyScreenshot,
   handlePrintModeChange,
 } = createProcurementPreview({
   order: toRef(props, 'order'),
@@ -94,6 +95,10 @@ const handleEdit = () => {
             <Loader2 v-if="exportingPdf" class="w-4 h-4 mr-2 animate-spin" />
             <Download v-else class="w-4 h-4 mr-2" />
             {{ exportingPdf ? '导出中...' : '导出 PDF' }}
+          </Button>
+          <Button size="sm" variant="outline" @click="handleCopyScreenshot" :disabled="!order || snapshotLoading">
+            <Copy class="w-4 h-4 mr-2" />
+            复制截图
           </Button>
           <Button v-if="canEdit" variant="outline" size="sm" :disabled="!order" @click="handleEdit">编辑</Button>
           <Button variant="outline" size="sm" @click="handleClose">关闭</Button>

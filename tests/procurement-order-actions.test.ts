@@ -59,3 +59,58 @@ test('useOrderActions markArrived calls the arrive endpoint with POST', async ()
   assert.equal(refreshCount, 1);
   assert.equal(toasts.at(-1)?.title, '到货登记成功');
 });
+
+test('useOrderActions performCopyScreenshot writes screenshot and order number to clipboard', async () => {
+  const requests: Array<{ kind: 'post' | 'postBlob'; url: string; data?: unknown }> = [];
+  const toasts: Array<{ title: string; description?: string; variant?: string }> = [];
+  const clipboardWrites: any[] = [];
+
+  class FakeClipboardItem {
+    payload: Record<string, Blob | string | PromiseLike<Blob | string>>;
+    constructor(payload: Record<string, Blob | string | PromiseLike<Blob | string>>) {
+      this.payload = payload;
+    }
+  }
+
+  const actions = useOrderActions({
+    toast: (payload) => {
+      toasts.push(payload);
+    },
+    apiClient: {
+      post: async (url, data) => {
+        requests.push({ kind: 'post', url, data });
+        return { snapshotId: 'snapshot-copy-1' } as any;
+      },
+      postBlob: async (url, data) => {
+        requests.push({ kind: 'postBlob', url, data });
+        return new Blob(['fake-image'], { type: 'image/png' });
+      },
+      downloadPDF: async () => undefined,
+    },
+    browser: {
+      confirm: () => true,
+      open: () => null,
+      clipboard: {
+        write: async (items: any[]) => {
+          clipboardWrites.push(items);
+        },
+      },
+      ClipboardItem: FakeClipboardItem as any,
+    },
+  });
+
+  await actions.performCopyScreenshot(createOrder({ order_no: 'PO-COPY-001' }), 'compact');
+
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].url, '/print/snapshots');
+  assert.equal(requests[1].url, '/pdf/screenshot');
+  assert.equal((requests[1].data as any).snapshotId, 'snapshot-copy-1');
+  assert.equal((requests[1].data as any).printMode, 'compact');
+  assert.equal(clipboardWrites.length, 1);
+
+  const clipboardItem = clipboardWrites[0][0] as FakeClipboardItem;
+  assert.ok(clipboardItem.payload['image/png']);
+  assert.ok(clipboardItem.payload['text/plain']);
+  assert.ok(clipboardItem.payload['text/html']);
+  assert.equal(toasts.at(-1)?.title, '截图与订单号已复制');
+});

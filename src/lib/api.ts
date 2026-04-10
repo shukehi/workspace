@@ -85,6 +85,11 @@ export const api = {
         axiosInstance.put<ApiEnvelope<T>, T>(url, data, config),
     delete: <T>(url: string, config?: AxiosRequestConfig) =>
         axiosInstance.delete<ApiEnvelope<T>, T>(url, config),
+    postBlob: (url: string, data?: any, config?: AxiosRequestConfig) =>
+        axiosInstance.post<Blob, Blob>(url, data, {
+            ...(config || {}),
+            responseType: 'blob',
+        }),
 
     // Special method for downloading binary files
     downloadPDF: async (url: string, data: any, filename: string) => {

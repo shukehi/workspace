@@ -159,7 +159,7 @@ onMounted(loadSource);
       </div>
     </div>
 
-    <div class="max-w-[820px] mx-auto p-4 md:p-8 print:p-0">
+    <div id="printDocumentOutput" class="max-w-[820px] mx-auto p-4 md:p-8 print:p-0">
       <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
         <div class="w-8 h-8 border-2 border-slate-200 border-t-slate-400 rounded-full animate-spin"></div>
         <p class="text-sm font-medium animate-pulse">正在准备文档数据...</p>

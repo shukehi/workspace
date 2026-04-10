@@ -68,6 +68,11 @@ export function createProcurementPreview(options: {
     await actions.performExportPdf(options.order.value, printMode.value);
   }
 
+  async function handleCopyScreenshot() {
+    if (!options.order.value) return;
+    await actions.performCopyScreenshot(options.order.value, printMode.value);
+  }
+
   function handlePrintModeChange(mode: PrintMode) {
     if (printMode.value === mode) return;
     printMode.value = mode;
@@ -92,6 +97,7 @@ export function createProcurementPreview(options: {
     previewColumnWidths,
     handlePrint,
     handleExportPdf,
+    handleCopyScreenshot,
     handlePrintModeChange,
   };
 }

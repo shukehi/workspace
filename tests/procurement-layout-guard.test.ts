@@ -60,6 +60,7 @@ test('layout guard: shared order sheet owns procurement table markup', () => {
   const printDocument = read('src/views/PrintDocument.vue')
   assert.match(printDocument, /controls-bar/)
   assert.match(printDocument, /print-document-shell/)
+  assert.match(printDocument, /id="printDocumentOutput"/)
   assert.match(printDocument, /printMode/)
   assert.match(printDocument, /resolveSheetWidths/)
 

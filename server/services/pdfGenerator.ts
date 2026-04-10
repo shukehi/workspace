@@ -29,6 +29,12 @@ interface PdfGenerationOptions {
     [key: string]: unknown;
 }
 
+interface ScreenshotGenerationOptions {
+    poNumber?: string;
+    renderUrl?: string;
+    [key: string]: unknown;
+}
+
 export async function generatePurchaseOrderPDF(options?: PdfGenerationOptions): Promise<Buffer> {
     const opts = (options && typeof options === 'object') ? options : {} as PdfGenerationOptions;
     const poNumber = String(opts.poNumber || 'order');
@@ -100,3 +106,61 @@ export async function generatePurchaseOrderPDF(options?: PdfGenerationOptions): 
     }
 }
 
+export async function generatePurchaseOrderScreenshot(options?: ScreenshotGenerationOptions): Promise<Buffer> {
+    const opts = (options && typeof options === 'object') ? options : {} as ScreenshotGenerationOptions;
+    const poNumber = String(opts.poNumber || 'order');
+    const renderUrl = ensureRenderUrl(opts.renderUrl);
+
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+    try {
+        console.log(`🖼️ Starting screenshot generation for ${poNumber}`);
+        console.log(`🔗 Render source: ${renderUrl}`);
+
+        browser = await puppeteer.launch({
+            headless: 'new' as unknown as boolean,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu'
+            ]
+        });
+
+        const page = await browser.newPage();
+        await page.setViewport({
+            width: 1200,
+            height: 1600,
+            deviceScaleFactor: 2
+        });
+
+        await page.goto(renderUrl, {
+            waitUntil: ['domcontentloaded', 'networkidle0'],
+            timeout: 45_000
+        });
+
+        await page.emulateMediaType('screen');
+        await page.evaluateHandle('document.fonts ? document.fonts.ready : Promise.resolve()');
+
+        const screenshotTarget = await page.waitForSelector('#printDocumentOutput .order-sheet', {
+            timeout: 10_000,
+        });
+        if (!screenshotTarget) {
+            throw new Error('Screenshot target not found');
+        }
+
+        const screenshot = await screenshotTarget.screenshot({
+            type: 'png',
+            omitBackground: false,
+        });
+
+        console.log(`✅ Screenshot generated successfully for ${poNumber} (${screenshot.length} bytes)`);
+        return Buffer.from(screenshot);
+    } catch (error: any) {
+        console.error('❌ Screenshot generation failed:', error);
+        throw new Error(`Screenshot generation failed: ${error.message}`);
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
+    }
+}
