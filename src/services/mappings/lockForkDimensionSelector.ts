@@ -1,7 +1,5 @@
-import {
-  adaptLockForkDimensionSelectionRulesToRuleSet,
-  executeRuleSet,
-} from '@/services/mappings';
+import { adaptLockForkDimensionSelectionRulesToRuleSet } from '@/services/mappings/mappingRules.adapter';
+import { executeRuleSet } from '@/services/mappings/mappingRules.execute';
 import type {
   LockForkBaseDimensionRule,
   LockForkDimensionGroup,
