@@ -7,16 +7,21 @@
 
 import { parseOpenDirectionSegment, parseQuantityPair, parseHeight } from './parsers';
 import { aggregatePackaging } from './packagingTable';
+import { deriveLockForkRows } from '@/services/lockForkDeriver';
 import {
     adaptCylinderAccessoryPackRulesToRuleSet,
     adaptCylinderMapping,
     adaptLockMapping,
     adaptLockForkMapping,
+    adaptLockForkFlatBottomRulesToRuleSet,
+    adaptLockForkHangingFeetRulesToRuleSet,
+    adaptLockForkEdgeTypeRulesToRuleSet,
     adaptLockForkTypeRulesToRuleSet,
     adaptLockMappingsToRuleSet,
     collectRuleExecution,
     executeRuleSet,
     normalizeLockMappingKey,
+    resolveLockForkDimensionRuleWithRules,
 } from '@/services/mappings';
 
 type OrderItem = Record<string, any>;
@@ -476,6 +481,9 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
     const lockForkMap: Record<string, LockForkResultRow> = {};
     const adaptedLockForkMapping = adaptLockForkMapping(LOCK_FORK_MAPPING);
     const lockForkTypeRuleSet = adaptLockForkTypeRulesToRuleSet(adaptedLockForkMapping);
+    const lockForkEdgeTypeRuleSet = adaptLockForkEdgeTypeRulesToRuleSet(adaptedLockForkMapping);
+    const lockForkHangingFeetRuleSet = adaptLockForkHangingFeetRulesToRuleSet(adaptedLockForkMapping);
+    const lockForkFlatBottomRuleSet = adaptLockForkFlatBottomRulesToRuleSet();
 
     const parseOpenDirection = (spec: unknown): '内开' | '外开' | '' => {
         if (!spec || typeof spec !== 'string') return '';
@@ -497,49 +505,75 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
     };
 
     // 助手：检测吊脚
-    const detectHangingFeet = (xsbz: unknown): number | null => {
-        if (!xsbz || typeof xsbz !== 'string') return null;
-
-        const keywords = adaptedLockForkMapping.hangingFeet?.keywords || ['吊脚', 'diaojiao'];
-        for (const keyword of keywords) {
-            if (xsbz.includes(keyword)) {
-                // 尝试提取数字，如 "吊脚5mm" -> 5
-                const match = xsbz.match(new RegExp(`${keyword}\\s*(\\d+)`, 'i'));
-                if (match) {
-                    return parseInt(match[1], 10);
-                }
-                return 0; // 有关键字但没有数字
-            }
+    const detectHangingFeet = (xsbz: unknown): { value: number | null; matchedRules: string[]; winningRules: string[] } => {
+        if (!xsbz || typeof xsbz !== 'string') {
+            return { value: null, matchedRules: [], winningRules: [] };
         }
-        return null;
+
+        const execution = executeRuleSet(lockForkHangingFeetRuleSet, {
+            xsbz: xsbz.trim(),
+        });
+        if (execution.winningRules.length === 0) {
+            return {
+                value: null,
+                matchedRules: execution.matchedRules,
+                winningRules: execution.winningRules,
+            };
+        }
+
+        const keyword = String(execution.output.extra?.keyword || '').trim();
+        if (!keyword) {
+            return {
+                value: 0,
+                matchedRules: execution.matchedRules,
+                winningRules: execution.winningRules,
+            };
+        }
+
+        const match = xsbz.match(new RegExp(`${keyword}\\s*(\\d+)`, 'i'));
+        return {
+            value: match ? parseInt(match[1], 10) : 0,
+            matchedRules: execution.matchedRules,
+            winningRules: execution.winningRules,
+        };
     };
 
     // 助手：检测平下档
-    const detectFlatBottomRail = (xsbz: unknown): string | null => {
-        if (!xsbz || typeof xsbz !== 'string') return null;
-
-        if (xsbz.includes('平下档')) {
-            // 尝试提取完整文本，如 "4CM平下档" -> "4CM平下档"
-            const match = xsbz.match(/(\d+(?:\.\d+)?CM平下档)/i);
-            if (match) {
-                return match[1]; // 返回 "4CM平下档"
-            }
-            return '平下档'; // 有关键字但没有尺寸
+    const detectFlatBottomRail = (xsbz: unknown): { value: string | null; matchedRules: string[]; winningRules: string[] } => {
+        if (!xsbz || typeof xsbz !== 'string') {
+            return { value: null, matchedRules: [], winningRules: [] };
         }
-        return null;
+
+        const execution = executeRuleSet(lockForkFlatBottomRuleSet, {
+            xsbz: xsbz.trim(),
+        });
+        if (execution.winningRules.length === 0) {
+            return {
+                value: null,
+                matchedRules: execution.matchedRules,
+                winningRules: execution.winningRules,
+            };
+        }
+
+        const match = xsbz.match(/(\d+(?:\.\d+)?CM平下档)/i);
+        return {
+            value: match ? match[1] : '平下档',
+            matchedRules: execution.matchedRules,
+            winningRules: execution.winningRules,
+        };
     };
 
     // 助手：检测边型
-    const detectEdgeType = (mb: unknown): string | null => {
-        if (!mb || typeof mb !== 'string') return null;
+    const detectEdgeType = (mb: unknown): { nameModifier: string | null; matchedRules: string[]; winningRules: string[] } => {
+        const execution = executeRuleSet(lockForkEdgeTypeRuleSet, {
+            mb: typeof mb === 'string' ? mb.trim() : '',
+        });
 
-        const edgeTypes = adaptedLockForkMapping.edgeTypes || {};
-        for (const [edgeKey, edgeConfig] of Object.entries(edgeTypes as GenericMap)) {
-            if (mb.includes(edgeKey)) {
-                return (edgeConfig as GenericMap).nameModifier || null;
-            }
-        }
-        return null;
+        return {
+            nameModifier: String(execution.output.extra?.nameModifier || '').trim() || null,
+            matchedRules: execution.matchedRules,
+            winningRules: execution.winningRules,
+        };
     };
 
     // 助手：检测锁具类型
@@ -565,54 +599,6 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         };
     };
 
-    // 助手：格式化尺寸字符串
-    const formatDimension = (base1: number, base2: number, adjustment = 0): string => {
-        const total = base1 + base2 + adjustment;
-        if (adjustment === 0) {
-            return `${base1}*${base2} = ${total}`;
-        } else if (adjustment > 0) {
-            return `${base1}*${base2} + ${adjustment} = ${total}`;
-        } else {
-            return `${base1}*${base2} - ${Math.abs(adjustment)} = ${total}`;
-        }
-    };
-
-    const resolveDimensionRule = (
-        thickness: string,
-        doorHeight: number,
-        useHangingFeetDimensions: boolean,
-    ): { dimensions: GenericMap | null; heightReference: number } => {
-        const highHeightRule = adaptedLockForkMapping.highHeightRules?.[thickness];
-        const defaultHeightReference = Number(adaptedLockForkMapping.heightReference || 2050);
-
-        if (highHeightRule && doorHeight >= Number(highHeightRule.minHeight || 0)) {
-            const highDimensions = useHangingFeetDimensions
-                ? (highHeightRule.withHangingFeet || highHeightRule.standard || null)
-                : (highHeightRule.standard || highHeightRule.withHangingFeet || null);
-            return {
-                dimensions: highDimensions,
-                heightReference: Number(highHeightRule.heightReference || defaultHeightReference),
-            };
-        }
-
-        let baseDimensions = adaptedLockForkMapping.baseDimensions?.[thickness];
-        if (!baseDimensions && thickness === '5') {
-            baseDimensions = adaptedLockForkMapping.baseDimensions?.['7'];
-        }
-        if (!baseDimensions) {
-            return { dimensions: null, heightReference: defaultHeightReference };
-        }
-
-        const dimensions = useHangingFeetDimensions
-            ? (baseDimensions.withHangingFeet || baseDimensions.standard || null)
-            : (baseDimensions.standard || baseDimensions.withHangingFeet || null);
-
-        return {
-            dimensions,
-            heightReference: defaultHeightReference,
-        };
-    };
-
     orderList.forEach((item) => {
         // 跳过没有锁叉的订单
         if (!item.sc || item.sc === '-' || item.sc === '无') return;
@@ -628,17 +614,28 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         const doorHeight = parseHeight(item.spec);
 
         // 3. 检测平下档和吊脚（互斥）
-        const flatBottomRail = detectFlatBottomRail(item.xsbz);
+        const flatBottomRailResult = detectFlatBottomRail(item.xsbz);
+        const flatBottomRail = flatBottomRailResult.value;
         const hasFlatBottomRail = flatBottomRail !== null;
 
-        const hangingFeetValue = hasFlatBottomRail ? null : detectHangingFeet(item.xsbz);
+        const hangingFeetResult = hasFlatBottomRail
+            ? { value: null, matchedRules: [] as string[], winningRules: [] as string[] }
+            : detectHangingFeet(item.xsbz);
+        const hangingFeetValue = hangingFeetResult.value;
         const hasHangingFeet = hangingFeetValue !== null;
         const hangingFeetAdjustment = hasHangingFeet
             ? (adaptedLockForkMapping.hangingFeet?.standard || 35) - hangingFeetValue
             : 0;
 
         // 4. 获取基础尺寸
-        const { dimensions, heightReference } = resolveDimensionRule(thickness, doorHeight, hasFlatBottomRail || hasHangingFeet);
+        const { dimensions, heightReference } = resolveLockForkDimensionRuleWithRules(
+            adaptedLockForkMapping,
+            {
+                thickness,
+                doorHeight,
+                useHangingFeetDimensions: hasFlatBottomRail || hasHangingFeet,
+            },
+        );
         const heightAdjustment = Math.round((doorHeight - heightReference) / 2);
 
         if (!dimensions) {
@@ -652,12 +649,21 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         }
 
         // 5. 检测边型和锁具类型
-        const rawEdgeModifier = detectEdgeType(item.mb);
+        const edgeTypeResult = detectEdgeType(item.mb);
+        const rawEdgeModifier = edgeTypeResult.nameModifier;
         const edgeModifier = shouldSkipTEdgeModifier(item, rawEdgeModifier)
             ? null
             : rawEdgeModifier;
         const lockTypeResult = detectLockType(item.sj, item.fssj);
         const lockTypeConfig = lockTypeResult.config;
+        const matchedRules = mergeRuleNames(
+            mergeRuleNames(lockTypeResult.matchedRules, edgeTypeResult.matchedRules),
+            mergeRuleNames(flatBottomRailResult.matchedRules, hangingFeetResult.matchedRules),
+        );
+        const winningRules = mergeRuleNames(
+            mergeRuleNames(lockTypeResult.winningRules, edgeTypeResult.winningRules),
+            mergeRuleNames(flatBottomRailResult.winningRules, hangingFeetResult.winningRules),
+        );
 
 
         // 6. 构建锁叉名称
@@ -673,19 +679,6 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             lockForkName = `${lockForkName} ${lockTypeConfig.nameModifier}`;
         }
 
-        // 7. 计算尺寸
-        const upperDimension = formatDimension(
-            dimensions.upper.base1,
-            dimensions.upper.base2,
-            heightAdjustment
-        );
-
-        const lowerDimension = formatDimension(
-            dimensions.lower.base1,
-            dimensions.lower.base2,
-            heightAdjustment + hangingFeetAdjustment
-        );
-
         // 8. 构建锁叉名称（基础部分）
         let baseName = item.sc; // 如 "单头锁叉"
 
@@ -694,113 +687,56 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             baseName = `${baseName} ${edgeModifier}`; // "单头锁叉 T型"
         }
 
-        // 9. 构建锁具类型后缀
-        let lockSuffix = '';
-        if (lockTypeConfig?.nameModifier && lockTypeConfig.category !== 'dual-head') {
-            lockSuffix = lockTypeConfig.nameModifier; // "P66"
-        }
-
-        // 10. 构建备注（包含门厚和门高）
-        let remarkParts = [`${thickness}CM ${doorHeight}`];
-
-        if (hasFlatBottomRail) {
-            remarkParts.push(flatBottomRail); // "4CM平下档" 或 "平下档"
-        } else if (hasHangingFeet) {
-            remarkParts.push(`吊脚${hangingFeetValue}mm`);
-        }
-
-        let remarkText = remarkParts.join(', ');
-
         const qtyPair = parseQuantityPair(item.qty);
         const totalQty = qtyPair.left + qtyPair.right;
+        const derived = deriveLockForkRows({
+            baseName,
+            dimensions,
+            thickness,
+            doorHeight,
+            heightAdjustment,
+            hangingFeetAdjustment,
+            flatBottomRail,
+            hangingFeetValue,
+            lockTypeConfig,
+        });
+        const [upperRow, lowerRow] = derived.rows;
+        const remarkText = derived.remark;
 
         // 11. 生成上头和下头两条记录
-        if (lockTypeConfig?.category === 'dual-head') {
-            // 双头锁叉（直杆/弯杆）
-            const upperName = `${baseName} - 上头 ${lockTypeConfig.upper || ''}`.trim();
-            const lowerName = `${baseName} - 下头 ${lockTypeConfig.lower || ''}`.trim();
+        const upperKey = `${upperRow.type}|${upperRow.spec}|${remarkText}`;
+        const lowerKey = `${lowerRow.type}|${lowerRow.spec}|${remarkText}`;
 
-            const upperKey = `${upperName}|${upperDimension}|${remarkText}`;
-            const lowerKey = `${lowerName}|${lowerDimension}|${remarkText}`;
-
-            // 上头
-            if (lockForkMap[upperKey]) {
-                lockForkMap[upperKey].quantity += totalQty;
-                lockForkMap[upperKey].matchedRules = mergeRuleNames(lockForkMap[upperKey].matchedRules, lockTypeResult.matchedRules);
-                lockForkMap[upperKey].winningRules = mergeRuleNames(lockForkMap[upperKey].winningRules, lockTypeResult.winningRules);
-            } else {
-                lockForkMap[upperKey] = {
-                    supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
-                    type: upperName,
-                    spec: upperDimension,
-                    remark: remarkText,
-                    quantity: totalQty,
-                    matchedRules: [...lockTypeResult.matchedRules],
-                    winningRules: [...lockTypeResult.winningRules],
-                };
-            }
-
-            // 下头
-            if (lockForkMap[lowerKey]) {
-                lockForkMap[lowerKey].quantity += totalQty;
-                lockForkMap[lowerKey].matchedRules = mergeRuleNames(lockForkMap[lowerKey].matchedRules, lockTypeResult.matchedRules);
-                lockForkMap[lowerKey].winningRules = mergeRuleNames(lockForkMap[lowerKey].winningRules, lockTypeResult.winningRules);
-            } else {
-                lockForkMap[lowerKey] = {
-                    supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
-                    type: lowerName,
-                    spec: lowerDimension,
-                    remark: remarkText,
-                    quantity: totalQty,
-                    matchedRules: [...lockTypeResult.matchedRules],
-                    winningRules: [...lockTypeResult.winningRules],
-                };
-            }
+        if (lockForkMap[upperKey]) {
+            lockForkMap[upperKey].quantity += totalQty;
+            lockForkMap[upperKey].matchedRules = mergeRuleNames(lockForkMap[upperKey].matchedRules, matchedRules);
+            lockForkMap[upperKey].winningRules = mergeRuleNames(lockForkMap[upperKey].winningRules, winningRules);
         } else {
-            // 标准锁叉或P66
-            const upperName = lockSuffix
-                ? `${baseName} - 上头 ${lockSuffix}`
-                : `${baseName} - 上头`;
-            const lowerName = lockSuffix
-                ? `${baseName} - 下头 ${lockSuffix}`
-                : `${baseName} - 下头`;
+            lockForkMap[upperKey] = {
+                supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
+                type: upperRow.type,
+                spec: upperRow.spec,
+                remark: upperRow.remark,
+                quantity: totalQty,
+                matchedRules: [...matchedRules],
+                winningRules: [...winningRules],
+            };
+        }
 
-            const upperKey = `${upperName}|${upperDimension}|${remarkText}`;
-            const lowerKey = `${lowerName}|${lowerDimension}|${remarkText}`;
-
-            // 上头
-            if (lockForkMap[upperKey]) {
-                lockForkMap[upperKey].quantity += totalQty;
-                lockForkMap[upperKey].matchedRules = mergeRuleNames(lockForkMap[upperKey].matchedRules, lockTypeResult.matchedRules);
-                lockForkMap[upperKey].winningRules = mergeRuleNames(lockForkMap[upperKey].winningRules, lockTypeResult.winningRules);
-            } else {
-                lockForkMap[upperKey] = {
-                    supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
-                    type: upperName,
-                    spec: upperDimension,
-                    remark: remarkText,
-                    quantity: totalQty,
-                    matchedRules: [...lockTypeResult.matchedRules],
-                    winningRules: [...lockTypeResult.winningRules],
-                };
-            }
-
-            // 下头
-            if (lockForkMap[lowerKey]) {
-                lockForkMap[lowerKey].quantity += totalQty;
-                lockForkMap[lowerKey].matchedRules = mergeRuleNames(lockForkMap[lowerKey].matchedRules, lockTypeResult.matchedRules);
-                lockForkMap[lowerKey].winningRules = mergeRuleNames(lockForkMap[lowerKey].winningRules, lockTypeResult.winningRules);
-            } else {
-                lockForkMap[lowerKey] = {
-                    supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
-                    type: lowerName,
-                    spec: lowerDimension,
-                    remark: remarkText,
-                    quantity: totalQty,
-                    matchedRules: [...lockTypeResult.matchedRules],
-                    winningRules: [...lockTypeResult.winningRules],
-                };
-            }
+        if (lockForkMap[lowerKey]) {
+            lockForkMap[lowerKey].quantity += totalQty;
+            lockForkMap[lowerKey].matchedRules = mergeRuleNames(lockForkMap[lowerKey].matchedRules, matchedRules);
+            lockForkMap[lowerKey].winningRules = mergeRuleNames(lockForkMap[lowerKey].winningRules, winningRules);
+        } else {
+            lockForkMap[lowerKey] = {
+                supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
+                type: lowerRow.type,
+                spec: lowerRow.spec,
+                remark: lowerRow.remark,
+                quantity: totalQty,
+                matchedRules: [...matchedRules],
+                winningRules: [...winningRules],
+            };
         }
     });
 

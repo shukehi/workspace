@@ -52,6 +52,15 @@ function toComparableGroups(groups: any[]) {
   }));
 }
 
+function stripRuleMetaRows(rows: any[]) {
+  return rows.map((row) => {
+    const next = { ...row };
+    delete next.matchedRules;
+    delete next.winningRules;
+    return next;
+  });
+}
+
 function buildPrintChecksum(category: string, group: any, sample: any) {
   const doc = buildProcurementDocModel({
     category,
@@ -122,7 +131,7 @@ test('mapping runtime regression: real order sample 202408120023 keeps current e
     assert.deepEqual(
       {
         cylinders: hardwareRequirements.cylinders,
-        lockForks: hardwareRequirements.lockForks,
+        lockForks: stripRuleMetaRows(hardwareRequirements.lockForks),
         packaging: packagingExtracted,
       },
       expected.extracted,

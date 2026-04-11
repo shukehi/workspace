@@ -62,6 +62,15 @@ function toComparableGroups(groups: any[]) {
   }));
 }
 
+function stripRuleMetaRows(rows: any[]) {
+  return rows.map((row) => {
+    const next = { ...row };
+    delete next.matchedRules;
+    delete next.winningRules;
+    return next;
+  });
+}
+
 function buildPrintChecksum(category: string, group: any, sample: any) {
   const doc = buildProcurementDocModel({
     category,
@@ -128,7 +137,7 @@ test('mapping runtime regression: derived edge cases from real order keep curren
       assert.deepEqual(
         {
           cylinders: hardwareRequirements.cylinders,
-          lockForks: hardwareRequirements.lockForks,
+          lockForks: stripRuleMetaRows(hardwareRequirements.lockForks),
           packaging: Object.values(hardwareRequirements.packaging),
         },
         testCase.expected.extracted,

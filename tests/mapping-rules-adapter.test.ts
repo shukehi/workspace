@@ -4,6 +4,9 @@ import {
   adaptCylinderAccessoryPackRulesToRuleSet,
   adaptCylinderToHybridRulePayload,
   applyLockRulePreviewFallbacks,
+  adaptLockForkFlatBottomRulesToRuleSet,
+  adaptLockForkEdgeTypeRulesToRuleSet,
+  adaptLockForkHangingFeetRulesToRuleSet,
   adaptLockForkTypeRulesToRuleSet,
   adaptLockMappingsToRuleSet,
 } from '../src/services/mappings/mappingRules.adapter';
@@ -194,4 +197,69 @@ test('mapping rules adapter builds lock fork type preview rules', () => {
   assert.equal(ruleSet.rules[0].then.extra?.nameModifier, 'P66');
   assert.equal(ruleSet.rules[0].then.extra?.upper, '直杆');
   assert.equal(ruleSet.rules[0].then.extra?.lower, '弯杆');
+});
+
+test('mapping rules adapter builds lock fork edge preview rules', () => {
+  const ruleSet = adaptLockForkEdgeTypeRulesToRuleSet({
+    baseDimensions: {},
+    highHeightRules: {},
+    lockTypes: {},
+    edgeTypes: {
+      T型: {
+        nameModifier: 'T型',
+      },
+    },
+    hangingFeet: {
+      standard: 35,
+      keywords: ['吊脚'],
+    },
+    heightReference: 2050,
+    suppliers: {},
+  });
+
+  assert.equal(ruleSet.metadata.profileCode, 'lock_fork');
+  assert.equal(ruleSet.rules.length, 1);
+  assert.deepEqual(ruleSet.rules[0].when, {
+    operator: 'and',
+    items: [{ field: 'mb', op: 'includes', value: 'T型' }],
+  });
+  assert.equal(ruleSet.rules[0].then.extra?.nameModifier, 'T型');
+});
+
+test('mapping rules adapter builds lock fork hanging-feet preview rules', () => {
+  const ruleSet = adaptLockForkHangingFeetRulesToRuleSet({
+    baseDimensions: {},
+    highHeightRules: {},
+    lockTypes: {},
+    edgeTypes: {},
+    hangingFeet: {
+      standard: 35,
+      keywords: ['吊脚', 'diaojiao'],
+    },
+    heightReference: 2050,
+    suppliers: {},
+  });
+
+  assert.equal(ruleSet.metadata.profileCode, 'lock_fork');
+  assert.deepEqual(ruleSet.rules.map((rule) => rule.id), [
+    'lock-fork-hanging-feet-吊脚',
+    'lock-fork-hanging-feet-diaojiao',
+  ]);
+  assert.deepEqual(ruleSet.rules[0].when, {
+    operator: 'and',
+    items: [{ field: 'xsbz', op: 'includes', value: '吊脚' }],
+  });
+  assert.equal(ruleSet.rules[0].then.extra?.mode, 'hanging_feet');
+});
+
+test('mapping rules adapter builds lock fork flat-bottom preview rules', () => {
+  const ruleSet = adaptLockForkFlatBottomRulesToRuleSet();
+
+  assert.equal(ruleSet.metadata.profileCode, 'lock_fork');
+  assert.equal(ruleSet.rules.length, 1);
+  assert.deepEqual(ruleSet.rules[0].when, {
+    operator: 'and',
+    items: [{ field: 'xsbz', op: 'includes', value: '平下档' }],
+  });
+  assert.equal(ruleSet.rules[0].then.extra?.mode, 'flat_bottom');
 });

@@ -208,6 +208,26 @@ function buildLockForkTypeRuleId(lockTypeName: string): string {
   return `lock-fork-type-${lockTypeName}`;
 }
 
+function buildLockForkEdgeRuleId(edgeTypeName: string): string {
+  return `lock-fork-edge-${edgeTypeName}`;
+}
+
+function buildLockForkHangingFeetRuleId(keyword: string): string {
+  return `lock-fork-hanging-feet-${keyword}`;
+}
+
+function buildLockForkFlatBottomRuleId(): string {
+  return 'lock-fork-flat-bottom';
+}
+
+function buildLockForkDimensionRuleId(
+  source: 'base' | 'high_height' | 'fallback_7',
+  thicknessKey: string,
+  variant: 'standard' | 'withHangingFeet',
+): string {
+  return `lock-fork-dimension-${source}-${thicknessKey}-${variant}`;
+}
+
 export function adaptLockForkTypeRulesToRuleSet(
   payload: LockForkMappingConfig,
 ): MappingRuleSet {
@@ -251,6 +271,203 @@ export function adaptLockForkTypeRulesToRuleSet(
       schemaVersion: 1,
       description: 'Lock fork type preview rules adapted from lock fork mapping',
       defaultEnabled: true,
+    },
+    rules,
+  };
+}
+
+export function adaptLockForkEdgeTypeRulesToRuleSet(
+  payload: LockForkMappingConfig,
+): MappingRuleSet {
+  const rules = Object.entries(payload.edgeTypes || {}).reduce<MappingRule[]>((acc, [name, config]) => {
+    const normalizedName = toTrimmedString(name);
+    if (!normalizedName) return acc;
+
+    acc.push({
+      id: buildLockForkEdgeRuleId(normalizedName),
+      profile: 'lock_fork',
+      enabled: true,
+      priority: 1000,
+      stage: 'derived_mapping',
+      scope: 'all',
+      when: {
+        operator: 'and',
+        items: [
+          { field: 'mb', op: 'includes', value: normalizedName },
+        ],
+      },
+      then: {
+        type: normalizedName,
+        extra: {
+          nameModifier: toTrimmedString(config.nameModifier),
+        },
+      },
+      notes: 'Adapted from lockFork.edgeTypes',
+      tags: ['lock_fork', 'edge_type'],
+    });
+
+    return acc;
+  }, []);
+
+  return {
+    metadata: {
+      profileCode: 'lock_fork',
+      schemaVersion: 1,
+      description: 'Lock fork edge type preview rules adapted from lock fork mapping',
+      defaultEnabled: true,
+    },
+    rules,
+  };
+}
+
+export function adaptLockForkHangingFeetRulesToRuleSet(
+  payload: LockForkMappingConfig,
+): MappingRuleSet {
+  const rules = (payload.hangingFeet?.keywords || []).reduce<MappingRule[]>((acc, keyword) => {
+    const normalizedKeyword = toTrimmedString(keyword);
+    if (!normalizedKeyword) return acc;
+
+    acc.push({
+      id: buildLockForkHangingFeetRuleId(normalizedKeyword),
+      profile: 'lock_fork',
+      enabled: true,
+      priority: 1000,
+      stage: 'derived_mapping',
+      scope: 'all',
+      when: {
+        operator: 'and',
+        items: [
+          { field: 'xsbz', op: 'includes', value: normalizedKeyword },
+        ],
+      },
+      then: {
+        extra: {
+          mode: 'hanging_feet',
+          keyword: normalizedKeyword,
+          standard: payload.hangingFeet?.standard,
+        },
+      },
+      notes: 'Adapted from lockFork.hangingFeet.keywords',
+      tags: ['lock_fork', 'hanging_feet'],
+    });
+
+    return acc;
+  }, []);
+
+  return {
+    metadata: {
+      profileCode: 'lock_fork',
+      schemaVersion: 1,
+      description: 'Lock fork hanging-feet preview rules adapted from lock fork mapping',
+      defaultEnabled: true,
+    },
+    rules,
+  };
+}
+
+export function adaptLockForkFlatBottomRulesToRuleSet(): MappingRuleSet {
+  return {
+    metadata: {
+      profileCode: 'lock_fork',
+      schemaVersion: 1,
+      description: 'Lock fork flat-bottom detection rules',
+      defaultEnabled: true,
+    },
+    rules: [
+      {
+        id: buildLockForkFlatBottomRuleId(),
+        profile: 'lock_fork',
+        enabled: true,
+        priority: 1000,
+        stage: 'derived_mapping',
+        scope: 'all',
+        when: {
+          operator: 'and',
+          items: [
+            { field: 'xsbz', op: 'includes', value: '平下档' },
+          ],
+        },
+        then: {
+          extra: {
+            mode: 'flat_bottom',
+          },
+        },
+        notes: 'Built-in flat-bottom detection rule for lock fork extraction',
+        tags: ['lock_fork', 'flat_bottom'],
+      },
+    ],
+  };
+}
+
+export function adaptLockForkDimensionSelectionRulesToRuleSet(
+  payload: LockForkMappingConfig,
+): MappingRuleSet {
+  const rules: MappingRule[] = [];
+
+  const pushRule = (
+    source: 'base' | 'high_height' | 'fallback_7',
+    thicknessKey: string,
+    matchThicknessKey: string,
+    variant: 'standard' | 'withHangingFeet',
+    extraConditions: MappingRule['when']['items'] = [],
+    heightReference?: number,
+  ) => {
+    rules.push({
+      id: buildLockForkDimensionRuleId(source, thicknessKey, variant),
+      profile: 'lock_fork',
+      enabled: true,
+      priority: source === 'high_height' ? 2000 : 1000,
+      stage: 'derived_mapping',
+        scope: 'all',
+        when: {
+          operator: 'and',
+          items: [
+            { field: 'meta.useHangingFeetDimensions', op: 'eq', value: variant === 'withHangingFeet' },
+            { field: 'thickness', op: 'eq', value: matchThicknessKey },
+            ...extraConditions,
+          ],
+        },
+      then: {
+        extra: {
+          source,
+          thicknessKey,
+          variant,
+          ...(heightReference !== undefined ? { heightReference } : {}),
+        },
+      },
+      notes: 'Adapted from lockFork dimension selection',
+      tags: ['lock_fork', 'dimension_selection', source, variant],
+    });
+  };
+
+  Object.entries(payload.baseDimensions || {}).forEach(([thicknessKey]) => {
+    pushRule('base', thicknessKey, thicknessKey, 'standard');
+    pushRule('base', thicknessKey, thicknessKey, 'withHangingFeet');
+  });
+
+  if (!payload.baseDimensions?.['5'] && payload.baseDimensions?.['7']) {
+    pushRule('fallback_7', '7', '5', 'standard');
+    pushRule('fallback_7', '7', '5', 'withHangingFeet');
+  }
+
+  Object.entries(payload.highHeightRules || {}).forEach(([thicknessKey, rule]) => {
+    const minHeight = Number(rule.minHeight || 0);
+    const heightReference = Number(rule.heightReference || payload.heightReference || 2050);
+    pushRule('high_height', thicknessKey, thicknessKey, 'standard', [{ field: 'doorHeight', op: 'gte', value: minHeight }], heightReference);
+    pushRule('high_height', thicknessKey, thicknessKey, 'withHangingFeet', [{ field: 'doorHeight', op: 'gte', value: minHeight }], heightReference);
+  });
+
+  return {
+    metadata: {
+      profileCode: 'lock_fork',
+      schemaVersion: 1,
+      description: 'Lock fork dimension selection rules adapted from lock fork mapping',
+      defaultEnabled: true,
+    },
+    defaults: {
+      extra: {
+        heightReference: payload.heightReference,
+      },
     },
     rules,
   };

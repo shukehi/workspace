@@ -315,6 +315,40 @@
   - `lock`
   - `cylinder accessory`
   - `lock_fork`
+
+### 11. lock_fork 已推进到尺寸来源选择层主路径切换
+
+已完成：
+
+- `lock_fork` 识别层已规则化：
+  - `lockTypes`
+  - `edgeTypes`
+  - `hangingFeet`
+  - `flatBottom`
+- 新增独立尺寸来源选择器：
+  - `src/services/mappings/lockForkDimensionSelector.ts`
+- 新增独立计算拼装 helper：
+  - `src/services/lockForkDeriver.ts`
+- `extractLockForkData()` 的尺寸来源选择主路径已切到 rule-based selector
+- 旧 selector 保留用于测试对照，不再走主路径
+
+当前含义：
+
+- `lock_fork` 已从“局部规则化”推进到三层结构收口：
+  1. 识别层
+  2. 尺寸来源选择层
+  3. 计算拼装层（已模块化）
+- 尺寸来源选择的 rule path 与 legacy path 已有双轨对照证明一致
+- 真实样本 baseline 在新增规则元信息之外保持一致
+
+验证：
+
+- `tests/lock-fork-deriver.test.ts`
+- `tests/lock-fork-dimension-selector.test.ts`
+- `tests/lock-fork-extraction.test.ts`
+- `tests/mapping-runtime-regression.test.ts`
+- `tests/mapping-runtime-derived-regression.test.ts`
+- `npm run type-check`
 - `P1` 已完成：
   - mapping runtime 只读 published
   - published 状态可检查
@@ -335,5 +369,5 @@
    - stock-in
 3. 如继续推进 mapping 数据库化，下一步进入 `P3`：文档与配置页周边语义收口
 4. 如继续推进规则系统，下一步优先考虑：
-   - 继续把 `lock_fork` 的更多派生逻辑接入规则执行
+   - 决定是否继续把 lock_fork 计算拼装层再抽象成 rule output contract
    - 或把更多 rule execution 元信息扩展到 source analysis 展示层

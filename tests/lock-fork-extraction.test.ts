@@ -121,6 +121,26 @@ test('extractLockForkData uses rule-based lock type matching for suffixes', () =
   assert.deepEqual(rows[1].winningRules, ['lock-fork-type-F02-A副锁']);
 });
 
+test('extractLockForkData falls back to 7cm base dimensions for 5cm doors below high-height threshold', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '5',
+        spec: '960*2050/5/内开外包',
+      },
+    ],
+    {},
+    mapping,
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['570*301 = 871', '570*301 = 871'],
+  );
+});
+
 test('extractLockForkData omits T modifier for 10cm inward-opening T-edge aluminum orders', () => {
   const rows = extractLockForkData(
     [
@@ -163,6 +183,30 @@ test('extractLockForkData keeps T modifier for non-exception T-edge orders', () 
     rows.map((item) => item.type),
     ['单头锁叉 T型 - 上头', '单头锁叉 T型 - 下头'],
   );
+  assert.deepEqual(rows[0].matchedRules, ['lock-fork-edge-T型']);
+  assert.deepEqual(rows[0].winningRules, ['lock-fork-edge-T型']);
+  assert.deepEqual(rows[1].matchedRules, ['lock-fork-edge-T型']);
+  assert.deepEqual(rows[1].winningRules, ['lock-fork-edge-T型']);
+});
+
+test('extractLockForkData keeps 7cm doors below 2200 on base dimensions', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '7',
+        spec: '960*2198/7/内开外包',
+      },
+    ],
+    {},
+    mapping,
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['570*301 + 74 = 945', '570*301 + 74 = 945'],
+  );
 });
 
 test('extractLockForkData uses high-height dimensions for 7cm doors at or above 2200', () => {
@@ -204,6 +248,8 @@ test('extractLockForkData uses high-height hanging-feet dimensions for 7cm flat-
     flatBottomRows.map((item) => item.spec),
     ['570*376 + 100 = 1046', '570*388 + 100 = 1058'],
   );
+  assert.deepEqual(flatBottomRows[0].winningRules, ['lock-fork-flat-bottom']);
+  assert.deepEqual(flatBottomRows[1].winningRules, ['lock-fork-flat-bottom']);
 
   const hangingFeetRows = extractLockForkData(
     [
@@ -223,6 +269,31 @@ test('extractLockForkData uses high-height hanging-feet dimensions for 7cm flat-
     hangingFeetRows.map((item) => item.spec),
     ['570*376 + 100 = 1046', '570*388 + 130 = 1088'],
   );
+  assert.deepEqual(hangingFeetRows[0].winningRules, ['lock-fork-hanging-feet-吊脚']);
+  assert.deepEqual(hangingFeetRows[1].winningRules, ['lock-fork-hanging-feet-吊脚']);
+});
+
+test('extractLockForkData treats flat-bottom as higher priority than hanging-feet when both markers exist', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '7',
+        spec: '960*2400/7/内开外包',
+        xsbz: '4CM平下档 吊脚5mm',
+      },
+    ],
+    {},
+    mapping,
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['570*376 + 100 = 1046', '570*388 + 100 = 1058'],
+  );
+  assert.deepEqual(rows[0].winningRules, ['lock-fork-flat-bottom']);
+  assert.deepEqual(rows[1].winningRules, ['lock-fork-flat-bottom']);
 });
 
 test('extractLockForkData uses 9cm high-height rule at or above 2210', () => {
