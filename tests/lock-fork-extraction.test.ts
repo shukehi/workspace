@@ -115,6 +115,10 @@ test('extractLockForkData uses rule-based lock type matching for suffixes', () =
     rows.map((item) => item.type),
     ['单头锁叉 - 上头 P66', '单头锁叉 - 下头 P66'],
   );
+  assert.deepEqual(rows[0].matchedRules, ['lock-fork-type-F02-A副锁']);
+  assert.deepEqual(rows[0].winningRules, ['lock-fork-type-F02-A副锁']);
+  assert.deepEqual(rows[1].matchedRules, ['lock-fork-type-F02-A副锁']);
+  assert.deepEqual(rows[1].winningRules, ['lock-fork-type-F02-A副锁']);
 });
 
 test('extractLockForkData omits T modifier for 10cm inward-opening T-edge aluminum orders', () => {

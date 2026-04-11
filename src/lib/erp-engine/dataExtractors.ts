@@ -46,6 +46,8 @@ type LockForkResultRow = {
     spec: string;
     remark: string;
     quantity: number;
+    matchedRules: string[];
+    winningRules: string[];
 };
 type HandleResultRow = {
     supplier: string;
@@ -541,15 +543,25 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
     };
 
     // 助手：检测锁具类型
-    const detectLockType = (sj: unknown, fssj: unknown): GenericMap | null => {
+    const detectLockType = (sj: unknown, fssj: unknown): { config: GenericMap | null; matchedRules: string[]; winningRules: string[] } => {
         const execution = executeRuleSet(lockForkTypeRuleSet, {
             sj: typeof sj === 'string' ? sj.trim() : '',
             fssj: typeof fssj === 'string' ? fssj.trim() : '',
         });
-        if (execution.winningRules.length === 0) return null;
+        if (execution.winningRules.length === 0) {
+            return {
+                config: null,
+                matchedRules: execution.matchedRules,
+                winningRules: execution.winningRules,
+            };
+        }
 
         return {
-            ...(execution.output.extra || {}),
+            config: {
+                ...(execution.output.extra || {}),
+            },
+            matchedRules: execution.matchedRules,
+            winningRules: execution.winningRules,
         };
     };
 
@@ -644,7 +656,8 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         const edgeModifier = shouldSkipTEdgeModifier(item, rawEdgeModifier)
             ? null
             : rawEdgeModifier;
-        const lockTypeConfig = detectLockType(item.sj, item.fssj);
+        const lockTypeResult = detectLockType(item.sj, item.fssj);
+        const lockTypeConfig = lockTypeResult.config;
 
 
         // 6. 构建锁叉名称
@@ -713,26 +726,34 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             // 上头
             if (lockForkMap[upperKey]) {
                 lockForkMap[upperKey].quantity += totalQty;
+                lockForkMap[upperKey].matchedRules = mergeRuleNames(lockForkMap[upperKey].matchedRules, lockTypeResult.matchedRules);
+                lockForkMap[upperKey].winningRules = mergeRuleNames(lockForkMap[upperKey].winningRules, lockTypeResult.winningRules);
             } else {
                 lockForkMap[upperKey] = {
                     supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
                     type: upperName,
                     spec: upperDimension,
                     remark: remarkText,
-                    quantity: totalQty
+                    quantity: totalQty,
+                    matchedRules: [...lockTypeResult.matchedRules],
+                    winningRules: [...lockTypeResult.winningRules],
                 };
             }
 
             // 下头
             if (lockForkMap[lowerKey]) {
                 lockForkMap[lowerKey].quantity += totalQty;
+                lockForkMap[lowerKey].matchedRules = mergeRuleNames(lockForkMap[lowerKey].matchedRules, lockTypeResult.matchedRules);
+                lockForkMap[lowerKey].winningRules = mergeRuleNames(lockForkMap[lowerKey].winningRules, lockTypeResult.winningRules);
             } else {
                 lockForkMap[lowerKey] = {
                     supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
                     type: lowerName,
                     spec: lowerDimension,
                     remark: remarkText,
-                    quantity: totalQty
+                    quantity: totalQty,
+                    matchedRules: [...lockTypeResult.matchedRules],
+                    winningRules: [...lockTypeResult.winningRules],
                 };
             }
         } else {
@@ -750,26 +771,34 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             // 上头
             if (lockForkMap[upperKey]) {
                 lockForkMap[upperKey].quantity += totalQty;
+                lockForkMap[upperKey].matchedRules = mergeRuleNames(lockForkMap[upperKey].matchedRules, lockTypeResult.matchedRules);
+                lockForkMap[upperKey].winningRules = mergeRuleNames(lockForkMap[upperKey].winningRules, lockTypeResult.winningRules);
             } else {
                 lockForkMap[upperKey] = {
                     supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
                     type: upperName,
                     spec: upperDimension,
                     remark: remarkText,
-                    quantity: totalQty
+                    quantity: totalQty,
+                    matchedRules: [...lockTypeResult.matchedRules],
+                    winningRules: [...lockTypeResult.winningRules],
                 };
             }
 
             // 下头
             if (lockForkMap[lowerKey]) {
                 lockForkMap[lowerKey].quantity += totalQty;
+                lockForkMap[lowerKey].matchedRules = mergeRuleNames(lockForkMap[lowerKey].matchedRules, lockTypeResult.matchedRules);
+                lockForkMap[lowerKey].winningRules = mergeRuleNames(lockForkMap[lowerKey].winningRules, lockTypeResult.winningRules);
             } else {
                 lockForkMap[lowerKey] = {
                     supplier: adaptedLockForkMapping.suppliers?.default || '锁叉供应商',
                     type: lowerName,
                     spec: lowerDimension,
                     remark: remarkText,
-                    quantity: totalQty
+                    quantity: totalQty,
+                    matchedRules: [...lockTypeResult.matchedRules],
+                    winningRules: [...lockTypeResult.winningRules],
                 };
             }
         }

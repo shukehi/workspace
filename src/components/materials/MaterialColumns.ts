@@ -100,6 +100,16 @@ export const forkColumns: ColumnDef<any>[] = [
     { accessorKey: 'spec', header: '规格' },
     { accessorKey: 'remark', header: '备注' },
     {
+        accessorKey: 'matchedRules',
+        header: '命中规则',
+        cell: ({ row }) => renderRuleNames(row.getValue('matchedRules'))
+    },
+    {
+        accessorKey: 'winningRules',
+        header: '生效规则',
+        cell: ({ row }) => renderRuleNames(row.getValue('winningRules'))
+    },
+    {
         accessorKey: 'quantity',
         header: '数量',
         cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('quantity'))

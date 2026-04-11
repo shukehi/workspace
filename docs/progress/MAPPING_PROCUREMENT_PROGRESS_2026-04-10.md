@@ -307,6 +307,10 @@
   - `lock`
   - `cylinder accessory`
   - `lock_fork` 的锁具类型识别
+- `lock_fork` 结果现在也会带上：
+  - `matchedRules`
+  - `winningRules`
+- `Materials` 页锁叉表已能展示锁叉结果对应的规则命中信息
 - `P1` 已完成：
   - mapping runtime 只读 published
   - published 状态可检查
