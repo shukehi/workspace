@@ -628,7 +628,12 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             : 0;
 
         // 4. 获取基础尺寸
-        const { dimensions, heightReference } = resolveLockForkDimensionRuleWithRules(
+        const {
+            dimensions,
+            heightReference,
+            matchedRules: dimensionMatchedRules,
+            winningRules: dimensionWinningRules,
+        } = resolveLockForkDimensionRuleWithRules(
             adaptedLockForkMapping,
             {
                 thickness,
@@ -657,12 +662,18 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         const lockTypeResult = detectLockType(item.sj, item.fssj);
         const lockTypeConfig = lockTypeResult.config;
         const matchedRules = mergeRuleNames(
-            mergeRuleNames(lockTypeResult.matchedRules, edgeTypeResult.matchedRules),
-            mergeRuleNames(flatBottomRailResult.matchedRules, hangingFeetResult.matchedRules),
+            mergeRuleNames(
+                mergeRuleNames(lockTypeResult.matchedRules, edgeTypeResult.matchedRules),
+                mergeRuleNames(flatBottomRailResult.matchedRules, hangingFeetResult.matchedRules),
+            ),
+            dimensionMatchedRules,
         );
         const winningRules = mergeRuleNames(
-            mergeRuleNames(lockTypeResult.winningRules, edgeTypeResult.winningRules),
-            mergeRuleNames(flatBottomRailResult.winningRules, hangingFeetResult.winningRules),
+            mergeRuleNames(
+                mergeRuleNames(lockTypeResult.winningRules, edgeTypeResult.winningRules),
+                mergeRuleNames(flatBottomRailResult.winningRules, hangingFeetResult.winningRules),
+            ),
+            dimensionWinningRules,
         );
 
 

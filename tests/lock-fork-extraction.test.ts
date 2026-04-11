@@ -115,10 +115,10 @@ test('extractLockForkData uses rule-based lock type matching for suffixes', () =
     rows.map((item) => item.type),
     ['单头锁叉 - 上头 P66', '单头锁叉 - 下头 P66'],
   );
-  assert.deepEqual(rows[0].matchedRules, ['lock-fork-type-F02-A副锁']);
-  assert.deepEqual(rows[0].winningRules, ['lock-fork-type-F02-A副锁']);
-  assert.deepEqual(rows[1].matchedRules, ['lock-fork-type-F02-A副锁']);
-  assert.deepEqual(rows[1].winningRules, ['lock-fork-type-F02-A副锁']);
+  assert.deepEqual(rows[0].matchedRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
+  assert.deepEqual(rows[0].winningRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
+  assert.deepEqual(rows[1].matchedRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
+  assert.deepEqual(rows[1].winningRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
 });
 
 test('extractLockForkData falls back to 7cm base dimensions for 5cm doors below high-height threshold', () => {
@@ -183,10 +183,10 @@ test('extractLockForkData keeps T modifier for non-exception T-edge orders', () 
     rows.map((item) => item.type),
     ['单头锁叉 T型 - 上头', '单头锁叉 T型 - 下头'],
   );
-  assert.deepEqual(rows[0].matchedRules, ['lock-fork-edge-T型']);
-  assert.deepEqual(rows[0].winningRules, ['lock-fork-edge-T型']);
-  assert.deepEqual(rows[1].matchedRules, ['lock-fork-edge-T型']);
-  assert.deepEqual(rows[1].winningRules, ['lock-fork-edge-T型']);
+  assert.deepEqual(rows[0].matchedRules, ['lock-fork-edge-T型', 'lock-fork-dimension-base-10-standard']);
+  assert.deepEqual(rows[0].winningRules, ['lock-fork-edge-T型', 'lock-fork-dimension-base-10-standard']);
+  assert.deepEqual(rows[1].matchedRules, ['lock-fork-edge-T型', 'lock-fork-dimension-base-10-standard']);
+  assert.deepEqual(rows[1].winningRules, ['lock-fork-edge-T型', 'lock-fork-dimension-base-10-standard']);
 });
 
 test('extractLockForkData keeps 7cm doors below 2200 on base dimensions', () => {
@@ -248,8 +248,8 @@ test('extractLockForkData uses high-height hanging-feet dimensions for 7cm flat-
     flatBottomRows.map((item) => item.spec),
     ['570*376 + 100 = 1046', '570*388 + 100 = 1058'],
   );
-  assert.deepEqual(flatBottomRows[0].winningRules, ['lock-fork-flat-bottom']);
-  assert.deepEqual(flatBottomRows[1].winningRules, ['lock-fork-flat-bottom']);
+  assert.deepEqual(flatBottomRows[0].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);
+  assert.deepEqual(flatBottomRows[1].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);
 
   const hangingFeetRows = extractLockForkData(
     [
@@ -269,8 +269,8 @@ test('extractLockForkData uses high-height hanging-feet dimensions for 7cm flat-
     hangingFeetRows.map((item) => item.spec),
     ['570*376 + 100 = 1046', '570*388 + 130 = 1088'],
   );
-  assert.deepEqual(hangingFeetRows[0].winningRules, ['lock-fork-hanging-feet-吊脚']);
-  assert.deepEqual(hangingFeetRows[1].winningRules, ['lock-fork-hanging-feet-吊脚']);
+  assert.deepEqual(hangingFeetRows[0].winningRules, ['lock-fork-hanging-feet-吊脚', 'lock-fork-dimension-high_height-7-withHangingFeet']);
+  assert.deepEqual(hangingFeetRows[1].winningRules, ['lock-fork-hanging-feet-吊脚', 'lock-fork-dimension-high_height-7-withHangingFeet']);
 });
 
 test('extractLockForkData treats flat-bottom as higher priority than hanging-feet when both markers exist', () => {
@@ -292,8 +292,8 @@ test('extractLockForkData treats flat-bottom as higher priority than hanging-fee
     rows.map((item) => item.spec),
     ['570*376 + 100 = 1046', '570*388 + 100 = 1058'],
   );
-  assert.deepEqual(rows[0].winningRules, ['lock-fork-flat-bottom']);
-  assert.deepEqual(rows[1].winningRules, ['lock-fork-flat-bottom']);
+  assert.deepEqual(rows[0].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);
+  assert.deepEqual(rows[1].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);
 });
 
 test('extractLockForkData uses 9cm high-height rule at or above 2210', () => {
