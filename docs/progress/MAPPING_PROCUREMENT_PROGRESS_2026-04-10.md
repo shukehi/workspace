@@ -311,6 +311,10 @@
   - `matchedRules`
   - `winningRules`
 - `Materials` 页锁叉表已能展示锁叉结果对应的规则命中信息
+- 当前三条真实业务链路都已具备规则命中可见性：
+  - `lock`
+  - `cylinder accessory`
+  - `lock_fork`
 - `P1` 已完成：
   - mapping runtime 只读 published
   - published 状态可检查
