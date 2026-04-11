@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { useSourceStore } from '@/stores/useSourceStore';
 import DataTable from '@/components/data-table/DataTable.vue';
-import { rawColumns, cylinderColumns, forkColumns, packagingColumns } from '@/components/materials/MaterialColumns';
+import {
+  rawColumns,
+  cylinderColumns,
+  lockColumns,
+  handleColumns,
+  accessoryColumns,
+  forkColumns,
+  packagingColumns,
+} from '@/components/materials/MaterialColumns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useMaterialsPageState } from '@/features/materials/composables/useMaterialsPageState';
 
@@ -46,6 +54,21 @@ const { activeTab, tabs, setActiveTab } = useMaterialsPageState();
             <div class="space-y-3">
               <h3 class="font-semibold text-base">Cylinders (锁芯)</h3>
               <DataTable :columns="cylinderColumns" :data="store.flatCylinders" density="compact" />
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="font-semibold text-base">Locks (锁具)</h3>
+              <DataTable :columns="lockColumns" :data="store.flatLocks" density="compact" />
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="font-semibold text-base">Handles (拉手)</h3>
+              <DataTable :columns="handleColumns" :data="store.flatHandles" density="compact" />
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="font-semibold text-base">Accessories (五金配件)</h3>
+              <DataTable :columns="accessoryColumns" :data="store.flatAccessories" density="compact" />
             </div>
 
             <div class="space-y-3">

@@ -43,6 +43,8 @@ test('extractCylinderAccessoryPackData creates accessory pack rows from fshz and
   assert.equal(extracted[0].unit, '套');
   assert.equal(extracted[0].remark, '副锁护罩配件包');
   assert.equal(extracted[0].quantity, 5);
+  assert.deepEqual(extracted[0].matchedRules, ['cylinder-secondary-accessory-1-7']);
+  assert.deepEqual(extracted[0].winningRules, ['cylinder-secondary-accessory-1-7']);
 });
 
 test('extractCylinderAccessoryPackData skips unmatched thickness pack', () => {
@@ -102,4 +104,5 @@ test('extractCylinderAccessoryPackData honors configured conditionField', () => 
   assert.equal(extracted[0].materialId, 'ACC-MAIN-PACK-7');
   assert.equal(extracted[0].type, '主锁护罩');
   assert.equal(extracted[0].quantity, 3);
+  assert.deepEqual(extracted[0].winningRules, ['cylinder-secondary-accessory-1-7']);
 });

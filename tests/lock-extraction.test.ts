@@ -41,10 +41,14 @@ test('lock extraction: normalized mapping matches bracket variants and swaps lef
   assert.equal(primary!.quantityLeft, 20);
   assert.equal(primary!.quantityRight, 15);
   assert.equal(primary!.quantity, 35);
+  assert.deepEqual(primary!.matchedRules, ['lock-primary-sd-9030(6607大锁)']);
+  assert.deepEqual(primary!.winningRules, ['lock-primary-sd-9030(6607大锁)']);
   assert.equal(secondary!.quantityLeft, 20);
   assert.equal(secondary!.quantityRight, 15);
   assert.equal(secondary!.spec, '副锁体');
   assert.equal(secondary!.remark, '');
+  assert.deepEqual(secondary!.matchedRules, ['lock-secondary-f02-a副锁']);
+  assert.deepEqual(secondary!.winningRules, ['lock-secondary-f02-a副锁']);
 });
 
 test('lock extraction: keeps configured default unit', () => {
@@ -70,6 +74,7 @@ test('lock extraction: keeps configured default unit', () => {
 
   assert.equal(result.length, 1);
   assert.equal(result[0].unit, '把');
+  assert.deepEqual(result[0].winningRules, ['lock-primary-sd-9030(6607大锁)']);
 });
 
 test('lock extraction: remark only keeps mapping remark', () => {
@@ -95,6 +100,7 @@ test('lock extraction: remark only keeps mapping remark', () => {
 
   assert.equal(result.length, 1);
   assert.equal(result[0].remark, '单活');
+  assert.deepEqual(result[0].winningRules, ['lock-primary-4018金边锁']);
 });
 
 test('lock extraction: only swaps when 开向段 contains 内开', () => {
@@ -121,4 +127,5 @@ test('lock extraction: only swaps when 开向段 contains 内开', () => {
   assert.equal(result[0].quantityLeft, 15);
   assert.equal(result[0].quantityRight, 20);
   assert.equal(result[0].quantity, 35);
+  assert.deepEqual(result[0].winningRules, ['lock-primary-sd-9030(6607大锁)']);
 });

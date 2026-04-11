@@ -218,6 +218,37 @@
 - `tests/cylinder-accessory-pack-extraction.test.ts`
 - `npm run type-check`
 
+### 9. source analysis 展示层已接入规则命中结果
+
+已完成：
+
+- `useSourceStore` 暴露 `flatAccessories`
+- `Materials` 页补齐硬件分析展示：
+  - `Locks (锁具)`
+  - `Handles (拉手)`
+  - `Accessories (五金配件)`
+- `lock` 与 `accessory` 提取结果现在会带上：
+  - `matchedRules`
+  - `winningRules`
+- `Materials` 页表格已可直接展示 `winningRules`
+
+涉及文件：
+
+- `src/stores/useSourceStore.ts`
+- `src/components/materials/MaterialColumns.ts`
+- `src/views/Materials.vue`
+- `src/lib/erp-engine/dataExtractors.ts`
+
+验证：
+
+- `tests/materials-page-hardware-sections.test.ts`
+- `tests/lock-extraction.test.ts`
+- `tests/cylinder-accessory-pack-extraction.test.ts`
+- `tests/source/sourceAnalysis.spec.ts`
+- `tests/source-store-workflow.test.ts`
+- `tests/source-analysis-runtime.test.ts`
+- `npm run type-check`
+
 ## 本次提交
 
 本次相关提交：
@@ -244,6 +275,7 @@
 - `CylinderConfig` / `LockConfig` / `LockForkConfig` 已接入试跑
 - shared rule executor 已落地
 - `lock` 与 `cylinder accessory` 提取已接入真实业务路径
+- `sourceAnalysis` 页已能展示 lock / handle / accessory 结果，并显示部分规则命中信息
 - `P1` 已完成：
   - mapping runtime 只读 published
   - published 状态可检查
@@ -265,4 +297,4 @@
 3. 如继续推进 mapping 数据库化，下一步进入 `P3`：文档与配置页周边语义收口
 4. 如继续推进规则系统，下一步优先考虑：
    - 继续接入 `lock_fork` 或其他真实业务入口
-   - 或把 source analysis 可视化结果接到统一 rule execution 输出
+   - 或把更多 rule execution 元信息扩展到 source analysis 展示层

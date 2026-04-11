@@ -2,6 +2,13 @@
 import { h } from 'vue';
 import type { ColumnDef } from '@tanstack/vue-table';
 
+function renderRuleNames(value: unknown) {
+    const items = Array.isArray(value)
+        ? value.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+    return h('div', { class: 'text-xs text-muted-foreground leading-5 whitespace-pre-wrap break-all' }, items.join(', ') || '-');
+}
+
 // 1. Raw Materials
 export const rawColumns: ColumnDef<any>[] = [
     { accessorKey: 'materialId', header: '物料编码', size: 150 },
@@ -26,7 +33,57 @@ export const cylinderColumns: ColumnDef<any>[] = [
     }
 ];
 
-// 3. Hardware: Lock Forks
+// 3. Hardware: Locks
+export const lockColumns: ColumnDef<any>[] = [
+    { accessorKey: 'supplier', header: '供应商' },
+    { accessorKey: 'type', header: '型号' },
+    { accessorKey: 'spec', header: '规格' },
+    { accessorKey: 'remark', header: '备注' },
+    {
+        accessorKey: 'winningRules',
+        header: '生效规则',
+        cell: ({ row }) => renderRuleNames(row.getValue('winningRules'))
+    },
+    {
+        accessorKey: 'quantity',
+        header: '数量',
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('quantity'))
+    }
+];
+
+// 4. Hardware: Handles
+export const handleColumns: ColumnDef<any>[] = [
+    { accessorKey: 'supplier', header: '供应商' },
+    { accessorKey: 'type', header: '型号' },
+    { accessorKey: 'spec', header: '规格' },
+    { accessorKey: 'remark', header: '备注' },
+    {
+        accessorKey: 'quantity',
+        header: '数量',
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('quantity'))
+    }
+];
+
+// 5. Hardware: Accessories
+export const accessoryColumns: ColumnDef<any>[] = [
+    { accessorKey: 'materialId', header: '物料编码' },
+    { accessorKey: 'supplier', header: '供应商' },
+    { accessorKey: 'type', header: '名称' },
+    { accessorKey: 'spec', header: '规格' },
+    { accessorKey: 'remark', header: '备注' },
+    {
+        accessorKey: 'winningRules',
+        header: '生效规则',
+        cell: ({ row }) => renderRuleNames(row.getValue('winningRules'))
+    },
+    {
+        accessorKey: 'quantity',
+        header: '数量',
+        cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('quantity'))
+    }
+];
+
+// 6. Hardware: Lock Forks
 export const forkColumns: ColumnDef<any>[] = [
     { accessorKey: 'supplier', header: '供应商' },
     { accessorKey: 'type', header: '型号', size: 200 },
@@ -39,7 +96,7 @@ export const forkColumns: ColumnDef<any>[] = [
     }
 ];
 
-// 4. Packaging
+// 7. Packaging
 export const packagingColumns: ColumnDef<any>[] = [
     { accessorKey: 'supplierName', header: '供应商' },
     { accessorKey: 'spec', header: '规格' },

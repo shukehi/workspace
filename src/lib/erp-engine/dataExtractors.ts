@@ -35,6 +35,8 @@ type LockResultRow = {
     quantityLeft: number;
     quantityRight: number;
     quantity: number;
+    matchedRules: string[];
+    winningRules: string[];
 };
 type LockForkResultRow = {
     supplier: string;
@@ -61,7 +63,18 @@ type HardwareAccessoryResultRow = {
     remark: string;
     unit: string;
     quantity: number;
+    matchedRules: string[];
+    winningRules: string[];
 };
+
+function mergeRuleNames(current: string[], incoming: string[]): string[] {
+    const merged = new Set<string>(current);
+    incoming.forEach((item) => {
+        const normalized = String(item || '').trim();
+        if (normalized) merged.add(normalized);
+    });
+    return Array.from(merged);
+}
 
 /**
  * 提取锁芯采购数据
@@ -324,6 +337,8 @@ export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDE
 
             if (accessoryMap[key]) {
                 accessoryMap[key].quantity += totalQty;
+                accessoryMap[key].matchedRules = mergeRuleNames(accessoryMap[key].matchedRules, ruleResult.matchedRules);
+                accessoryMap[key].winningRules = mergeRuleNames(accessoryMap[key].winningRules, ruleResult.winningRules);
             } else {
                 accessoryMap[key] = {
                     materialId,
@@ -333,6 +348,8 @@ export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDE
                     remark,
                     unit,
                     quantity: totalQty,
+                    matchedRules: [...ruleResult.matchedRules],
+                    winningRules: [...ruleResult.winningRules],
                 };
             }
         });
@@ -411,6 +428,8 @@ export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = 
                 lockMap[key].quantityLeft += qtyPair.left;
                 lockMap[key].quantityRight += qtyPair.right;
                 lockMap[key].quantity += totalQty;
+                lockMap[key].matchedRules = mergeRuleNames(lockMap[key].matchedRules, execution.matchedRules);
+                lockMap[key].winningRules = mergeRuleNames(lockMap[key].winningRules, execution.winningRules);
             } else {
                 lockMap[key] = {
                     supplier,
@@ -421,6 +440,8 @@ export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = 
                     quantityLeft: qtyPair.left,
                     quantityRight: qtyPair.right,
                     quantity: totalQty,
+                    matchedRules: [...execution.matchedRules],
+                    winningRules: [...execution.winningRules],
                 };
             }
         });

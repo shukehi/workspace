@@ -24,6 +24,7 @@ export const useSourceStore = defineStore('source', () => {
     const flatLocks = computed(() => analysisResult.value?.flatLocks || []);
     const flatHandles = computed(() => analysisResult.value?.flatHandles || []);
     const flatForks = computed(() => analysisResult.value?.flatForks || []);
+    const flatAccessories = computed(() => analysisResult.value?.flatAccessories || []);
     const flatPackaging = computed(() => analysisResult.value?.flatPackaging || []);
 
     const {
@@ -59,6 +60,7 @@ export const useSourceStore = defineStore('source', () => {
         flatLocks,
         flatHandles,
         flatForks,
+        flatAccessories,
         flatPackaging,
         applyContractData,
         fetchContract,
