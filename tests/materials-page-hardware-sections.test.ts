@@ -23,6 +23,7 @@ test('materials page exposes all hardware analysis sections', () => {
   assert.match(columns, /export const lockColumns/);
   assert.match(columns, /export const handleColumns/);
   assert.match(columns, /export const accessoryColumns/);
+  assert.match(columns, /accessorKey: 'matchedRules'/);
   assert.match(columns, /accessorKey: 'winningRules'/);
 
   assert.match(store, /const flatAccessories = computed/);

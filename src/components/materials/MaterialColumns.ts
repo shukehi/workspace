@@ -40,6 +40,11 @@ export const lockColumns: ColumnDef<any>[] = [
     { accessorKey: 'spec', header: '规格' },
     { accessorKey: 'remark', header: '备注' },
     {
+        accessorKey: 'matchedRules',
+        header: '命中规则',
+        cell: ({ row }) => renderRuleNames(row.getValue('matchedRules'))
+    },
+    {
         accessorKey: 'winningRules',
         header: '生效规则',
         cell: ({ row }) => renderRuleNames(row.getValue('winningRules'))
@@ -71,6 +76,11 @@ export const accessoryColumns: ColumnDef<any>[] = [
     { accessorKey: 'type', header: '名称' },
     { accessorKey: 'spec', header: '规格' },
     { accessorKey: 'remark', header: '备注' },
+    {
+        accessorKey: 'matchedRules',
+        header: '命中规则',
+        cell: ({ row }) => renderRuleNames(row.getValue('matchedRules'))
+    },
     {
         accessorKey: 'winningRules',
         header: '生效规则',
