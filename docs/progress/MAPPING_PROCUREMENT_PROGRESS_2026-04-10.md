@@ -276,6 +276,37 @@
 - shared rule executor 已落地
 - `lock` 与 `cylinder accessory` 提取已接入真实业务路径
 - `sourceAnalysis` 页已能展示 lock / handle / accessory 结果，并显示部分规则命中信息
+
+### 10. lock_fork 锁具类型识别已接入真实规则执行
+
+已完成：
+
+- `extractLockForkData()` 的锁具类型识别部分已改为通过：
+  - `adaptLockForkMapping`
+  - `adaptLockForkTypeRulesToRuleSet`
+  - `executeRuleSet`
+- 当前仅接入“锁具类型识别”层，不改变：
+  - 门厚尺寸
+  - 高门高规则
+  - 吊脚 / 平下档
+  - 边型修饰
+
+涉及文件：
+
+- `src/lib/erp-engine/dataExtractors.ts`
+- `tests/lock-fork-extraction.test.ts`
+
+验证：
+
+- `tests/lock-fork-extraction.test.ts`
+- `npm run type-check`
+
+当前含义：
+
+- 统一规则执行已进入第三条真实业务链路：
+  - `lock`
+  - `cylinder accessory`
+  - `lock_fork` 的锁具类型识别
 - `P1` 已完成：
   - mapping runtime 只读 published
   - published 状态可检查
@@ -296,5 +327,5 @@
    - stock-in
 3. 如继续推进 mapping 数据库化，下一步进入 `P3`：文档与配置页周边语义收口
 4. 如继续推进规则系统，下一步优先考虑：
-   - 继续接入 `lock_fork` 或其他真实业务入口
+   - 继续把 `lock_fork` 的更多派生逻辑接入规则执行
    - 或把更多 rule execution 元信息扩展到 source analysis 展示层

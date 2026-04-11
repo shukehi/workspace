@@ -85,6 +85,38 @@ const mapping = {
   },
 };
 
+test('extractLockForkData uses rule-based lock type matching for suffixes', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '7',
+        spec: '960*2050/7/内开外包',
+        sj: '主锁',
+        fssj: ' F02-A副锁 ',
+      },
+    ],
+    {},
+    {
+      ...mapping,
+      lockTypes: {
+        'F02-A副锁': {
+          category: 'single-head',
+          nameModifier: 'P66',
+          upper: '直杆',
+          lower: '弯杆',
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.type),
+    ['单头锁叉 - 上头 P66', '单头锁叉 - 下头 P66'],
+  );
+});
+
 test('extractLockForkData omits T modifier for 10cm inward-opening T-edge aluminum orders', () => {
   const rows = extractLockForkData(
     [
