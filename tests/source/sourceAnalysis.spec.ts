@@ -22,6 +22,7 @@ test('source analysis: empty order returns empty analysis result', () => {
         locks: [],
         handles: [],
         lockForks: [],
+        accessories: [],
         packaging: {},
     });
     assert.deepEqual(result.flatMaterials, []);
@@ -86,6 +87,7 @@ test('source analysis: computes material and hardware flat views from config sna
     assert.deepEqual(result.flatLocks, []);
     assert.deepEqual(result.flatHandles, []);
     assert.deepEqual(result.flatForks, []);
+    assert.deepEqual(result.flatAccessories, []);
     assert.equal(result.flatPackaging.length, 1);
     assert.equal(result.flatPackaging[0].internalName, '未匹配');
 });

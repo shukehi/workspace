@@ -1,6 +1,7 @@
 import { calculateMaterialRequirements } from '@/lib/erp-engine/materialDecomposer';
 import {
     extractCylinderData,
+    extractCylinderAccessoryPackData,
     extractLockData,
     extractHandleData,
     extractLockForkData,
@@ -38,6 +39,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
             locks: [],
             handles: [],
             lockForks: [],
+            accessories: [],
             packaging: {},
         };
 
@@ -49,6 +51,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
             flatLocks: [],
             flatHandles: [],
             flatForks: [],
+            flatAccessories: [],
             flatPackaging: [],
         };
     }
@@ -70,6 +73,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
         locks: extractLockData(targetItems, order, config.lockMapping),
         handles: extractHandleData(targetItems, order, config.handleMapping),
         lockForks: extractLockForkData(targetItems, order, config.lockForkMapping),
+        accessories: extractCylinderAccessoryPackData(targetItems, config.cylinderMapping),
         packaging: extractPackagingData(targetItems, config.packagingMapping),
     };
 
@@ -81,6 +85,7 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
         flatLocks: hardwareRequirements.locks,
         flatHandles: hardwareRequirements.handles,
         flatForks: hardwareRequirements.lockForks,
+        flatAccessories: hardwareRequirements.accessories,
         flatPackaging: buildFlatPackaging(hardwareRequirements),
     };
 }

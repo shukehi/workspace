@@ -12,6 +12,7 @@ function createResult(): SourceAnalysisResult {
       locks: [],
       handles: [],
       lockForks: [],
+      accessories: [],
       packaging: {},
     },
     flatMaterials: [{ code: 'M1' }],
@@ -19,6 +20,7 @@ function createResult(): SourceAnalysisResult {
     flatLocks: [],
     flatHandles: [],
     flatForks: [],
+    flatAccessories: [],
     flatPackaging: [],
   };
 }

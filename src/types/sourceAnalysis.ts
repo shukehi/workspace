@@ -15,6 +15,7 @@ export interface HardwareRequirements {
     locks: any[];
     handles: any[];
     lockForks: any[];
+    accessories: any[];
     packaging: GenericMap;
 }
 
@@ -32,5 +33,6 @@ export interface SourceAnalysisResult {
     flatLocks: any[];
     flatHandles: any[];
     flatForks: any[];
+    flatAccessories: any[];
     flatPackaging: any[];
 }

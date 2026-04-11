@@ -31,6 +31,7 @@ test('source analysis runtime loads config before delegating to analyzer', async
           locks: [],
           handles: [],
           lockForks: [],
+          accessories: [],
           packaging: {},
         },
         flatMaterials: [],
@@ -38,6 +39,7 @@ test('source analysis runtime loads config before delegating to analyzer', async
         flatLocks: [],
         flatHandles: [],
         flatForks: [],
+        flatAccessories: [],
         flatPackaging: [],
       };
     },

@@ -120,6 +120,7 @@ export const EMPTY_CYLINDER_MAPPING: CylinderMappingConfig = {
   specialRules: [],
   secondaryDimensions: {},
   secondarySpecialRules: [],
+  secondaryAccessoryPackRules: [],
   mappings: {},
   customLogos: [],
   excludedCylinders: [...defaults.DEFAULT_CYLINDER_EXCLUDED],
