@@ -5,12 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
+import RuleExplainPlayground from '@/features/config-editor/components/RuleExplainPlayground.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
+import {
+  useRuleExplainPreview,
+  type RuleExplainFieldDefinition,
+} from '@/features/config-editor/composables/useRuleExplainPreview';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
 import { refreshLockForkRuntime } from '@/services/configRuntime';
-import { adaptLockForkMapping, validateLockForkMapping } from '@/services/mappings';
+import {
+  adaptLockForkMapping,
+  adaptLockForkTypeRulesToRuleSet,
+  validateLockForkMapping,
+} from '@/services/mappings';
 import type {
   LockForkBaseDimensionRule,
   LockForkDimensionGroup,
@@ -94,6 +103,18 @@ const hasLockTypeIssues = computed(() => [...clientIssues.value, ...editor.serve
 const hasEdgesIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('edgeTypes[') || i.path.startsWith('hangingFeet.')));
 const hasSuppliersIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('suppliers[')));
 const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
+const lockTypeRuleSet = computed(() => adaptLockForkTypeRulesToRuleSet(payload.value));
+const lockTypeExplain = useRuleExplainPreview(
+  () => lockTypeRuleSet.value,
+  {
+    sj: 'F02-A副锁',
+    fssj: '',
+  },
+);
+const lockForkTypeExplainFields: RuleExplainFieldDefinition[] = [
+  { field: 'sj', label: '主锁文本 (sj)', placeholder: '输入主锁字段文本' },
+  { field: 'fssj', label: '副锁文本 (fssj)', placeholder: '输入副锁字段文本' },
+];
 
 // --- 重置与编辑器 ---
 function resetWithPayload(raw: LockForkMappingConfig) {
@@ -184,6 +205,13 @@ onMounted(editor.load);
           </template>
         </ConfigTable>
       </CardContent></Card>
+      <RuleExplainPlayground
+        title="锁具类型规则试跑"
+        description="输入主锁或副锁字段文本，查看锁具类型规则命中结果。"
+        :preview="lockTypeExplain"
+        :fields="lockForkTypeExplainFields"
+        empty-trace-label="当前没有可解释的锁具类型规则。"
+      />
     </div>
 
     <div v-show="activeTab === 'edges'">

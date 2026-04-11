@@ -7,7 +7,15 @@
 
 import { parseOpenDirectionSegment, parseQuantityPair, parseHeight } from './parsers';
 import { aggregatePackaging } from './packagingTable';
-import { normalizeLockMappingKey } from '@/services/mappings';
+import {
+    adaptCylinderAccessoryPackRulesToRuleSet,
+    adaptCylinderMapping,
+    adaptLockMapping,
+    adaptLockMappingsToRuleSet,
+    collectRuleExecution,
+    executeRuleSet,
+    normalizeLockMappingKey,
+} from '@/services/mappings';
 
 type OrderItem = Record<string, any>;
 type GenericMap = Record<string, any>;
@@ -268,11 +276,8 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
 
 export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDER_MAPPING: GenericMap = {}): HardwareAccessoryResultRow[] {
     const accessoryMap: Record<string, HardwareAccessoryResultRow> = {};
-    const rules = Array.isArray(CYLINDER_MAPPING.secondaryAccessoryPackRules)
-        ? CYLINDER_MAPPING.secondaryAccessoryPackRules
-        : [];
-
-    if (rules.length === 0) return [];
+    const ruleSet = adaptCylinderAccessoryPackRulesToRuleSet(adaptCylinderMapping(CYLINDER_MAPPING));
+    if (ruleSet.rules.length === 0) return [];
 
     const toText = (value: unknown) => (typeof value === 'string' ? value.trim() : String(value || '').trim());
     const resolveThickness = (item: OrderItem) => {
@@ -283,37 +288,38 @@ export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDE
     };
 
     orderList.forEach((item) => {
-        const getConditionValue = (field: unknown) => {
-            const key = toText(field);
-            if (!key) return '';
-            return toText((item as GenericMap)[key]);
-        };
-
         const thickness = resolveThickness(item);
         const qtyPair = parseQuantityPair(item.qty);
         const totalQty = qtyPair.left + qtyPair.right;
         if (totalQty <= 0) return;
 
-        rules.forEach((rule: GenericMap) => {
-            const fieldName = toText(rule.conditionField) || 'fshz';
-            const fieldValue = getConditionValue(fieldName);
-            const keyword = toText(rule.keyword);
-            if (!keyword || !fieldValue.includes(keyword)) return;
+        const inputSnapshot = {
+            ...item,
+            thickness,
+            qtyLeft: qtyPair.left,
+            qtyRight: qtyPair.right,
+            qtyTotal: totalQty,
+        };
+        const execution = collectRuleExecution(ruleSet, inputSnapshot);
 
-            const packs = rule.thicknessAccessoryPacks && typeof rule.thicknessAccessoryPacks === 'object'
-                ? rule.thicknessAccessoryPacks
-                : {};
-            const materialCodes = rule.thicknessMaterialCodes && typeof rule.thicknessMaterialCodes === 'object'
-                ? rule.thicknessMaterialCodes
-                : {};
-            const packName = toText(packs[thickness]);
-            const materialId = toText(materialCodes[thickness]);
+        execution.matchedRules.forEach((rule) => {
+            const ruleResult = executeRuleSet(
+                {
+                    metadata: ruleSet.metadata,
+                    defaults: ruleSet.defaults,
+                    rules: [rule],
+                },
+                inputSnapshot,
+            );
+
+            const packName = toText(ruleResult.output.spec || ruleResult.output.accessoryPack);
+            const materialId = toText(ruleResult.output.code);
             if (!packName || !materialId) return;
 
-            const supplier = toText(rule.supplier) || '待人工处理';
-            const type = toText(rule.itemName) || keyword;
-            const remark = toText(rule.remark);
-            const unit = toText(rule.unit) || '个';
+            const supplier = toText(ruleResult.output.supplier) || '待人工处理';
+            const type = toText(ruleResult.output.type) || toText((item as GenericMap)[toText(rule.then.extra?.sourceField)]);
+            const remark = toText(ruleResult.output.remark);
+            const unit = toText(ruleResult.output.unit) || '个';
             const key = `${materialId}|${supplier}|${type}|${packName}|${remark}|${unit}`;
 
             if (accessoryMap[key]) {
@@ -343,20 +349,13 @@ export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDE
  */
 export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = {}, LOCK_MAPPING: GenericMap = {}): LockResultRow[] {
     const lockMap: Record<string, LockResultRow> = {};
+    const adaptedLockMapping = adaptLockMapping(LOCK_MAPPING);
     const unmatchedSupplier = '待人工处理';
-    const defaultUnit = String(LOCK_MAPPING?.defaultUnit || '套').trim() || '套';
-    const primaryLabel = String(LOCK_MAPPING?.primaryLabel || '主锁').trim();
-    const secondaryLabel = String(LOCK_MAPPING?.secondaryLabel || '副锁').trim();
-    const rawMappings = LOCK_MAPPING?.mappings && typeof LOCK_MAPPING.mappings === 'object'
-        ? LOCK_MAPPING.mappings
-        : {};
-    const normalizedMappings = Object.entries(rawMappings).reduce<Record<string, any>>((acc, [rawKey, value]) => {
-        const normalizedKey = normalizeLockMappingKey(rawKey);
-        if (normalizedKey) {
-            acc[normalizedKey] = value;
-        }
-        return acc;
-    }, {});
+    const defaultUnit = String(adaptedLockMapping.defaultUnit || '套').trim() || '套';
+    const primaryLabel = String(adaptedLockMapping.primaryLabel || '主锁').trim();
+    const secondaryLabel = String(adaptedLockMapping.secondaryLabel || '副锁').trim();
+    const primaryRuleSet = adaptLockMappingsToRuleSet(adaptedLockMapping, 'primary', normalizeLockMappingKey);
+    const secondaryRuleSet = adaptLockMappingsToRuleSet(adaptedLockMapping, 'secondary', normalizeLockMappingKey);
 
     const normalizeLockName = (value: unknown) => String(value || '').trim();
     const isEmptyLock = (value: unknown) => {
@@ -392,15 +391,20 @@ export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = 
             if (isEmptyLock(rawName)) return;
 
             const rawType = normalizeLockName(rawName);
-            const mapping = normalizedMappings[normalizeLockMappingKey(rawType)] || null;
-            const supplier = String(mapping?.supplier || unmatchedSupplier).trim();
-            const type = String(mapping?.vendorName || rawType).trim();
-            const spec = String(
-                mode === 'primary'
-                    ? (mapping?.primarySpec || modeLabel)
-                    : (mapping?.secondarySpec || modeLabel)
-            ).trim();
-            const remark = buildRemark(String(mapping?.remark || '').trim());
+            const execution = executeRuleSet(
+                mode === 'primary' ? primaryRuleSet : secondaryRuleSet,
+                {
+                    model: rawType,
+                    meta: {
+                        normalizedModel: normalizeLockMappingKey(rawType),
+                    },
+                },
+            );
+            const supplier = String(execution.output.supplier || unmatchedSupplier).trim();
+            const type = String(execution.output.type || rawType).trim();
+            const spec = String(execution.output.spec || modeLabel).trim();
+            const remark = buildRemark(String(execution.output.remark || '').trim());
+            const unit = String(execution.output.unit || defaultUnit).trim() || defaultUnit;
             const key = `${supplier}|${type}|${spec}|${remark}`;
 
             if (lockMap[key]) {
@@ -413,7 +417,7 @@ export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = 
                     type,
                     spec,
                     remark,
-                    unit: defaultUnit,
+                    unit,
                     quantityLeft: qtyPair.left,
                     quantityRight: qtyPair.right,
                     quantity: totalQty,

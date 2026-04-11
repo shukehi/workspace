@@ -5,12 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
+import RuleExplainPlayground from '@/features/config-editor/components/RuleExplainPlayground.vue';
 import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
+import {
+  useRuleExplainPreview,
+  type RuleExplainFieldDefinition,
+} from '@/features/config-editor/composables/useRuleExplainPreview';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
 import { refreshLockRuntime } from '@/services/configRuntime';
-import { adaptLockMapping, normalizeLockMappingKey, validateLockMapping } from '@/services/mappings';
+import {
+  adaptLockMapping,
+  adaptLockMappingsToRuleSet,
+  applyLockRulePreviewFallbacks,
+  normalizeLockMappingKey,
+  validateLockMapping,
+} from '@/services/mappings';
 import type { LockMappingConfig } from '@/types/mapping';
 import { DEFAULT_LOCK_UNIT, DEFAULT_LOCK_PRIMARY_LABEL, DEFAULT_LOCK_SECONDARY_LABEL } from '@/shared/constants/business';
 import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
@@ -30,9 +41,7 @@ const primaryLabel = ref(DEFAULT_LOCK_PRIMARY_LABEL);
 const secondaryLabel = ref(DEFAULT_LOCK_SECONDARY_LABEL);
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
-const previewPrimaryInput = ref('');
-const previewSecondaryInput = ref('');
-const showMatchTester = ref(false);
+const showRulePlayground = ref(false);
 
 const mappings = useEditableList<MappingRow>(() => ({
   id: '', model: '', supplier: '', vendorName: '', primarySpec: '', secondarySpec: '', remark: ''
@@ -81,25 +90,64 @@ const filteredRows = computed(() => {
 
 const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
 
-const normalizedMappingRows = computed(() => {
-  const map: Record<string, MappingRow> = {};
-  mappings.list.value.forEach(row => {
-    const n = normalizeLockMappingKey(row.model);
-    if (n && !map[n]) map[n] = row;
-  });
-  return map;
-});
-
-function resolvePreviewMatch(rawModel: string, mode: 'primary' | 'secondary') {
-  const n = normalizeLockMappingKey(rawModel);
-  if (!n) return null;
-  const matched = normalizedMappingRows.value[n];
-  if (!matched) return { matched: false as const, normalized: n, supplier: '待人工处理', vendorName: rawModel.trim(), spec: mode === 'primary' ? (primaryLabel.value || DEFAULT_LOCK_PRIMARY_LABEL) : (secondaryLabel.value || DEFAULT_LOCK_SECONDARY_LABEL), remark: '' };
-  return { matched: true as const, normalized: n, supplier: matched.supplier || '待人工处理', vendorName: matched.vendorName || rawModel.trim(), spec: mode === 'primary' ? (matched.primarySpec || primaryLabel.value || DEFAULT_LOCK_PRIMARY_LABEL) : (matched.secondarySpec || secondaryLabel.value || DEFAULT_LOCK_SECONDARY_LABEL), remark: matched.remark || '' };
-}
-
-const previewPrimaryMatch = computed(() => resolvePreviewMatch(previewPrimaryInput.value, 'primary'));
-const previewSecondaryMatch = computed(() => resolvePreviewMatch(previewSecondaryInput.value, 'secondary'));
+const primaryRuleSet = computed(() =>
+  adaptLockMappingsToRuleSet(payload.value, 'primary', normalizeLockMappingKey),
+);
+const secondaryRuleSet = computed(() =>
+  adaptLockMappingsToRuleSet(payload.value, 'secondary', normalizeLockMappingKey),
+);
+const primaryExplain = useRuleExplainPreview(
+  () => primaryRuleSet.value,
+  {
+    model: 'F02-A副锁',
+    meta: { normalizedModel: normalizeLockMappingKey('F02-A副锁') },
+  },
+  {
+    transformResult(result, snapshot) {
+      return {
+        ...result,
+        output: applyLockRulePreviewFallbacks(
+          payload.value,
+          'primary',
+          String(snapshot.model || ''),
+          result.output,
+        ),
+      };
+    },
+  },
+);
+const secondaryExplain = useRuleExplainPreview(
+  () => secondaryRuleSet.value,
+  {
+    model: 'F02-A副锁',
+    meta: { normalizedModel: normalizeLockMappingKey('F02-A副锁') },
+  },
+  {
+    transformResult(result, snapshot) {
+      return {
+        ...result,
+        output: applyLockRulePreviewFallbacks(
+          payload.value,
+          'secondary',
+          String(snapshot.model || ''),
+          result.output,
+        ),
+      };
+    },
+  },
+);
+const lockExplainFields: RuleExplainFieldDefinition[] = [
+  {
+    field: 'model',
+    label: '锁具文本',
+    placeholder: '输入 ERP 锁具文本',
+    setValue(preview, value) {
+      const rawValue = String(value ?? '');
+      preview.setField('model', rawValue);
+      preview.setField('meta.normalizedModel', normalizeLockMappingKey(rawValue));
+    },
+  },
+];
 
 function resetWithPayload(data: LockMappingConfig) {
   defaultUnit.value = data.defaultUnit || DEFAULT_LOCK_UNIT;
@@ -181,36 +229,32 @@ onMounted(editor.load);
     <Card>
       <CardHeader class="flex-row items-center justify-between gap-4 pb-3">
         <div class="space-y-1">
-          <CardTitle>测试匹配</CardTitle>
-          <p class="text-sm text-muted-foreground">用于快速验证主锁和副锁文本能否命中当前映射。</p>
+          <CardTitle>规则试跑</CardTitle>
+          <p class="text-sm text-muted-foreground">用于快速验证主锁和副锁文本如何命中当前规则集。</p>
         </div>
-        <Button variant="ghost" size="sm" class="shrink-0" @click="showMatchTester = !showMatchTester">
-          {{ showMatchTester ? '收起' : '展开' }}
+        <Button variant="ghost" size="sm" class="shrink-0" @click="showRulePlayground = !showRulePlayground">
+          {{ showRulePlayground ? '收起' : '展开' }}
         </Button>
       </CardHeader>
-      <CardContent v-if="showMatchTester" class="grid gap-4 lg:grid-cols-2">
-        <div class="space-y-3">
-          <label class="grid gap-2 text-sm"><span class="font-medium">主锁文本</span><Input v-model="previewPrimaryInput" /></label>
-          <div class="rounded-lg border bg-muted/20 p-3 text-sm space-y-1">
-            <div class="font-medium">{{ previewPrimaryMatch?.matched ? '已命中规则' : '未命中' }}</div>
-            <div class="text-muted-foreground">供应商：{{ previewPrimaryMatch?.supplier || '-' }}</div>
-            <div class="text-muted-foreground">采购名称：{{ previewPrimaryMatch?.vendorName || '-' }}</div>
-            <div class="text-muted-foreground">规格：{{ previewPrimaryMatch?.spec || '-' }}</div>
-          </div>
-        </div>
-        <div class="space-y-3">
-          <label class="grid gap-2 text-sm"><span class="font-medium">副锁文本</span><Input v-model="previewSecondaryInput" /></label>
-          <div class="rounded-lg border bg-muted/20 p-3 text-sm space-y-1">
-            <div class="font-medium">{{ previewSecondaryMatch?.matched ? '已命中规则' : '未命中' }}</div>
-            <div class="text-muted-foreground">供应商：{{ previewSecondaryMatch?.supplier || '-' }}</div>
-            <div class="text-muted-foreground">采购名称：{{ previewSecondaryMatch?.vendorName || '-' }}</div>
-            <div class="text-muted-foreground">规格：{{ previewSecondaryMatch?.spec || '-' }}</div>
-          </div>
-        </div>
+      <CardContent v-if="showRulePlayground" class="grid gap-4 lg:grid-cols-2">
+        <RuleExplainPlayground
+          title="主锁规则试跑"
+          description="按 normalize 后的锁具文本命中主锁映射。"
+          :preview="primaryExplain"
+          :fields="lockExplainFields"
+          empty-trace-label="当前没有可解释的主锁规则。"
+        />
+        <RuleExplainPlayground
+          title="副锁规则试跑"
+          description="按 normalize 后的锁具文本命中副锁映射。"
+          :preview="secondaryExplain"
+          :fields="lockExplainFields"
+          empty-trace-label="当前没有可解释的副锁规则。"
+        />
       </CardContent>
       <CardContent v-else class="pt-0">
         <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
-          默认收起，避免挤占首屏。需要时展开后可直接验证主锁/副锁文本匹配结果。
+          默认收起，避免挤占首屏。需要时展开后可直接试跑主锁/副锁规则。
         </div>
       </CardContent>
     </Card>

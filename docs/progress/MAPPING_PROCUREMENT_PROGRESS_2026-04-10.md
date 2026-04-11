@@ -128,6 +128,96 @@
 - `tests/mapping-rules-validator.test.ts`
 - `npm run type-check`
 
+### 6. 落成首个 rule adapter / explain / playground 原型
+
+已完成：
+
+- 新增 accessory 规则 adapter：
+  - `src/services/mappings/mappingRules.adapter.ts`
+- 新增 rule explain 服务：
+  - `src/services/mappings/mappingRules.explain.ts`
+- 新增 explain composable：
+  - `src/features/config-editor/composables/useRuleExplainPreview.ts`
+- 在 `CylinderConfig` 中新增“规则试跑”区块：
+  - `src/views/CylinderConfig.vue`
+- 新增测试：
+  - `tests/mapping-rules-adapter.test.ts`
+  - `tests/mapping-rules-explain.test.ts`
+  - `tests/cylinder-config-playground-guard.test.ts`
+
+当前能力：
+
+- `cylinder.secondaryAccessoryPackRules` 可被转换为统一 `MappingRuleSet`
+- explain 会输出：
+  - `traces`
+  - `winningRules`
+  - 最终 `output`
+- explain 输出已纳入 `ruleSet.defaults`
+- accessory 规则的 `scope` 与 `then.code` 已完成语义修正
+- `CylinderConfig` 页面可直接输入样本字段查看命中轨迹与最终输出
+
+验证：
+
+- `tests/mapping-rules-adapter.test.ts`
+- `tests/mapping-rules-explain.test.ts`
+- `tests/cylinder-config-playground-guard.test.ts`
+- `npm run type-check`
+
+### 7. 抽通用 playground 组件，并接入多个配置页
+
+已完成：
+
+- 新增通用规则试跑组件：
+  - `src/features/config-editor/components/RuleExplainPlayground.vue`
+- `useRuleExplainPreview` 增强：
+  - 支持 typed field definition
+  - 支持 `meta.*` 写入
+  - 支持字段级 `setValue`
+- `CylinderConfig` 改为使用通用试跑组件
+- `LockConfig` 也已接入同一套试跑组件
+- `LockForkConfig` 已新增锁具类型规则试跑
+- `LockConfig` 页面语义已从“测试匹配”收口为“规则试跑”
+
+验证：
+
+- `tests/cylinder-config-playground-guard.test.ts`
+- `tests/lock-config-playground-guard.test.ts`
+- `tests/lock-fork-config-playground-guard.test.ts`
+- `npm run type-check`
+
+### 8. 共享 rule executor 已落地并进入真实业务入口
+
+已完成：
+
+- 新增共享执行内核：
+  - `src/services/mappings/mappingRules.execute.ts`
+- 新增执行结果类型：
+  - `src/types/mappingRules.ts`
+- `mappingRules.explain.ts` 已改为复用执行内核，不再单独维护一套求值逻辑
+- `extractLockData()` 已切到：
+  - `adaptLockMappingsToRuleSet`
+  - `executeRuleSet`
+- `extractCylinderAccessoryPackData()` 已切到：
+  - `adaptCylinderAccessoryPackRulesToRuleSet`
+  - `collectRuleExecution`
+  - 单规则 `executeRuleSet`
+
+当前含义：
+
+- 规则系统已不再停留在配置页 explain 原型
+- 已进入两个真实业务入口：
+  - `lock` 提取
+  - `cylinder accessory` 提取
+- explain / preview / 提取逻辑已开始共享同一套规则求值核心
+
+验证：
+
+- `tests/mapping-rules-execute.test.ts`
+- `tests/mapping-rules-explain.test.ts`
+- `tests/lock-extraction.test.ts`
+- `tests/cylinder-accessory-pack-extraction.test.ts`
+- `npm run type-check`
+
 ## 本次提交
 
 本次相关提交：
@@ -148,7 +238,12 @@
 
 - 数据库化方案已形成
 - 规则优化方向已形成
-- 统一规则 DTO 与 validator 处于“草案可编译”状态
+- 统一规则 DTO 与 validator 已落地
+- accessory / lock / lock_fork 规则 adapter 已落地
+- explain 原型与通用 playground 组件已落地
+- `CylinderConfig` / `LockConfig` / `LockForkConfig` 已接入试跑
+- shared rule executor 已落地
+- `lock` 与 `cylinder accessory` 提取已接入真实业务路径
 - `P1` 已完成：
   - mapping runtime 只读 published
   - published 状态可检查
@@ -168,4 +263,6 @@
    - arrive
    - stock-in
 3. 如继续推进 mapping 数据库化，下一步进入 `P3`：文档与配置页周边语义收口
-4. 如继续推进规则系统，优先实现 `mappingRules.adapter.ts`
+4. 如继续推进规则系统，下一步优先考虑：
+   - 继续接入 `lock_fork` 或其他真实业务入口
+   - 或把 source analysis 可视化结果接到统一 rule execution 输出
