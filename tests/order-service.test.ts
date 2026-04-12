@@ -1311,6 +1311,169 @@ test('OrderService reports duplicate order after placeholder retry exhaustion us
   }
 });
 
+test('OrderService retries auto order suffix allocation on unique conflicts and surfaces the last allocated duplicate', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const originalAllocateNextAutoOrderNo = orderService.allocateNextAutoOrderNo.bind(orderService);
+  const originalAssertUniqueOrderNo = orderService.assertUniqueOrderNo.bind(orderService);
+  const originalOrderCreate = Order.create;
+
+  const allocatedOrderNos = [
+    'PO-CT-AUTO-RETRY-001-01',
+    'PO-CT-AUTO-RETRY-001-02',
+    'PO-CT-AUTO-RETRY-001-03',
+    'PO-CT-AUTO-RETRY-001-04',
+    'PO-CT-AUTO-RETRY-001-05',
+  ];
+  let allocationIndex = 0;
+  let uniquenessCheckCount = 0;
+  const existingOrder = {
+    id: 199,
+    order_no: 'PO-CT-AUTO-RETRY-001-05',
+    status: 'draft',
+    category: '锁具',
+    supplier: '汇成',
+    source_contract_code: 'CT-AUTO-RETRY-001',
+  } as any;
+
+  orderService.allocateNextAutoOrderNo = async () => allocatedOrderNos[allocationIndex++] || allocatedOrderNos[allocatedOrderNos.length - 1];
+  orderService.assertUniqueOrderNo = async (orderNo: unknown, excludeId?: number | string, transaction?: any) => {
+    uniquenessCheckCount += 1;
+    if (uniquenessCheckCount <= allocatedOrderNos.length) return;
+    if (String(orderNo || '').trim() === existingOrder.order_no) {
+      throw new orderService.DuplicateOrderError(existingOrder);
+    }
+    return await originalAssertUniqueOrderNo(orderNo, excludeId, transaction);
+  };
+  Order.create = (async () => {
+    const error = new Error('UNIQUE constraint failed: orders.order_no') as Error & { name: string };
+    error.name = 'SequelizeUniqueConstraintError';
+    throw error;
+  }) as typeof Order.create;
+
+  try {
+    await assert.rejects(
+      () => orderService.createOrder({
+        order_no: 'PO-CT-AUTO-RETRY-001-01',
+        supplier: '汇成',
+        source_contract_code: 'CT-AUTO-RETRY-001',
+        category: '锁具',
+        status: 'draft',
+        metadata: {
+          order_source: 'auto',
+          source_contract_code: 'CT-AUTO-RETRY-001',
+          customer_name: '客户A',
+        },
+        created_at: '2026-03-29T10:00:00.000Z',
+        items: [
+          {
+            supplier: '汇成',
+            name: '智能锁体A',
+            type: '智能锁体A',
+            spec: '主锁',
+            quantity: 2,
+            unit: '把',
+          },
+        ],
+      } as OrderCreateInput),
+      (error: { code: string; existingOrder: { order_no: string; id: number } }) => {
+        assert.equal(error.code, 'DUPLICATE_ORDER');
+        assert.equal(error.existingOrder.order_no, existingOrder.order_no);
+        assert.equal(error.existingOrder.id, existingOrder.id);
+        return true;
+      },
+    );
+  } finally {
+    orderService.allocateNextAutoOrderNo = originalAllocateNextAutoOrderNo;
+    orderService.assertUniqueOrderNo = originalAssertUniqueOrderNo;
+    Order.create = originalOrderCreate;
+  }
+});
+
+test('OrderService assigns the next available auto order suffix for generated contract numbers', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const first = await orderService.createOrder({
+    order_no: 'PO-CT-AUTO-SUFFIX-001-01',
+    supplier: '方亮包装',
+    source_contract_code: 'CT-AUTO-SUFFIX-001',
+    category: '包装',
+    status: 'draft',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-SUFFIX-001',
+      customer_name: '客户A',
+    },
+    created_at: '2026-03-29T08:00:00.000Z',
+    items: [
+      {
+        supplier: '方亮包装',
+        name: '纸箱',
+        spec: '960*2050',
+        quantity: 2,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  const second = await orderService.createOrder({
+    order_no: 'PO-CT-AUTO-SUFFIX-001-01',
+    supplier: '忠恒',
+    source_contract_code: 'CT-AUTO-SUFFIX-001',
+    category: '锁芯',
+    status: 'draft',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-SUFFIX-001',
+      customer_name: '客户A',
+    },
+    created_at: '2026-03-29T08:05:00.000Z',
+    items: [
+      {
+        supplier: '忠恒',
+        name: '锁芯A',
+        type: '锁芯A',
+        spec: '34.5*55.5',
+        quantity: 4,
+        unit: '套',
+      },
+    ],
+  } as OrderCreateInput);
+
+  assert.equal(first.order_no, 'PO-CT-AUTO-SUFFIX-001-01');
+  assert.equal(second.order_no, 'PO-CT-AUTO-SUFFIX-001-02');
+
+  await orderService.updateOrder(first.id, { status: 'cancelled' } as OrderUpdateInput);
+
+  const third = await orderService.createOrder({
+    order_no: 'PO-CT-AUTO-SUFFIX-001-01',
+    supplier: '应志友',
+    source_contract_code: 'CT-AUTO-SUFFIX-001',
+    category: '锁叉',
+    status: 'draft',
+    metadata: {
+      order_source: 'auto',
+      source_contract_code: 'CT-AUTO-SUFFIX-001',
+      customer_name: '客户A',
+    },
+    created_at: '2026-03-29T08:10:00.000Z',
+    items: [
+      {
+        supplier: '应志友',
+        name: '锁叉A',
+        type: '锁叉A',
+        spec: '570*301=871',
+        quantity: 6,
+        unit: '个',
+      },
+    ],
+  } as OrderCreateInput);
+
+  assert.equal(third.order_no, 'PO-CT-AUTO-SUFFIX-001-03');
+});
+
 test('OrderService rejects manual orders with only placeholder items', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });

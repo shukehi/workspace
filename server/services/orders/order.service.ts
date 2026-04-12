@@ -92,6 +92,36 @@ function buildManualOrderNo(dateToken: string, sequence: number): string {
     return `PM-${dateToken}-${String(sequence).padStart(4, '0')}`;
 }
 
+function escapeRegExp(value: string) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildAutoOrderPrefix(sourceContractCode: string) {
+    return `PO-${String(sourceContractCode || '').trim()}-`;
+}
+
+function buildAutoOrderNo(sourceContractCode: string, sequence: number) {
+    return `${buildAutoOrderPrefix(sourceContractCode)}${String(sequence).padStart(2, '0')}`;
+}
+
+function isGeneratedAutoOrderNo(value: unknown, sourceContractCode: string): boolean {
+    const normalizedValue = String(value || '').trim();
+    const normalizedContractCode = String(sourceContractCode || '').trim();
+    if (!normalizedValue || !normalizedContractCode) return false;
+
+    const pattern = new RegExp(`^${escapeRegExp(buildAutoOrderPrefix(normalizedContractCode))}\\d+$`);
+    return pattern.test(normalizedValue);
+}
+
+function parseAutoOrderSequence(orderNo: string, sourceContractCode: string) {
+    const normalizedOrderNo = String(orderNo || '').trim();
+    const prefix = buildAutoOrderPrefix(sourceContractCode);
+    if (!normalizedOrderNo.startsWith(prefix)) return 0;
+
+    const sequence = Number(normalizedOrderNo.slice(prefix.length));
+    return Number.isInteger(sequence) && sequence > 0 ? sequence : 0;
+}
+
 function isUniqueOrderNoError(error: unknown): boolean {
     const record = (error || {}) as PlainRecord;
     const message = String(record.message || '');
@@ -132,6 +162,25 @@ class OrderService {
             ? latestSequence + 1
             : 1001;
         return buildManualOrderNo(dateToken, nextSequence);
+    }
+
+    async allocateNextAutoOrderNo(sourceContractCode: string, transaction?: Transaction) {
+        const normalizedSourceContractCode = String(sourceContractCode || '').trim();
+        if (!normalizedSourceContractCode) return '';
+
+        const existingOrderNos = await orderRepository.findOrderNosBySourceContractCode(normalizedSourceContractCode, transaction);
+        const usedSequences = new Set(
+            existingOrderNos
+                .map((orderNo) => parseAutoOrderSequence(orderNo, normalizedSourceContractCode))
+                .filter((sequence) => Number.isInteger(sequence) && sequence > 0),
+        );
+
+        let nextSequence = 1;
+        while (usedSequences.has(nextSequence)) {
+            nextSequence += 1;
+        }
+
+        return buildAutoOrderNo(normalizedSourceContractCode, nextSequence);
     }
 
     async assertUniqueOrderNo(orderNo: unknown, excludeId?: number | string, transaction?: Transaction) {
@@ -293,6 +342,10 @@ class OrderService {
 
     async createOrder(data: OrderCreateInput) {
         const shouldAutoAssignManualOrderNo = data.metadata?.order_source === 'manual' && isGeneratedManualOrderNo(data.order_no);
+        const requestedSourceContractCode = resolveSourceContractCode(data);
+        const shouldAutoAssignAutoOrderNo = data.metadata?.order_source === 'auto'
+            && Boolean(requestedSourceContractCode)
+            && isGeneratedAutoOrderNo(data.order_no, requestedSourceContractCode);
         let lastAttemptedOrderNo = String(data.order_no || '').trim();
 
         for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -300,7 +353,9 @@ class OrderService {
             try {
                 const createInput = shouldAutoAssignManualOrderNo
                     ? { ...data, order_no: await this.allocateNextManualOrderNo(data.created_at, transaction) }
-                    : data;
+                    : shouldAutoAssignAutoOrderNo
+                        ? { ...data, order_no: await this.allocateNextAutoOrderNo(requestedSourceContractCode, transaction) }
+                        : data;
                 lastAttemptedOrderNo = String(createInput.order_no || '').trim() || lastAttemptedOrderNo;
                 const normalizedCategory = createInput.category || data.category;
                 const createIssues = validateManualCreateOrder(createInput);
@@ -400,7 +455,7 @@ class OrderService {
                 });
             } catch (error) {
                 await transaction.rollback();
-                if (shouldAutoAssignManualOrderNo && isUniqueOrderNoError(error) && attempt < 4) {
+                if ((shouldAutoAssignManualOrderNo || shouldAutoAssignAutoOrderNo) && isUniqueOrderNoError(error) && attempt < 4) {
                     continue;
                 }
                 if (isUniqueOrderNoError(error)) {
@@ -410,7 +465,7 @@ class OrderService {
             }
         }
 
-        throw new Error('Failed to allocate unique manual order number');
+        throw new Error('Failed to allocate unique order number');
     }
 
     async updateOrder(id: number | string, data: OrderUpdateInput) {
