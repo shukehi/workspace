@@ -1,15 +1,28 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 
-const tempDbPath = path.join(os.tmpdir(), `formula-workflow-${Date.now()}.sqlite`);
+const _require = createRequire(import.meta.url);
+const tempDbPath = path.join(os.tmpdir(), `test-formula-workflow-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
 process.env.DB_STORAGE = tempDbPath;
 
-const { initDB, sequelize, Material } = require('../server/models') as typeof import('../server/models');
-const FormulaWorkflow = require('../server/services/formulas') as typeof import('../server/services/formulas');
-const FormulaRepository = (require('../server/services/formulas/formula.repository') as typeof import('../server/services/formulas/formula.repository')).default;
+const { initDB, sequelize, Material } = _require('../server/models') as typeof import('../server/models');
+const FormulaWorkflow = _require('../server/services/formulas') as typeof import('../server/services/formulas');
+const FormulaRepository = (_require('../server/services/formulas/formula.repository') as typeof import('../server/services/formulas/formula.repository')).default;
 
 test.before(async () => {
   await initDB();
