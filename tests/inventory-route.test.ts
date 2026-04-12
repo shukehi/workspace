@@ -3,20 +3,34 @@ import assert from 'node:assert/strict'
 import express from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 import type { Router } from 'express'
 
-const TEST_DB = path.join('/tmp', 'order-search-inventory-route.test.sqlite');
+const _require = createRequire(import.meta.url);
+const TEST_DB = path.join(os.tmpdir(), `test-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, InventoryMovement, Warehouse } = require('../server/models') as typeof import('../server/models');
+const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, InventoryMovement, Warehouse } = _require('../server/models') as typeof import('../server/models');
 import type { MaterialInstance } from '../server/models';
-const inventoryRoutes = (require('../server/routes/inventory') as { default: Router }).default;
-const inventoryAdjustmentRoutes = (require('../server/routes/inventoryAdjustments') as { default: Router }).default;
-const inventoryMovementRoutes = (require('../server/routes/inventoryMovements') as { default: Router }).default;
-const inventoryReceiptRoutes = (require('../server/routes/inventoryReceipts') as { default: Router }).default;
-const inventoryLocationRoutes = (require('../server/routes/inventoryLocations') as { default: Router }).default;
-const inventoryOutboundRoutes = (require('../server/routes/inventoryOutbounds') as { default: Router }).default;
-const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
+const inventoryRoutes = (_require('../server/routes/inventory') as { default: Router }).default;
+const inventoryAdjustmentRoutes = (_require('../server/routes/inventoryAdjustments') as { default: Router }).default;
+const inventoryMovementRoutes = (_require('../server/routes/inventoryMovements') as { default: Router }).default;
+const inventoryReceiptRoutes = (_require('../server/routes/inventoryReceipts') as { default: Router }).default;
+const inventoryLocationRoutes = (_require('../server/routes/inventoryLocations') as { default: Router }).default;
+const inventoryOutboundRoutes = (_require('../server/routes/inventoryOutbounds') as { default: Router }).default;
+const orderService = (_require('../server/services/orders') as typeof import('../server/services/orders')).default;
 
 function getBody(raw: Record<string, unknown>) {
   return raw?.data !== undefined ? raw.data : raw;

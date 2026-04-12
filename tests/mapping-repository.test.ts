@@ -3,8 +3,21 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 
-const tempDbPath = path.join(os.tmpdir(), `mapping-repository-${Date.now()}.sqlite`);
+const _require = createRequire(import.meta.url);
+const tempDbPath = path.join(os.tmpdir(), `test-mapping-repo-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
 process.env.DB_STORAGE = tempDbPath;
 
 const {
@@ -14,14 +27,14 @@ const {
   MappingRevision,
   MappingAuditLog,
   MappingUnmatchedEvent,
-} = require('../server/models') as typeof import('../server/models');
+} = _require('../server/models') as typeof import('../server/models');
 import type { MappingUnmatchedEventInstance } from '../server/models';
-const MappingRepository = (require('../server/services/mappings/mapping.repository') as typeof import('../server/services/mappings/mapping.repository')).default;
+const MappingRepository = (_require('../server/services/mappings/mapping.repository') as typeof import('../server/services/mappings/mapping.repository')).default;
 const {
   PROFILE_CODES,
   REVISION_STATES,
   SCHEMA_VERSION,
-} = require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
+} = _require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
 
 test.before(async () => {
   await initDB();

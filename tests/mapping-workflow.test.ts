@@ -163,57 +163,40 @@ test('mapping workflow skeleton: enforces single draft, optimistic lock, publish
   );
 });
 
-test('ensurePublishedMapping serializes first-read seeding across concurrent mapping requests', async () => {
-  const profilePayloads = [
-    {
-      profileCode: PROFILE_CODES.CYLINDER,
-      payload: {},
-    },
-    {
-      profileCode: PROFILE_CODES.LOCK,
-      payload: {},
-    },
-    {
-      profileCode: PROFILE_CODES.LOCK_FORK,
-      payload: {
-        suppliers: {
-          default: '应志友',
-        },
+test('getPublishedMapping returns null before first publish and payload after publish', async () => {
+  const beforeProfileExists = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
+  assert.equal(beforeProfileExists, null);
+
+  const draft = await MappingWorkflow.updateDraft(PROFILE_CODES.CYLINDER, {
+    revision: 0,
+    payload: {
+      dimensions: {
+        7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
       },
     },
-    {
-      profileCode: PROFILE_CODES.HANDLE,
-      payload: {},
+    changeNote: 'create cylinder draft',
+    operator: 'tester',
+  });
+  assert.equal(draft.ok, true);
+
+  const beforePublish = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
+  assert.equal(beforePublish?.ok, true);
+  assert.equal(beforePublish?.payload ?? null, null);
+
+  const published = await MappingWorkflow.publish(PROFILE_CODES.CYLINDER, {
+    fromRevision: draft.revision.revision,
+    changeNote: 'publish cylinder draft',
+    operator: 'tester',
+  });
+  assert.equal(published.ok, true);
+
+  const afterPublish = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
+  assert.equal(afterPublish?.ok, true);
+  assert.deepEqual(afterPublish?.payload, {
+    dimensions: {
+      7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
     },
-  ] as const;
-
-  const results = await Promise.all(
-    profilePayloads.map(({ profileCode, payload }) =>
-      MappingWorkflow.ensurePublishedMapping(profileCode, {
-        legacyPayload: payload,
-        operator: 'tester',
-        changeNote: 'seed concurrent read path',
-      }),
-    ),
-  );
-
-  assert.equal(results.every((result) => result?.ok && result.payload), true);
-
-  const profiles = await MappingProfile.findAll({
-    order: [['profile_code', 'ASC']],
-  }) as MappingProfileInstance[];
-
-  assert.deepEqual(
-    profilePayloads.every(({ profileCode }) => profiles.some((profile) => profile.profile_code === profileCode)),
-    true,
-  );
-
-  for (const { profileCode } of profilePayloads) {
-    const detail = await MappingWorkflow.getMappingDetail(profileCode);
-    assert.equal(detail?.ok, true);
-    assert.equal(detail?.mapping.publishedRevision?.state, REVISION_STATES.PUBLISHED);
-    assert.equal(detail?.mapping.draftRevision, null);
-  }
+  });
 });
 
 test.after(async () => {

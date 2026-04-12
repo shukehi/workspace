@@ -1,5 +1,4 @@
 import type { Transaction } from 'sequelize';
-import fs from 'fs';
 import MappingRepository from './mapping.repository';
 import { AUDIT_ACTIONS, PROFILE_STATUSES, REVISION_STATES, SCHEMA_VERSION, getProfileDisplayName } from './mapping.constants';
 import { parsePayload, serializePayload, validateMappingPayload, validateProfileCode } from './mapping.validator';
@@ -37,29 +36,6 @@ interface RollbackParams {
     targetRevision: number | string;
     reason?: string;
     operator?: string;
-}
-
-interface EnsurePublishedParams {
-    legacyPayload?: PlainRecord | null;
-    operator?: string;
-    changeNote?: string;
-}
-
-let mappingSeedQueue: Promise<void> = Promise.resolve();
-
-async function runSerializedMappingSeed<T>(task: () => Promise<T>): Promise<T> {
-    const previous = mappingSeedQueue;
-    let releaseCurrent!: () => void;
-    mappingSeedQueue = new Promise<void>((resolve) => {
-        releaseCurrent = resolve;
-    });
-
-    await previous;
-    try {
-        return await task();
-    } finally {
-        releaseCurrent();
-    }
 }
 
 export function operatorFromRequest(req?: PlainRecord): string {
@@ -410,59 +386,4 @@ export async function getPublishedMapping(profileCode: unknown): Promise<PlainRe
         ok: true,
         payload: detail.mapping.publishedPayload
     };
-}
-
-export async function seedFromLegacyPayload(
-    profileCode: unknown,
-    payload: PlainRecord,
-    { operator, changeNote }: { operator?: string; changeNote?: string } = {},
-): Promise<PlainRecord> {
-    const draft = await updateDraft(profileCode, {
-        revision: 0,
-        payload,
-        changeNote: changeNote || 'seed from legacy runtime',
-        operator: operator || 'system-admin'
-    });
-    if (!draft.ok) return draft;
-
-    return publish(profileCode, {
-        fromRevision: draft.revision.revision,
-        changeNote: changeNote || 'publish legacy runtime seed',
-        operator: operator || 'system-admin'
-    });
-}
-
-export async function ensurePublishedMapping(
-    profileCode: unknown,
-    { legacyPayload, operator, changeNote }: EnsurePublishedParams = {},
-): Promise<PlainRecord | null> {
-    const published = await getPublishedMapping(profileCode);
-    if (published && published.ok && published.payload) {
-        return published;
-    }
-    if (!legacyPayload) {
-        return published || null;
-    }
-
-    return runSerializedMappingSeed(async () => {
-        const publishedAfterWait = await getPublishedMapping(profileCode);
-        if (publishedAfterWait && publishedAfterWait.ok && publishedAfterWait.payload) {
-            return publishedAfterWait;
-        }
-
-        const seeded = await seedFromLegacyPayload(profileCode, legacyPayload, {
-            operator,
-            changeNote
-        });
-        if (!seeded || !seeded.ok) return seeded;
-
-        return getPublishedMapping(profileCode);
-    });
-}
-
-export function syncLegacyRuntimeFile(runtimeFile: string | undefined, payload: PlainRecord): void {
-    if (!runtimeFile) return;
-    const tempPath = `${runtimeFile}.tmp-${process.pid}-${Date.now()}`;
-    fs.writeFileSync(tempPath, JSON.stringify(payload, null, 4));
-    fs.renameSync(tempPath, runtimeFile);
 }
