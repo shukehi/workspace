@@ -85,7 +85,7 @@ const mapping = {
   },
 };
 
-test('extractLockForkData uses rule-based lock type matching for suffixes', () => {
+test('extractLockForkData keeps suffix matching independent from P66 base-dimension override', () => {
   const rows = extractLockForkData(
     [
       {
@@ -115,10 +115,129 @@ test('extractLockForkData uses rule-based lock type matching for suffixes', () =
     rows.map((item) => item.type),
     ['单头锁叉 - 上头 P66', '单头锁叉 - 下头 P66'],
   );
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['570*301 = 871', '570*301 = 871'],
+  );
   assert.deepEqual(rows[0].matchedRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
   assert.deepEqual(rows[0].winningRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
   assert.deepEqual(rows[1].matchedRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
   assert.deepEqual(rows[1].winningRules, ['lock-fork-type-F02-A副锁', 'lock-fork-dimension-base-7-standard']);
+});
+
+test('extractLockForkData uses P66-specific base dimensions for 7cm doors below 2200', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '7',
+        spec: '960*2050/7/内开外包',
+        sj: 'SD-9030（6607大锁）',
+      },
+    ],
+    {},
+    {
+      ...mapping,
+      lockTypes: {
+        'SD-9030（6607大锁）': {
+          category: 'P66',
+          nameModifier: 'P66',
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.type),
+    ['单头锁叉 - 上头 P66', '单头锁叉 - 下头 P66'],
+  );
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['497*301 = 798', '497*301 = 798'],
+  );
+});
+
+test('extractLockForkData preserves explicit zero on right quantity', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '36/0',
+        mshd: '7',
+        spec: '960*2050/7/外开外包',
+        sj: '主锁',
+      },
+    ],
+    {},
+    mapping,
+  );
+
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((item) => item.quantity), [36, 36]);
+});
+
+test('extractLockForkData uses P66-specific high-height dimensions for 7cm doors at or above 2200', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '7',
+        spec: '960*2400/7/内开外包',
+        sj: 'SD-9030（6607大锁）',
+      },
+    ],
+    {},
+    {
+      ...mapping,
+      lockTypes: {
+        'SD-9030（6607大锁）': {
+          category: 'P66',
+          nameModifier: 'P66',
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.type),
+    ['单头锁叉 - 上头 P66', '单头锁叉 - 下头 P66'],
+  );
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['497*376 + 200 = 1073', '497*376 = 873'],
+  );
+});
+
+test('extractLockForkData keeps hanging-feet calculation unchanged for sj-triggered P66 override', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '7',
+        spec: '960*2050/7/内开外包',
+        sj: 'SD-9030（6607大锁）',
+        xsbz: '吊脚5mm',
+      },
+    ],
+    {},
+    {
+      ...mapping,
+      lockTypes: {
+        'SD-9030（6607大锁）': {
+          category: 'P66',
+          nameModifier: 'P66',
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['497*301 = 798', '497*313 + 30 = 840'],
+  );
 });
 
 test('extractLockForkData falls back to 7cm base dimensions for 5cm doors below high-height threshold', () => {
@@ -225,7 +344,7 @@ test('extractLockForkData uses high-height dimensions for 7cm doors at or above 
 
   assert.deepEqual(
     rows.map((item) => item.spec),
-    ['570*376 + 100 = 1046', '570*376 + 100 = 1046'],
+    ['570*376 + 200 = 1146', '570*376 = 946'],
   );
 });
 
@@ -246,7 +365,7 @@ test('extractLockForkData uses high-height hanging-feet dimensions for 7cm flat-
 
   assert.deepEqual(
     flatBottomRows.map((item) => item.spec),
-    ['570*376 + 100 = 1046', '570*388 + 100 = 1058'],
+    ['570*376 + 200 = 1146', '570*388 = 958'],
   );
   assert.deepEqual(flatBottomRows[0].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);
   assert.deepEqual(flatBottomRows[1].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);
@@ -267,7 +386,7 @@ test('extractLockForkData uses high-height hanging-feet dimensions for 7cm flat-
 
   assert.deepEqual(
     hangingFeetRows.map((item) => item.spec),
-    ['570*376 + 100 = 1046', '570*388 + 130 = 1088'],
+    ['570*376 + 200 = 1146', '570*388 + 30 = 988'],
   );
   assert.deepEqual(hangingFeetRows[0].winningRules, ['lock-fork-hanging-feet-吊脚', 'lock-fork-dimension-high_height-7-withHangingFeet']);
   assert.deepEqual(hangingFeetRows[1].winningRules, ['lock-fork-hanging-feet-吊脚', 'lock-fork-dimension-high_height-7-withHangingFeet']);
@@ -290,7 +409,7 @@ test('extractLockForkData treats flat-bottom as higher priority than hanging-fee
 
   assert.deepEqual(
     rows.map((item) => item.spec),
-    ['570*376 + 100 = 1046', '570*388 + 100 = 1058'],
+    ['570*376 + 200 = 1146', '570*388 = 958'],
   );
   assert.deepEqual(rows[0].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);
   assert.deepEqual(rows[1].winningRules, ['lock-fork-flat-bottom', 'lock-fork-dimension-high_height-7-withHangingFeet']);

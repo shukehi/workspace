@@ -1788,6 +1788,38 @@ test('OrderService infers template_type for legacy orders without metadata field
   assert.equal(loaded?.metadata?.template_type, 'double-door-accessory');
 });
 
+test('OrderService normalizes split quantities on create even when quantity is not pre-synced', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('SPLIT-QTY-CREATE'),
+    supplier: '测试供应商',
+    category: '拉手',
+    status: 'draft',
+    delivery_date: '2026-03-29T09:00:00.000Z',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+    },
+    items: [
+      {
+        type: '拉手A',
+        spec: 'H-1',
+        quantity: 0,
+        quantity_left: 2,
+        quantity_right: 3,
+        unit: '付',
+      },
+    ],
+  } as OrderCreateInput);
+
+  assert.equal(created.items[0].quantity, 5);
+  assert.equal(created.items[0].ordered_quantity, 5);
+  assert.equal(created.items[0].quantity_left, 2);
+  assert.equal(created.items[0].quantity_right, 3);
+});
+
 test('OrderService overrides client template_type from category on write', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });

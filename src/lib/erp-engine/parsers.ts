@@ -5,15 +5,24 @@
 
 /**
  * 解析数量字符串为左右数量对
- * @param {string} qtyStr - 数量字符串，如 "3/3" 或 "10"
+ * @param {string} qtyStr - 数量字符串，如 "3/3"、"2+3" 或 "10"（单值按左右同量处理）
  * @returns {Object} { left: number, right: number }
  */
 export function parseQuantityPair(qtyStr: string | number | null | undefined): { left: number; right: number } {
     if (!qtyStr) return { left: 0, right: 0 };
 
-    const parts = qtyStr.toString().split('/');
+    const raw = qtyStr.toString().trim();
+    if (!raw) return { left: 0, right: 0 };
+
+    const parts = raw.includes('/')
+        ? raw.split('/')
+        : raw.includes('+')
+            ? raw.split('+')
+            : [raw];
     const leftVal = parseFloat(parts[0]) || 0;
-    const rightVal = parseFloat(parts[1]) || leftVal; // If no right value, use left value
+    const hasExplicitRight = parts.length > 1;
+    const parsedRight = hasExplicitRight ? parseFloat(parts[1]) : NaN;
+    const rightVal = Number.isNaN(parsedRight) ? leftVal : parsedRight;
 
     return {
         left: leftVal,
@@ -23,20 +32,16 @@ export function parseQuantityPair(qtyStr: string | number | null | undefined): {
 
 /**
  * 解析数量字符串并返回总和
- * @param {string} qtyStr - 数量字符串，如 "75/75" 或 "3/3" 或 "10"
+ * @param {string} qtyStr - 数量字符串，如 "75/75"、"2+3" 或 "10"（单值按左右同量汇总）
  * @returns {number} 总数量
  */
 export function parseQuantity(qtyStr: string | number | null | undefined): number {
     if (!qtyStr) return 0;
-    const parts = qtyStr.toString().split('/');
-    let sum = 0;
-    parts.forEach((part) => {
-        const num = parseFloat(part);
-        if (!isNaN(num)) {
-            sum += num;
-        }
-    });
-    return sum;
+    const raw = qtyStr.toString().trim();
+    if (!raw) return 0;
+
+    const { left, right } = parseQuantityPair(raw);
+    return left + right;
 }
 
 /**

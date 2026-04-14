@@ -88,14 +88,17 @@ function parseQuantityPair(qtyString: unknown) {
     return { left: 0, right: 0 };
   }
 
-  const slashIndex = cleaned.indexOf('/');
-  if (slashIndex === -1) {
+  const delimiterIndex = cleaned.includes('/')
+    ? cleaned.indexOf('/')
+    : cleaned.indexOf('+');
+  if (delimiterIndex === -1) {
     const val = Number.parseFloat(cleaned) || 0;
     return { left: val, right: val };
   }
 
-  const left = Number.parseFloat(cleaned.substring(0, slashIndex)) || 0;
-  const right = Number.parseFloat(cleaned.substring(slashIndex + 1)) || 0;
+  const left = Number.parseFloat(cleaned.substring(0, delimiterIndex)) || 0;
+  const parsedRight = Number.parseFloat(cleaned.substring(delimiterIndex + 1));
+  const right = Number.isNaN(parsedRight) ? left : parsedRight;
   return { left, right };
 }
 

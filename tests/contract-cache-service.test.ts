@@ -71,6 +71,17 @@ test('contractCacheService listContracts filters by code and customer', async ()
   assert.ok(filteredByCustomer.rows.every((row: any) => row.get('customer_name') === '客户甲'));
 });
 
+test('contractCacheService preserves explicit zero count instead of coercing to null', async () => {
+  await contractCacheService.cacheContract({
+    ...buildPayload('CT-ZERO', '客户零', 500),
+    count: 0,
+  });
+
+  const cached = await contractCacheService.getByCode('CT-ZERO');
+  assert.ok(cached);
+  assert.equal(cached!.get('total_count_raw'), '0');
+});
+
 test.after(async () => {
   await sequelize.close();
   if (fs.existsSync(TEST_DB)) {

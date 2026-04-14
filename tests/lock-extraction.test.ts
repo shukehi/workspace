@@ -129,3 +129,29 @@ test('lock extraction: only swaps when 开向段 contains 内开', () => {
   assert.equal(result[0].quantity, 35);
   assert.deepEqual(result[0].winningRules, ['lock-primary-sd-9030(6607大锁)']);
 });
+
+test('lock extraction: preserves explicit zero on right quantity', () => {
+  const result = extractLockData([
+    {
+      sj: 'SD-9030（6607大锁）',
+      qty: '36/0',
+      spec: '970*2040/10/外开外包',
+    },
+  ], {
+    customerName: '客户A',
+  }, {
+    primaryLabel: '主锁',
+    mappings: {
+      'SD-9030（6607大锁）': {
+        supplier: '汇成',
+        vendorName: '6607大锁',
+        primarySpec: '主锁体',
+      },
+    },
+  });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].quantityLeft, 36);
+  assert.equal(result[0].quantityRight, 0);
+  assert.equal(result[0].quantity, 36);
+});

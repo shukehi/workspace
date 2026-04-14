@@ -55,7 +55,7 @@ class ContractCacheService {
             customer_name: rc.customerName || null,
             order_date: rc.orderDate || null,
             advance_date: rc.advanceDate || null,
-            total_count_raw: rc.count || null,
+            total_count_raw: rc.count ?? null,
             total_amount: rc.totalAmount ?? null,
             payload_hash: payloadHash,
             last_fetched_at: now,

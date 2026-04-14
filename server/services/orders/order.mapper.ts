@@ -31,6 +31,14 @@ export function resolveOrderedQuantity(itemOrOrderedQty: any, rawQuantity?: unkn
     return Number(itemOrOrderedQty.ordered_quantity || itemOrOrderedQty.quantity || 0);
 }
 
+function resolvePersistedQuantity(item: any): number {
+    const hasSplitQuantity = item?.quantity_left != null || item?.quantity_right != null;
+    if (hasSplitQuantity) {
+        return Number(item?.quantity_left ?? 0) + Number(item?.quantity_right ?? 0);
+    }
+    return Number(item?.quantity ?? 0);
+}
+
 /**
  * 序列化订单项
  */
@@ -66,6 +74,8 @@ export function serializeOrderItem(item: any): any {
  * 标准化订单项持久化数据
  */
 export function normalizeOrderItemForPersistence(item: any): any {
+    const persistedQuantity = resolvePersistedQuantity(item);
+
     return {
         material_id: item.material_id ?? null,
         name: item.name || item.type || item.model || item.internal_name || '',
@@ -77,8 +87,8 @@ export function normalizeOrderItemForPersistence(item: any): any {
         mb: item.mb ?? null,
         eccentricity: item.eccentricity ?? null,
         model: item.model ?? null,
-        quantity: Number(item.quantity ?? 0),
-        ordered_quantity: Number(item.quantity ?? 0),  // enforce = quantity on creation; ignore client-supplied value
+        quantity: persistedQuantity,
+        ordered_quantity: persistedQuantity,  // enforce = quantity on creation; ignore client-supplied value
         quantity_left: item.quantity_left != null ? Number(item.quantity_left) : null,
         quantity_right: item.quantity_right != null ? Number(item.quantity_right) : null,
         unit: item.unit ?? null,

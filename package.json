@@ -32,6 +32,7 @@
         "db:migrate:formulas": "node server/scripts/migrate_formulas_to_sqlite.js",
         "db:migrate:formula-keys": "node server/scripts/migrate_formula_keys_to_generated_format.js",
         "db:export:formulas": "node server/scripts/export_formulas_to_json.js",
+        "audit:po-quantity-history": "tsx server/scripts/audit_po_quantity_history.ts",
         "start": "npm run server:prod"
     },
     "dependencies": {
