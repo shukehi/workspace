@@ -158,6 +158,35 @@ test('extractLockForkData uses P66-specific base dimensions for 7cm doors below 
   );
 });
 
+test('extractLockForkData applies P66 override for normalized main-lock variants', () => {
+  const rows = extractLockForkData(
+    [
+      {
+        sc: '单头锁叉',
+        qty: '2',
+        mshd: '7',
+        spec: '960*2050/7/内开外包',
+        sj: 'SD-9030 ( 6607大锁 )',
+      },
+    ],
+    {},
+    {
+      ...mapping,
+      lockTypes: {
+        'SD-9030 ( 6607大锁 )': {
+          category: 'P66',
+          nameModifier: 'P66',
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(
+    rows.map((item) => item.spec),
+    ['497*301 = 798', '497*301 = 798'],
+  );
+});
+
 test('extractLockForkData preserves explicit zero on right quantity', () => {
   const rows = extractLockForkData(
     [

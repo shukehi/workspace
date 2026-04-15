@@ -20,7 +20,8 @@ export interface LockForkDerivationInput {
   dimensions: DimensionGroup;
   thickness: string;
   doorHeight: number;
-  heightAdjustment: number;
+  upperHeightAdjustment: number;
+  lowerHeightAdjustment: number;
   hangingFeetAdjustment: number;
   flatBottomRail: string | null;
   hangingFeetValue: number | null;
@@ -55,7 +56,8 @@ export function deriveLockForkRows(input: LockForkDerivationInput): LockForkDeri
     dimensions,
     thickness,
     doorHeight,
-    heightAdjustment,
+    upperHeightAdjustment,
+    lowerHeightAdjustment,
     hangingFeetAdjustment,
     flatBottomRail,
     hangingFeetValue,
@@ -65,12 +67,12 @@ export function deriveLockForkRows(input: LockForkDerivationInput): LockForkDeri
   const upperDimension = formatDimension(
     dimensions.upper.base1,
     dimensions.upper.base2,
-    heightAdjustment,
+    upperHeightAdjustment,
   );
   const lowerDimension = formatDimension(
     dimensions.lower.base1,
     dimensions.lower.base2,
-    heightAdjustment + hangingFeetAdjustment,
+    lowerHeightAdjustment + hangingFeetAdjustment,
   );
 
   const remarkParts = [`${thickness}CM ${doorHeight}`];

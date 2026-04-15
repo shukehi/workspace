@@ -11,7 +11,8 @@ test('lock fork deriver builds single-head row names and dimensions', () => {
     },
     thickness: '7',
     doorHeight: 2400,
-    heightAdjustment: 100,
+    upperHeightAdjustment: 100,
+    lowerHeightAdjustment: 100,
     hangingFeetAdjustment: 30,
     flatBottomRail: null,
     hangingFeetValue: 5,
@@ -45,7 +46,8 @@ test('lock fork deriver builds dual-head names and flat-bottom remark', () => {
     },
     thickness: '7',
     doorHeight: 2400,
-    heightAdjustment: 100,
+    upperHeightAdjustment: 200,
+    lowerHeightAdjustment: 0,
     hangingFeetAdjustment: 0,
     flatBottomRail: '4CM平下档',
     hangingFeetValue: null,
@@ -60,12 +62,12 @@ test('lock fork deriver builds dual-head names and flat-bottom remark', () => {
   assert.deepEqual(result.rows, [
     {
       type: '单头锁叉 - 上头 直杆',
-      spec: '570*376 + 100 = 1046',
+      spec: '570*376 + 200 = 1146',
       remark: '7CM 2400, 4CM平下档',
     },
     {
       type: '单头锁叉 - 下头 弯杆',
-      spec: '570*388 + 100 = 1058',
+      spec: '570*388 = 958',
       remark: '7CM 2400, 4CM平下档',
     },
   ]);

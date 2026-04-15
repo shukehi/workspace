@@ -14,6 +14,7 @@ import routes from './routes';
 import { initDB, sequelize } from './models';
 import { initErrorSystem } from './app/errors/init';
 import { logger } from './app/logger';
+import { prewarmPdfRenderer, shutdownPdfRenderer } from './services/pdfGenerator';
 
 // 初始化错误处理系统策略
 initErrorSystem();
@@ -82,6 +83,12 @@ async function startServer(): Promise<void> {
                 { port: config.server.port, env: config.server.env, erp: config.erp.baseUrl },
                 '服务器已启动'
             );
+
+            void prewarmPdfRenderer().then(() => {
+                logger.info('PDF renderer prewarmed');
+            }).catch((error) => {
+                logger.warn({ err: error }, 'PDF renderer prewarm failed');
+            });
         });
     } catch (error) {
         logger.error({ err: error }, '服务器启动失败');
@@ -94,12 +101,14 @@ async function startServer(): Promise<void> {
 // 优雅关闭
 process.on('SIGTERM', async () => {
     logger.info('收到 SIGTERM 信号，正在关闭服务器...');
+    await shutdownPdfRenderer();
     await sequelize.close();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     logger.info('收到 SIGINT 信号，正在关闭服务器...');
+    await shutdownPdfRenderer();
     await sequelize.close();
     process.exit(0);
 });

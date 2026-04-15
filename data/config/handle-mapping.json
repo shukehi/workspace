@@ -11,6 +11,7 @@
     "exportCustomerKeywords": [
         "三部"
     ],
+    "defaultActivityForExport": "double",
     "placeholderKeywords": [
         "冲整体拉手孔",
         "拉手孔",
@@ -22,7 +23,6 @@
         "remark",
         "xsbz"
     ],
-    "defaultActivityForExport": "double",
     "thicknessAccessoryPacks": {
         "5": "5公分配件包",
         "7": "7公分配件包",

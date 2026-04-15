@@ -8,6 +8,7 @@
 import { parseOpenDirectionSegment, parseQuantityPair, parseHeight } from './parsers';
 import { aggregatePackaging } from './packagingTable';
 import { deriveLockForkRows } from '@/services/lockForkDeriver';
+import type { LockForkDimensionGroup } from '@/types/mapping';
 import {
     adaptCylinderAccessoryPackRulesToRuleSet,
     adaptCylinderMapping,
@@ -75,6 +76,56 @@ type HardwareAccessoryResultRow = {
     matchedRules: string[];
     winningRules: string[];
 };
+
+function applyP66BaseDimensionOverride(
+    dimensions: LockForkDimensionGroup | null,
+    mainLockName: unknown,
+    thickness: string,
+    source: 'base' | 'high_height' | 'fallback_7' | undefined,
+    selectedVariant: 'standard' | 'withHangingFeet' | undefined,
+    lockTypeConfig: GenericMap | null,
+): LockForkDimensionGroup | null {
+    if (!dimensions) return null;
+    if (lockTypeConfig?.nameModifier !== 'P66') return dimensions;
+    if (normalizeLockMappingKey(String(mainLockName || '')) !== normalizeLockMappingKey('SD-9030（6607大锁）')) return dimensions;
+    if (thickness !== '5' && thickness !== '7') return dimensions;
+
+    const overridden = {
+        upper: { ...dimensions.upper },
+        lower: { ...dimensions.lower },
+    };
+
+    overridden.upper.base1 = 497;
+    overridden.lower.base1 = 497;
+
+    if (selectedVariant === 'standard') {
+        const base2 = source === 'high_height' ? 376 : 301;
+        overridden.upper.base2 = base2;
+        overridden.lower.base2 = base2;
+    }
+
+    return overridden;
+}
+
+function resolveLockForkHeightAdjustments(
+    thickness: string,
+    source: 'base' | 'high_height' | 'fallback_7' | undefined,
+    doorHeight: number,
+    heightReference: number,
+): { upper: number; lower: number } {
+    if ((thickness === '5' || thickness === '7') && source === 'high_height') {
+        return {
+            upper: doorHeight - heightReference,
+            lower: 0,
+        };
+    }
+
+    const sharedAdjustment = Math.round((doorHeight - heightReference) / 2);
+    return {
+        upper: sharedAdjustment,
+        lower: sharedAdjustment,
+    };
+}
 
 function mergeRuleNames(current: string[], incoming: string[]): string[] {
     const merged = new Set<string>(current);
@@ -633,6 +684,8 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             heightReference,
             matchedRules: dimensionMatchedRules,
             winningRules: dimensionWinningRules,
+            selectedVariant,
+            source,
         } = resolveLockForkDimensionRuleWithRules(
             adaptedLockForkMapping,
             {
@@ -641,7 +694,12 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
                 useHangingFeetDimensions: hasFlatBottomRail || hasHangingFeet,
             },
         );
-        const heightAdjustment = Math.round((doorHeight - heightReference) / 2);
+        const heightAdjustments = resolveLockForkHeightAdjustments(
+            thickness,
+            source,
+            doorHeight,
+            heightReference,
+        );
 
         if (!dimensions) {
             console.warn(`⚠️ 未找到门厚 ${thickness}cm 的锁叉基础尺寸配置`);
@@ -661,6 +719,18 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             : rawEdgeModifier;
         const lockTypeResult = detectLockType(item.sj, item.fssj);
         const lockTypeConfig = lockTypeResult.config;
+        const resolvedDimensions = applyP66BaseDimensionOverride(
+            dimensions,
+            item.sj,
+            thickness,
+            source,
+            selectedVariant,
+            lockTypeConfig,
+        );
+        if (!resolvedDimensions) {
+            console.warn(`⚠️ 未找到门厚 ${thickness}cm 对应的锁叉尺寸配置`);
+            return;
+        }
         const matchedRules = mergeRuleNames(
             mergeRuleNames(
                 mergeRuleNames(lockTypeResult.matchedRules, edgeTypeResult.matchedRules),
@@ -702,10 +772,11 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         const totalQty = qtyPair.left + qtyPair.right;
         const derived = deriveLockForkRows({
             baseName,
-            dimensions,
+            dimensions: resolvedDimensions,
             thickness,
             doorHeight,
-            heightAdjustment,
+            upperHeightAdjustment: heightAdjustments.upper,
+            lowerHeightAdjustment: heightAdjustments.lower,
             hangingFeetAdjustment,
             flatBottomRail,
             hangingFeetValue,
