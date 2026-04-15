@@ -58,6 +58,7 @@ function clearBrowserIdleTimer() {
 }
 
 async function closeSharedBrowser() {
+    if (activeBrowserSessions > 0) return;
     const current = sharedBrowserPromise;
     sharedBrowserPromise = null;
     clearBrowserIdleTimer();
@@ -81,6 +82,7 @@ function scheduleSharedBrowserClose() {
     clearBrowserIdleTimer();
     if (activeBrowserSessions > 0) return;
     browserIdleTimer = setTimeout(() => {
+        if (activeBrowserSessions > 0) return;
         void closeSharedBrowser();
     }, BROWSER_IDLE_TIMEOUT_MS);
 }
@@ -114,11 +116,12 @@ async function getSharedBrowser() {
 }
 
 export async function prewarmPdfRenderer(): Promise<void> {
-    const browser = await getSharedBrowser();
     activeBrowserSessions += 1;
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
     let page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>> | null = null;
 
     try {
+        browser = await getSharedBrowser();
         page = await browser.newPage();
         await page.goto('about:blank', {
             waitUntil: 'domcontentloaded',
@@ -144,13 +147,17 @@ async function withRenderPage<T>(
     task: (page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>>) => Promise<T>,
 ): Promise<T> {
     const renderStart = performance.now();
-    const browser = await getSharedBrowser();
-    const browserReadyAt = performance.now();
     activeBrowserSessions += 1;
-    const page = await browser.newPage();
-    const pageReadyAt = performance.now();
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
+    let page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>> | null = null;
+    let browserReadyAt = renderStart;
+    let pageReadyAt = renderStart;
 
     try {
+        browser = await getSharedBrowser();
+        browserReadyAt = performance.now();
+        page = await browser.newPage();
+        pageReadyAt = performance.now();
         await page.setViewport({
             width: 1200,
             height: 1600,
@@ -212,7 +219,9 @@ async function withRenderPage<T>(
     } finally {
         activeBrowserSessions = Math.max(0, activeBrowserSessions - 1);
         try {
-            await page.close();
+            if (page) {
+                await page.close();
+            }
         } finally {
             scheduleSharedBrowserClose();
         }
