@@ -46,7 +46,7 @@ const latestAuditTime = computed(() => (
         <template v-if="actionsPosition === 'header'">
           <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新配置</Button>
           <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
-          <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存配置</Button>
+          <Button :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.save">保存配置</Button>
         </template>
       </div>
     </div>
@@ -186,7 +186,7 @@ const latestAuditTime = computed(() => (
     <div v-if="actionsPosition === 'bottom'" class="sticky bottom-0 -mx-6 md:-mx-8 -mb-6 md:-mb-8 p-4 mt-auto border-t bg-background/95 backdrop-blur z-10 flex items-center justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
       <Button variant="outline" :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.load">刷新配置</Button>
       <Button variant="outline" @click="editor.openJsonEditor">JSON 编辑</Button>
-      <Button :disabled="editor.isLoading.value || editor.isSaving.value || clientIssues.length > 0" @click="editor.save">保存配置</Button>
+      <Button :disabled="editor.isLoading.value || editor.isSaving.value" @click="editor.save">保存配置</Button>
     </div>
   </div>
 </template>

@@ -45,6 +45,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(layout, /当前版本/);
   assert.match(layout, /已发布版本/);
   assert.match(layout, /v-if="actionsPosition === 'bottom'"/);
+  assert.doesNotMatch(layout, /Button :disabled="editor\.isLoading\.value \|\| editor\.isSaving\.value \|\| clientIssues\.length > 0"/);
 
   assert.match(packagingConfig, /workflow-meta-variant="inline"/);
   assert.match(packagingConfig, /actions-position="header"/);
