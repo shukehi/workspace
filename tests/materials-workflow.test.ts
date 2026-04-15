@@ -3,20 +3,33 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 
-const tempDbPath = path.join(os.tmpdir(), `materials-workflow-${Date.now()}.sqlite`);
-process.env.DB_STORAGE = tempDbPath;
+const _require = createRequire(import.meta.url);
+const TEST_DB = path.join(os.tmpdir(), `test-${crypto.randomBytes(8).toString('hex')}.sqlite`);
 
-const { CONFIG_FILES, ensureProjectDirs } = require('../server/config/paths') as typeof import('../server/config/paths');
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
+process.env.DB_STORAGE = TEST_DB;
+
+const { CONFIG_FILES, ensureProjectDirs } = _require('../server/config/paths') as typeof import('../server/config/paths');
 const {
   initDB,
   sequelize,
   MaterialCatalogProfile,
   MaterialCatalogRevision,
   MaterialCatalogAuditLog,
-} = require('../server/models') as typeof import('../server/models');
+} = _require('../server/models') as typeof import('../server/models');
 import type { MaterialCatalogProfileInstance, MaterialCatalogRevisionInstance, MaterialCatalogAuditLogInstance } from '../server/models';
-const MaterialCatalogWorkflow = require('../server/services/materials') as typeof import('../server/services/materials');
+const MaterialCatalogWorkflow = _require('../server/services/materials') as typeof import('../server/services/materials');
 
 const materialsFile = CONFIG_FILES.materialsCatalog;
 const originalMaterialsFile = fs.existsSync(materialsFile)
@@ -120,8 +133,8 @@ test('materials workflow: seed from legacy file, update draft, publish and sync 
 
 test.after(async () => {
   await sequelize.close();
-  if (fs.existsSync(tempDbPath)) {
-    fs.unlinkSync(tempDbPath);
+  if (fs.existsSync(TEST_DB)) {
+    fs.unlinkSync(TEST_DB);
   }
 
   if (originalMaterialsFile === null) {

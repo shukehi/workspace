@@ -165,3 +165,90 @@ test('packaging rule: merge=false uses 未匹配 when bz is empty', () => {
   assert.equal(groups[0].items[0].external_name, '未匹配');
   assert.equal(matchCalled, false);
 });
+
+test('packaging rule: merge=false preserves explicit zero on right quantity', () => {
+  const ctx = createCtx({
+    sourceStore: {
+      currentOrder: {
+        list: [
+          {
+            bz: '包装A',
+            productModelName: 'M4',
+            spec: '900*2100',
+            mb: '门边C',
+            qty: '36/0',
+          },
+        ],
+      },
+      materialRequirements: null,
+      hardwareRequirements: null,
+    },
+    packagingConfig: {
+      getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: { 包装A: '外协包装A' } }),
+    },
+  });
+
+  const groups = buildPackagingGroups(ctx, { mergeSameSpec: false });
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].items[0].quantity, 36);
+  assert.equal(groups[0].items[0].quantity_left, 36);
+  assert.equal(groups[0].items[0].quantity_right, 0);
+});
+
+test('packaging rule: merge=false supports plus-delimited left/right quantity', () => {
+  const ctx = createCtx({
+    sourceStore: {
+      currentOrder: {
+        list: [
+          {
+            bz: '包装A',
+            productModelName: 'M5',
+            spec: '900*2100',
+            mb: '门边D',
+            qty: '2+3',
+          },
+        ],
+      },
+      materialRequirements: null,
+      hardwareRequirements: null,
+    },
+    packagingConfig: {
+      getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: { 包装A: '外协包装A' } }),
+    },
+  });
+
+  const groups = buildPackagingGroups(ctx, { mergeSameSpec: false });
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].items[0].quantity, 5);
+  assert.equal(groups[0].items[0].quantity_left, 2);
+  assert.equal(groups[0].items[0].quantity_right, 3);
+});
+
+test('packaging rule: merge=false keeps quantity consistent with mirrored single-value qty', () => {
+  const ctx = createCtx({
+    sourceStore: {
+      currentOrder: {
+        list: [
+          {
+            bz: '包装A',
+            productModelName: 'M6',
+            spec: '900*2100',
+            mb: '门边E',
+            qty: '10',
+          },
+        ],
+      },
+      materialRequirements: null,
+      hardwareRequirements: null,
+    },
+    packagingConfig: {
+      getPackagingMapping: () => ({ supplierName: '方亮包装', mappings: { 包装A: '外协包装A' } }),
+    },
+  });
+
+  const groups = buildPackagingGroups(ctx, { mergeSameSpec: false });
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].items[0].quantity, 20);
+  assert.equal(groups[0].items[0].quantity_left, 10);
+  assert.equal(groups[0].items[0].quantity_right, 10);
+});

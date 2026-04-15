@@ -85,3 +85,38 @@ test('extractCylinderData allows built-in cylinder when excluded list is explici
   assert.equal(extracted[0].supplier, '忠恒');
   assert.ok(extracted[0].type.includes('内置锁芯'));
 });
+
+test('extractCylinderData preserves explicit zero on right quantity', () => {
+  const rows = [
+    {
+      spec: '单开/7/外开',
+      qty: '36/0',
+      sx: '90P35锌合金锁芯扣封',
+      sxhz: '',
+      fssx: '',
+      fshz: ''
+    }
+  ];
+
+  const mapping = {
+    dimensions: {
+      '7': { code: '90', eccentricity: '34.5*55.5/中心孔偏心' }
+    },
+    specialRules: [],
+    secondaryDimensions: {},
+    secondarySpecialRules: [],
+    mappings: {
+      '90P35锌合金锁芯扣封': {
+        supplier: '忠恒',
+        template: '{code}锌合金锁芯'
+      }
+    },
+    customLogos: [],
+    excludedCylinders: []
+  };
+
+  const extracted = extractCylinderData(rows, { customerName: '一部客户', remark: '' }, mapping);
+
+  assert.equal(extracted.length, 1);
+  assert.equal(extracted[0].quantity, 36);
+});

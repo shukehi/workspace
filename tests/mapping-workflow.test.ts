@@ -33,6 +33,7 @@ const {
   PROFILE_CODES,
   REVISION_STATES,
 } = _require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
+const { CONFIG_FILES } = _require('../server/config/paths') as typeof import('../server/config/paths');
 
 const packagingPayload = {
   supplierName: '方亮包装',
@@ -40,6 +41,10 @@ const packagingPayload = {
     包装A: '外协包装A',
   },
 };
+
+const originalCylinderMappingFile = fs.existsSync(CONFIG_FILES.cylinderMapping)
+  ? fs.readFileSync(CONFIG_FILES.cylinderMapping, 'utf8')
+  : null;
 
 test.before(async () => {
   await initDB();
@@ -163,62 +168,121 @@ test('mapping workflow skeleton: enforces single draft, optimistic lock, publish
   );
 });
 
-test('ensurePublishedMapping serializes first-read seeding across concurrent mapping requests', async () => {
-  const profilePayloads = [
-    {
-      profileCode: PROFILE_CODES.CYLINDER,
-      payload: {},
-    },
-    {
-      profileCode: PROFILE_CODES.LOCK,
-      payload: {},
-    },
-    {
-      profileCode: PROFILE_CODES.LOCK_FORK,
-      payload: {
-        suppliers: {
-          default: '应志友',
-        },
+test('getPublishedMapping returns null before first publish and payload after publish', async () => {
+  const beforeProfileExists = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
+  assert.equal(beforeProfileExists, null);
+
+  const draft = await MappingWorkflow.updateDraft(PROFILE_CODES.CYLINDER, {
+    revision: 0,
+    payload: {
+      dimensions: {
+        7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
       },
     },
-    {
-      profileCode: PROFILE_CODES.HANDLE,
-      payload: {},
+    changeNote: 'create cylinder draft',
+    operator: 'tester',
+  });
+  assert.equal(draft.ok, true);
+
+  const beforePublish = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
+  assert.equal(beforePublish?.ok, true);
+  assert.equal(beforePublish?.payload ?? null, null);
+
+  const published = await MappingWorkflow.publish(PROFILE_CODES.CYLINDER, {
+    fromRevision: draft.revision.revision,
+    changeNote: 'publish cylinder draft',
+    operator: 'tester',
+  });
+  assert.equal(published.ok, true);
+
+  const afterPublish = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
+  assert.equal(afterPublish?.ok, true);
+  assert.deepEqual(afterPublish?.payload, {
+    dimensions: {
+      7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
     },
-  ] as const;
+  });
+});
 
-  const results = await Promise.all(
-    profilePayloads.map(({ profileCode, payload }) =>
-      MappingWorkflow.ensurePublishedMapping(profileCode, {
-        legacyPayload: payload,
-        operator: 'tester',
-        changeNote: 'seed concurrent read path',
-      }),
-    ),
-  );
+test('mapping workflow backfills cylinder accessory material codes from legacy file when published payload is incomplete', async () => {
+  fs.writeFileSync(CONFIG_FILES.cylinderMapping, JSON.stringify({
+    secondaryAccessoryPackRules: [
+      {
+        conditionField: 'fshz',
+        keyword: '一号铝小面板',
+        supplier: '巨力',
+        itemName: '铝小面板 - 单开',
+        unit: '个',
+        thicknessAccessoryPacks: {
+          '5': '5 公分配件包',
+          '7': '7 公分配件包',
+        },
+        thicknessMaterialCodes: {
+          '5': 'ACC-FSHZ-YHLXMB-5',
+          '7': 'ACC-FSHZ-YHLXMB-7',
+        },
+      },
+    ],
+  }, null, 2));
 
-  assert.equal(results.every((result) => result?.ok && result.payload), true);
+  const profile = await MappingProfile.findOne({
+    where: { profile_code: PROFILE_CODES.CYLINDER },
+  }) as MappingProfileInstance | null;
+  assert.ok(profile);
 
-  const profiles = await MappingProfile.findAll({
-    order: [['profile_code', 'ASC']],
-  }) as MappingProfileInstance[];
+  await MappingRevision.create({
+    profile_id: profile!.id,
+    revision: 99,
+    state: REVISION_STATES.PUBLISHED,
+    schema_version: 1,
+    payload_json: JSON.stringify({
+      dimensions: {
+        7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
+      },
+      secondaryAccessoryPackRules: [
+        {
+          conditionField: 'fshz',
+          keyword: '一号铝小面板',
+          supplier: '巨力',
+          itemName: '铝小面板 - 单开',
+          unit: '个',
+          thicknessAccessoryPacks: {
+            '5': '5 公分配件包',
+            '7': '7 公分配件包',
+          },
+        },
+      ],
+      mappings: {},
+    }),
+    change_note: 'seed incomplete published revision',
+    created_by: 'tester',
+  });
 
-  assert.deepEqual(
-    profilePayloads.every(({ profileCode }) => profiles.some((profile) => profile.profile_code === profileCode)),
-    true,
-  );
+  const detail = await MappingWorkflow.getMappingDetail(PROFILE_CODES.CYLINDER);
+  assert.equal(detail?.ok, true);
+  assert.deepEqual(detail?.mapping.publishedPayload.secondaryAccessoryPackRules?.[0]?.thicknessMaterialCodes, {
+    '5': 'ACC-FSHZ-YHLXMB-5',
+    '7': 'ACC-FSHZ-YHLXMB-7',
+  });
 
-  for (const { profileCode } of profilePayloads) {
-    const detail = await MappingWorkflow.getMappingDetail(profileCode);
-    assert.equal(detail?.ok, true);
-    assert.equal(detail?.mapping.publishedRevision?.state, REVISION_STATES.PUBLISHED);
-    assert.equal(detail?.mapping.draftRevision, null);
-  }
+  const payload = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
+  assert.equal(payload?.ok, true);
+  assert.deepEqual(payload?.payload.secondaryAccessoryPackRules?.[0]?.thicknessMaterialCodes, {
+    '5': 'ACC-FSHZ-YHLXMB-5',
+    '7': 'ACC-FSHZ-YHLXMB-7',
+  });
 });
 
 test.after(async () => {
   await sequelize.close();
   if (fs.existsSync(TEST_DB)) {
     fs.unlinkSync(TEST_DB);
+  }
+  if (originalCylinderMappingFile === null) {
+    if (fs.existsSync(CONFIG_FILES.cylinderMapping)) {
+      fs.unlinkSync(CONFIG_FILES.cylinderMapping);
+    }
+  } else {
+    fs.writeFileSync(CONFIG_FILES.cylinderMapping, originalCylinderMappingFile);
   }
 });

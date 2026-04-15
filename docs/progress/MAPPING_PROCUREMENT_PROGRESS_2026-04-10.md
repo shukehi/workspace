@@ -349,6 +349,35 @@
 - `tests/mapping-runtime-regression.test.ts`
 - `tests/mapping-runtime-derived-regression.test.ts`
 - `npm run type-check`
+
+### 12. 后续收口阶段已完成主线与残留整理
+
+已完成：
+
+- 规则系统主线已多次分批提交并进入 `main`
+- `sourceAnalysis` 展示层已补齐：
+  - `matchedRules`
+  - `winningRules`
+- `lock_fork` 的规则元信息现在已覆盖完整生产决策链
+- 采购筛选残留线已独立收口
+- 订单 / 分页主线已独立收口
+- workflow / inventory 测试收尾已独立收口
+- `mappingRules.validator` 已正式提交入库
+- `formula-workflow.test.ts` 已完成数据库隔离修复
+- `lock-fork-mapping.json` 已规范到当前配置形状
+
+当前判断：
+
+- 功能性代码线已经基本收口
+- 当前未提交项主要只剩：
+  - 本地目录
+  - roadmap / 计划文档
+  - 个别脚本 / migration 候选
+
+建议：
+
+- 当前阶段可视为已完成
+- 如继续推进，应从 `main` 开新分支进入下一主题，而不是继续在本轮整理分支上叠加新功能
 - `P1` 已完成：
   - mapping runtime 只读 published
   - published 状态可检查

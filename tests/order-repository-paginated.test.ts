@@ -6,6 +6,25 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import Module from 'node:module'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
+
+const _require = createRequire(import.meta.url);
+const tempDbPath = path.join(os.tmpdir(), `test-order-repo-paginated-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring modules as a safeguard
+const purgeDatabaseCache = () => {
+    Object.keys(_require.cache).forEach((key) => {
+        if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+            delete _require.cache[key];
+        }
+    });
+};
+purgeDatabaseCache();
+process.env.DB_STORAGE = tempDbPath;
 
 // ── Sequelize Op symbols ──────────────────────────────────────────────────
 const Op = {
@@ -32,7 +51,6 @@ const origLoad = (Module as unknown as { _load: (...args: unknown[]) => unknown 
     return origLoad.apply(this, arguments as unknown as [unknown, unknown, unknown]);
 };
 
-const _require = Module.createRequire(import.meta.url);
 const repoPath = _require.resolve('../server/services/orders/order.repository');
 delete _require.cache[repoPath];
 const repo = _require('../server/services/orders/order.repository');
@@ -152,4 +170,10 @@ test('buildSimpleWhereFromQuery: category is not added to where (requires Chines
     assert.ok(!('category' in where), 'category should not be in DB where (handled by filterOrders)');
 
     delete _require.cache[repoPath];
+});
+
+test.after(async () => {
+    if (fs.existsSync(tempDbPath)) {
+        fs.unlinkSync(tempDbPath);
+    }
 });

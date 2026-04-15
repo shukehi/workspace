@@ -46,6 +46,15 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
   const clientIssues = computed(() => options.getClientIssues());
   const jsonPreview = computed(() => JSON.stringify(payload.value, null, 2));
 
+  function buildClientIssueToastDescription() {
+    if (clientIssues.value.length === 0) return '请检查配置后重试';
+    const [firstIssue, ...rest] = clientIssues.value;
+    if (rest.length === 0) {
+      return `${firstIssue.path}: ${firstIssue.message}`;
+    }
+    return `${firstIssue.path}: ${firstIssue.message}；另有 ${rest.length} 条问题`;
+  }
+
   async function load() {
     isLoading.value = true;
     loadError.value = null;
@@ -77,6 +86,11 @@ export function useMappingConfigEditor<T>(options: MappingConfigEditorOptions<T>
   async function save() {
     if (isSaving.value) return;
     if (clientIssues.value.length > 0) {
+      toast({
+        title: '保存前需修正配置',
+        description: buildClientIssueToastDescription(),
+        variant: 'destructive'
+      });
       await options.scrollToFirstIssue?.();
       return;
     }

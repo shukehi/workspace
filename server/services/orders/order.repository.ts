@@ -356,6 +356,21 @@ export async function findOrderByOrderNo(
     }) as unknown as OrderInstance | null;
 }
 
+export async function findOrderNosBySourceContractCode(
+    sourceContractCode: string,
+    transaction?: LooseTransaction,
+): Promise<string[]> {
+    const rows = await Order.findAll({
+        attributes: ['order_no'],
+        where: { source_contract_code: sourceContractCode },
+        transaction,
+    }) as unknown as Array<{ order_no?: string | null }>;
+
+    return rows
+        .map((row) => String(row.order_no || '').trim())
+        .filter((orderNo) => orderNo.length > 0);
+}
+
 export async function createOrder(
     values: OrderCreationAttributes,
     transaction?: LooseTransaction,

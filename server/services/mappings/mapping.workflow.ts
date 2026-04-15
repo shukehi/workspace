@@ -1,11 +1,12 @@
-import type { Transaction } from 'sequelize';
 import fs from 'fs';
+import type { Transaction } from 'sequelize';
 import MappingRepository from './mapping.repository';
 import { AUDIT_ACTIONS, PROFILE_STATUSES, REVISION_STATES, SCHEMA_VERSION, getProfileDisplayName } from './mapping.constants';
 import { parsePayload, serializePayload, validateMappingPayload, validateProfileCode } from './mapping.validator';
 import { toDetail, toRevisionMeta, toSummary, toAuditLog } from './mapping.mapper';
 import type { PlainRecord } from '../../shared/types';
 import type { MappingProfileCode } from '../../models/types';
+import { CONFIG_FILES } from '../../config/paths';
 
 interface WorkflowIssue {
     path: string;
@@ -39,29 +40,6 @@ interface RollbackParams {
     operator?: string;
 }
 
-interface EnsurePublishedParams {
-    legacyPayload?: PlainRecord | null;
-    operator?: string;
-    changeNote?: string;
-}
-
-let mappingSeedQueue: Promise<void> = Promise.resolve();
-
-async function runSerializedMappingSeed<T>(task: () => Promise<T>): Promise<T> {
-    const previous = mappingSeedQueue;
-    let releaseCurrent!: () => void;
-    mappingSeedQueue = new Promise<void>((resolve) => {
-        releaseCurrent = resolve;
-    });
-
-    await previous;
-    try {
-        return await task();
-    } finally {
-        releaseCurrent();
-    }
-}
-
 export function operatorFromRequest(req?: PlainRecord): string {
     const fromHeader = req?.headers?.['x-operator'] || req?.headers?.['x-user'];
     return String(fromHeader || 'system-admin');
@@ -82,6 +60,82 @@ export function normalizeProfileCode(profileCode: unknown): string {
 export function normalizeSchemaVersion(input: unknown): number {
     const parsed = Number(input);
     return Number.isInteger(parsed) && parsed > 0 ? parsed : SCHEMA_VERSION;
+}
+
+function readLegacyCylinderPayload(): PlainRecord {
+    try {
+        if (!fs.existsSync(CONFIG_FILES.cylinderMapping)) return {};
+        const raw = fs.readFileSync(CONFIG_FILES.cylinderMapping, 'utf8');
+        return parsePayload(raw);
+    } catch {
+        return {};
+    }
+}
+
+function buildCylinderAccessoryRuleKey(rule: PlainRecord): string {
+    return [
+        String(rule.conditionField || '').trim(),
+        String(rule.keyword || '').trim(),
+        String(rule.supplier || '').trim(),
+    ].join('|');
+}
+
+function normalizeCylinderPublishedPayload(profileCode: string, payload: PlainRecord | null): PlainRecord | null {
+    if (profileCode !== 'cylinder' || !payload || typeof payload !== 'object') return payload;
+
+    const rules = Array.isArray(payload.secondaryAccessoryPackRules)
+        ? payload.secondaryAccessoryPackRules
+        : [];
+    if (rules.length === 0) return payload;
+
+    const legacyPayload = readLegacyCylinderPayload();
+    const legacyRules = Array.isArray(legacyPayload.secondaryAccessoryPackRules)
+        ? legacyPayload.secondaryAccessoryPackRules
+        : [];
+    if (legacyRules.length === 0) return payload;
+
+    const legacyRuleMap = new Map<string, PlainRecord>(
+        legacyRules.map((rule) => [buildCylinderAccessoryRuleKey(rule as PlainRecord), rule as PlainRecord]),
+    );
+
+    const nextRules = rules.map((rule) => {
+        const currentRule = rule && typeof rule === 'object' ? { ...(rule as PlainRecord) } : {};
+        const thicknessAccessoryPacks = currentRule.thicknessAccessoryPacks && typeof currentRule.thicknessAccessoryPacks === 'object'
+            ? { ...(currentRule.thicknessAccessoryPacks as PlainRecord) }
+            : {};
+        const currentCodes = currentRule.thicknessMaterialCodes && typeof currentRule.thicknessMaterialCodes === 'object'
+            ? { ...(currentRule.thicknessMaterialCodes as PlainRecord) }
+            : {};
+
+        const missingKeys = Object.keys(thicknessAccessoryPacks).filter((thickness) => !String(currentCodes[thickness] || '').trim());
+        if (missingKeys.length === 0) {
+            return currentRule;
+        }
+
+        const legacyRule = legacyRuleMap.get(buildCylinderAccessoryRuleKey(currentRule));
+        if (!legacyRule || !legacyRule.thicknessMaterialCodes || typeof legacyRule.thicknessMaterialCodes !== 'object') {
+            return currentRule;
+        }
+
+        const legacyCodes = legacyRule.thicknessMaterialCodes as PlainRecord;
+        const mergedCodes: PlainRecord = { ...currentCodes };
+        for (const thickness of missingKeys) {
+            const legacyCode = String(legacyCodes[thickness] || '').trim();
+            if (legacyCode) {
+                mergedCodes[thickness] = legacyCode;
+            }
+        }
+
+        return {
+            ...currentRule,
+            thicknessMaterialCodes: mergedCodes,
+        };
+    });
+
+    return {
+        ...payload,
+        secondaryAccessoryPackRules: nextRules,
+    };
 }
 
 export async function ensureProfile(profileCode: unknown, transaction?: Transaction): Promise<PlainRecord> {
@@ -124,8 +178,8 @@ export async function getMappingDetail(profileCode: unknown): Promise<PlainRecor
             latestRevision,
             draftRevision,
             publishedRevision,
-            draftPayload: draftRevision ? parsePayload(draftRevision.payload_json) : null,
-            publishedPayload: publishedRevision ? parsePayload(publishedRevision.payload_json) : null
+            draftPayload: draftRevision ? normalizeCylinderPublishedPayload(normalizedProfileCode, parsePayload(draftRevision.payload_json)) : null,
+            publishedPayload: publishedRevision ? normalizeCylinderPublishedPayload(normalizedProfileCode, parsePayload(publishedRevision.payload_json)) : null
         })
     };
 }
@@ -410,59 +464,4 @@ export async function getPublishedMapping(profileCode: unknown): Promise<PlainRe
         ok: true,
         payload: detail.mapping.publishedPayload
     };
-}
-
-export async function seedFromLegacyPayload(
-    profileCode: unknown,
-    payload: PlainRecord,
-    { operator, changeNote }: { operator?: string; changeNote?: string } = {},
-): Promise<PlainRecord> {
-    const draft = await updateDraft(profileCode, {
-        revision: 0,
-        payload,
-        changeNote: changeNote || 'seed from legacy runtime',
-        operator: operator || 'system-admin'
-    });
-    if (!draft.ok) return draft;
-
-    return publish(profileCode, {
-        fromRevision: draft.revision.revision,
-        changeNote: changeNote || 'publish legacy runtime seed',
-        operator: operator || 'system-admin'
-    });
-}
-
-export async function ensurePublishedMapping(
-    profileCode: unknown,
-    { legacyPayload, operator, changeNote }: EnsurePublishedParams = {},
-): Promise<PlainRecord | null> {
-    const published = await getPublishedMapping(profileCode);
-    if (published && published.ok && published.payload) {
-        return published;
-    }
-    if (!legacyPayload) {
-        return published || null;
-    }
-
-    return runSerializedMappingSeed(async () => {
-        const publishedAfterWait = await getPublishedMapping(profileCode);
-        if (publishedAfterWait && publishedAfterWait.ok && publishedAfterWait.payload) {
-            return publishedAfterWait;
-        }
-
-        const seeded = await seedFromLegacyPayload(profileCode, legacyPayload, {
-            operator,
-            changeNote
-        });
-        if (!seeded || !seeded.ok) return seeded;
-
-        return getPublishedMapping(profileCode);
-    });
-}
-
-export function syncLegacyRuntimeFile(runtimeFile: string | undefined, payload: PlainRecord): void {
-    if (!runtimeFile) return;
-    const tempPath = `${runtimeFile}.tmp-${process.pid}-${Date.now()}`;
-    fs.writeFileSync(tempPath, JSON.stringify(payload, null, 4));
-    fs.renameSync(tempPath, runtimeFile);
 }

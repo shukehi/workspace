@@ -1,5 +1,5 @@
 {
-  "defaultUnit": "套",
+    "defaultUnit": "套",
     "primaryLabel": "主锁",
     "secondaryLabel": "副锁",
     "mappings": {

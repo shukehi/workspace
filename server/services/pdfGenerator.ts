@@ -5,7 +5,9 @@
 
 import fs from 'fs';
 import path from 'path';
+import { performance } from 'node:perf_hooks';
 import puppeteer from 'puppeteer';
+import { logger } from '../app/logger';
 
 function ensureRenderUrl(renderUrl: unknown): string {
     if (!renderUrl || typeof renderUrl !== 'string') {
@@ -35,88 +37,61 @@ interface ScreenshotGenerationOptions {
     [key: string]: unknown;
 }
 
-export async function generatePurchaseOrderPDF(options?: PdfGenerationOptions): Promise<Buffer> {
-    const opts = (options && typeof options === 'object') ? options : {} as PdfGenerationOptions;
-    const poNumber = String(opts.poNumber || 'order');
-    const renderUrl = ensureRenderUrl(opts.renderUrl);
+type RenderTrace = {
+    poNumber: string;
+    kind: 'pdf' | 'screenshot';
+};
 
-    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+const BROWSER_IDLE_TIMEOUT_MS = 30_000;
+const PRINT_RENDER_TIMEOUT_MS = 45_000;
+const PRINT_READY_SELECTOR = '#printDocumentOutput .order-sheet';
+const PRINT_ERROR_SELECTOR = '#printDocumentOutput .bg-rose-50';
+
+let sharedBrowserPromise: Promise<Awaited<ReturnType<typeof puppeteer.launch>>> | null = null;
+let activeBrowserSessions = 0;
+let browserIdleTimer: NodeJS.Timeout | null = null;
+
+function clearBrowserIdleTimer() {
+    if (!browserIdleTimer) return;
+    clearTimeout(browserIdleTimer);
+    browserIdleTimer = null;
+}
+
+async function closeSharedBrowser() {
+    if (activeBrowserSessions > 0) return;
+    const current = sharedBrowserPromise;
+    sharedBrowserPromise = null;
+    clearBrowserIdleTimer();
+    if (!current) return;
+
     try {
-        console.log(`📄 Starting PDF generation for ${poNumber}`);
-        console.log(`🔗 Render source: ${renderUrl}`);
-
-        browser = await puppeteer.launch({
-            headless: 'new' as unknown as boolean, // Puppeteer ≥21 'new' headless mode; type def still says boolean
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu'
-            ]
-        });
-
-        const page = await browser.newPage();
-
-        await page.setViewport({
-            width: 1200,
-            height: 1600,
-            deviceScaleFactor: 2
-        });
-
-        await page.goto(renderUrl, {
-            waitUntil: ['domcontentloaded', 'networkidle0'],
-            timeout: 45_000
-        });
-
-        await page.emulateMediaType('print');
-        await page.evaluateHandle('document.fonts ? document.fonts.ready : Promise.resolve()');
-
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: {
-                top: '10mm',
-                right: '10mm',
-                bottom: '10mm',
-                left: '10mm'
-            },
-            preferCSSPageSize: true,
-            displayHeaderFooter: false
-        });
-
-        if (process.env.PDF_DEBUG === '1') {
-            const tempDir = path.join(__dirname, '../../temp');
-            if (!fs.existsSync(tempDir)) {
-                fs.mkdirSync(tempDir, { recursive: true });
-            }
-            const tempPath = path.join(tempDir, `${poNumber}_debug.pdf`);
-            fs.writeFileSync(tempPath, pdfBuffer);
-            console.log(`🔍 Debug PDF saved: ${tempPath}`);
-        }
-
-        console.log(`✅ PDF generated successfully for ${poNumber} (${pdfBuffer.length} bytes)`);
-        return Buffer.from(pdfBuffer);
-    } catch (error: any) {
-        console.error('❌ PDF generation failed:', error);
-        throw new Error(`PDF generation failed: ${error.message}`);
-    } finally {
-        if (browser) {
+        const browser = await current;
+        if (browser.connected) {
             await browser.close();
         }
+    } catch {
+        // Ignore close races and launch failures.
     }
 }
 
-export async function generatePurchaseOrderScreenshot(options?: ScreenshotGenerationOptions): Promise<Buffer> {
-    const opts = (options && typeof options === 'object') ? options : {} as ScreenshotGenerationOptions;
-    const poNumber = String(opts.poNumber || 'order');
-    const renderUrl = ensureRenderUrl(opts.renderUrl);
+export async function shutdownPdfRenderer(): Promise<void> {
+    await closeSharedBrowser();
+}
 
-    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
-    try {
-        console.log(`🖼️ Starting screenshot generation for ${poNumber}`);
-        console.log(`🔗 Render source: ${renderUrl}`);
+function scheduleSharedBrowserClose() {
+    clearBrowserIdleTimer();
+    if (activeBrowserSessions > 0) return;
+    browserIdleTimer = setTimeout(() => {
+        if (activeBrowserSessions > 0) return;
+        void closeSharedBrowser();
+    }, BROWSER_IDLE_TIMEOUT_MS);
+}
 
-        browser = await puppeteer.launch({
+async function getSharedBrowser() {
+    clearBrowserIdleTimer();
+
+    if (!sharedBrowserPromise) {
+        sharedBrowserPromise = puppeteer.launch({
             headless: 'new' as unknown as boolean,
             args: [
                 '--no-sandbox',
@@ -126,7 +101,63 @@ export async function generatePurchaseOrderScreenshot(options?: ScreenshotGenera
             ]
         });
 
-        const page = await browser.newPage();
+        sharedBrowserPromise.catch(() => {
+            sharedBrowserPromise = null;
+        });
+    }
+
+    const browser = await sharedBrowserPromise;
+    if (!browser.connected) {
+        sharedBrowserPromise = null;
+        return getSharedBrowser();
+    }
+
+    return browser;
+}
+
+export async function prewarmPdfRenderer(): Promise<void> {
+    activeBrowserSessions += 1;
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
+    let page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>> | null = null;
+
+    try {
+        browser = await getSharedBrowser();
+        page = await browser.newPage();
+        await page.goto('about:blank', {
+            waitUntil: 'domcontentloaded',
+            timeout: PRINT_RENDER_TIMEOUT_MS,
+        });
+    } finally {
+        activeBrowserSessions = Math.max(0, activeBrowserSessions - 1);
+        if (page) {
+            try {
+                await page.close();
+            } catch {
+                // Ignore close races during prewarm.
+            }
+        }
+        scheduleSharedBrowserClose();
+    }
+}
+
+async function withRenderPage<T>(
+    renderUrl: string,
+    mediaType: 'print' | 'screen',
+    trace: RenderTrace,
+    task: (page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>>) => Promise<T>,
+): Promise<T> {
+    const renderStart = performance.now();
+    activeBrowserSessions += 1;
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
+    let page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>> | null = null;
+    let browserReadyAt = renderStart;
+    let pageReadyAt = renderStart;
+
+    try {
+        browser = await getSharedBrowser();
+        browserReadyAt = performance.now();
+        page = await browser.newPage();
+        pageReadyAt = performance.now();
         await page.setViewport({
             width: 1200,
             height: 1600,
@@ -134,33 +165,148 @@ export async function generatePurchaseOrderScreenshot(options?: ScreenshotGenera
         });
 
         await page.goto(renderUrl, {
-            waitUntil: ['domcontentloaded', 'networkidle0'],
-            timeout: 45_000
+            waitUntil: 'domcontentloaded',
+            timeout: PRINT_RENDER_TIMEOUT_MS
+        });
+        const domReadyAt = performance.now();
+
+        await page.waitForFunction(
+            ({ readySelector, errorSelector }) => Boolean(
+                document.querySelector(readySelector) || document.querySelector(errorSelector)
+            ),
+            {
+                timeout: PRINT_RENDER_TIMEOUT_MS,
+            },
+            {
+                readySelector: PRINT_READY_SELECTOR,
+                errorSelector: PRINT_ERROR_SELECTOR,
+            },
+        );
+        const contentReadyAt = performance.now();
+
+        const pageErrorText = await page.evaluate(({ errorSelector }) => {
+            const errorNode = document.querySelector(errorSelector);
+            return errorNode ? String(errorNode.textContent || '').trim() : '';
+        }, {
+            errorSelector: PRINT_ERROR_SELECTOR,
         });
 
-        await page.emulateMediaType('screen');
-        await page.evaluateHandle('document.fonts ? document.fonts.ready : Promise.resolve()');
-
-        const screenshotTarget = await page.waitForSelector('#printDocumentOutput .order-sheet', {
-            timeout: 10_000,
-        });
-        if (!screenshotTarget) {
-            throw new Error('Screenshot target not found');
+        if (pageErrorText) {
+            throw new Error(`Print document failed to render: ${pageErrorText}`);
         }
 
-        const screenshot = await screenshotTarget.screenshot({
-            type: 'png',
-            omitBackground: false,
+        await page.emulateMediaType(mediaType);
+        await page.evaluateHandle('document.fonts ? document.fonts.ready : Promise.resolve()');
+        const fontsReadyAt = performance.now();
+
+        const result = await task(page);
+        const taskDoneAt = performance.now();
+
+        logger.info({
+            pdfStage: 'render-page',
+            pdfKind: trace.kind,
+            poNumber: trace.poNumber,
+            browserAcquireMs: Math.round(browserReadyAt - renderStart),
+            pageCreateMs: Math.round(pageReadyAt - browserReadyAt),
+            domContentLoadedMs: Math.round(domReadyAt - pageReadyAt),
+            contentReadyMs: Math.round(contentReadyAt - domReadyAt),
+            fontsReadyMs: Math.round(fontsReadyAt - contentReadyAt),
+            renderTaskMs: Math.round(taskDoneAt - fontsReadyAt),
+            totalMs: Math.round(taskDoneAt - renderStart),
+        }, 'PDF render timings');
+
+        return result;
+    } finally {
+        activeBrowserSessions = Math.max(0, activeBrowserSessions - 1);
+        try {
+            if (page) {
+                await page.close();
+            }
+        } finally {
+            scheduleSharedBrowserClose();
+        }
+    }
+}
+
+export async function generatePurchaseOrderPDF(options?: PdfGenerationOptions): Promise<Buffer> {
+    const opts = (options && typeof options === 'object') ? options : {} as PdfGenerationOptions;
+    const poNumber = String(opts.poNumber || 'order');
+    const renderUrl = ensureRenderUrl(opts.renderUrl);
+    const startedAt = performance.now();
+
+    try {
+        logger.info({ poNumber, renderUrl, pdfKind: 'pdf' }, 'Starting PDF generation');
+
+        const pdfBuffer = await withRenderPage(renderUrl, 'print', { poNumber, kind: 'pdf' }, async (page) => {
+            return await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '10mm',
+                    right: '10mm',
+                    bottom: '10mm',
+                    left: '10mm'
+                },
+                preferCSSPageSize: true,
+                displayHeaderFooter: false
+            });
         });
 
-        console.log(`✅ Screenshot generated successfully for ${poNumber} (${screenshot.length} bytes)`);
+        if (process.env.PDF_DEBUG === '1') {
+            const tempDir = path.join(__dirname, '../../temp');
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+            const tempPath = path.join(tempDir, `${poNumber}_debug.pdf`);
+            fs.writeFileSync(tempPath, pdfBuffer);
+            logger.info({ poNumber, tempPath }, 'Saved debug PDF');
+        }
+
+        logger.info({
+            poNumber,
+            pdfKind: 'pdf',
+            bytes: pdfBuffer.length,
+            totalMs: Math.round(performance.now() - startedAt),
+        }, 'PDF generated successfully');
+        return Buffer.from(pdfBuffer);
+    } catch (error: any) {
+        logger.error({ err: error, poNumber, pdfKind: 'pdf' }, 'PDF generation failed');
+        throw new Error(`PDF generation failed: ${error.message}`);
+    }
+}
+
+export async function generatePurchaseOrderScreenshot(options?: ScreenshotGenerationOptions): Promise<Buffer> {
+    const opts = (options && typeof options === 'object') ? options : {} as ScreenshotGenerationOptions;
+    const poNumber = String(opts.poNumber || 'order');
+    const renderUrl = ensureRenderUrl(opts.renderUrl);
+    const startedAt = performance.now();
+
+    try {
+        logger.info({ poNumber, renderUrl, pdfKind: 'screenshot' }, 'Starting screenshot generation');
+
+        const screenshot = await withRenderPage(renderUrl, 'screen', { poNumber, kind: 'screenshot' }, async (page) => {
+            const screenshotTarget = await page.waitForSelector(PRINT_READY_SELECTOR, {
+                timeout: 5_000,
+            });
+            if (!screenshotTarget) {
+                throw new Error('Screenshot target not found');
+            }
+
+            return await screenshotTarget.screenshot({
+                type: 'png',
+                omitBackground: false,
+            });
+        });
+
+        logger.info({
+            poNumber,
+            pdfKind: 'screenshot',
+            bytes: screenshot.length,
+            totalMs: Math.round(performance.now() - startedAt),
+        }, 'Screenshot generated successfully');
         return Buffer.from(screenshot);
     } catch (error: any) {
-        console.error('❌ Screenshot generation failed:', error);
+        logger.error({ err: error, poNumber, pdfKind: 'screenshot' }, 'Screenshot generation failed');
         throw new Error(`Screenshot generation failed: ${error.message}`);
-    } finally {
-        if (browser) {
-            await browser.close();
-        }
     }
 }

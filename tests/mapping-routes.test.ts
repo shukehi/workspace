@@ -1,17 +1,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import express from 'express'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 import type { Router } from 'express'
 
-const tempDbPath = path.join(os.tmpdir(), `mapping-routes-${Date.now()}.sqlite`);
-process.env.DB_STORAGE = tempDbPath;
+const _require = createRequire(import.meta.url);
+const TEST_DB = path.join(os.tmpdir(), `test-${crypto.randomBytes(8).toString('hex')}.sqlite`);
 
-const mappingsConfigRoutes = (require('../server/routes/mappingsConfig') as { default: Router }).default;
-const { initDB, sequelize } = require('../server/models') as typeof import('../server/models');
-const { PROFILE_CODES } = require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
+process.env.DB_STORAGE = TEST_DB;
+
+const mappingsConfigRoutes = (_require('../server/routes/mappingsConfig') as { default: Router }).default;
+const { initDB, sequelize } = _require('../server/models') as typeof import('../server/models');
+const { PROFILE_CODES } = _require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
 
 const packagingPayload = {
   supplierName: '方亮包装',
@@ -211,7 +224,7 @@ test.after(async () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
   await sequelize.close();
-  if (fs.existsSync(tempDbPath)) {
-    fs.unlinkSync(tempDbPath);
+  if (fs.existsSync(TEST_DB)) {
+    fs.unlinkSync(TEST_DB);
   }
 });

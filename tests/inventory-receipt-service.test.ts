@@ -2,13 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 
-const TEST_DB = path.join('/tmp', `order-search-inventory-receipt-service-${process.pid}-${Date.now()}.test.sqlite`);
+const _require = createRequire(import.meta.url);
+const TEST_DB = path.join(os.tmpdir(), `test-inv-receipt-svc-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material, InventoryMovement, InventoryReceipt } = require('../server/models') as typeof import('../server/models');
-const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
-const { inventoryReceiptService } = require('../server/services/inventory') as typeof import('../server/services/inventory');
+const { sequelize, Material, InventoryMovement, InventoryReceipt } = _require('../server/models') as typeof import('../server/models');
+const orderService = (_require('../server/services/orders') as typeof import('../server/services/orders')).default;
+const { inventoryReceiptService } = _require('../server/services/inventory') as typeof import('../server/services/inventory');
 import type { MaterialInstance } from '../server/models';
 
 async function createOriginalReceipt() {

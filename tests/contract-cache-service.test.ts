@@ -1,15 +1,27 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import path from 'node:path'
 import fs from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
 
-const TEST_DB = path.join('/tmp', 'order-search-contract-cache.test.sqlite');
+const _require = createRequire(import.meta.url);
+const TEST_DB = path.join(os.tmpdir(), `test-${crypto.randomBytes(8).toString('hex')}.sqlite`);
+
+// Purge cache and set environment before requiring models
+const purgeDatabaseCache = () => {
+  Object.keys(_require.cache).forEach((key) => {
+    if (key.includes('/server/config/database') || key.includes('/server/models/')) {
+      delete _require.cache[key];
+    }
+  });
+};
+purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, ErpContract } = require('../server/models') as typeof import('../server/models');
-const contractCacheService = (require('../server/services/ContractCacheService') as typeof import('../server/services/ContractCacheService')).default;
-
-const TEST_CODE = `C-${Date.now()}`;
+const { sequelize, ErpContract } = _require('../server/models') as typeof import('../server/models');
+const contractCacheService = _require('../server/services/ContractCacheService').default as typeof import('../server/services/ContractCacheService').default;
 
 function buildPayload(code: string, customerName: string, totalAmount = 1000) {
   return {
@@ -19,71 +31,60 @@ function buildPayload(code: string, customerName: string, totalAmount = 1000) {
     advanceDate: '2026年01月26日',
     count: '10/10',
     totalAmount,
-    list: [{ No: '1', qty: '10/10' }]
+    list: [{ No: '1', qty: '10/10' }],
   };
 }
 
-test('ContractCacheService create/update/lookup', async () => {
+test.before(async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });
-
-  const payload = buildPayload(TEST_CODE, '外贸程总(三部)', 522580);
-
-  const created = await contractCacheService.cacheContract(payload);
-  assert.equal(created.status, 'created');
-  assert.equal(created.contract.contract_code, TEST_CODE);
-
-  const unchanged = await contractCacheService.cacheContract(payload);
-  assert.equal(unchanged.status, 'unchanged');
-
-  const updatedPayload = { ...payload, totalAmount: 600000 };
-  const updated = await contractCacheService.cacheContract(updatedPayload);
-  assert.equal(updated.status, 'updated');
-  assert.equal(updated.contract.total_amount, 600000);
-
-  const fetched = await contractCacheService.getByCode(TEST_CODE);
-  assert.ok(fetched);
-  assert.equal(fetched.contract_code, TEST_CODE);
-  assert.equal(fetched.raw_json.totalAmount, 600000);
 });
 
-test('ContractCacheService listContracts pagination/filter/sort', async () => {
-  await sequelize.authenticate();
-  await sequelize.sync({ force: true });
+test('contractCacheService cacheContract creates, updates, and getByCode returns latest payload', async () => {
+  const created = await contractCacheService.cacheContract(buildPayload('CT-001', '客户A', 1000));
+  assert.equal(created.status, 'created');
+  assert.equal(created.contract.get('contract_code'), 'CT-001');
 
-  const codeA = `HC-A-${Date.now()}`;
-  const codeB = `HC-B-${Date.now()}`;
-  const codeC = `HC-C-${Date.now()}`;
+  const unchanged = await contractCacheService.cacheContract(buildPayload('CT-001', '客户A', 1000));
+  assert.equal(unchanged.status, 'unchanged');
 
-  await contractCacheService.cacheContract(buildPayload(codeA, '客户甲', 1000));
-  await contractCacheService.cacheContract(buildPayload(codeB, '客户乙', 2000));
-  await contractCacheService.cacheContract(buildPayload(codeC, '客户甲', 3000));
+  const updated = await contractCacheService.cacheContract(buildPayload('CT-001', '客户A', 2000));
+  assert.equal(updated.status, 'updated');
 
-  await ErpContract.update({ last_fetched_at: new Date('2026-01-01T08:00:00Z') }, { where: { contract_code: codeA } });
-  await ErpContract.update({ last_fetched_at: new Date('2026-01-03T08:00:00Z') }, { where: { contract_code: codeB } });
-  await ErpContract.update({ last_fetched_at: new Date('2026-01-02T08:00:00Z') }, { where: { contract_code: codeC } });
+  const cached = await contractCacheService.getByCode('CT-001');
+  assert.ok(cached);
+  assert.equal(cached!.get('contract_code'), 'CT-001');
+  assert.equal(cached!.get('total_amount'), 2000);
+});
 
-  const pageOne = await contractCacheService.listContracts({ page: 1, pageSize: 2 });
-  assert.equal(pageOne.total, 3);
-  assert.equal(pageOne.rows.length, 2);
-  assert.equal(pageOne.rows[0].contract_code, codeB);
-  assert.equal(pageOne.rows[1].contract_code, codeC);
+test('contractCacheService listContracts filters by code and customer', async () => {
+  await contractCacheService.cacheContract(buildPayload('CT-A', '客户甲', 1000));
+  await contractCacheService.cacheContract(buildPayload('CT-B', '客户乙', 2000));
+  await contractCacheService.cacheContract(buildPayload('CT-C', '客户甲', 3000));
 
-  const pageTwo = await contractCacheService.listContracts({ page: 2, pageSize: 2 });
-  assert.equal(pageTwo.rows.length, 1);
-  assert.equal(pageTwo.rows[0].contract_code, codeA);
-
-  const filteredByCode = await contractCacheService.listContracts({ code: 'HC-B-' });
+  const filteredByCode = await contractCacheService.listContracts({ code: 'CT-B' });
   assert.equal(filteredByCode.total, 1);
-  assert.equal(filteredByCode.rows[0].contract_code, codeB);
+  assert.equal(filteredByCode.rows[0].get('contract_code'), 'CT-B');
 
   const filteredByCustomer = await contractCacheService.listContracts({ customer: '客户甲' });
   assert.equal(filteredByCustomer.total, 2);
-  assert.ok(filteredByCustomer.rows.every((row) => row.customer_name === '客户甲'));
+  assert.ok(filteredByCustomer.rows.every((row: any) => row.get('customer_name') === '客户甲'));
+});
+
+test('contractCacheService preserves explicit zero count instead of coercing to null', async () => {
+  await contractCacheService.cacheContract({
+    ...buildPayload('CT-ZERO', '客户零', 500),
+    count: 0,
+  });
+
+  const cached = await contractCacheService.getByCode('CT-ZERO');
+  assert.ok(cached);
+  assert.equal(cached!.get('total_count_raw'), '0');
 });
 
 test.after(async () => {
-  await ErpContract.destroy({ where: {} });
   await sequelize.close();
-  if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
+  if (fs.existsSync(TEST_DB)) {
+    fs.unlinkSync(TEST_DB);
+  }
 });

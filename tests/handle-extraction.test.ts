@@ -75,6 +75,39 @@ test('extractHandleData creates unmatched item for unknown mshd or mapping', () 
   assert.ok(extracted[0].remark.includes('待人工处理'));
 });
 
+test('extractHandleData preserves explicit zero on right quantity', () => {
+  const rows = [{
+    ls: 'DJ-5868-1',
+    xsbz: '双活',
+    remark: '',
+    mshd: '7',
+    qty: '36/0',
+  }];
+
+  const mapping = {
+    singleKeywords: ['单活'],
+    doubleKeywords: ['双活'],
+    thicknessAccessoryPacks: {
+      '5': '5公分配件包',
+      '7': '7公分配件包',
+      '9': '9公分配件包',
+      '10': '10公分配件包',
+    },
+    mappings: {
+      'DJ-5868-1': {
+        supplier: '迪江',
+        vendorName: 'DJ-5868-1',
+      },
+    },
+  };
+
+  const extracted = extractHandleData(rows as any[], { customerName: '客户A', remark: '' }, mapping);
+  assert.equal(extracted.length, 1);
+  assert.equal(extracted[0].quantityLeft, 36);
+  assert.equal(extracted[0].quantityRight, 0);
+  assert.equal(extracted[0].quantity, 36);
+});
+
 test('extractHandleData falls back to export default activity when customer matches export keyword', () => {
   const rows = [{
     ls: 'DJ-86-6B',

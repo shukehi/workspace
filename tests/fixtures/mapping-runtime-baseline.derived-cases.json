@@ -303,14 +303,14 @@
             {
               "supplier": "应志友",
               "type": "单头锁叉 T型 - 上头 P66",
-              "spec": "570*301 = 871",
+              "spec": "497*301 = 798",
               "remark": "7CM 2050, 吊脚5mm",
               "quantity": 3
             },
             {
               "supplier": "应志友",
               "type": "单头锁叉 T型 - 下头 P66",
-              "spec": "570*313 + 30 = 913",
+              "spec": "497*313 + 30 = 840",
               "remark": "7CM 2050, 吊脚5mm",
               "quantity": 3
             }
@@ -360,14 +360,14 @@
                 {
                   "supplier": "应志友",
                   "type": "单头锁叉 T型 - 上头 P66",
-                  "spec": "570*301 = 871",
+                  "spec": "497*301 = 798",
                   "quantity": 3,
                   "remark": "7CM 2050, 吊脚5mm"
                 },
                 {
                   "supplier": "应志友",
                   "type": "单头锁叉 T型 - 下头 P66",
-                  "spec": "570*313 + 30 = 913",
+                  "spec": "497*313 + 30 = 840",
                   "quantity": 3,
                   "remark": "7CM 2050, 吊脚5mm"
                 }
@@ -389,7 +389,7 @@
             "rowsPerPage": [
               3
             ],
-            "checksum": "83b1d2a75230560f771416a471924bacebbff6d475aaa29c9328e09f50359973"
+            "checksum": "024087256ed282bbf56dc16275738da8e8738ba8fca42119bd274b46c4cf41bc"
           }
         }
       }

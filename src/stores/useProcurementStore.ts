@@ -64,6 +64,18 @@ export const useProcurementStore = defineStore('procurement', () => {
             );
     });
 
+    function normalizeProcurementQuery(nextQuery: ProcurementOrderQuery): ProcurementOrderQuery {
+        const sanitized = Object.fromEntries(
+            Object.entries(nextQuery).filter(([, value]) => value !== undefined && value !== null && value !== '')
+        ) as ProcurementOrderQuery;
+
+        return {
+            page: 1,
+            pageSize: 50,
+            ...sanitized,
+        };
+    }
+
     // Actions
     async function fetchOrders(nextQuery?: ProcurementOrderQuery) {
         // Cancel any in-flight request triggered by a previous filter change
@@ -74,10 +86,9 @@ export const useProcurementStore = defineStore('procurement', () => {
         loading.value = true;
         try {
             if (nextQuery) {
-                query.value = {
-                    ...query.value,
-                    ...nextQuery,
-                };
+                // Replace query snapshot instead of merging with stale filters.
+                // When user clears a filter, omitted keys must be removed.
+                query.value = normalizeProcurementQuery(nextQuery);
             }
 
             if (nextQuery) {

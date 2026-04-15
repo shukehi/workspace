@@ -64,6 +64,7 @@ export function useProcurementRouteQuery<
   function updateProcurementRouteQuery() {
     const nextQuery: LocationQueryRaw = { ...route.query };
     const search = state.searchQuery.value.trim();
+    const orderNo = readQueryValue(route.query.orderNo);
 
     if (state.activeStatus.value !== 'ALL') nextQuery.status = state.activeStatus.value;
     else delete nextQuery.status;
@@ -80,6 +81,9 @@ export function useProcurementRouteQuery<
     if (search) nextQuery.search = search;
     else delete nextQuery.search;
 
+    if (orderNo && search === orderNo) nextQuery.orderNo = orderNo;
+    else delete nextQuery.orderNo;
+
     if (procurementPage.value > 1) nextQuery.page = String(procurementPage.value);
     else delete nextQuery.page;
 
@@ -91,6 +95,8 @@ export function useProcurementRouteQuery<
 
   function buildProcurementQuery(): ProcurementOrderQuery {
     const orderNo = readQueryValue(route.query.orderNo);
+    const search = state.searchQuery.value.trim();
+    const anchoredOrderNo = orderNo && search === orderNo ? orderNo : '';
 
     return {
       page: procurementPage.value,
@@ -99,8 +105,8 @@ export function useProcurementRouteQuery<
       ...(state.activeCategory.value !== 'ALL' ? { category: state.activeCategory.value } : {}),
       ...(state.activeRiskFilter.value !== 'ALL' ? { risk: state.activeRiskFilter.value as ProcurementOrderQuery['risk'] } : {}),
       ...(state.activeCreatedDate.value ? { createdDate: state.activeCreatedDate.value } : {}),
-      ...(state.searchQuery.value.trim() ? { keyword: state.searchQuery.value.trim() } : {}),
-      ...(orderNo ? { orderNo } : {}),
+      ...(search ? { keyword: search } : {}),
+      ...(anchoredOrderNo ? { orderNo: anchoredOrderNo } : {}),
     };
   }
 

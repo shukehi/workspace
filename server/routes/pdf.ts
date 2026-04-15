@@ -4,9 +4,11 @@
  */
 
 import { Request, Response, Router } from 'express';
+import { performance } from 'node:perf_hooks';
 import { generatePurchaseOrderPDF, generatePurchaseOrderScreenshot } from '../services/pdfGenerator';
 import * as snapshotStore from '../services/printSnapshotStore';
 import { resolveRenderBaseUrl } from '../services/renderBaseUrl';
+import { logger } from '../app/logger';
 
 const router: Router = Router();
 const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
@@ -76,6 +78,7 @@ function createSnapshotFromOrder({ poNumber, category, printMode, order }: { poN
  * }
  */
 router.post('/generate', async (req: Request, res: Response) => {
+    const requestStartedAt = performance.now();
     let transientSnapshotId = '';
     try {
         const {
@@ -89,6 +92,10 @@ router.post('/generate', async (req: Request, res: Response) => {
 
         let snapshotId = String(snapshotIdRaw || '').trim();
         let snapshotPayload: any = null;
+        const snapshotMode = snapshotId
+            ? 'snapshot'
+            : (orderId ? 'orderId' : (order && typeof order === 'object' ? 'inline-order' : 'unknown'));
+        const snapshotStageStartedAt = performance.now();
 
         if (snapshotId) {
             const snapshot = snapshotStore.getSnapshot(snapshotId);
@@ -126,6 +133,7 @@ router.post('/generate', async (req: Request, res: Response) => {
             snapshotPayload = created.payload;
             transientSnapshotId = created.snapshotId;
         }
+        const snapshotStageCompletedAt = performance.now();
 
         if (!snapshotId && !orderId) {
             res.status(400).json({
@@ -178,21 +186,38 @@ router.post('/generate', async (req: Request, res: Response) => {
 
         const renderUrl = `${baseUrl}/print-document?${params.toString()}`;
 
-        console.log(`📄 Received PDF generation request for ${resolvedPoNumber}`);
+        logger.info({
+            poNumber: resolvedPoNumber,
+            pdfKind: 'pdf',
+            snapshotMode,
+            snapshotStageMs: Math.round(snapshotStageCompletedAt - snapshotStageStartedAt),
+        }, 'Received PDF generation request');
 
+        const generationStartedAt = performance.now();
         const pdfBuffer = await generatePurchaseOrderPDF({
             poNumber: resolvedPoNumber,
             renderUrl,
         });
+        const generationCompletedAt = performance.now();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
         res.setHeader('Content-Length', pdfBuffer.length);
         res.end(pdfBuffer, 'binary');
 
-        console.log(`✅ PDF sent successfully for ${resolvedPoNumber}`);
+        logger.info({
+            poNumber: resolvedPoNumber,
+            pdfKind: 'pdf',
+            bytes: pdfBuffer.length,
+            generationMs: Math.round(generationCompletedAt - generationStartedAt),
+            totalRequestMs: Math.round(performance.now() - requestStartedAt),
+        }, 'PDF sent successfully');
     } catch (error: any) {
-        console.error('❌ PDF generation error:', error);
+        logger.error({
+            err: error,
+            pdfKind: 'pdf',
+            totalRequestMs: Math.round(performance.now() - requestStartedAt),
+        }, 'PDF generation error');
         res.status(500).json({
             success: false,
             error: 'PDF generation failed',
@@ -218,6 +243,7 @@ router.post('/generate', async (req: Request, res: Response) => {
  * }
  */
 router.post('/screenshot', async (req: Request, res: Response) => {
+    const requestStartedAt = performance.now();
     let transientSnapshotId = '';
     try {
         const {
@@ -231,6 +257,10 @@ router.post('/screenshot', async (req: Request, res: Response) => {
 
         let snapshotId = String(snapshotIdRaw || '').trim();
         let snapshotPayload: any = null;
+        const snapshotMode = snapshotId
+            ? 'snapshot'
+            : (orderId ? 'orderId' : (order && typeof order === 'object' ? 'inline-order' : 'unknown'));
+        const snapshotStageStartedAt = performance.now();
 
         if (snapshotId) {
             const snapshot = snapshotStore.getSnapshot(snapshotId);
@@ -268,6 +298,7 @@ router.post('/screenshot', async (req: Request, res: Response) => {
             snapshotPayload = created.payload;
             transientSnapshotId = created.snapshotId;
         }
+        const snapshotStageCompletedAt = performance.now();
 
         if (!snapshotId && !orderId) {
             res.status(400).json({
@@ -319,18 +350,37 @@ router.post('/screenshot', async (req: Request, res: Response) => {
         }
 
         const renderUrl = `${baseUrl}/print-document?${params.toString()}`;
+        logger.info({
+            poNumber: resolvedPoNumber,
+            pdfKind: 'screenshot',
+            snapshotMode,
+            snapshotStageMs: Math.round(snapshotStageCompletedAt - snapshotStageStartedAt),
+        }, 'Received screenshot generation request');
+        const generationStartedAt = performance.now();
         const imageBuffer = await generatePurchaseOrderScreenshot({
             poNumber: resolvedPoNumber,
             renderUrl,
         });
+        const generationCompletedAt = performance.now();
 
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
         res.setHeader('Content-Length', imageBuffer.length);
         res.setHeader('Cache-Control', 'no-store');
         res.end(imageBuffer, 'binary');
+        logger.info({
+            poNumber: resolvedPoNumber,
+            pdfKind: 'screenshot',
+            bytes: imageBuffer.length,
+            generationMs: Math.round(generationCompletedAt - generationStartedAt),
+            totalRequestMs: Math.round(performance.now() - requestStartedAt),
+        }, 'Screenshot sent successfully');
     } catch (error: any) {
-        console.error('❌ Screenshot generation error:', error);
+        logger.error({
+            err: error,
+            pdfKind: 'screenshot',
+            totalRequestMs: Math.round(performance.now() - requestStartedAt),
+        }, 'Screenshot generation error');
         res.status(500).json({
             success: false,
             error: 'Screenshot generation failed',

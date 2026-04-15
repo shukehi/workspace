@@ -856,6 +856,68 @@ test('POST /api/orders returns inferred template_type for manual orders', async 
   assert.equal(body.metadata.template_type, 'packaging');
 });
 
+test('POST /api/orders assigns sequential suffixes for auto orders sharing a contract code', async () => {
+  const firstRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'PO-CT-ROUTE-AUTO-001-01',
+      supplier: '方亮包装',
+      source_contract_code: 'CT-ROUTE-AUTO-001',
+      category: '包装',
+      status: 'draft',
+      created_at: '2026-03-29T08:35:00.000Z',
+      metadata: {
+        order_source: 'auto',
+        source_contract_code: 'CT-ROUTE-AUTO-001',
+        customer_name: '客户A',
+      },
+      items: [
+        {
+          name: '纸箱',
+          spec: '960*2050',
+          quantity: 2,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+  assert.equal(firstRes.status, 200);
+  const first = getBody(await firstRes.json()) as { order_no: string };
+
+  const secondRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_no: 'PO-CT-ROUTE-AUTO-001-01',
+      supplier: '忠恒',
+      source_contract_code: 'CT-ROUTE-AUTO-001',
+      category: '锁芯',
+      status: 'draft',
+      created_at: '2026-03-29T08:40:00.000Z',
+      metadata: {
+        order_source: 'auto',
+        source_contract_code: 'CT-ROUTE-AUTO-001',
+        customer_name: '客户A',
+      },
+      items: [
+        {
+          name: '锁芯A',
+          type: '锁芯A',
+          spec: '34.5*55.5',
+          quantity: 4,
+          unit: '套',
+        },
+      ],
+    }),
+  });
+  assert.equal(secondRes.status, 200);
+  const second = getBody(await secondRes.json()) as { order_no: string };
+
+  assert.equal(first.order_no, 'PO-CT-ROUTE-AUTO-001-01');
+  assert.equal(second.order_no, 'PO-CT-ROUTE-AUTO-001-02');
+});
+
 test('GET /api/orders/:id rejects invalid id param with validation error', async () => {
   const res = await fetch(`${baseUrl}/api/orders/not-a-number`);
 
