@@ -1,6 +1,6 @@
 # 可维护性与可扩展性重构任务附录（2026-03-13）
 
-> 对应主文档：`docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
+> 对应主文档：`docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
 > 对应索引：`docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md`
 > 状态：阶段计划，部分已落地。
 > 当前已完成项请优先结合各 `WEEK*.md` 文档顶部状态与 `docs/progress/REFACTOR_PROGRAM_SUMMARY_2026-03-13.md` 阅读。
@@ -26,7 +26,7 @@
 
 ## 3. Week 1：契约与 Procurement 前端样板
 
-对应周清单：`docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md`
 
 目标：统一跨端契约落点，并完成 Procurement 前端最低风险拆分样板。
 
@@ -74,7 +74,7 @@
 
 ## 4. Week 2：OrderService 模块化拆分
 
-对应周清单：`docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
 
 目标：把 `server/services/OrderService.js` 从单文件复杂中心拆成可单测、可定位的后端模块。
 
@@ -123,7 +123,7 @@
 
 ## 5. Week 3：Controller / Error / Validation 收口
 
-对应周清单：`docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
 
 目标：建立统一 `route -> controller -> service` 链路，并为写接口补稳定的请求校验入口。
 
@@ -166,7 +166,7 @@
 
 ## 6. Week 4：Inventory 域复制模式
 
-对应周清单：`docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
 
 目标：复制订单域的拆分模式，但优先解决 inventory 的真实热点，而不是机械套模板。
 
@@ -210,7 +210,7 @@
 
 ## 7. Week 5：Mappings 共享规则层
 
-对应周清单：`docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
 
 目标：结束前后端双份 adapter / validator 核心规则的长期并行维护。
 
@@ -255,7 +255,7 @@
 
 ## 8. Week 6：Formula Manager 收敛 + Migration 基线
 
-对应周清单：`docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md`
 
 目标：优先解决 formulas 前端工作流堆叠，并把数据库演进纳入正式 migration。
 
@@ -306,7 +306,7 @@
 
 ## 9. Week 7：Materials / Source Analysis Runtime
 
-对应周清单：`docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`
 
 目标：明确 materials、material catalog、source-analysis 的边界，优先打断 source runtime 的全局依赖链。
 
@@ -358,7 +358,7 @@
 
 ## 10. Week 8：治理固化与退场清理
 
-对应周清单：`docs/roadmaps/WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md`
+对应周清单：`docs/archive/roadmaps/WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md`
 
 目标：把前七周已经验证过的结构模式和风险控制方式固化成长期门禁。
 

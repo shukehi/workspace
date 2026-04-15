@@ -1,7 +1,7 @@
 # 阶段 A 任务清单：Source 分析层拆分（2026-03-10）
 
 > 状态：历史阶段文档。
-> 当前 source-analysis 收敛结果请优先查看 `docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`。
+> 当前 source-analysis 收敛结果请优先查看 `docs/archive/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md`。
 
 ## 1. 目标
 

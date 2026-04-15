@@ -1,7 +1,7 @@
 # 后端 TypeScript 第六阶段进度（2026-03-14）
 
 > 状态：阶段计划，部分已落地。
-> 对应规划：`docs/governance/BACKEND_TYPESCRIPT_PHASE6_PLAN_2026-03-14.md`
+> 对应规划：`docs/archive/backend-ts/BACKEND_TYPESCRIPT_PHASE6_PLAN_2026-03-14.md`
 
 ## 1. 目标
 
@@ -58,4 +58,3 @@
 5. `tests/order-routes.test.js` (验证基础设施兼容性)
 6. `tests/inventory-route.test.js`
 7. `npm run type-check:server`
-

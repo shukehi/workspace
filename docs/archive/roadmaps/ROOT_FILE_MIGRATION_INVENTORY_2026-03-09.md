@@ -28,7 +28,7 @@
    已迁移到：`docs/design/DESIGN_GUIDES.md`
 
 2. `Order Inquiry Function Purpose.md`
-   已迁移到：`docs/domain/ORDER_INQUIRY_FUNCTION_PURPOSE.md`
+   已迁移到：`docs/archive/domain/ORDER_INQUIRY_FUNCTION_PURPOSE.md`
 
 ## 已迁移到 scripts 或 tests
 

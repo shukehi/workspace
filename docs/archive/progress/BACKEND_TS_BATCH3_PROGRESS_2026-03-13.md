@@ -1,7 +1,7 @@
 # 后端 TypeScript 第三批迁移进度（2026-03-13）
 
 > 状态：阶段计划，部分已落地。
-> 对应任务：`docs/governance/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md` 中“第三批：mapping / materials catalog 模型与 repository”。
+> 对应任务：`docs/archive/backend-ts/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md` 中“第三批：mapping / materials catalog 模型与 repository”。
 
 ## 1. 目标范围
 

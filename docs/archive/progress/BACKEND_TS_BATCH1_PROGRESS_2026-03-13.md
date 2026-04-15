@@ -1,7 +1,7 @@
 # 后端 TypeScript 第一批迁移进度（2026-03-13）
 
 > 状态：阶段计划，部分已落地。
-> 对应任务：`docs/governance/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md` 中“第一批：订单 / 库存 / 物料主链路”。
+> 对应任务：`docs/archive/backend-ts/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md` 中“第一批：订单 / 库存 / 物料主链路”。
 
 ## 1. 目标范围
 

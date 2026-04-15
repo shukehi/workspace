@@ -21,7 +21,7 @@ What remains is week-specific smoke evidence.
 - [x] Verify edit / preview switching still works.
 - [x] Verify status labels render correctly after shared constant migration.
 - [x] Verify print preview and export entry are still usable.
-- [x] Record smoke result in [WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md).
+- [x] Record smoke result in [WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md).
 
 ## 3. Week 2 - Order Backend Split
 
@@ -30,14 +30,14 @@ What remains is week-specific smoke evidence.
 - [x] Run arrive / stock-in main path.
 - [x] Run cancel or delete path.
 - [x] Verify duplicate-order / idempotency behavior on at least one realistic sample.
-- [x] Record smoke result in [WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md).
+- [x] Record smoke result in [WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md).
 
 ## 4. Week 3 - Controller / Error / Validation
 
 - [x] Verify at least one successful order write request through the controller pipeline.
 - [x] Verify at least one validation error response shape.
 - [x] Verify at least one not-found or business error response shape.
-- [x] Save one before/after response example in [WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md).
+- [x] Save one before/after response example in [WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md).
 
 ## 5. Week 4 - Inventory Domain
 

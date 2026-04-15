@@ -1,9 +1,9 @@
 # 第六周 Formulas 与 Migration 规范化清单（2026-03-13）
 
 > 关联文档：
-> - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
-> - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
-> - `docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
+> - `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
+> - `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
+> - `docs/archive/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md`
 > 状态：历史阶段文档。
 > 目标：在订单、inventory、mappings 的结构化模式逐步稳定后，优先收敛 `useFormulaManager.ts` 的前端工作流边界，并正式建立数据库 migration 规范，开始替代启动时补列策略。
 
@@ -336,7 +336,7 @@ server/db/
 建议更新文件：
 
 1. `README.md`
-2. `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
+2. `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 3. `docs/progress/` 下新增阶段总结（如需要）
 
 建议记录：

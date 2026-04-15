@@ -1,7 +1,7 @@
 # 锁芯/锁叉/包装映射迁移开发计划
 
 > 状态：历史总计划。
-> 本文档用于保留 mapping workflow 化的整体设计背景。当前实际进展请结合 `docs/progress/`、`docs/governance/` 和 `docs/mapping-migration-plan/` 下各阶段状态说明阅读。
+> 本文档用于保留 mapping workflow 化的整体设计背景。当前实际进展请结合 `docs/progress/`、`docs/governance/` 和 `docs/archive/mapping-migration-plan/` 下各阶段状态说明阅读。
 
 > 注：本文档为映射迁移开发总计划，包含多个阶段性的目标和过渡约束。若与当前仓库结构冲突，请优先以 `README.md`、`server/config/paths.js` 和 `data/config/` 约定为准。
 

@@ -11,21 +11,14 @@
 1. 边开发边生产使用安全约束：`LIVE_DEVELOPMENT_PRODUCTION_SAFETY_2026-03-13.md`
 2. 改库前一页式检查：`DB_CHANGE_CHECKLIST_2026-03-13.md`
 3. 本地开发数据保护规则：`LOCAL_DEVELOPMENT_DATA_SAFETY_2026-03-13.md`
-4. ~~后端 TypeScript 渐进迁移策略：`BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md`~~ （**迁移已完成**，保留为历史参考）
-5. ~~后端 TypeScript 迁移任务拆解：`BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md`~~ （**迁移已完成**，保留为历史参考）
-6. ~~后端 TypeScript 第六阶段规划：`BACKEND_TYPESCRIPT_PHASE6_PLAN_2026-03-14.md`~~ （**迁移已完成**，保留为历史参考）
-7. 当前阶段架构护栏：`CURRENT_ARCHITECTURE_GUARDRAILS_2026-03-13.md`
-8. 前后端/数据库通用约束：`ENGINEERING_CONVENTIONS.md`
-9. 页面、store、配置域、请求校验、兼容层放置规则：`FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md`
-10. 合并前自检清单：`PR_FEATURE_CHECKLIST_2026-03-10.md`
+4. 当前阶段架构护栏：`CURRENT_ARCHITECTURE_GUARDRAILS_2026-03-13.md`
+5. 前后端/数据库通用约束：`ENGINEERING_CONVENTIONS.md`
+6. 页面、store、配置域、请求校验、兼容层放置规则：`FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md`
+7. 合并前自检清单：`PR_FEATURE_CHECKLIST_2026-03-10.md`
 
 - [LIVE_DEVELOPMENT_PRODUCTION_SAFETY_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/LIVE_DEVELOPMENT_PRODUCTION_SAFETY_2026-03-13.md)
 - [DB_CHANGE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/DB_CHANGE_CHECKLIST_2026-03-13.md)
 - [LOCAL_DEVELOPMENT_DATA_SAFETY_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/LOCAL_DEVELOPMENT_DATA_SAFETY_2026-03-13.md)
-- [BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md)
-- [BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/BACKEND_TYPESCRIPT_MIGRATION_TASKS_2026-03-13.md)
-- [BACKEND_TYPESCRIPT_NEXT_PHASE_RECOMMENDATIONS_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/BACKEND_TYPESCRIPT_NEXT_PHASE_RECOMMENDATIONS_2026-03-13.md)
-- [BACKEND_TYPESCRIPT_PHASE6_PLAN_2026-03-14.md](/Users/aries/Dve/workspace/docs/governance/BACKEND_TYPESCRIPT_PHASE6_PLAN_2026-03-14.md)
 - [CURRENT_ARCHITECTURE_GUARDRAILS_2026-03-13.md](/Users/aries/Dve/workspace/docs/governance/CURRENT_ARCHITECTURE_GUARDRAILS_2026-03-13.md)
 - [ENGINEERING_CONVENTIONS.md](/Users/aries/Dve/workspace/docs/governance/ENGINEERING_CONVENTIONS.md)
 - [FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
@@ -61,27 +54,28 @@
 本轮结构治理主入口：
 
 1. 总索引：`REFACTOR_EXECUTION_INDEX_2026-03-13.md`
-2. 总蓝图：`MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
-3. 任务拆解：`MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
-4. 周清单：`WEEK1` 到 `WEEK8`
+2. 历史总蓝图：`archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
+3. 历史任务拆解：`archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
+4. 历史周清单：`archive/roadmaps/WEEK1...WEEK8`
 
 - [REFACTOR_EXECUTION_INDEX_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
-- [MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md)
-- [MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md)
-- [WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md)
-- [WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md)
-- [WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md)
-- [WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md)
-- [WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md)
-- [WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md)
-- [WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md)
-- [WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md)
-- [LOCK_FORK_HIGH_HEIGHT_RULE_PLAN_2026-03-11.md](/Users/aries/Dve/workspace/docs/roadmaps/LOCK_FORK_HIGH_HEIGHT_RULE_PLAN_2026-03-11.md)
-- [SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md)
-- [STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md](/Users/aries/Dve/workspace/docs/roadmaps/STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md)
+- [MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md)
+- [MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md)
+- [WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md)
+- [WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md)
+- [WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md)
+- [WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md)
+- [WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK5_MAPPINGS_SHARED_VALIDATOR_CHECKLIST_2026-03-13.md)
+- [WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK6_FORMULAS_MIGRATION_STANDARDIZATION_CHECKLIST_2026-03-13.md)
+- [WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK7_MATERIALS_SOURCE_ANALYSIS_CHECKLIST_2026-03-13.md)
+- [WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/WEEK8_EXECUTION_INDEX_GOVERNANCE_CHECKLIST_2026-03-13.md)
+- [LOCK_FORK_HIGH_HEIGHT_RULE_PLAN_2026-03-11.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/LOCK_FORK_HIGH_HEIGHT_RULE_PLAN_2026-03-11.md)
+- [SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/SOURCE_CONFIG_REFACTOR_PLAN_2026-03-10.md)
+- [STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/STAGE_A_SOURCE_ANALYSIS_REFACTOR_TASKS_2026-03-10.md)
 - [PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md](/Users/aries/Dve/workspace/docs/roadmaps/PROJECT_STRUCTURE_OPTIMIZATION_PLAN_2026-03-09.md)
-- [ROOT_FILE_MIGRATION_INVENTORY_2026-03-09.md](/Users/aries/Dve/workspace/docs/roadmaps/ROOT_FILE_MIGRATION_INVENTORY_2026-03-09.md)
-- [OPTIMIZATION_PLAN_2026-03-03.md](/Users/aries/Dve/workspace/docs/roadmaps/OPTIMIZATION_PLAN_2026-03-03.md)
+- [ROOT_FILE_MIGRATION_INVENTORY_2026-03-09.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/ROOT_FILE_MIGRATION_INVENTORY_2026-03-09.md)
+- [OPTIMIZATION_PLAN_2026-03-03.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/OPTIMIZATION_PLAN_2026-03-03.md)
+- [PROCUREMENT_TEMPLATE_OPTIMIZATION_PLAN.md](/Users/aries/Dve/workspace/docs/roadmaps/procurement/PROCUREMENT_TEMPLATE_OPTIMIZATION_PLAN.md)
 - [CSS_TEMPLATE_MIGRATION_PLAN.md](/Users/aries/Dve/workspace/docs/roadmaps/CSS_TEMPLATE_MIGRATION_PLAN.md)
 
 ## progress
@@ -89,13 +83,7 @@
 阶段性总结、里程碑进度与结果沉淀。
 
 - [INVENTORY_OUTBOUND_LOCATION_RELEASE_2026-03-20.md](/Users/aries/Dve/workspace/docs/progress/INVENTORY_OUTBOUND_LOCATION_RELEASE_2026-03-20.md)
-- [BACKEND_TS_BATCH1_PROGRESS_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH1_PROGRESS_2026-03-13.md)
 - [BACKEND_TS_BATCH1_SUMMARY_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH1_SUMMARY_2026-03-13.md)
-- [BACKEND_TS_BATCH2_PROGRESS_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH2_PROGRESS_2026-03-13.md)
-- [BACKEND_TS_BATCH3_PROGRESS_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH3_PROGRESS_2026-03-13.md)
-- [BACKEND_TS_BATCH4_PROGRESS_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_BATCH4_PROGRESS_2026-03-13.md)
-- [BACKEND_TS_PHASE5_PROGRESS_2026-03-14.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_PHASE5_PROGRESS_2026-03-14.md)
-- [BACKEND_TS_PHASE6_PROGRESS_2026-03-14.md](/Users/aries/Dve/workspace/docs/progress/BACKEND_TS_PHASE6_PROGRESS_2026-03-14.md)
 - [REFACTOR_PROGRAM_SUMMARY_2026-03-13.md](/Users/aries/Dve/workspace/docs/progress/REFACTOR_PROGRAM_SUMMARY_2026-03-13.md)
 - [PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md)
 - [SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md](/Users/aries/Dve/workspace/docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md)
@@ -119,15 +107,16 @@
 - `active/`：仍有效的需求记录与接口变更背景
 - `archive/`：纯历史问题分析与旧实现缺陷说明
 
-## mapping-migration-plan
-
-映射迁移阶段文档集合，主要用于保留 workflow 化过程中的阶段计划、契约草案和任务拆分。阅读时需结合文档顶部状态说明判断其是否仍代表当前执行状态。
-
 ## archive
 
 历史迁移方案、旧实现说明和阶段性文档归档区，不作为当前实现依据。
 
 - [README.md](/Users/aries/Dve/workspace/docs/archive/README.md)
+- [backend-ts/](/Users/aries/Dve/workspace/docs/archive/backend-ts)
+- [domain/](/Users/aries/Dve/workspace/docs/archive/domain)
+- [mapping-migration-plan/](/Users/aries/Dve/workspace/docs/archive/mapping-migration-plan)
+- [roadmaps/](/Users/aries/Dve/workspace/docs/archive/roadmaps)
+- [progress/](/Users/aries/Dve/workspace/docs/archive/progress)
 - [DEVELOPMENT_GUIDE.md](/Users/aries/Dve/workspace/docs/archive/DEVELOPMENT_GUIDE.md)
 - [TECH_STACK.md](/Users/aries/Dve/workspace/docs/archive/TECH_STACK.md)
 - [PROCUREMENT_REFACTOR_PLAN.md](/Users/aries/Dve/workspace/docs/archive/PROCUREMENT_REFACTOR_PLAN.md)

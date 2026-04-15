@@ -2,7 +2,7 @@
 
 > 状态：历史阶段建议。
 > 适用时机：原定 4 批迁移已完成后，用于判断是否继续扩展后端 TypeScript 覆盖范围。
-> 说明：本建议已在 2026-03-14 的第五阶段中完成主要落实；后续请改读 `BACKEND_TYPESCRIPT_PHASE6_PLAN_2026-03-14.md`。
+> 说明：本建议已在 2026-03-14 的第五阶段中完成主要落实；后续请改读 `docs/archive/backend-ts/BACKEND_TYPESCRIPT_PHASE6_PLAN_2026-03-14.md`。
 
 ## 1. 当前判断
 

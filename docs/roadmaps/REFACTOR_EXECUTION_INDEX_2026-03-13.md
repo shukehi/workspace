@@ -26,12 +26,12 @@
 
 ### 3.1 总方案
 
-1. `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
-2. `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`（按 Week 1-8 对齐的任务拆解附录）
+1. `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
+2. `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`（按 Week 1-8 对齐的任务拆解附录）
 
 ### 3.2 周计划
 
-1. `docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md`
+1. `docs/archive/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md`
 2. `docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
 3. `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
 4. `docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
@@ -319,5 +319,5 @@ Rollback:
 
 如果现在开始正式执行，建议先从下面两步开始：
 
-1. 以 `docs/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md` 为第一落地清单启动改造。
+1. 以 `docs/archive/roadmaps/WEEK1_REFACTOR_EXECUTION_CHECKLIST_2026-03-13.md` 为第一落地清单启动改造。
 2. 同时把本索引加入 `docs/README.md`，作为后续所有重构 PR 的统一引用入口。

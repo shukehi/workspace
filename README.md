@@ -320,7 +320,7 @@ npm run db:export:formulas
 - [功能开发与配置接入规范](/Users/aries/Dve/workspace/docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md)
 - [PR 功能开发检查清单](/Users/aries/Dve/workspace/docs/governance/PR_FEATURE_CHECKLIST_2026-03-10.md)
 - [本轮重构总索引](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
-- [可维护性与可扩展性重构蓝图](/Users/aries/Dve/workspace/docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md)
+- [可维护性与可扩展性重构蓝图（历史）](/Users/aries/Dve/workspace/docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md)
 - [PO 字段契约](/Users/aries/Dve/workspace/docs/reference/PO_FIELD_CONTRACT.md)
 
 ## 说明

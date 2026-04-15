@@ -1,10 +1,10 @@
 # 第五周 Mappings 与共享校验层收敛清单（2026-03-13）
 
 > 关联文档：
-> - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
-> - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
-> - `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
-> - `docs/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
+> - `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
+> - `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
+> - `docs/archive/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
+> - `docs/archive/roadmaps/WEEK4_INVENTORY_DOMAIN_ROLLOUT_CHECKLIST_2026-03-13.md`
 > 状态：历史阶段文档。
 > 目标：收敛 mappings 域前后端重复的 adapter/validator 逻辑，建立共享规则实现来源，降低配置规则演进时的双端维护成本。
 
@@ -355,7 +355,7 @@ shared/
 
 建议更新文件：
 
-1. `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
+1. `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 2. `docs/progress/` 下新增 mappings 收敛阶段说明（如需要）
 
 建议记录：

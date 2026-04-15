@@ -1,10 +1,10 @@
 # 第四周 Inventory 域复制模式清单（2026-03-13）
 
 > 关联文档：
-> - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
-> - `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
-> - `docs/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
-> - `docs/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
+> - `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md`
+> - `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
+> - `docs/archive/roadmaps/WEEK2_BACKEND_SPLIT_CHECKLIST_2026-03-13.md`
+> - `docs/archive/roadmaps/WEEK3_CONTROLLER_ERROR_MIDDLEWARE_CHECKLIST_2026-03-13.md`
 > 状态：历史阶段文档。
 > 目标：在订单域完成服务拆分与 HTTP 层收口后，将同样的模块化模式复制到 inventory 域，优先收敛 `Inventory.vue` 与 `InventoryReceiptService.js`，降低库存相关功能继续膨胀的风险。
 
@@ -323,7 +323,7 @@ server/controllers/
 
 建议更新文件：
 
-1. `docs/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
+1. `docs/archive/roadmaps/MAINTAINABILITY_SCALABILITY_REFACTOR_TASKS_2026-03-13.md`
 2. `docs/progress/` 下新增 inventory 域阶段总结（如需要）
 
 建议记录：

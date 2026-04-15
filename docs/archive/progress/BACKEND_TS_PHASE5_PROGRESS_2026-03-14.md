@@ -1,7 +1,7 @@
 # 后端 TypeScript 第五阶段进度（2026-03-14）
 
 > 状态：已完成阶段记录。
-> 对应建议：`docs/governance/BACKEND_TYPESCRIPT_NEXT_PHASE_RECOMMENDATIONS_2026-03-13.md`
+> 对应建议：`docs/archive/backend-ts/BACKEND_TYPESCRIPT_NEXT_PHASE_RECOMMENDATIONS_2026-03-13.md`
 
 ## 1. 目标
 

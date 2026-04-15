@@ -369,6 +369,6 @@ POST /orders/:id/stock-in // 实质也是更新状态
 - **P1-2（认证）**：现有重构计划未覆盖，需新增任务
 - **P1-3（索引）**：现有重构计划未覆盖，建议在 WEEK1 或 WEEK2 阶段完成
 - **P2-1（兼容层）**：已有 `COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md`，按该文档执行
-- **P2-2（类型安全）**：已有 `BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md`，按该文档执行
+- **P2-2（类型安全）**：已有 `docs/archive/backend-ts/BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md`，按该历史迁移文档执行
 
 建议将 P1-1、P1-2、P1-3、P1-4 作为独立任务插入当前重构执行索引（`REFACTOR_EXECUTION_INDEX_2026-03-13.md`）中，优先于其他结构治理工作完成。

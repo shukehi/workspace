@@ -344,7 +344,7 @@ export const logger = pino({
 以下问题已有对应文档，不在本计划中重复：
 
 - 兼容层退场（P2-1）：按 `docs/governance/COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md` 执行
-- TypeScript 迁移（P2-2）：按 `docs/governance/BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md` 执行
+- TypeScript 迁移（P2-2）：按 `docs/archive/backend-ts/BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md` 执行
 - OrderItem 字段语义（P2-5）：建议在 WEEK2 后端拆分阶段一并处理
 
 以下问题暂缓处理（当前数据规模不构成紧迫风险）：
