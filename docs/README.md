@@ -117,6 +117,8 @@
 - [PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md)
 - [DOCS_INFORMATION_ARCHITECTURE_CLEANUP_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/DOCS_INFORMATION_ARCHITECTURE_CLEANUP_2026-04-16.md)
   — 本轮 docs 信息架构清理总结与归档策略说明
+- [CURRENT_REFACTOR_STATUS_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/CURRENT_REFACTOR_STATUS_2026-04-17.md)
+  — 当前 main 上整体治理状态的一页式总盘点
 - [REPO_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/REPO_HEALTH_BASELINE_2026-04-16.md)
   — Week 1 健康基线修复前后状态记录
 - [BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md)
