@@ -6,12 +6,12 @@
 
 
 import { parseHeight, parseQuantityPair } from './parsers';
-import { aggregatePackaging } from './packagingTable';
 export {
     extractCylinderAccessoryPackData,
     extractCylinderData,
 } from './extractors/cylinderExtractor';
 export { extractLockData } from './extractors/lockExtractor';
+export { extractPackagingData } from './extractors/packagingExtractor';
 import { deriveLockForkRows } from '@/services/lockForkDeriver';
 import type { LockForkDimensionGroup } from '@/types/mapping';
 import {
@@ -107,16 +107,6 @@ function mergeRuleNames(current: string[], incoming: string[]): string[] {
         if (normalized) merged.add(normalized);
     });
     return Array.from(merged);
-}
-
-/**
- * 提取包装采购数据
- * @param {Array} orderList - 原始订单列表
- * @param {Object} PACKAGING_MAPPING - 注入的配置
- */
-export function extractPackagingData(orderList: OrderItem[], PACKAGING_MAPPING: GenericMap) {
-    // connect to imported function
-    return aggregatePackaging(orderList, PACKAGING_MAPPING);
 }
 
 /**
