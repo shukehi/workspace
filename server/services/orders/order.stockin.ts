@@ -14,6 +14,7 @@ type StockInDeps = {
     MissingMaterialError: new (materialId?: string) => Error;
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;
     ReceivedQuantityExceededError: new (itemId: number, orderedQuantity: number, nextReceived: number) => Error;
+    normalizeOrderRemark: (remark: unknown) => string;
 };
 
 export function assertOrderReadyForStockIn(
@@ -105,4 +106,29 @@ export function buildStockInOrderUpdate(
             ? (data.remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.remark))
             : order.stocked_in_remark,
     };
+}
+
+export async function resolveStockInOrderUpdate(
+    order: PlainRecord,
+    data: PlainRecord,
+    transaction: Transaction | null | undefined,
+    deps: StockInDeps,
+): Promise<PlainRecord> {
+    const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
+        inventoryReceiptService: deps.inventoryReceiptService,
+        MissingMaterialError: deps.MissingMaterialError,
+    });
+
+    const updatesByOrderItemId = await syncStockInReceiptItems(order, receiptItems, transaction, {
+        resolveOrderedQuantity: deps.resolveOrderedQuantity,
+        ReceivedQuantityExceededError: deps.ReceivedQuantityExceededError,
+    });
+
+    const allReceived = areAllOrderItemsReceived(
+        order.items,
+        updatesByOrderItemId,
+        deps.resolveOrderedQuantity,
+    );
+
+    return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
 }

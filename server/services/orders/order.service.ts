@@ -43,11 +43,8 @@ import {
     resolveUpdateOrderContext,
 } from './order.service.update';
 import {
-    areAllOrderItemsReceived,
     assertOrderReadyForStockIn,
-    buildStockInOrderUpdate,
-    createReceiptItemsFromOrder,
-    syncStockInReceiptItems,
+    resolveStockInOrderUpdate,
 } from './order.stockin';
 import {
     DuplicateOrderError,
@@ -535,27 +532,15 @@ class OrderService {
             if (!order) throw new Error('Order not found');
 
             assertOrderReadyForStockIn(order, normalizeStatus, InvalidStatusTransitionError);
-
-            const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
-                inventoryReceiptService: inventoryReceiptService,
+            const nextOrderValues = await resolveStockInOrderUpdate(order, data, transaction, {
+                inventoryReceiptService,
                 MissingMaterialError,
-            });
-
-            const updatesByOrderItemId = await syncStockInReceiptItems(order, receiptItems, transaction, {
                 resolveOrderedQuantity,
                 ReceivedQuantityExceededError,
+                normalizeOrderRemark,
             });
 
-            const allReceived = areAllOrderItemsReceived(
-                order.items,
-                updatesByOrderItemId,
-                resolveOrderedQuantity
-            );
-
-            await order.update(
-                buildStockInOrderUpdate(order, data, allReceived, normalizeOrderRemark),
-                { transaction }
-            );
+            await order.update(nextOrderValues, { transaction });
 
             await transaction.commit();
             return await this.getOrderById(id);
