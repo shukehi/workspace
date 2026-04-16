@@ -80,6 +80,8 @@
   — source-analysis extractor 第一轮拆分计划
 - [SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md)
   — source-analysis extractor 第二阶段类型收紧计划
+- [SOURCE_ANALYSIS_SHARED_TYPES_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_SHARED_TYPES_PLAN_2026-04-16.md)
+  — source-analysis shared types 提炼计划
 - [REFACTOR_EXECUTION_INDEX_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
   — 本轮结构治理总索引，适合作为背景导航
 
@@ -125,6 +127,8 @@
   — Source-analysis extractor 分支的阶段性成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md)
   — Source-analysis 类型收紧分支的阶段性成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_SHARED_TYPES_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_SHARED_TYPES_2026-04-17.md)
+  — Source-analysis shared types 分支的阶段性成果与封板建议
 
 历史阶段进度（不作为当前阶段结果入口）：
 

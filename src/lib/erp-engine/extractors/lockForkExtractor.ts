@@ -1,6 +1,7 @@
 import { parseHeight, parseQuantityPair } from '../parsers';
 import { deriveLockForkRows } from '@/services/lockForkDeriver';
 import type { LockForkDimensionGroup } from '@/types/mapping';
+import type { RuleDetectionResult, RuleTrace, SourceOrderInfo, SourceOrderItemBase } from '../extractorTypes';
 import {
     adaptLockForkMapping,
     adaptLockForkFlatBottomRulesToRuleSet,
@@ -12,18 +13,14 @@ import {
     resolveLockForkDimensionRuleWithRules,
 } from '@/services/mappings';
 
-type LockForkOrderItem = {
-    spec?: string | null;
-    qty?: string | number | null;
-    mshd?: unknown;
-    xsbz?: unknown;
+type LockForkOrderItem = SourceOrderItemBase & {
     mb?: unknown;
     sj?: unknown;
     fssj?: unknown;
     sc?: unknown;
 };
 
-type LockForkOrderInfo = Record<string, unknown>;
+type LockForkOrderInfo = SourceOrderInfo;
 type LockForkConfig = Record<string, unknown>;
 
 type LockForkTypeConfig = {
@@ -31,20 +28,12 @@ type LockForkTypeConfig = {
     [key: string]: unknown;
 };
 
-type RuleDetectionResult<T> = {
-    value: T;
-    matchedRules: string[];
-    winningRules: string[];
-};
-
-type LockForkResultRow = {
+type LockForkResultRow = RuleTrace & {
     supplier: string;
     type: string;
     spec: string;
     remark: string;
     quantity: number;
-    matchedRules: string[];
-    winningRules: string[];
 };
 
 function applyP66BaseDimensionOverride(
