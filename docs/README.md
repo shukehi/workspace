@@ -2,6 +2,32 @@
 
 `docs/` 目前按“长期规范 / 路线图 / 进度 / 参考资料 / 历史归档 / 主题文档”分层。
 
+## 快速查找
+
+如果主要目的是为了快速定位开发资料，可按下面顺序查找：
+
+1. **先看根目录 `README.md`**
+   - 项目是什么
+   - 怎么启动
+   - 怎么验证
+   - 文档总入口在哪
+2. **再看当前文件 `docs/README.md`**
+   - 当前该看哪类文档
+   - 当前执行计划在哪
+   - 历史文档在哪
+3. **再按任务类型进入对应目录**
+   - 改代码结构 / 做重构：`docs/roadmaps/`
+   - 确认长期规范：`docs/governance/`
+   - 查当前业务规则 / API / 字段契约：`docs/reference/`
+   - 看当前阶段结果：`docs/progress/`
+   - 查历史方案 / 历史进度：`docs/archive/`
+   - 查问题背景 / 变更原因：`docs/issues/`
+   - 查设计方向：`docs/design/`
+
+一句话记忆：
+
+> 根目录 `README.md` 看入口，`docs/README.md` 看导航，`roadmaps` 看计划，`governance` 看规范，`reference` 看规则，`archive` 看历史。
+
 ## governance
 
 长期有效的开发规范、接入规则、PR 检查和退场策略。
