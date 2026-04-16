@@ -5,22 +5,21 @@ import {
   executeRuleSet,
   normalizeLockMappingKey,
 } from '@/services/mappings';
+import type { RuleTrace, SourceOrderInfo, SourceOrderItemBase } from '../extractorTypes';
 
-type LockOrderItem = {
-  qty?: string | number | null;
-  spec?: string | null;
+type LockOrderItem = SourceOrderItemBase & {
   sj?: unknown;
   fssj?: unknown;
 };
 
-type LockOrderInfo = Record<string, unknown>;
+type LockOrderInfo = SourceOrderInfo;
 type LockMappingConfig = Record<string, unknown> & {
   defaultUnit?: unknown;
   primaryLabel?: unknown;
   secondaryLabel?: unknown;
 };
 
-type LockResultRow = {
+type LockResultRow = RuleTrace & {
   supplier: string;
   type: string;
   spec: string;
@@ -29,8 +28,6 @@ type LockResultRow = {
   quantityLeft: number;
   quantityRight: number;
   quantity: number;
-  matchedRules: string[];
-  winningRules: string[];
 };
 
 function mergeRuleNames(current: string[], incoming: string[]): string[] {

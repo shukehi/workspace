@@ -6,22 +6,16 @@ import {
   executeRuleSet,
 } from '@/services/mappings';
 
-type CylinderOrderItem = {
-  spec?: string | null;
-  qty?: string | number | null;
-  xsbz?: unknown;
+import type { RuleTrace, SourceOrderInfo, SourceOrderItemBase } from '../extractorTypes';
+
+type CylinderOrderItem = SourceOrderItemBase & {
   sx?: unknown;
   sxhz?: unknown;
   fssx?: unknown;
   fshz?: unknown;
-  mshd?: unknown;
-  [key: string]: unknown;
 };
 
-type CylinderOrderInfo = Record<string, unknown> & {
-  customerName?: string | null;
-  remark?: string | null;
-};
+type CylinderOrderInfo = SourceOrderInfo;
 
 type CylinderResultRow = {
   supplier: string;
@@ -31,7 +25,7 @@ type CylinderResultRow = {
   quantity: number;
 };
 
-type HardwareAccessoryResultRow = {
+type HardwareAccessoryResultRow = RuleTrace & {
   materialId: string;
   supplier: string;
   type: string;
@@ -39,8 +33,6 @@ type HardwareAccessoryResultRow = {
   remark: string;
   unit: string;
   quantity: number;
-  matchedRules: string[];
-  winningRules: string[];
 };
 
 type CylinderMappingEntry = {

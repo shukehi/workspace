@@ -1,18 +1,11 @@
 import { parseQuantityPair } from '../parsers';
+import type { SourceOrderInfo, SourceOrderItemBase } from '../extractorTypes';
 
-type HandleOrderItem = {
-    qty?: string | number | null;
+type HandleOrderItem = SourceOrderItemBase & {
     ls?: unknown;
-    xsbz?: unknown;
-    remark?: unknown;
-    mshd?: unknown;
-    [key: string]: unknown;
 };
 
-type HandleOrderInfo = {
-    customerName?: unknown;
-    remark?: unknown;
-};
+type HandleOrderInfo = SourceOrderInfo;
 
 type HandleMappingEntry = {
     supplier?: unknown;
