@@ -127,6 +127,8 @@
   — Source-analysis extractor 分支的阶段性成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md)
   — Source-analysis 类型收紧分支的阶段性成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_SHARED_TYPES_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_SHARED_TYPES_2026-04-17.md)
+  — Source-analysis shared types 分支的阶段性成果与封板建议
 
 历史阶段进度（不作为当前阶段结果入口）：
 
