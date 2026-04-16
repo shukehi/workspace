@@ -1,7 +1,39 @@
 import { parseQuantityPair } from '../parsers';
 
-type OrderItem = Record<string, any>;
-type GenericMap = Record<string, any>;
+type HandleOrderItem = {
+    qty?: string | number | null;
+    ls?: unknown;
+    xsbz?: unknown;
+    remark?: unknown;
+    mshd?: unknown;
+    [key: string]: unknown;
+};
+
+type HandleOrderInfo = {
+    customerName?: unknown;
+    remark?: unknown;
+};
+
+type HandleMappingEntry = {
+    supplier?: unknown;
+    vendorName?: unknown;
+    materialCode?: unknown;
+};
+
+type HandleMappingConfig = Record<string, unknown> & {
+    defaultSupplier?: unknown;
+    unmatchedSupplier?: unknown;
+    manualReviewLabel?: unknown;
+    singleKeywords?: unknown[];
+    doubleKeywords?: unknown[];
+    exportCustomerKeywords?: unknown[];
+    defaultActivityForExport?: unknown;
+    placeholderKeywords?: unknown[];
+    fallbackModelSources?: unknown[];
+    thicknessAccessoryPacks?: Record<string, unknown>;
+    mappings?: Record<string, HandleMappingEntry | undefined>;
+};
+
 type HandleResultRow = {
     supplier: string;
     materialId?: string;
@@ -13,6 +45,14 @@ type HandleResultRow = {
     quantity: number;
 };
 
+type HandleModelResolution = {
+    modelKey: string;
+    mapping: HandleMappingEntry | null;
+    source: 'ls' | 'remark' | 'xsbz' | 'none' | 'conflict';
+    lsIsPlaceholder?: boolean;
+    conflict?: Partial<Record<'remark' | 'xsbz', string>>;
+};
+
 /**
  * 提取拉手采购数据
  * 规则：
@@ -20,7 +60,7 @@ type HandleResultRow = {
  * - 根据 mshd 识别 5/7/9/10 对应配件包
  * - 型号未匹配或门厚异常时，生成“待人工处理”项
  */
-export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap = {}, HANDLE_MAPPING: GenericMap = {}): HandleResultRow[] {
+export function extractHandleData(orderList: HandleOrderItem[], orderInfo: HandleOrderInfo = {}, HANDLE_MAPPING: HandleMappingConfig = {}): HandleResultRow[] {
     const handleMap: Record<string, HandleResultRow> = {};
 
     const normalizeHandleKey = (value: unknown) => String(value || '')
@@ -44,14 +84,14 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
     const exportCustomerKeywords = Array.isArray(HANDLE_MAPPING.exportCustomerKeywords) && HANDLE_MAPPING.exportCustomerKeywords.length > 0
         ? HANDLE_MAPPING.exportCustomerKeywords.map((item: unknown) => toText(item)).filter(Boolean)
         : ['三部'];
-    const defaultActivityForExport = toText(HANDLE_MAPPING.defaultActivityForExport) === 'single'
+    const defaultActivityForExport: 'single' | 'double' = toText(HANDLE_MAPPING.defaultActivityForExport) === 'single'
         ? 'single'
         : 'double';
     const placeholderKeywords = Array.isArray(HANDLE_MAPPING.placeholderKeywords) && HANDLE_MAPPING.placeholderKeywords.length > 0
         ? HANDLE_MAPPING.placeholderKeywords.map((item: unknown) => toText(item)).filter(Boolean)
         : ['冲整体拉手孔', '拉手孔', '开拉手孔', '开孔', '打孔'];
     const fallbackModelSources = Array.isArray(HANDLE_MAPPING.fallbackModelSources) && HANDLE_MAPPING.fallbackModelSources.length > 0
-        ? HANDLE_MAPPING.fallbackModelSources.map((item: unknown) => toText(item)).filter((item) => item === 'remark' || item === 'xsbz')
+        ? HANDLE_MAPPING.fallbackModelSources.map((item: unknown) => toText(item)).filter((item): item is 'remark' | 'xsbz' => item === 'remark' || item === 'xsbz')
         : ['remark', 'xsbz'];
 
     const thicknessAccessoryPacks = HANDLE_MAPPING.thicknessAccessoryPacks && typeof HANDLE_MAPPING.thicknessAccessoryPacks === 'object'
@@ -63,7 +103,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
             '10': '10公分配件包'
         };
 
-    const normalizedMapping = new Map<string, { modelKey: string; entry: GenericMap }>();
+    const normalizedMapping = new Map<string, { modelKey: string; entry: HandleMappingEntry }>();
     const mappings = HANDLE_MAPPING.mappings && typeof HANDLE_MAPPING.mappings === 'object'
         ? HANDLE_MAPPING.mappings
         : {};
@@ -71,7 +111,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         const normalized = normalizeHandleKey(rawKey);
         if (!normalized || !entry || typeof entry !== 'object') return;
         if (!normalizedMapping.has(normalized)) {
-            normalizedMapping.set(normalized, { modelKey: rawKey, entry: entry as GenericMap });
+            normalizedMapping.set(normalized, { modelKey: rawKey, entry });
         }
     });
     const normalizedCandidates = Array.from(normalizedMapping.entries())
@@ -81,7 +121,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
     const resolveExactMapping = (modelName: string) => {
         const direct = mappings[modelName];
         if (direct && typeof direct === 'object') {
-            return { modelKey: modelName, entry: direct as GenericMap };
+            return { modelKey: modelName, entry: direct };
         }
         return normalizedMapping.get(normalizeHandleKey(modelName)) || null;
     };
@@ -98,21 +138,19 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         return placeholderKeywords.some((keyword: string) => keyword && value.includes(keyword));
     };
 
-    const resolveFallbackModel = (item: GenericMap) => {
+    const resolveFallbackModel = (item: Pick<HandleOrderItem, 'remark' | 'xsbz'>): HandleModelResolution => {
         const sourceHit: Partial<Record<'remark' | 'xsbz', string>> = {};
         const remarkCandidates = [toText(item.remark), toText(orderInfo.remark)].filter(Boolean);
         const xsbzCandidate = toText(item.xsbz);
 
-        fallbackModelSources.forEach((source: string) => {
+        fallbackModelSources.forEach((source) => {
             if (source === 'remark') {
                 const hit = remarkCandidates.map((text) => matchModelFromText(text)).find(Boolean) || '';
                 if (hit) sourceHit.remark = hit;
                 return;
             }
-            if (source === 'xsbz') {
-                const hit = matchModelFromText(xsbzCandidate);
-                if (hit) sourceHit.xsbz = hit;
-            }
+            const hit = matchModelFromText(xsbzCandidate);
+            if (hit) sourceHit.xsbz = hit;
         });
 
         const pickedValues = Array.from(new Set(Object.values(sourceHit).filter(Boolean)));
@@ -141,7 +179,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         };
     };
 
-    const resolveHandleModel = (item: GenericMap) => {
+    const resolveHandleModel = (item: Pick<HandleOrderItem, 'ls' | 'remark' | 'xsbz'>): HandleModelResolution => {
         const rawLs = toText(item.ls);
         const lsIsPlaceholder = isPlaceholderHandleText(rawLs);
 
@@ -164,7 +202,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         };
     };
 
-    const detectActivity = (item: GenericMap): 'single' | 'double' | null => {
+    const detectActivity = (item: Pick<HandleOrderItem, 'xsbz' | 'ls' | 'remark'>): 'single' | 'double' | null => {
         const texts = [
             toText(item.xsbz),
             toText(item.ls),
@@ -217,7 +255,7 @@ export function extractHandleData(orderList: OrderItem[], orderInfo: GenericMap 
         const resolvedModel = resolveHandleModel(item);
         const mapping = resolvedModel.mapping;
         if (!mapping || !activity || !accessoryPack) {
-            const conflict = (resolvedModel as { conflict?: Partial<Record<'remark' | 'xsbz', string>> }).conflict;
+            const conflict = resolvedModel.conflict;
             const fallbackSourceLabel = resolvedModel.source === 'remark' || resolvedModel.source === 'xsbz'
                 ? resolvedModel.source
                 : 'ls';
