@@ -119,6 +119,8 @@
   — 当前治理分支的阶段性成果与下一步建议
 - [BRANCH_PROGRESS_REFACTOR_ORDER_SERVICE_PASS2_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_SERVICE_PASS2_2026-04-16.md)
   — OrderService 第二轮收口分支的阶段性成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_EXTRACTORS_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_EXTRACTORS_2026-04-16.md)
+  — Source-analysis extractor 分支的阶段性成果与封板建议
 
 历史阶段进度（不作为当前阶段结果入口）：
 
