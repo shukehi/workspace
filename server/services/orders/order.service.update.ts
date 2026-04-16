@@ -32,7 +32,7 @@ export type UpdateOrderContext = {
     nextSupplier: string;
     nextOrderNo: string;
     nextStatus: string;
-    nextCreatedAt: unknown;
+    nextCreatedAt: OrderCreateInput['created_at'];
     nextItems: any[];
 };
 

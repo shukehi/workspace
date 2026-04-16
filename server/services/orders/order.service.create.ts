@@ -1,4 +1,4 @@
-import type { OrderAttributes, OrderCreateInput } from '../../models/types';
+import type { OrderAttributes, OrderCreateInput, OrderCreationAttributes } from '../../models/types';
 import AppError from '../../app/errors/AppError';
 import ERROR_CODES from '../../app/errors/errorCodes';
 import { buildOrderDedupeKey, normalizeMetadata, resolveSourceContractCode } from './order.dedupe';
@@ -68,7 +68,7 @@ export function assertCreateOrderInputValid(createInput: OrderCreateInput): void
   }
 }
 
-export function buildCreateOrderValues(context: CreateOrderContext): PlainRecord {
+export function buildCreateOrderValues(context: CreateOrderContext): OrderCreationAttributes {
   const { normalizedData, sourceContractCode, dedupeKey, normalizedStatus, metadata } = context;
   return {
     order_no: normalizedData.order_no,
