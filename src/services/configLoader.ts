@@ -65,6 +65,13 @@ export class ConfigLoaderService {
 
     constructor(private readonly repository: ConfigRepository = createDefaultConfigRepository()) {}
 
+    /**
+     * Bootstrap runtime configuration before the app mounts.
+     *
+     * Contract:
+     * - materials + published mappings are hard requirements; any failure aborts app bootstrap
+     * - formulas are soft requirements; failures fall back to the last in-memory or empty map
+     */
     async loadAll() {
         if (this.isLoaded) return;
 
@@ -130,6 +137,8 @@ export class ConfigLoaderService {
         const result = await this.repository.readMapping(kind);
         this.loadSources[kind] = result.source;
         if (result.payload === null) {
+            // Published mapping payloads are fail-closed at runtime. A missing payload means
+            // the corresponding business rule set is incomplete and bootstrap should stop.
             console.warn(`⚠️ load${kind}Mapping failed: missing published payload`);
             return;
         }

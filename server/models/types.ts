@@ -278,6 +278,7 @@ export interface OrderCreateInput {
  * 更新订单的输入参数（PUT /api/orders/:id body）
  */
 export interface OrderUpdateInput {
+    order_no?: string;
     supplier?: string | null;
     source_contract_code?: string | null;
     category?: string | null;

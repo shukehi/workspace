@@ -56,14 +56,15 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(lockConfig, /workflow-meta-variant="inline"/);
   assert.match(lockConfig, /actions-position="header"/);
   assert.match(lockConfig, /scroll-mode="page"/);
-  assert.match(lockConfig, /v-model="previewPrimaryInput"/);
-  assert.match(lockConfig, /v-model="previewSecondaryInput"/);
+  assert.match(lockConfig, /RuleExplainPlayground/);
+  assert.match(lockConfig, /useRuleExplainPreview/);
+  assert.match(lockConfig, /:fields="lockExplainFields"/);
   assert.doesNotMatch(lockConfig, /v-model="\(m as any\)\.val"/);
-  assert.match(lockConfig, /showMatchTester = !showMatchTester/);
+  assert.match(lockConfig, /showRulePlayground = !showRulePlayground/);
   assert.match(lockConfig, /默认收起，避免挤占首屏/);
 
   const mappingIndex = lockConfig.indexOf('型号映射');
-  const testerIndex = lockConfig.indexOf('测试匹配');
+  const testerIndex = lockConfig.indexOf('规则试跑');
   assert.ok(mappingIndex > -1);
   assert.ok(testerIndex > -1);
   assert.ok(mappingIndex < testerIndex);

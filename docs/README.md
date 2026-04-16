@@ -72,6 +72,10 @@
   — 当前优先执行的重构总路线图
 - [WEEK1_HEALTH_BASELINE_EXECUTION_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK1_HEALTH_BASELINE_EXECUTION_2026-04-16.md)
   — 当前优先执行的 Week 1 施工图
+- [INVENTORY_PAGE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_PAGE_REFACTOR_PLAN_2026-04-16.md)
+  — Inventory 页面第一轮收口计划
+- [ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md)
+  — OrderService 第一轮收口计划
 - [REFACTOR_EXECUTION_INDEX_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
   — 本轮结构治理总索引，适合作为背景导航
 
@@ -107,6 +111,10 @@
 - [PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md)
 - [DOCS_INFORMATION_ARCHITECTURE_CLEANUP_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/DOCS_INFORMATION_ARCHITECTURE_CLEANUP_2026-04-16.md)
   — 本轮 docs 信息架构清理总结与归档策略说明
+- [REPO_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/REPO_HEALTH_BASELINE_2026-04-16.md)
+  — Week 1 健康基线修复前后状态记录
+- [BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md)
+  — 当前治理分支的阶段性成果与下一步建议
 
 历史阶段进度（不作为当前阶段结果入口）：
 
@@ -121,6 +129,7 @@
 
 - [PO_FIELD_CONTRACT.md](/Users/aries/Dve/workspace/docs/reference/PO_FIELD_CONTRACT.md)
 - [OMX_COMMAND_GUIDE_CURRENT_PROJECT_2026-04-16.md](/Users/aries/Dve/workspace/docs/reference/OMX_COMMAND_GUIDE_CURRENT_PROJECT_2026-04-16.md)
+- [RUNTIME_CONTRACT_2026-04-16.md](/Users/aries/Dve/workspace/docs/reference/RUNTIME_CONTRACT_2026-04-16.md)
 - [CYLINDER_RULES.md](/Users/aries/Dve/workspace/docs/reference/CYLINDER_RULES.md)
 - [LOCK_FORK_RULES.md](/Users/aries/Dve/workspace/docs/reference/LOCK_FORK_RULES.md)
 - [LAN_SHARING.md](/Users/aries/Dve/workspace/docs/reference/LAN_SHARING.md)

@@ -3,7 +3,7 @@
  *
  * 通过请求头 x-api-key 验证访问凭证。
  * - 开发环境（NODE_ENV=development）且未配置 API_KEY 时自动放行，方便本地开发。
- * - 生产/测试环境必须配置 API_KEY，否则拒绝所有请求。
+ * - 当前实现只有生产环境在未配置 API_KEY 时强制报错；非生产环境默认放行。
  */
 
 import type { Request, Response, NextFunction } from 'express';
@@ -37,4 +37,3 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction): voi
 
     next();
 }
-

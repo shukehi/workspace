@@ -133,6 +133,7 @@ async function loadCurrentSourceAnalysisConfig() {
     const FormulaService = await import('../services/formulas/formula.workflow');
     const MaterialCatalogService = await import('../services/materials/materialCatalog.workflow');
     const { DataNormalizer } = await import('../../src/lib/erp-engine/dataNormalizer');
+    type MaterialCatalogInput = Parameters<typeof DataNormalizer.normalizeMaterialCatalog>[0];
 
     const [
         formulas,
@@ -154,7 +155,7 @@ async function loadCurrentSourceAnalysisConfig() {
 
     return {
         formulas,
-        materials: DataNormalizer.normalizeMaterialCatalog(materialsCatalog as Record<string, unknown>),
+        materials: DataNormalizer.normalizeMaterialCatalog(materialsCatalog as MaterialCatalogInput),
         packagingMapping: packagingMapping || {},
         cylinderMapping: cylinderMapping || {},
         lockMapping: lockMapping || {},
@@ -193,14 +194,31 @@ async function loadContractByCode(code: string, options: ScriptOptions) {
     return live;
 }
 
-async function buildExpectedOrders(contract: Record<string, any>, config: Record<string, unknown>) {
+async function buildExpectedOrders(
+    contract: Record<string, any>,
+    config: {
+        formulas: Record<string, unknown>;
+        materials: Record<string, unknown>;
+        cylinderMapping: Record<string, unknown>;
+        lockMapping: Record<string, unknown>;
+        handleMapping: Record<string, unknown>;
+        lockForkMapping: Record<string, unknown>;
+        packagingMapping: Record<string, unknown>;
+    },
+) {
     const { analyzeSourceOrder } = await import('../../src/services/sourceAnalysis');
     const { POGenerator } = await import('../../src/services/poGenerator');
     const { packagingMatcher } = await import('../../src/lib/packagingMatcher');
+    type SourceAnalysisConfig = Parameters<typeof analyzeSourceOrder>[0]['config'];
+    type PackagingConfigReader = ConstructorParameters<typeof POGenerator>[0] extends infer T
+        ? T extends { packagingConfig?: infer P }
+            ? NonNullable<P>
+            : never
+        : never;
 
     const analysis = analyzeSourceOrder({
         order: contract,
-        config,
+        config: config as unknown as SourceAnalysisConfig,
         items: contract.list,
     });
 
@@ -217,7 +235,7 @@ async function buildExpectedOrders(contract: Record<string, any>, config: Record
             getPackagingMapping() {
                 return config.packagingMapping;
             },
-        },
+        } as unknown as PackagingConfigReader,
     });
 
     const buildOrders = (mergeSameSpec: boolean) => {
@@ -226,7 +244,7 @@ async function buildExpectedOrders(contract: Record<string, any>, config: Record
             supplier: group.supplierName,
             category: group.category,
         }));
-        return generator.createOrders(selectedGroups, { mergeSameSpec }) as ExpectedOrder[];
+        return generator.createOrders(selectedGroups, { mergeSameSpec }) as unknown as ExpectedOrder[];
     };
 
     return {

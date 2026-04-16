@@ -68,13 +68,13 @@ export function ensureOrderTemplateType<T extends OrderMetadata | Record<string,
     metadata: T | null | undefined,
     categoryRaw: unknown,
 ): T {
-    const next = metadata && typeof metadata === 'object'
+    const next: Record<string, unknown> = metadata && typeof metadata === 'object'
         ? { ...metadata }
         : {};
     const derivedTemplateType = deriveTemplateTypeFromCategory(categoryRaw);
     const templateType = derivedTemplateType || normalizeTemplateType(next.template_type, categoryRaw);
     if (!templateType) {
-        delete (next as Record<string, unknown>).template_type;
+        delete next.template_type;
         return next as T;
     }
     return {

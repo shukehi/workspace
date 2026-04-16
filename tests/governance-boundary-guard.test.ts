@@ -97,8 +97,8 @@ test('governance guard: download anchor creation stays inside the reviewed allow
   assert.deepEqual(
     rgFiles('document\\.createElement\\([\'"]a[\'"]\\)', ['src']).sort(),
     [
+      'src/features/inventory/inventoryCsvExports.ts',
       'src/lib/api.ts',
-      'src/stores/useInventoryStore.ts',
       'src/stores/useProcurementStore.ts',
     ],
   );

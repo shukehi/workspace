@@ -11,6 +11,7 @@ export function normalizeErpContractResponse(res: any) {
 }
 
 export async function fetchErpContract(contractId: string) {
+    // Fresh fetch path: this always depends on the upstream ERP endpoint.
     return normalizeErpContractResponse(
         await api.get<any>(`/getOutContractDetail?code=${contractId}`),
     );
@@ -21,6 +22,7 @@ export async function cacheErpContractSnapshot(orderData: any) {
 }
 
 export async function fetchHistoryContractByCode(contractCode: string) {
+    // Cached history path: this reads the local contract snapshot store instead of ERP.
     const cached = await api.get<any>(`/contracts/${encodeURIComponent(contractCode)}`);
     return cached?.raw_json;
 }
