@@ -1,5 +1,8 @@
 # 采购订单录入模板优化 PRD
 
+> 状态：产品/领域参考文档。
+> 说明：本文档记录采购录入模板收敛的设计背景、目标方案与阶段状态；可作为当前实现的业务语义参考，但不作为当前唯一执行清单。当前落地执行请优先结合 `docs/roadmaps/procurement/PROCUREMENT_TEMPLATE_OPTIMIZATION_PLAN.md`、`docs/roadmaps/REFACTOR_EXECUTION_PLAN_V1_2026-04-16.md` 与实际代码行为阅读。
+
 ## 1. 背景
 
 当前采购订单录入流程将“类别”直接作为“录入模板”使用。系统当前暴露 6 个类别：

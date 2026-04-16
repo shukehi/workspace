@@ -6,7 +6,7 @@
 
 关联方案文档：
 
-- [INVENTORY_OPTIMIZATION_PLAN.md](/Users/aries/Dve/workspace/docs/roadmaps/inventory/INVENTORY_OPTIMIZATION_PLAN.md)
+- [INVENTORY_OPTIMIZATION_PLAN.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/inventory/INVENTORY_OPTIMIZATION_PLAN.md)
 
 ## 使用方式
 

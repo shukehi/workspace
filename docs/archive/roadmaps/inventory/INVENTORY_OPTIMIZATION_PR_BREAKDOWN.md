@@ -6,8 +6,8 @@
 
 关联文档：
 
-- [INVENTORY_OPTIMIZATION_PLAN.md](/Users/aries/Dve/workspace/docs/roadmaps/inventory/INVENTORY_OPTIMIZATION_PLAN.md)
-- [INVENTORY_OPTIMIZATION_TASKS.md](/Users/aries/Dve/workspace/docs/roadmaps/inventory/INVENTORY_OPTIMIZATION_TASKS.md)
+- [INVENTORY_OPTIMIZATION_PLAN.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/inventory/INVENTORY_OPTIMIZATION_PLAN.md)
+- [INVENTORY_OPTIMIZATION_TASKS.md](/Users/aries/Dve/workspace/docs/archive/roadmaps/inventory/INVENTORY_OPTIMIZATION_TASKS.md)
 
 ## 目标
 

@@ -83,6 +83,6 @@
 
 ## 5. 参考文档
 
-- [`/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_PROGRESS_2026-03-12.md`](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_PROGRESS_2026-03-12.md)
+- [`/Users/aries/Dve/workspace/docs/archive/progress/PROCUREMENT_INVENTORY_PHASE1_PROGRESS_2026-03-12.md`](/Users/aries/Dve/workspace/docs/archive/progress/PROCUREMENT_INVENTORY_PHASE1_PROGRESS_2026-03-12.md)
 - [`/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_RECEIPT_PLAN_2026-03-12.md`](/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_RECEIPT_PLAN_2026-03-12.md)
 - [`/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_REVERSAL_PLAN_2026-03-12.md`](/Users/aries/Dve/workspace/docs/roadmaps/PROCUREMENT_INVENTORY_PHASE2_PARTIAL_REVERSAL_PLAN_2026-03-12.md)

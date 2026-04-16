@@ -1,0 +1,32 @@
+# Archive Progress Index
+
+`docs/archive/progress/` 保存已退场的阶段进度、历史 smoke/checklist 和中间迁移批次记录。
+
+这些文档适合：
+
+- 回看某一批次当时做到了什么
+- 查历史 smoke/checklist 的人工验证范围
+- 对照旧阶段产物与当前实现差异
+
+不应作为当前阶段结果入口；当前优先看：
+
+- `docs/progress/REFACTOR_PROGRAM_SUMMARY_2026-03-13.md`
+- `docs/progress/BACKEND_TS_BATCH1_SUMMARY_2026-03-13.md`
+- `docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md`
+- `docs/progress/INVENTORY_OUTBOUND_LOCATION_RELEASE_2026-03-20.md`
+
+## 历史阶段进度
+
+- `SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md`
+- `PROCUREMENT_INVENTORY_PHASE1_PROGRESS_2026-03-12.md`
+- `PROCUREMENT_INVENTORY_MANUAL_REGRESSION_CHECKLIST_2026-03-13.md`
+- `REFACTOR_REMAINING_SMOKE_CHECKLIST_2026-03-13.md`
+
+## 历史后端 TS 批次记录
+
+- `BACKEND_TS_BATCH1_PROGRESS_2026-03-13.md`
+- `BACKEND_TS_BATCH2_PROGRESS_2026-03-13.md`
+- `BACKEND_TS_BATCH3_PROGRESS_2026-03-13.md`
+- `BACKEND_TS_BATCH4_PROGRESS_2026-03-13.md`
+- `BACKEND_TS_PHASE5_PROGRESS_2026-03-14.md`
+- `BACKEND_TS_PHASE6_PROGRESS_2026-03-14.md`

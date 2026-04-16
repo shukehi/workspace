@@ -1,7 +1,7 @@
 # Source 与配置域重构计划（2026-03-10）
 
 > 状态：该计划的大部分关键项已在 `codex/source-config-refactor` 分支落地。
-> 最新状态、已完成项与剩余工作请优先查看 `docs/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md`。
+> 最新状态、已完成项与剩余工作请优先查看 `docs/archive/progress/SOURCE_CONFIG_REFACTOR_PROGRESS_2026-03-10.md`。
 
 ## 1. 目标
 

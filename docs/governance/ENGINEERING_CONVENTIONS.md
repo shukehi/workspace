@@ -117,7 +117,7 @@ npm test
 
 1. CSS 治理清单：`docs/governance/CSS_GOVERNANCE_CHECKLIST.md`
 2. Legacy 清理计划（历史归档）：`docs/archive/LEGACY_PUBLIC_JS_CLEANUP_PLAN.md`
-3. 模板迁移计划：`docs/roadmaps/CSS_TEMPLATE_MIGRATION_PLAN.md`
+3. 模板迁移计划（历史）：`docs/archive/roadmaps/CSS_TEMPLATE_MIGRATION_PLAN.md`
 4. 功能开发与配置接入规范：`docs/governance/FEATURE_DEVELOPMENT_GOVERNANCE_2026-03-10.md`
 5. Legacy 配置接口退场策略：`docs/governance/LEGACY_CONFIG_ENDPOINT_RETIREMENT_PLAN_2026-03-10.md`
 6. 采购与库存边界改造计划：`docs/roadmaps/PROCUREMENT_INVENTORY_BOUNDARY_PLAN_2026-03-12.md`
