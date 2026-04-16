@@ -31,11 +31,20 @@ import {
 } from './order.dedupe';
 import { normalizeTemplateType } from './order.template';
 import {
-    areAllOrderItemsReceived,
+    assertCreateOrderInputValid,
+    buildCreateOrderFallback,
+    buildCreateOrderItems,
+    buildCreateOrderValues,
+    resolveCreateOrderContext,
+} from './order.service.create';
+import {
+    assertUpdateOrderInputValid,
+    buildNextOrderValues,
+    resolveUpdateOrderContext,
+} from './order.service.update';
+import {
     assertOrderReadyForStockIn,
-    buildStockInOrderUpdate,
-    createReceiptItemsFromOrder,
-    syncStockInReceiptItems,
+    resolveStockInOrderUpdate,
 } from './order.stockin';
 import {
     DuplicateOrderError,
@@ -44,7 +53,7 @@ import {
     OrderEditLockedError,
     ReceivedQuantityExceededError,
 } from './order.errors';
-import { sanitizeManualCreateItems, validateLockedManualOrderUpdate, validateManualCreateOrder } from './order-create.validation';
+import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
 import type { PlainRecord } from '../../shared/types';
 import {
     buildAutoOrderNo,
@@ -273,41 +282,15 @@ class OrderService {
                         ? { ...data, order_no: await this.allocateNextAutoOrderNo(requestedSourceContractCode, transaction) }
                         : data;
                 lastAttemptedOrderNo = String(createInput.order_no || '').trim() || lastAttemptedOrderNo;
-                const normalizedCategory = createInput.category || data.category;
-                const createIssues = validateManualCreateOrder(createInput);
-                if (createIssues.length > 0) {
-                    throw new AppError({
-                        code: ERROR_CODES.VALIDATION_ERROR,
-                        status: 400,
-                        details: {
-                            issues: createIssues.map((issue) => ({
-                                target: 'body',
-                                field: issue.field,
-                                message: issue.message,
-                            })),
-                        },
-                    });
-                }
-
-                const sourceContractCode = resolveSourceContractCode(createInput);
-                const metadata = normalizeMetadata(createInput.metadata, {}, normalizedCategory);
-                const normalizedStatus = normalizeStatus(createInput.status, 'draft');
-                const sanitizedItems = metadata.order_source === 'manual'
-                    ? sanitizeManualCreateItems(
-                        createInput.items as any[] | undefined,
-                        createInput.category,
-                        metadata.template_type,
-                    )
-                    : (createInput.items as any[] | undefined);
-                const normalizedData: PlainRecord = {
-                    ...createInput,
-                    category: normalizedCategory,
-                    source_contract_code: sourceContractCode,
+                assertCreateOrderInputValid(createInput);
+                const context = resolveCreateOrderContext(createInput);
+                const {
+                    sourceContractCode,
                     metadata,
-                    status: normalizedStatus,
-                    items: sanitizedItems,
-                };
-                const dedupeKey = buildOrderDedupeKey(normalizedData);
+                    normalizedStatus,
+                    normalizedData,
+                    dedupeKey,
+                } = context;
                 const duplicate = await this.findDuplicateAutoOrder(normalizedData, transaction);
                 if (duplicate) {
                     throw new DuplicateOrderError(duplicate);
@@ -322,31 +305,10 @@ class OrderService {
                     });
                 }
 
-                const order = await orderRepository.createOrder({
-                    order_no: normalizedData.order_no,
-                    supplier: normalizedData.supplier,
-                    source_contract_code: sourceContractCode || null,
-                    dedupe_key: dedupeKey || null,
-                    category: normalizedData.category || null,
-                    status: normalizedStatus,
-                    remark: normalizeOrderRemark(normalizedData.remark),
-                    metadata,
-                    created_at: normalizedData.created_at || new Date().toISOString(),
-                    delivery_date: normalizedData.delivery_date,
-                    arrived_at: normalizedData.arrived_at || null,
-                    arrived_by: normalizedData.arrived_by || null,
-                    arrived_remark: normalizeOrderRemark(normalizedData.arrived_remark),
-                    stocked_in_at: normalizedData.stocked_in_at || null,
-                    stocked_in_by: normalizedData.stocked_in_by || null,
-                    stocked_in_remark: normalizeOrderRemark(normalizedData.stocked_in_remark)
-                }, transaction);
+                const order = await orderRepository.createOrder(buildCreateOrderValues(context), transaction);
 
-                if (normalizedData.items && normalizedData.items.length > 0) {
-                    const items = normalizedData.items.map((item: PlainRecord) => ({
-                        ...normalizeOrderItemForPersistence(item),
-                        id: undefined,
-                        order_id: order.id
-                    }));
+                const items = buildCreateOrderItems(normalizedData, order.id);
+                if (items.length > 0) {
                     await orderRepository.bulkCreateOrderItems(items, transaction);
                 }
 
@@ -365,10 +327,7 @@ class OrderService {
                     order_no: createInput.order_no
                 });
 
-                return serializeOrder({
-                    ...order.get({ plain: true }),
-                    items: Array.isArray(normalizedData.items) ? normalizedData.items : []
-                });
+                return buildCreateOrderFallback(order, normalizedData);
             } catch (error) {
                 await transaction.rollback();
                 if ((shouldAutoAssignManualOrderNo || shouldAutoAssignAutoOrderNo) && isUniqueOrderNoError(error) && attempt < 4) {
@@ -392,67 +351,19 @@ class OrderService {
             assertEditableOrderFields(order, data as Record<string, unknown>);
 
             const existing = await this.getOrderById(id);
-            const nextCategory = data.category === undefined ? order.category : data.category;
-            const nextMetadata = normalizeMetadata(
-                data.metadata === undefined ? order.metadata : data.metadata,
-                order.metadata || {},
-                nextCategory
-            );
-            const nextSourceContractCode = resolveSourceContractCode({
-                source_contract_code: data.source_contract_code,
-                metadata: nextMetadata
-            }, order.source_contract_code || '');
-            const mergedItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
-            const nextSupplier = data.supplier === undefined ? order.supplier : data.supplier;
-            const nextOrderNo = data.order_no === undefined ? order.order_no : data.order_no;
-            const nextStatus = data.status === undefined
-                ? normalizeStatus(order.status)
-                : assertValidStatusTransition(order.status, data.status);
-            const nextCreatedAt = data.created_at !== undefined ? data.created_at : order.created_at;
-            const nextItems = nextMetadata.order_source === 'manual'
-                ? (() => {
-                    const sanitizedItems = sanitizeManualCreateItems(
-                        mergedItems as any[] | undefined,
-                        nextCategory,
-                        nextMetadata.template_type,
-                    );
-                    return sanitizedItems.length > 0 ? sanitizedItems : mergedItems;
-                })()
-                : mergedItems;
-            const mergedOrderForValidation: OrderCreateInput = {
-                order_no: nextOrderNo,
-                supplier: nextSupplier || '',
-                category: nextCategory || '',
-                status: nextStatus,
-                remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
-                metadata: nextMetadata,
-                created_at: nextCreatedAt,
-                delivery_date: data.delivery_date === undefined ? order.delivery_date : data.delivery_date,
-                arrived_at: data.arrived_at === undefined ? order.arrived_at : data.arrived_at,
-                arrived_by: data.arrived_by === undefined ? order.arrived_by : data.arrived_by,
-                arrived_remark: data.arrived_remark === undefined ? order.arrived_remark : normalizeOrderRemark(data.arrived_remark),
-                stocked_in_at: data.stocked_in_at === undefined ? order.stocked_in_at : data.stocked_in_at,
-                stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
-                stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark),
-                items: nextItems as any[],
-            };
-            const lockedStatus = ['arrived', 'completed'].includes(normalizeStatus(order.status));
-            const updateIssues = lockedStatus
-                ? validateLockedManualOrderUpdate(data, nextMetadata)
-                : validateManualCreateOrder(mergedOrderForValidation);
-            if (updateIssues.length > 0) {
-                throw new AppError({
-                    code: ERROR_CODES.VALIDATION_ERROR,
-                    status: 400,
-                    details: {
-                        issues: updateIssues.map((issue) => ({
-                            target: 'body',
-                            field: issue.field,
-                            message: issue.message,
-                        })),
-                    },
-                });
-            }
+            const context = resolveUpdateOrderContext({ order, existing, data });
+            const {
+                nextCategory,
+                nextMetadata,
+                nextSourceContractCode,
+                nextSupplier,
+                nextOrderNo,
+                nextStatus,
+                nextCreatedAt,
+                nextItems,
+            } = context;
+
+            assertUpdateOrderInputValid({ order, data, context });
             const nextDedupeKey = buildOrderDedupeKey({
                 source_contract_code: nextSourceContractCode,
                 category: nextCategory,
@@ -485,22 +396,12 @@ class OrderService {
                 }, transaction);
             }
 
-            const nextOrderValues: Partial<OrderAttributes> = {
-                supplier: nextSupplier,
-                source_contract_code: nextSourceContractCode || null,
-                dedupe_key: nextDedupeKey || null,
-                category: nextCategory,
-                status: nextStatus,
-                remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
-                metadata: nextMetadata,
-                delivery_date: normalizeNullableDate(data.delivery_date, order.delivery_date),
-                arrived_at: normalizeNullableDate(data.arrived_at, order.arrived_at),
-                arrived_by: data.arrived_by === undefined ? order.arrived_by : data.arrived_by,
-                arrived_remark: data.arrived_remark === undefined ? order.arrived_remark : normalizeOrderRemark(data.arrived_remark),
-                stocked_in_at: normalizeNullableDate(data.stocked_in_at, order.stocked_in_at),
-                stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
-                stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark)
-            };
+            const nextOrderValues = buildNextOrderValues({
+                order,
+                data,
+                context,
+                nextDedupeKey,
+            });
             await order.update(nextOrderValues, { transaction });
 
             if (data.created_at !== undefined) {
@@ -631,27 +532,15 @@ class OrderService {
             if (!order) throw new Error('Order not found');
 
             assertOrderReadyForStockIn(order, normalizeStatus, InvalidStatusTransitionError);
-
-            const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
-                inventoryReceiptService: inventoryReceiptService,
+            const nextOrderValues = await resolveStockInOrderUpdate(order, data, transaction, {
+                inventoryReceiptService,
                 MissingMaterialError,
-            });
-
-            const updatesByOrderItemId = await syncStockInReceiptItems(order, receiptItems, transaction, {
                 resolveOrderedQuantity,
                 ReceivedQuantityExceededError,
+                normalizeOrderRemark,
             });
 
-            const allReceived = areAllOrderItemsReceived(
-                order.items,
-                updatesByOrderItemId,
-                resolveOrderedQuantity
-            );
-
-            await order.update(
-                buildStockInOrderUpdate(order, data, allReceived, normalizeOrderRemark),
-                { transaction }
-            );
+            await order.update(nextOrderValues, { transaction });
 
             await transaction.commit();
             return await this.getOrderById(id);
