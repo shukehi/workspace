@@ -6,8 +6,19 @@ import {
   normalizeLockMappingKey,
 } from '@/services/mappings';
 
-type OrderItem = Record<string, any>;
-type GenericMap = Record<string, any>;
+type LockOrderItem = {
+  qty?: string | number | null;
+  spec?: string | null;
+  sj?: unknown;
+  fssj?: unknown;
+};
+
+type LockOrderInfo = Record<string, unknown>;
+type LockMappingConfig = Record<string, unknown> & {
+  defaultUnit?: unknown;
+  primaryLabel?: unknown;
+  secondaryLabel?: unknown;
+};
 
 type LockResultRow = {
   supplier: string;
@@ -37,7 +48,8 @@ function mergeRuleNames(current: string[], incoming: string[]): string[] {
  * - 主锁读取 `sj`，副锁读取 `fssj`
  * - 最小可用版本按 `供应商 + 型号 + 主/副锁 + 备注` 聚合
  */
-export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = {}, LOCK_MAPPING: GenericMap = {}): LockResultRow[] {
+export function extractLockData(orderList: LockOrderItem[], orderInfo: LockOrderInfo = {}, LOCK_MAPPING: LockMappingConfig = {}): LockResultRow[] {
+  void orderInfo;
   const lockMap: Record<string, LockResultRow> = {};
   const adaptedLockMapping = adaptLockMapping(LOCK_MAPPING);
   const unmatchedSupplier = '待人工处理';
@@ -55,9 +67,9 @@ export function extractLockData(orderList: OrderItem[], orderInfo: GenericMap = 
 
   const buildRemark = (extraRemark = '') => String(extraRemark || '').trim();
 
-  const resolveLockQtyPair = (item: OrderItem) => {
+  const resolveLockQtyPair = (item: Pick<LockOrderItem, 'qty' | 'spec'>) => {
     const qtyPair = parseQuantityPair(item.qty);
-    const openDirection = parseOpenDirectionSegment(item?.spec);
+    const openDirection = parseOpenDirectionSegment(item.spec);
     if (!openDirection.includes('内开')) {
       return qtyPair;
     }

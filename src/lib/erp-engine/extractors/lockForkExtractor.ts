@@ -12,8 +12,31 @@ import {
     resolveLockForkDimensionRuleWithRules,
 } from '@/services/mappings';
 
-type OrderItem = Record<string, any>;
-type GenericMap = Record<string, any>;
+type LockForkOrderItem = {
+    spec?: string | null;
+    qty?: string | number | null;
+    mshd?: unknown;
+    xsbz?: unknown;
+    mb?: unknown;
+    sj?: unknown;
+    fssj?: unknown;
+    sc?: unknown;
+};
+
+type LockForkOrderInfo = Record<string, unknown>;
+type LockForkConfig = Record<string, unknown>;
+
+type LockForkTypeConfig = {
+    nameModifier?: string;
+    [key: string]: unknown;
+};
+
+type RuleDetectionResult<T> = {
+    value: T;
+    matchedRules: string[];
+    winningRules: string[];
+};
+
 type LockForkResultRow = {
     supplier: string;
     type: string;
@@ -30,7 +53,7 @@ function applyP66BaseDimensionOverride(
     thickness: string,
     source: 'base' | 'high_height' | 'fallback_7' | undefined,
     selectedVariant: 'standard' | 'withHangingFeet' | undefined,
-    lockTypeConfig: GenericMap | null,
+    lockTypeConfig: LockForkTypeConfig | null,
 ): LockForkDimensionGroup | null {
     if (!dimensions) return null;
     if (lockTypeConfig?.nameModifier !== 'P66') return dimensions;
@@ -89,9 +112,8 @@ function mergeRuleNames(current: string[], incoming: string[]): string[] {
  * @param {Object} orderInfo - 订单汇总信息
  * @param {Object} LOCK_FORK_MAPPING - 注入的配置
  */
-export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMap = {}, LOCK_FORK_MAPPING: GenericMap = {}): LockForkResultRow[] {
-    // 动态加载配置
-    // const { LOCK_FORK_MAPPING } = await import('../config/index.js');
+export function extractLockForkData(orderList: LockForkOrderItem[], orderInfo: LockForkOrderInfo = {}, LOCK_FORK_MAPPING: LockForkConfig = {}): LockForkResultRow[] {
+    void orderInfo;
     const lockForkMap: Record<string, LockForkResultRow> = {};
     const adaptedLockForkMapping = adaptLockForkMapping(LOCK_FORK_MAPPING);
     const lockForkTypeRuleSet = adaptLockForkTypeRulesToRuleSet(adaptedLockForkMapping);
@@ -99,8 +121,8 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
     const lockForkHangingFeetRuleSet = adaptLockForkHangingFeetRulesToRuleSet(adaptedLockForkMapping);
     const lockForkFlatBottomRuleSet = adaptLockForkFlatBottomRulesToRuleSet();
 
-    const parseOpenDirection = (spec: unknown): '内开' | '外开' | '' => {
-        if (!spec || typeof spec !== 'string') return '';
+    const parseOpenDirection = (spec: string | null | undefined): '内开' | '外开' | '' => {
+        if (!spec) return '';
         const parts = spec.split('/');
         if (parts.length < 3) return '';
         const directionPart = parts[2];
@@ -109,17 +131,16 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         return '';
     };
 
-    const shouldSkipTEdgeModifier = (item: OrderItem, edgeModifier: string | null): boolean => {
+    const shouldSkipTEdgeModifier = (item: Pick<LockForkOrderItem, 'mshd' | 'spec' | 'mb'>, edgeModifier: string | null): boolean => {
         if (edgeModifier !== 'T型') return false;
-        if (String((item as any)?.mshd || '').trim() !== '10') return false;
-        if (parseOpenDirection(item.spec) !== '内开') return false;
+        if (String(item.mshd || '').trim() !== '10') return false;
+        if (parseOpenDirection(item.spec || undefined) !== '内开') return false;
 
         const mb = String(item.mb || '').trim();
         return mb.includes('T型铝材边');
     };
 
-    // 助手：检测吊脚
-    const detectHangingFeet = (xsbz: unknown): { value: number | null; matchedRules: string[]; winningRules: string[] } => {
+    const detectHangingFeet = (xsbz: unknown): RuleDetectionResult<number | null> => {
         if (!xsbz || typeof xsbz !== 'string') {
             return { value: null, matchedRules: [], winningRules: [] };
         }
@@ -152,8 +173,7 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         };
     };
 
-    // 助手：检测平下档
-    const detectFlatBottomRail = (xsbz: unknown): { value: string | null; matchedRules: string[]; winningRules: string[] } => {
+    const detectFlatBottomRail = (xsbz: unknown): RuleDetectionResult<string | null> => {
         if (!xsbz || typeof xsbz !== 'string') {
             return { value: null, matchedRules: [], winningRules: [] };
         }
@@ -177,21 +197,19 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         };
     };
 
-    // 助手：检测边型
-    const detectEdgeType = (mb: unknown): { nameModifier: string | null; matchedRules: string[]; winningRules: string[] } => {
+    const detectEdgeType = (mb: unknown): RuleDetectionResult<string | null> => {
         const execution = executeRuleSet(lockForkEdgeTypeRuleSet, {
             mb: typeof mb === 'string' ? mb.trim() : '',
         });
 
         return {
-            nameModifier: String(execution.output.extra?.nameModifier || '').trim() || null,
+            value: String(execution.output.extra?.nameModifier || '').trim() || null,
             matchedRules: execution.matchedRules,
             winningRules: execution.winningRules,
         };
     };
 
-    // 助手：检测锁具类型
-    const detectLockType = (sj: unknown, fssj: unknown): { config: GenericMap | null; matchedRules: string[]; winningRules: string[] } => {
+    const detectLockType = (sj: unknown, fssj: unknown): { config: LockForkTypeConfig | null; matchedRules: string[]; winningRules: string[] } => {
         const execution = executeRuleSet(lockForkTypeRuleSet, {
             sj: typeof sj === 'string' ? sj.trim() : '',
             fssj: typeof fssj === 'string' ? fssj.trim() : '',
@@ -214,20 +232,15 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
     };
 
     orderList.forEach((item) => {
-        // 跳过没有锁叉的订单
         if (!item.sc || item.sc === '-' || item.sc === '无') return;
 
-        // 1. 提取基础属性
-        const parts = (item.spec || '').split('/');
+        const parts = String(item.spec || '').split('/');
         const specThickness = parts.length >= 2 ? parts[1].trim() : '';
-        const rawThickness = String((item as any)?.mshd || '').trim();
-        // `spec` is the visible contract thickness and should win when fixture or source rows are partially edited.
-        let thickness = specThickness || rawThickness || '7';
+        const rawThickness = String(item.mshd || '').trim();
+        const thickness = specThickness || rawThickness || '7';
 
-        // 2. 解析门高
         const doorHeight = parseHeight(item.spec);
 
-        // 3. 检测平下档和吊脚（互斥）
         const flatBottomRailResult = detectFlatBottomRail(item.xsbz);
         const flatBottomRail = flatBottomRailResult.value;
         const hasFlatBottomRail = flatBottomRail !== null;
@@ -241,7 +254,6 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             ? (adaptedLockForkMapping.hangingFeet?.standard || 35) - hangingFeetValue
             : 0;
 
-        // 4. 获取基础尺寸
         const {
             dimensions,
             heightReference,
@@ -269,14 +281,8 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             return;
         }
 
-        if (!dimensions) {
-            console.warn(`⚠️ 未找到门厚 ${thickness}cm 对应的锁叉尺寸配置`);
-            return;
-        }
-
-        // 5. 检测边型和锁具类型
         const edgeTypeResult = detectEdgeType(item.mb);
-        const rawEdgeModifier = edgeTypeResult.nameModifier;
+        const rawEdgeModifier = edgeTypeResult.value;
         const edgeModifier = shouldSkipTEdgeModifier(item, rawEdgeModifier)
             ? null
             : rawEdgeModifier;
@@ -309,26 +315,9 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             dimensionWinningRules,
         );
 
-
-        // 6. 构建锁叉名称
-        let lockForkName = item.sc;
-
-        // 添加边型修饰符
+        let baseName = String(item.sc || '');
         if (edgeModifier) {
-            lockForkName = `${lockForkName} ${edgeModifier}`;
-        }
-
-        // 添加锁具类型修饰符
-        if (lockTypeConfig?.nameModifier) {
-            lockForkName = `${lockForkName} ${lockTypeConfig.nameModifier}`;
-        }
-
-        // 8. 构建锁叉名称（基础部分）
-        let baseName = item.sc; // 如 "单头锁叉"
-
-        // 添加边型修饰符（如果有）
-        if (edgeModifier) {
-            baseName = `${baseName} ${edgeModifier}`; // "单头锁叉 T型"
+            baseName = `${baseName} ${edgeModifier}`;
         }
 
         const qtyPair = parseQuantityPair(item.qty);
@@ -346,11 +335,9 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
             lockTypeConfig,
         });
         const [upperRow, lowerRow] = derived.rows;
-        const remarkText = derived.remark;
 
-        // 11. 生成上头和下头两条记录
-        const upperKey = `${upperRow.type}|${upperRow.spec}|${remarkText}`;
-        const lowerKey = `${lowerRow.type}|${lowerRow.spec}|${remarkText}`;
+        const upperKey = `${upperRow.type}|${upperRow.spec}|${derived.remark}`;
+        const lowerKey = `${lowerRow.type}|${lowerRow.spec}|${derived.remark}`;
 
         if (lockForkMap[upperKey]) {
             lockForkMap[upperKey].quantity += totalQty;
@@ -385,6 +372,5 @@ export function extractLockForkData(orderList: OrderItem[], orderInfo: GenericMa
         }
     });
 
-    const result = Object.values(lockForkMap);
-    return result;
+    return Object.values(lockForkMap);
 }
