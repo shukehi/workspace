@@ -8,6 +8,8 @@ import { useInventoryOutboundState } from '@/features/inventory/composables/useI
 import { useInventoryLocationState } from '@/features/inventory/composables/useInventoryLocationState';
 import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
+import InventoryStockTab from '@/features/inventory/components/InventoryStockTab.vue';
+import InventoryReceiptsTab from '@/features/inventory/components/InventoryReceiptsTab.vue';
 import InventoryOutboundsTab from '@/features/inventory/components/InventoryOutboundsTab.vue';
 import InventoryLocationsTab from '@/features/inventory/components/InventoryLocationsTab.vue';
 import DataTable from '@/components/data-table/DataTable.vue';
@@ -23,7 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Download, Package, RefreshCcw, Search, ScrollText, Send } from 'lucide-vue-next';
+import { Download, RefreshCcw } from 'lucide-vue-next';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import type { InventoryItem, InventoryLocation, InventoryMovement, InventoryOutbound, InventoryReceipt } from '@/types/inventory';
 
@@ -388,280 +390,62 @@ onMounted(() => {
       </TabsList>
 
       <TabsContent value="inventory" class="flex-1 min-h-0 flex flex-col gap-4 mt-4 data-[state=active]:flex">
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">总物料数</CardTitle>
-              <Package class="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ store.items.length }}</div>
-              <p class="text-xs text-muted-foreground mt-1">SKU 统计量</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">低水位预警</CardTitle>
-              <AlertCircle class="h-4 w-4 text-rose-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold" :class="{ 'text-rose-600': store.lowStockItems.length > 0 }">{{ store.lowStockItems.length }}</div>
-              <p class="text-xs text-muted-foreground mt-1">低于安全库存(需补货)</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">启用库位</CardTitle>
-              <MapPin class="h-4 w-4 text-cyan-600" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ store.activeLocations.length }}</div>
-              <p class="text-xs text-muted-foreground mt-1">当前可用库位</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">已选出库物料</CardTitle>
-              <Send class="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ selectedInventoryRows.length }}</div>
-              <p class="text-xs text-muted-foreground mt-1">用于批量登记出库</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">对账异常物料</CardTitle>
-              <AlertCircle class="h-4 w-4 text-rose-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold" :class="{ 'text-rose-600': reconciliationSummary.mismatchedCount > 0 }">
-                {{ reconciliationSummary.mismatchedCount }}
-              </div>
-              <p class="text-xs text-muted-foreground mt-1">总库存与库位汇总不一致</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">累计差异量</CardTitle>
-              <ScrollText class="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold" :class="{ 'text-amber-600': reconciliationSummary.totalAbsoluteDiff > 0 }">
-                {{ reconciliationSummary.totalAbsoluteDiff }}
-              </div>
-              <p class="text-xs text-muted-foreground mt-1">按绝对值汇总的库存差异</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardContent class="p-4 flex flex-col gap-4">
-            <div class="flex flex-wrap gap-1 rounded-md border bg-background p-1 w-fit">
-              <button
-                v-for="cat in categories"
-                :key="cat.id"
-                @click="activeCategory = cat.id"
-                class="px-3 py-1.5 text-sm rounded-sm transition-colors"
-                :class="activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
-              >
-                {{ cat.label }}
-              </button>
-            </div>
-
-            <div class="grid gap-3 lg:grid-cols-[1.1fr_1.1fr_1.4fr_auto_auto_auto]">
-              <select v-model="selectedWarehouseFilter" class="h-10 rounded-md border bg-background px-3 text-sm">
-                <option value="">全部仓库</option>
-                <option v-for="warehouse in store.warehouses" :key="warehouse.id" :value="String(warehouse.id)">
-                  {{ warehouse.name }}
-                </option>
-              </select>
-              <select v-model="selectedLocationFilter" class="h-10 rounded-md border bg-background px-3 text-sm">
-                <option value="">全部库位</option>
-                <option v-for="location in availableInventoryLocations" :key="location.id" :value="String(location.id)">
-                  {{ location.name }} ({{ location.code }})
-                </option>
-              </select>
-              <div class="relative">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="inventory-search"
-                  aria-label="搜索物料"
-                  v-model="searchQuery"
-                  placeholder="搜索物料型号、供应商、编码..."
-                  class="pl-10"
-                />
-              </div>
-              <Button variant="outline" @click="lowStockOnly = !lowStockOnly">
-                {{ lowStockOnly ? '仅看全部库存' : '仅看低库存' }}
-              </Button>
-              <Button variant="outline" @click="reconciliationOnly = !reconciliationOnly">
-                {{ reconciliationOnly ? '显示全部库存' : '仅看对账异常' }}
-              </Button>
-              <Button variant="outline" @click="handleExportReconciliation">
-                导出对账异常
-              </Button>
-              <Button @click="openOutboundDialog">
-                <Send class="w-4 h-4 mr-2" />
-                出库登记
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card class="flex-1 min-h-0">
-          <CardContent class="p-4 h-full overflow-auto">
-            <DataTable
-              ref="inventoryTableRef"
-              :columns="inventoryColumns"
-              :data="filteredItems"
-              :loading="store.loading"
-              :enable-selection="true"
-              :toolbar="false"
-              density="compact"
-              @selection-change="selectedInventoryRows = $event"
-            />
-          </CardContent>
-        </Card>
+        <InventoryStockTab
+          :total-items="store.items.length"
+          :low-stock-count="store.lowStockItems.length"
+          :active-locations-count="store.activeLocations.length"
+          :selected-inventory-rows-count="selectedInventoryRows.length"
+          :reconciliation-summary="reconciliationSummary"
+          :categories="categories"
+          :active-category="activeCategory"
+          :warehouses="store.warehouses"
+          :available-locations="availableInventoryLocations"
+          :selected-warehouse-filter="selectedWarehouseFilter"
+          :selected-location-filter="selectedLocationFilter"
+          :search-query="searchQuery"
+          :low-stock-only="lowStockOnly"
+          :reconciliation-only="reconciliationOnly"
+          :columns="inventoryColumns"
+          :rows="filteredItems"
+          :loading="store.loading"
+          @update:active-category="activeCategory = $event"
+          @update:selected-warehouse-filter="selectedWarehouseFilter = $event"
+          @update:selected-location-filter="selectedLocationFilter = $event"
+          @update:search-query="searchQuery = $event"
+          @update:low-stock-only="lowStockOnly = $event"
+          @update:reconciliation-only="reconciliationOnly = $event"
+          @selection-change="selectedInventoryRows = $event"
+          @export-reconciliation="handleExportReconciliation"
+          @open-outbound-dialog="openOutboundDialog"
+        />
       </TabsContent>
 
       <TabsContent value="receipts" class="flex-1 min-h-0 flex flex-col gap-4 mt-4 data-[state=active]:flex">
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">记录总数</CardTitle>
-              <ScrollText class="h-4 w-4 text-cyan-600" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ receiptSummary.count }}</div>
-              <p class="text-xs text-muted-foreground mt-1">当前筛选记录数</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">涉及订单数</CardTitle>
-              <Package class="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ receiptSummary.uniqueOrders }}</div>
-              <p class="text-xs text-muted-foreground mt-1">覆盖的采购订单</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">累计入库</CardTitle>
-              <Package class="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ receiptSummary.totalQuantity }}</div>
-              <p class="text-xs text-muted-foreground mt-1">总计入库数量</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">净入库</CardTitle>
-              <Package class="h-4 w-4 text-sky-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ receiptSummary.netQuantity }}</div>
-              <p class="text-xs text-muted-foreground mt-1">扣除撤销后净值</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">最近入库</CardTitle>
-              <ScrollText class="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ receiptSummary.latestReceiptDate }}</div>
-              <p class="text-xs text-muted-foreground mt-1">按当前筛选结果</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card class="flex-1 min-h-0">
-          <CardHeader class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-4">
-            <div class="flex flex-col md:flex-row gap-2 w-full">
-              <div class="relative w-full md:w-64 shrink-0">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="receipt-search"
-                  aria-label="搜索订单号、物料、操作人"
-                  v-model="receiptSearchQuery"
-                  placeholder="搜索物料、操作人..."
-                  class="pl-10"
-                />
-              </div>
-              <div class="flex gap-2 flex-wrap flex-1 items-center">
-                <Input
-                  id="receipt-order-filter"
-                  aria-label="按订单号筛选"
-                  v-model="receiptOrderFilter"
-                  placeholder="按订单号筛选"
-                  class="w-full md:w-48"
-                />
-                <select id="receipt-direction-filter" aria-label="入库方向" v-model="receiptDirectionFilter" class="rounded-md border bg-background px-3 py-2 text-sm">
-                  <option value="ALL">全部方向</option>
-                  <option value="in">仅入库</option>
-                  <option value="reversal">仅撤销</option>
-                </select>
-                <select id="reverse-reason-filter" aria-label="撤销原因" v-model="reverseReasonFilter" class="rounded-md border bg-background px-3 py-2 text-sm">
-                  <option v-for="option in availableReverseReasonOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
-                <Button variant="outline" @click="handleExportReceipts">
-                  <Download class="w-4 h-4 mr-2" />
-                  导出
-                </Button>
-                <Button variant="outline" @click="clearReceiptOrderFilter" :disabled="!receiptOrderFilter && !receiptSearchQuery && receiptDirectionFilter === 'ALL' && reverseReasonFilter === 'ALL'">
-                  清空筛选
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent class="p-4 pt-0 h-full overflow-auto flex flex-col min-h-[300px]">
-            <p v-if="route.query.orderNo" class="text-xs text-cyan-700 bg-cyan-50 border border-cyan-200 rounded px-3 py-2 mb-3">
-              当前按采购订单 <span class="font-semibold">{{ route.query.orderNo }}</span> 定位入库记录
-            </p>
-            <div class="flex-1 min-h-0">
-              <DataTable
-                :columns="receiptColumns"
-                :data="filteredReceipts"
-                :loading="store.receiptsLoading"
-                density="compact"
-                empty-text="暂无采购入库记录"
-              />
-            </div>
-            <div class="mt-3 flex items-center justify-between text-xs text-muted-foreground shrink-0">
-              <div>
-                页码 {{ store.receiptsPage }} / {{ receiptTotalPages }}，共 {{ store.receiptsTotal }} 条
-              </div>
-              <div class="flex items-center gap-2">
-                <select id="receipt-page-size" aria-label="每页条数" v-model="receiptPageSize" class="rounded-md border bg-background px-2 py-1 text-xs">
-                  <option :value="20">20 / 页</option>
-                  <option :value="50">50 / 页</option>
-                  <option :value="100">100 / 页</option>
-                </select>
-                <Button variant="outline" size="sm" :disabled="store.receiptsPage <= 1 || store.receiptsLoading" @click="prevReceiptPage">
-                  上一页
-                </Button>
-                <Button variant="outline" size="sm" :disabled="store.receiptsPage >= receiptTotalPages || store.receiptsLoading" @click="nextReceiptPage">
-                  下一页
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <InventoryReceiptsTab
+          :summary="receiptSummary"
+          :receipt-search-query="receiptSearchQuery"
+          :receipt-order-filter="receiptOrderFilter"
+          :receipt-direction-filter="receiptDirectionFilter"
+          :reverse-reason-filter="reverseReasonFilter"
+          :available-reverse-reason-options="availableReverseReasonOptions"
+          :columns="receiptColumns"
+          :rows="filteredReceipts"
+          :loading="store.receiptsLoading"
+          :page="store.receiptsPage"
+          :total-pages="receiptTotalPages"
+          :total="store.receiptsTotal"
+          :page-size="receiptPageSize"
+          :order-no-query="String(route.query.orderNo || '')"
+          @update:receipt-search-query="receiptSearchQuery = $event"
+          @update:receipt-order-filter="receiptOrderFilter = $event"
+          @update:receipt-direction-filter="receiptDirectionFilter = $event as 'ALL' | 'in' | 'reversal'"
+          @update:reverse-reason-filter="reverseReasonFilter = $event"
+          @update:receipt-page-size="receiptPageSize = $event"
+          @export="handleExportReceipts"
+          @clear-filters="clearReceiptOrderFilter"
+          @prev-page="prevReceiptPage"
+          @next-page="nextReceiptPage"
+        />
       </TabsContent>
 
       <TabsContent value="outbounds" class="flex-1 min-h-0 flex flex-col gap-4 mt-4 data-[state=active]:flex">
