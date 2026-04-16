@@ -26,6 +26,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const locationDialog = read('src/components/inventory/InventoryLocationDialog.vue');
   const router = read('src/router/index.ts');
   const detailView = read('src/views/InventoryReceiptDetail.vue');
+  const queryBuilders = read('src/features/inventory/inventoryQueryBuilders.ts');
+  const csvExports = read('src/features/inventory/inventoryCsvExports.ts');
 
   assert.match(view, /采购入库记录/);
   assert.match(view, /正式出库记录/);
@@ -219,17 +221,17 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(locationDialog, /:disabled="warehouseLocked"/);
   assert.match(locationDialog, /已建库位不允许更换所属仓库/);
   assert.match(store, /const pageSize = 200/);
-  assert.match(store, /function appendIfPresent/);
-  assert.match(store, /appendIfPresent\(query, 'keyword'/);
-  assert.match(store, /appendIfPresent\(query, 'direction'/);
-  assert.match(store, /appendIfPresent\(query, 'reverseReason'/);
+  assert.match(queryBuilders, /function appendIfPresent/);
+  assert.match(queryBuilders, /appendIfPresent\(query, 'keyword'/);
+  assert.match(queryBuilders, /appendIfPresent\(query, 'direction'/);
+  assert.match(queryBuilders, /appendIfPresent\(query, 'reverseReason'/);
   assert.match(store, /async function reverseReceipt/);
-  assert.match(store, /function exportReceiptsToCSV/);
-  assert.match(store, /function exportInventoryToCSV/);
-  assert.match(store, /function exportReconciliationToCSV/);
-  assert.match(store, /function exportOutboundsToCSV/);
-  assert.match(store, /方向/);
-  assert.match(store, /剩余可撤销/);
+  assert.match(csvExports, /function exportReceiptsToCSV/);
+  assert.match(csvExports, /function exportInventoryToCSV/);
+  assert.match(csvExports, /function exportReconciliationToCSV/);
+  assert.match(csvExports, /function exportOutboundsToCSV/);
+  assert.match(csvExports, /方向/);
+  assert.match(csvExports, /剩余可撤销/);
   assert.match(store, /receipts\.value = \[\]/);
   assert.match(columns, /header:\s*'入库日期'/);
   assert.match(columns, /header:\s*'订单号'/);
