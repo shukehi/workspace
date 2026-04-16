@@ -14,6 +14,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const pageState = read('src/features/inventory/composables/useInventoryPageState.ts');
   const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
   const locationState = read('src/features/inventory/composables/useInventoryLocationState.ts');
+  const outboundsTab = read('src/features/inventory/components/InventoryOutboundsTab.vue');
+  const locationsTab = read('src/features/inventory/components/InventoryLocationsTab.vue');
   const receiptFlow = read('src/features/inventory/composables/useInventoryReceiptFlow.ts');
   const routeState = read('src/features/inventory/composables/useInventoryReceiptRouteState.ts');
   const columns = read('src/components/inventory/InventoryReceiptColumns.ts');
@@ -26,6 +28,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /库位管理/);
   assert.match(view, /InventoryOutboundDialog/);
   assert.match(view, /InventoryLocationDialog/);
+  assert.match(view, /InventoryOutboundsTab/);
+  assert.match(view, /InventoryLocationsTab/);
   assert.match(view, /selectedInventoryRows/);
   assert.match(view, /selectedMovementItem/);
   assert.match(view, /outboundDialogOpen/);
@@ -41,7 +45,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /对账异常物料/);
   assert.match(view, /累计差异量/);
   assert.match(view, /仅看对账异常/);
-  assert.match(view, /新建库位/);
   assert.match(view, /确认冲销/);
   assert.match(view, /receiptSearchQuery/);
   assert.match(view, /receiptOrderFilter/);
@@ -77,7 +80,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /当前按采购订单/);
   assert.match(view, /导出库位余额/);
   assert.match(view, /导出对账异常/);
-  assert.match(view, /导出出库记录/);
   assert.match(view, /全部方向/);
   assert.match(view, /仅入库/);
   assert.match(view, /仅撤销/);
@@ -131,10 +133,23 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /async function handleSubmitOutbound/);
   assert.match(outboundState, /async function confirmReverseOutbound/);
   assert.match(outboundState, /function handleExportOutbounds/);
+  assert.match(outboundsTab, /出库单数/);
+  assert.match(outboundsTab, /涉及库位/);
+  assert.match(outboundsTab, /累计出库/);
+  assert.match(outboundsTab, /净出库/);
+  assert.match(outboundsTab, /暂无正式出库记录/);
+  assert.match(outboundsTab, /清空筛选/);
+  assert.match(outboundsTab, /上一页/);
+  assert.match(outboundsTab, /下一页/);
   assert.match(locationState, /const locationDialogOpen = ref/);
   assert.match(locationState, /async function handleLocationSubmit/);
   assert.match(locationState, /fetchInventoryLocations/);
   assert.match(locationState, /function openCreateLocationDialog/);
+  assert.match(locationsTab, /仓库数/);
+  assert.match(locationsTab, /全部库位/);
+  assert.match(locationsTab, /启用库位/);
+  assert.match(locationsTab, /新建库位/);
+  assert.match(locationsTab, /暂无库位配置/);
   assert.match(receiptFlow, /requestReverseReceipt/);
   assert.match(receiptFlow, /confirmReverseReceipt/);
   assert.match(receiptFlow, /openReceiptAudit/);

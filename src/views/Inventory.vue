@@ -8,6 +8,8 @@ import { useInventoryOutboundState } from '@/features/inventory/composables/useI
 import { useInventoryLocationState } from '@/features/inventory/composables/useInventoryLocationState';
 import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
+import InventoryOutboundsTab from '@/features/inventory/components/InventoryOutboundsTab.vue';
+import InventoryLocationsTab from '@/features/inventory/components/InventoryLocationsTab.vue';
 import DataTable from '@/components/data-table/DataTable.vue';
 import { createInventoryColumns } from '@/components/inventory/InventoryColumns';
 import { createInventoryReceiptColumns } from '@/components/inventory/InventoryReceiptColumns';
@@ -21,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Download, MapPin, Package, RefreshCcw, Search, ScrollText, Send, Warehouse } from 'lucide-vue-next';
+import { AlertCircle, Download, Package, RefreshCcw, Search, ScrollText, Send } from 'lucide-vue-next';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import type { InventoryItem, InventoryLocation, InventoryMovement, InventoryOutbound, InventoryReceipt } from '@/types/inventory';
 
@@ -663,171 +665,50 @@ onMounted(() => {
       </TabsContent>
 
       <TabsContent value="outbounds" class="flex-1 min-h-0 flex flex-col gap-4 mt-4 data-[state=active]:flex">
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">出库单数</CardTitle>
-              <Send class="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ outboundSummary.totalCount }}</div>
-              <p class="text-xs text-muted-foreground mt-1">含冲销记录</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">涉及库位</CardTitle>
-              <MapPin class="h-4 w-4 text-cyan-600" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ outboundSummary.totalLocations }}</div>
-              <p class="text-xs text-muted-foreground mt-1">当前结果覆盖库位</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">累计出库</CardTitle>
-              <Package class="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ outboundSummary.totalIssuedQuantity }}</div>
-              <p class="text-xs text-muted-foreground mt-1">不含冲销回补</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">净出库</CardTitle>
-              <Package class="h-4 w-4 text-rose-500" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ outboundSummary.netQuantity }}</div>
-              <p class="text-xs text-muted-foreground mt-1">扣除冲销后的净值</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card class="flex-1 min-h-0">
-          <CardHeader class="flex flex-col gap-3">
-            <div class="grid gap-3 lg:grid-cols-[1fr_1.2fr_1fr_1fr_1fr]">
-              <Input v-model="outboundNoFilter" placeholder="按出库单号筛选" />
-              <div class="relative">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input v-model="outboundKeyword" placeholder="搜索物料、用途、库位..." class="pl-10" />
-              </div>
-              <Input v-model="outboundOperatorFilter" placeholder="按操作人筛选" />
-              <select v-model="outboundWarehouseFilter" class="h-10 rounded-md border bg-background px-3 text-sm">
-                <option value="">全部仓库</option>
-                <option v-for="warehouse in store.warehouses" :key="warehouse.id" :value="String(warehouse.id)">
-                  {{ warehouse.name }}
-                </option>
-              </select>
-              <select v-model="outboundLocationFilter" class="h-10 rounded-md border bg-background px-3 text-sm">
-                <option value="">全部库位</option>
-                <option v-for="location in availableOutboundLocations" :key="location.id" :value="String(location.id)">
-                  {{ location.name }} ({{ location.code }})
-                </option>
-              </select>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <Input v-model="outboundStartDate" type="date" class="w-full md:w-[180px]" />
-              <Input v-model="outboundEndDate" type="date" class="w-full md:w-[180px]" />
-              <Button variant="outline" @click="outboundNoFilter = ''; outboundKeyword = ''; outboundOperatorFilter = ''; outboundWarehouseFilter = ''; outboundLocationFilter = ''; outboundStartDate = ''; outboundEndDate = ''; outboundPage = 1;">
-                清空筛选
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent class="p-4 pt-0 h-full overflow-auto flex flex-col min-h-[300px]">
-            <div class="flex-1 min-h-0">
-              <DataTable
-                :columns="outboundColumns"
-                :data="store.sortedOutbounds"
-                :loading="store.outboundsLoading"
-                density="compact"
-                empty-text="暂无正式出库记录"
-              />
-            </div>
-            <div class="mt-3 flex items-center justify-between text-xs text-muted-foreground shrink-0">
-              <div>
-                页码 {{ store.outboundsPage }} / {{ outboundTotalPages }}，共 {{ store.outboundsTotal }} 条
-              </div>
-              <div class="flex items-center gap-2">
-                <select v-model="outboundPageSize" class="rounded-md border bg-background px-2 py-1 text-xs">
-                  <option :value="20">20 / 页</option>
-                  <option :value="50">50 / 页</option>
-                  <option :value="100">100 / 页</option>
-                </select>
-                <Button variant="outline" size="sm" :disabled="store.outboundsPage <= 1 || store.outboundsLoading" @click="prevOutboundPage">
-                  上一页
-                </Button>
-                <Button variant="outline" size="sm" :disabled="store.outboundsPage >= outboundTotalPages || store.outboundsLoading" @click="nextOutboundPage">
-                  下一页
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <InventoryOutboundsTab
+          :summary="outboundSummary"
+          :warehouses="store.warehouses"
+          :available-locations="availableOutboundLocations"
+          :outbound-no-filter="outboundNoFilter"
+          :outbound-keyword="outboundKeyword"
+          :outbound-operator-filter="outboundOperatorFilter"
+          :outbound-warehouse-filter="outboundWarehouseFilter"
+          :outbound-location-filter="outboundLocationFilter"
+          :outbound-start-date="outboundStartDate"
+          :outbound-end-date="outboundEndDate"
+          :outbound-page-size="outboundPageSize"
+          :outbound-total-pages="outboundTotalPages"
+          :columns="outboundColumns"
+          :rows="store.sortedOutbounds"
+          :loading="store.outboundsLoading"
+          :page="store.outboundsPage"
+          :total="store.outboundsTotal"
+          @update:outbound-no-filter="outboundNoFilter = $event"
+          @update:outbound-keyword="outboundKeyword = $event"
+          @update:outbound-operator-filter="outboundOperatorFilter = $event"
+          @update:outbound-warehouse-filter="outboundWarehouseFilter = $event"
+          @update:outbound-location-filter="outboundLocationFilter = $event"
+          @update:outbound-start-date="outboundStartDate = $event"
+          @update:outbound-end-date="outboundEndDate = $event"
+          @update:outbound-page-size="outboundPageSize = $event"
+          @clear-filters="outboundNoFilter = ''; outboundKeyword = ''; outboundOperatorFilter = ''; outboundWarehouseFilter = ''; outboundLocationFilter = ''; outboundStartDate = ''; outboundEndDate = ''; outboundPage = 1;"
+          @prev-page="prevOutboundPage"
+          @next-page="nextOutboundPage"
+        />
       </TabsContent>
 
       <TabsContent value="locations" class="flex-1 min-h-0 flex flex-col gap-4 mt-4 data-[state=active]:flex">
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">仓库数</CardTitle>
-              <Warehouse class="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ store.warehouses.length }}</div>
-              <p class="text-xs text-muted-foreground mt-1">结构预留多仓扩展</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">全部库位</CardTitle>
-              <MapPin class="h-4 w-4 text-cyan-600" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ store.locations.length }}</div>
-              <p class="text-xs text-muted-foreground mt-1">含停用库位</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle class="text-xs text-muted-foreground">启用库位</CardTitle>
-              <MapPin class="h-4 w-4 text-emerald-600" />
-            </CardHeader>
-            <CardContent>
-              <div class="text-2xl font-semibold">{{ store.activeLocations.length }}</div>
-              <p class="text-xs text-muted-foreground mt-1">当前可用于入库/出库</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card class="flex-1 min-h-0">
-          <CardHeader class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div class="relative w-full md:w-[320px]">
-              <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input v-model="locationSearchQuery" placeholder="搜索仓库、库位编码或备注..." class="pl-10" />
-            </div>
-            <Button @click="openCreateLocationDialog">
-              <MapPin class="w-4 h-4 mr-2" />
-              新建库位
-            </Button>
-          </CardHeader>
-          <CardContent class="p-4 pt-0 h-full overflow-auto">
-            <DataTable
-              :columns="locationColumns"
-              :data="filteredLocations"
-              :loading="store.locationsLoading"
-              density="compact"
-              empty-text="暂无库位配置"
-            />
-          </CardContent>
-        </Card>
+        <InventoryLocationsTab
+          :warehouse-count="store.warehouses.length"
+          :locations-count="store.locations.length"
+          :active-locations-count="store.activeLocations.length"
+          :location-search-query="locationSearchQuery"
+          :columns="locationColumns"
+          :rows="filteredLocations"
+          :loading="store.locationsLoading"
+          @update:location-search-query="locationSearchQuery = $event"
+          @create-location="openCreateLocationDialog"
+        />
       </TabsContent>
     </Tabs>
 
