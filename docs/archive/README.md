@@ -9,6 +9,7 @@
 - `roadmaps/`：历史路线图、旧阶段清单、退场计划
 - `progress/`：历史阶段进度、旧 smoke/checklist、迁移批次记录
 - `backend-ts/`：后端 TypeScript 迁移与后端架构优化相关历史材料
+- `domain/`：历史领域说明、旧规则笔记与问题背景材料
 
 使用原则：
 
