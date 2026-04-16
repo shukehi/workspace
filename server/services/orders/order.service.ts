@@ -31,6 +31,11 @@ import {
 } from './order.dedupe';
 import { normalizeTemplateType } from './order.template';
 import {
+    assertUpdateOrderInputValid,
+    buildNextOrderValues,
+    resolveUpdateOrderContext,
+} from './order.service.update';
+import {
     areAllOrderItemsReceived,
     assertOrderReadyForStockIn,
     buildStockInOrderUpdate,
@@ -44,7 +49,7 @@ import {
     OrderEditLockedError,
     ReceivedQuantityExceededError,
 } from './order.errors';
-import { sanitizeManualCreateItems, validateLockedManualOrderUpdate, validateManualCreateOrder } from './order-create.validation';
+import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
 import type { PlainRecord } from '../../shared/types';
 import {
     buildAutoOrderNo,
@@ -392,67 +397,19 @@ class OrderService {
             assertEditableOrderFields(order, data as Record<string, unknown>);
 
             const existing = await this.getOrderById(id);
-            const nextCategory = data.category === undefined ? order.category : data.category;
-            const nextMetadata = normalizeMetadata(
-                data.metadata === undefined ? order.metadata : data.metadata,
-                order.metadata || {},
-                nextCategory
-            );
-            const nextSourceContractCode = resolveSourceContractCode({
-                source_contract_code: data.source_contract_code,
-                metadata: nextMetadata
-            }, order.source_contract_code || '');
-            const mergedItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
-            const nextSupplier = data.supplier === undefined ? order.supplier : data.supplier;
-            const nextOrderNo = data.order_no === undefined ? order.order_no : data.order_no;
-            const nextStatus = data.status === undefined
-                ? normalizeStatus(order.status)
-                : assertValidStatusTransition(order.status, data.status);
-            const nextCreatedAt = data.created_at !== undefined ? data.created_at : order.created_at;
-            const nextItems = nextMetadata.order_source === 'manual'
-                ? (() => {
-                    const sanitizedItems = sanitizeManualCreateItems(
-                        mergedItems as any[] | undefined,
-                        nextCategory,
-                        nextMetadata.template_type,
-                    );
-                    return sanitizedItems.length > 0 ? sanitizedItems : mergedItems;
-                })()
-                : mergedItems;
-            const mergedOrderForValidation: OrderCreateInput = {
-                order_no: nextOrderNo,
-                supplier: nextSupplier || '',
-                category: nextCategory || '',
-                status: nextStatus,
-                remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
-                metadata: nextMetadata,
-                created_at: nextCreatedAt,
-                delivery_date: data.delivery_date === undefined ? order.delivery_date : data.delivery_date,
-                arrived_at: data.arrived_at === undefined ? order.arrived_at : data.arrived_at,
-                arrived_by: data.arrived_by === undefined ? order.arrived_by : data.arrived_by,
-                arrived_remark: data.arrived_remark === undefined ? order.arrived_remark : normalizeOrderRemark(data.arrived_remark),
-                stocked_in_at: data.stocked_in_at === undefined ? order.stocked_in_at : data.stocked_in_at,
-                stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
-                stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark),
-                items: nextItems as any[],
-            };
-            const lockedStatus = ['arrived', 'completed'].includes(normalizeStatus(order.status));
-            const updateIssues = lockedStatus
-                ? validateLockedManualOrderUpdate(data, nextMetadata)
-                : validateManualCreateOrder(mergedOrderForValidation);
-            if (updateIssues.length > 0) {
-                throw new AppError({
-                    code: ERROR_CODES.VALIDATION_ERROR,
-                    status: 400,
-                    details: {
-                        issues: updateIssues.map((issue) => ({
-                            target: 'body',
-                            field: issue.field,
-                            message: issue.message,
-                        })),
-                    },
-                });
-            }
+            const context = resolveUpdateOrderContext({ order, existing, data });
+            const {
+                nextCategory,
+                nextMetadata,
+                nextSourceContractCode,
+                nextSupplier,
+                nextOrderNo,
+                nextStatus,
+                nextCreatedAt,
+                nextItems,
+            } = context;
+
+            assertUpdateOrderInputValid({ order, data, context });
             const nextDedupeKey = buildOrderDedupeKey({
                 source_contract_code: nextSourceContractCode,
                 category: nextCategory,
@@ -485,22 +442,12 @@ class OrderService {
                 }, transaction);
             }
 
-            const nextOrderValues: Partial<OrderAttributes> = {
-                supplier: nextSupplier,
-                source_contract_code: nextSourceContractCode || null,
-                dedupe_key: nextDedupeKey || null,
-                category: nextCategory,
-                status: nextStatus,
-                remark: data.remark === undefined ? order.remark : normalizeOrderRemark(data.remark),
-                metadata: nextMetadata,
-                delivery_date: normalizeNullableDate(data.delivery_date, order.delivery_date),
-                arrived_at: normalizeNullableDate(data.arrived_at, order.arrived_at),
-                arrived_by: data.arrived_by === undefined ? order.arrived_by : data.arrived_by,
-                arrived_remark: data.arrived_remark === undefined ? order.arrived_remark : normalizeOrderRemark(data.arrived_remark),
-                stocked_in_at: normalizeNullableDate(data.stocked_in_at, order.stocked_in_at),
-                stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
-                stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark)
-            };
+            const nextOrderValues = buildNextOrderValues({
+                order,
+                data,
+                context,
+                nextDedupeKey,
+            });
             await order.update(nextOrderValues, { transaction });
 
             if (data.created_at !== undefined) {
