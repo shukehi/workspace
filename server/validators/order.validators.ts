@@ -106,6 +106,7 @@ export function validateOrderUpdateBody(body: unknown): ValidationIssue[] {
     if (issues.length > 0) return issues;
 
     const payload = body as UnknownRecord;
+    pushIfPresentIsNotString(issues, payload, 'order_no');
     pushIfPresentIsNotString(issues, payload, 'supplier');
     pushIfPresentIsNotString(issues, payload, 'category');
     pushIfPresentIsNotString(issues, payload, 'status');

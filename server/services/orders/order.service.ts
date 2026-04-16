@@ -488,6 +488,7 @@ class OrderService {
             }, order.source_contract_code || '');
             const mergedItems = Array.isArray(data.items) ? data.items : (existing?.items || []);
             const nextSupplier = data.supplier === undefined ? order.supplier : data.supplier;
+            const nextOrderNo = data.order_no === undefined ? order.order_no : data.order_no;
             const nextStatus = data.status === undefined
                 ? normalizeStatus(order.status)
                 : assertValidStatusTransition(order.status, data.status);
@@ -503,7 +504,7 @@ class OrderService {
                 })()
                 : mergedItems;
             const mergedOrderForValidation: OrderCreateInput = {
-                order_no: data.order_no === undefined ? order.order_no : data.order_no,
+                order_no: nextOrderNo,
                 supplier: nextSupplier || '',
                 category: nextCategory || '',
                 status: nextStatus,
@@ -556,7 +557,7 @@ class OrderService {
             if (duplicate) {
                 throw new DuplicateOrderError(duplicate);
             }
-            await this.assertUniqueOrderNo(mergedOrderForValidation.order_no, id, transaction);
+            await this.assertUniqueOrderNo(nextOrderNo, id, transaction);
 
             const isAutoOrder = Boolean(nextSourceContractCode && nextDedupeKey);
             const statusTransition = `${order.status}->${nextStatus}`;

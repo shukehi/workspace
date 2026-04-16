@@ -1,4 +1,4 @@
-// @ts-expect-error shared ESM adapter core is consumed by both frontend and backend
+// @ts-ignore shared ESM adapter core is consumed by both frontend and backend
 import * as sharedMappingAdapterCore from '../../../shared/mappings/mapping-adapter-core.mjs';
 import type {
   CylinderMappingConfig,
@@ -169,7 +169,7 @@ export function adaptCylinderMapping(value: unknown): CylinderMappingConfig {
 }
 
 export function adaptLockForkMapping(value: unknown): LockForkMappingConfig {
-  return adaptLockForkMappingShared(value) as LockForkMappingConfig;
+  return adaptLockForkMappingShared(value) as unknown as LockForkMappingConfig;
 }
 
 export function adaptHandleMapping(value: unknown): HandleMappingConfig {

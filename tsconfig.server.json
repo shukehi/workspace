@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "target": "ES2020",
-        "module": "CommonJS",
+        "module": "ESNext",
         "moduleResolution": "Node",
         "strict": true,
         "esModuleInterop": true,
@@ -9,12 +9,23 @@
         "resolveJsonModule": true,
         "skipLibCheck": true,
         "noEmit": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "src/*"
+            ]
+        },
+        "allowJs": true,
+        "checkJs": false,
         "types": [
             "node"
         ]
     },
     "include": [
         "server/**/*.ts",
-        "server/**/*.d.ts"
+        "server/**/*.d.ts",
+        "src/**/*.ts",
+        "shared/**/*.js",
+        "shared/**/*.mjs"
     ]
 }

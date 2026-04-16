@@ -83,7 +83,7 @@ function buildSnapshotResponse() {
 }
 
 test('print document e2e: print route shows sales department label', async () => {
-  const devServer = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(PORT)], {
+  const devServer = spawn('npm', ['run', 'dev:web', '--', '--host', '127.0.0.1', '--port', String(PORT)], {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, BROWSER: 'none' },
