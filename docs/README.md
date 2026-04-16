@@ -107,6 +107,8 @@
 - [PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md](/Users/aries/Dve/workspace/docs/progress/PROCUREMENT_INVENTORY_PHASE1_SUMMARY_2026-03-11.md)
 - [DOCS_INFORMATION_ARCHITECTURE_CLEANUP_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/DOCS_INFORMATION_ARCHITECTURE_CLEANUP_2026-04-16.md)
   — 本轮 docs 信息架构清理总结与归档策略说明
+- [REPO_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/REPO_HEALTH_BASELINE_2026-04-16.md)
+  — Week 1 健康基线修复前后状态记录
 
 历史阶段进度（不作为当前阶段结果入口）：
 
@@ -121,6 +123,7 @@
 
 - [PO_FIELD_CONTRACT.md](/Users/aries/Dve/workspace/docs/reference/PO_FIELD_CONTRACT.md)
 - [OMX_COMMAND_GUIDE_CURRENT_PROJECT_2026-04-16.md](/Users/aries/Dve/workspace/docs/reference/OMX_COMMAND_GUIDE_CURRENT_PROJECT_2026-04-16.md)
+- [RUNTIME_CONTRACT_2026-04-16.md](/Users/aries/Dve/workspace/docs/reference/RUNTIME_CONTRACT_2026-04-16.md)
 - [CYLINDER_RULES.md](/Users/aries/Dve/workspace/docs/reference/CYLINDER_RULES.md)
 - [LOCK_FORK_RULES.md](/Users/aries/Dve/workspace/docs/reference/LOCK_FORK_RULES.md)
 - [LAN_SHARING.md](/Users/aries/Dve/workspace/docs/reference/LAN_SHARING.md)

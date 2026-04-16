@@ -31,6 +31,10 @@ function resolveClientBaseUrlFromHeaders(req: RequestLike | undefined): string {
 }
 
 export function resolveRenderBaseUrl(req?: RequestLike): string {
+    // Precedence:
+    // 1. Explicit PRINT_RENDER_BASE_URL / PDF_RENDER_BASE_URL
+    // 2. In non-production, request Origin / Referer
+    // 3. Localhost fallback using the active server port
     const configured = String(process.env.PRINT_RENDER_BASE_URL || process.env.PDF_RENDER_BASE_URL || '').trim();
     if (configured) {
         return normalizeUrlBase(configured);
@@ -51,4 +55,3 @@ export function resolveRenderBaseUrl(req?: RequestLike): string {
     const port = socketPort > 0 ? socketPort : fallbackPort;
     return `http://127.0.0.1:${port}`;
 }
-
