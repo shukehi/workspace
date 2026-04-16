@@ -6,6 +6,8 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useInventoryPageState } from '@/features/inventory/composables/useInventoryPageState';
 import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
 import { useInventoryLocationState } from '@/features/inventory/composables/useInventoryLocationState';
+import { useInventoryDetailPanels } from '@/features/inventory/composables/useInventoryDetailPanels';
+import { useInventoryReverseDialogs } from '@/features/inventory/composables/useInventoryReverseDialogs';
 import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
 import InventoryStockTab from '@/features/inventory/components/InventoryStockTab.vue';
@@ -215,13 +217,10 @@ const inventoryColumns = createInventoryColumns({
 const receiptColumns = createReceiptColumns();
 const outboundColumns = createInventoryOutboundColumns({
   onViewDetail: async (outbound) => {
-    selectedOutboundDetail.value = await store.fetchInventoryOutbound(outbound.id);
+    await handleOpenOutboundDetail(outbound);
   },
   onReverse: (outbound) => {
-    reverseOutboundTarget.value = outbound;
-    reverseOutboundReason.value = '出库冲销';
-    reverseOutboundRemark.value = '';
-    reverseOutboundDialogOpen.value = true;
+    requestReverseOutbound(outbound);
   },
 });
 const locationColumns = createInventoryLocationColumns({
@@ -262,6 +261,59 @@ const {
 async function confirmReverseReceipt() {
   await confirmReceiptFlowReverse(String(route.query.orderNo || '').trim());
 }
+
+const {
+  handleOpenOutboundDetail,
+  closeMovementSheet: closeMovementDetailPanel,
+  closeOutboundDetail: closeOutboundDetailPanel,
+  closeReceiptAudit: closeReceiptAuditPanel,
+} = useInventoryDetailPanels({
+  store,
+  toast,
+  selectedMovementItem,
+  selectedOutboundDetail,
+  openMovementSheet,
+  closeMovementSheet,
+  closeOutboundDetail,
+  selectedReceiptAudit,
+  closeReceiptAudit,
+});
+
+const {
+  requestReverseOutbound,
+  resetReceiptReverseQuantityToMax,
+  reverseDialogOpen: reverseReceiptDialogOpen,
+  reverseReceiptTarget: reverseReceiptDialogTarget,
+  reverseReason: reverseReceiptReason,
+  reverseRemark: reverseReceiptRemark,
+  reverseQuantity: reverseReceiptQuantity,
+  reversing: reversingReceipt,
+  confirmReverseReceipt: confirmReceiptReverseDialog,
+  reverseOutboundDialogOpen: reverseOutboundConfirmOpen,
+  reverseOutboundTarget: reverseOutboundConfirmTarget,
+  reverseOutboundReason: reverseOutboundConfirmReason,
+  reverseOutboundRemark: reverseOutboundConfirmRemark,
+  reversingOutbound: reversingOutboundConfirm,
+  confirmReverseOutbound: confirmOutboundReverseDialog,
+} = useInventoryReverseDialogs({
+  receipt: {
+    reverseDialogOpen,
+    reverseReceiptTarget,
+    reverseReason,
+    reverseRemark,
+    reverseQuantity,
+    reversing,
+    confirmReverseReceipt,
+  },
+  outbound: {
+    reverseOutboundDialogOpen,
+    reverseOutboundTarget,
+    reverseOutboundReason,
+    reverseOutboundRemark,
+    reversingOutbound,
+    confirmReverseOutbound,
+  },
+});
 
 function clearReceiptOrderFilter() {
   clearReceiptRouteFilters();
@@ -513,7 +565,7 @@ onMounted(() => {
       @submit="handleLocationSubmit"
     />
 
-    <Sheet :open="Boolean(selectedReceiptAudit)" @update:open="(open) => { if (!open) closeReceiptAudit(); }">
+    <Sheet :open="Boolean(selectedReceiptAudit)" @update:open="(open) => { if (!open) closeReceiptAuditPanel(); }">
       <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>入库撤销轨迹</SheetTitle>
@@ -592,7 +644,7 @@ onMounted(() => {
       </SheetContent>
     </Sheet>
 
-    <Sheet :open="Boolean(selectedOutboundDetail)" @update:open="(open) => { if (!open) closeOutboundDetail(); }">
+    <Sheet :open="Boolean(selectedOutboundDetail)" @update:open="(open) => { if (!open) closeOutboundDetailPanel(); }">
       <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>出库单详情</SheetTitle>
@@ -646,7 +698,7 @@ onMounted(() => {
       </SheetContent>
     </Sheet>
 
-    <Sheet :open="Boolean(selectedMovementItem)" @update:open="(open) => { if (!open) closeMovementSheet(); }">
+    <Sheet :open="Boolean(selectedMovementItem)" @update:open="(open) => { if (!open) closeMovementDetailPanel(); }">
       <SheetContent side="right" class="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>库存影响轨迹</SheetTitle>
@@ -722,38 +774,38 @@ onMounted(() => {
     </Sheet>
 
     <ConfirmDialog
-      v-model:open="reverseDialogOpen"
+      v-model:open="reverseReceiptDialogOpen"
       title="确认撤销入库"
       confirm-text="确认撤销"
       cancel-text="取消"
       variant="warning"
-      :loading="reversing"
-      @confirm="confirmReverseReceipt"
+      :loading="reversingReceipt"
+      @confirm="confirmReceiptReverseDialog"
     >
       <div class="space-y-3">
         <p class="text-sm text-muted-foreground">
-          <span v-if="reverseReceiptTarget">
-            订单 <span class="font-medium text-foreground">{{ reverseReceiptTarget.order_no }}</span>
+          <span v-if="reverseReceiptDialogTarget">
+            订单 <span class="font-medium text-foreground">{{ reverseReceiptDialogTarget.order_no }}</span>
             的这条入库记录将被撤销。
           </span>
         </p>
-        <div v-if="reverseReceiptTarget" class="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm md:grid-cols-3">
+        <div v-if="reverseReceiptDialogTarget" class="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm md:grid-cols-3">
           <div>
             <div class="text-xs text-muted-foreground">原始数量</div>
-            <div class="font-medium">{{ reverseReceiptTarget.quantity }} {{ reverseReceiptTarget.unit || '' }}</div>
+            <div class="font-medium">{{ reverseReceiptDialogTarget.quantity }} {{ reverseReceiptDialogTarget.unit || '' }}</div>
           </div>
           <div>
             <div class="text-xs text-muted-foreground">已撤销量</div>
-            <div class="font-medium">{{ reverseReceiptTarget.reversed_quantity || 0 }} {{ reverseReceiptTarget.unit || '' }}</div>
+            <div class="font-medium">{{ reverseReceiptDialogTarget.reversed_quantity || 0 }} {{ reverseReceiptDialogTarget.unit || '' }}</div>
           </div>
           <div>
             <div class="text-xs text-muted-foreground">剩余可撤销</div>
-            <div class="font-medium">{{ reverseReceiptTarget.reversible_quantity || 0 }} {{ reverseReceiptTarget.unit || '' }}</div>
+            <div class="font-medium">{{ reverseReceiptDialogTarget.reversible_quantity || 0 }} {{ reverseReceiptDialogTarget.unit || '' }}</div>
           </div>
         </div>
         <div class="block space-y-1 text-sm">
           <label for="reverse-reason" class="text-foreground">撤销原因</label>
-          <select id="reverse-reason" v-model="reverseReason" class="w-full rounded-md border bg-background px-3 py-2 text-sm">
+          <select id="reverse-reason" v-model="reverseReceiptReason" class="w-full rounded-md border bg-background px-3 py-2 text-sm">
             <option v-for="option in reverseReasonOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -764,57 +816,57 @@ onMounted(() => {
           <div class="flex items-center gap-2">
             <Input
               id="reverse-quantity"
-              v-model="reverseQuantity"
+              v-model="reverseReceiptQuantity"
               type="number"
               min="0"
-              :max="String(reverseReceiptTarget?.reversible_quantity || 0)"
+              :max="String(reverseReceiptDialogTarget?.reversible_quantity || 0)"
               step="0.01"
             />
-            <Button variant="outline" type="button" @click="reverseQuantity = String(reverseReceiptTarget?.reversible_quantity || '')">
+            <Button variant="outline" type="button" @click="resetReceiptReverseQuantityToMax">
               全部撤销
             </Button>
           </div>
         </div>
         <div class="block space-y-1 text-sm">
           <label for="reverse-remark" class="text-foreground">备注</label>
-          <Textarea id="reverse-remark" v-model="reverseRemark" rows="2" placeholder="可选，补充说明本次撤销动作" />
+          <Textarea id="reverse-remark" v-model="reverseReceiptRemark" rows="2" placeholder="可选，补充说明本次撤销动作" />
         </div>
       </div>
     </ConfirmDialog>
 
     <ConfirmDialog
-      v-model:open="reverseOutboundDialogOpen"
+      v-model:open="reverseOutboundConfirmOpen"
       title="确认冲销出库"
       confirm-text="确认冲销"
       cancel-text="取消"
       variant="warning"
-      :loading="reversingOutbound"
-      @confirm="confirmReverseOutbound"
+      :loading="reversingOutboundConfirm"
+      @confirm="confirmOutboundReverseDialog"
     >
       <div class="space-y-3">
         <p class="text-sm text-muted-foreground">
-          <span v-if="reverseOutboundTarget">
-            出库单 <span class="font-medium text-foreground">{{ reverseOutboundTarget.outbound_no }}</span>
+          <span v-if="reverseOutboundConfirmTarget">
+            出库单 <span class="font-medium text-foreground">{{ reverseOutboundConfirmTarget.outbound_no }}</span>
             将按原库位回补库存。
           </span>
         </p>
-        <div v-if="reverseOutboundTarget" class="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm md:grid-cols-2">
+        <div v-if="reverseOutboundConfirmTarget" class="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm md:grid-cols-2">
           <div>
             <div class="text-xs text-muted-foreground">仓库 / 库位</div>
-            <div class="font-medium">{{ reverseOutboundTarget.warehouse_name }} / {{ reverseOutboundTarget.location_name || reverseOutboundTarget.location_code }}</div>
+            <div class="font-medium">{{ reverseOutboundConfirmTarget.warehouse_name }} / {{ reverseOutboundConfirmTarget.location_name || reverseOutboundConfirmTarget.location_code }}</div>
           </div>
           <div>
             <div class="text-xs text-muted-foreground">物料条数</div>
-            <div class="font-medium">{{ reverseOutboundTarget.items.length }}</div>
+            <div class="font-medium">{{ reverseOutboundConfirmTarget.items.length }}</div>
           </div>
         </div>
         <div class="block space-y-1 text-sm">
           <label for="reverse-outbound-reason" class="text-foreground">冲销原因</label>
-          <Input id="reverse-outbound-reason" v-model="reverseOutboundReason" placeholder="例如：误领料 / 错误登记" />
+          <Input id="reverse-outbound-reason" v-model="reverseOutboundConfirmReason" placeholder="例如：误领料 / 错误登记" />
         </div>
         <div class="block space-y-1 text-sm">
           <label for="reverse-outbound-remark" class="text-foreground">备注</label>
-          <Textarea id="reverse-outbound-remark" v-model="reverseOutboundRemark" rows="2" placeholder="可选，补充说明本次冲销动作" />
+          <Textarea id="reverse-outbound-remark" v-model="reverseOutboundConfirmRemark" rows="2" placeholder="可选，补充说明本次冲销动作" />
         </div>
       </div>
     </ConfirmDialog>
