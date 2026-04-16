@@ -405,7 +405,7 @@ class OrderService {
             await order.update(nextOrderValues, { transaction });
 
             if (data.created_at !== undefined) {
-                await orderRepository.updateOrderCreatedAt(Number(id), nextCreatedAt, transaction);
+                await orderRepository.updateOrderCreatedAt(Number(id), data.created_at, transaction);
             }
 
             if (data.items) {
