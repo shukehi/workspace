@@ -6,8 +6,22 @@ import {
   executeRuleSet,
 } from '@/services/mappings';
 
-type OrderItem = Record<string, any>;
-type GenericMap = Record<string, any>;
+type CylinderOrderItem = {
+  spec?: string | null;
+  qty?: string | number | null;
+  xsbz?: unknown;
+  sx?: unknown;
+  sxhz?: unknown;
+  fssx?: unknown;
+  fshz?: unknown;
+  mshd?: unknown;
+  [key: string]: unknown;
+};
+
+type CylinderOrderInfo = Record<string, unknown> & {
+  customerName?: string | null;
+  remark?: string | null;
+};
 
 type CylinderResultRow = {
   supplier: string;
@@ -29,6 +43,37 @@ type HardwareAccessoryResultRow = {
   winningRules: string[];
 };
 
+type CylinderMappingEntry = {
+  supplier?: unknown;
+  template?: unknown;
+};
+
+type CylinderDimensionVariant = {
+  code?: unknown;
+  eccentricity?: unknown;
+  remark?: unknown;
+};
+
+type CylinderDimensionRule = CylinderDimensionVariant & {
+  variants?: Partial<Record<'内开' | '外开', CylinderDimensionVariant>>;
+};
+
+type CylinderSpecialRule = {
+  thickness?: unknown;
+  keyword?: unknown;
+  variants?: Partial<Record<'内开' | '外开', CylinderDimensionVariant>>;
+};
+
+type CylinderMappingConfig = Record<string, unknown> & {
+  customLogos?: unknown[];
+  excludedCylinders?: unknown[];
+  mappings?: Record<string, CylinderMappingEntry | undefined>;
+  specialRules?: CylinderSpecialRule[];
+  secondarySpecialRules?: CylinderSpecialRule[];
+  dimensions?: Record<string, CylinderDimensionRule | undefined>;
+  secondaryDimensions?: Record<string, CylinderDimensionRule | undefined>;
+};
+
 function mergeRuleNames(current: string[], incoming: string[]): string[] {
   const merged = new Set<string>(current);
   incoming.forEach((item) => {
@@ -44,15 +89,17 @@ function mergeRuleNames(current: string[], incoming: string[]): string[] {
  * @param {Object} orderInfo - 订单汇总信息（包含 customerName, remark 等）
  * @param {Object} CYLINDER_MAPPING - 注入的配置
  */
-export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMap = {}, CYLINDER_MAPPING: GenericMap = {}): CylinderResultRow[] {
-  const customLogos = CYLINDER_MAPPING.customLogos || [];
+export function extractCylinderData(orderList: CylinderOrderItem[], orderInfo: CylinderOrderInfo = {}, CYLINDER_MAPPING: CylinderMappingConfig = {}): CylinderResultRow[] {
+  const customLogos = Array.isArray(CYLINDER_MAPPING.customLogos) ? CYLINDER_MAPPING.customLogos : [];
   const cylinderMap: Record<string, CylinderResultRow> = {};
   const unmatchedCylinderMap: Record<string, { count: number; samples: Set<string> }> = {};
 
   const detectLogo = (text: unknown): string | undefined => {
     if (!text || typeof text !== 'string') return undefined;
     const upperText = text.toUpperCase();
-    return (customLogos as string[]).find((logo: string) => upperText.includes(logo.toUpperCase()));
+    return customLogos
+      .map((logo) => String(logo || '').trim())
+      .find((logo) => logo && upperText.includes(logo.toUpperCase()));
   };
 
   const determineKeyConfig = (cylinderName: string, customerName: string) => {
@@ -78,24 +125,22 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
     .replace(/[）】］]/g, ')')
     .replace(/\s+/g, '');
 
-  const hasExcludedCylinders = CYLINDER_MAPPING
-    && typeof CYLINDER_MAPPING === 'object'
-    && Object.prototype.hasOwnProperty.call(CYLINDER_MAPPING, 'excludedCylinders');
+  const hasExcludedCylinders = Object.prototype.hasOwnProperty.call(CYLINDER_MAPPING, 'excludedCylinders');
   const rawExcludedList = hasExcludedCylinders
     ? (Array.isArray(CYLINDER_MAPPING.excludedCylinders) ? CYLINDER_MAPPING.excludedCylinders : [])
     : ['指纹锁配套锁芯'];
   const excludedCylinders = new Set<string>(
     rawExcludedList
-      .map((item: unknown) => normalizeCylinderName(item))
+      .map((item) => normalizeCylinderName(item))
       .filter(Boolean),
   );
 
   const isBuiltInCylinder = (value: unknown) => excludedCylinders.has(normalizeCylinderName(value));
 
   orderList.forEach((item) => {
-    const parts = (item.spec || '').split('/');
+    const parts = String(item.spec || '').split('/');
     let thickness = '7';
-    let openDirection = '内开';
+    let openDirection: '内开' | '外开' = '内开';
 
     if (parts.length >= 2) thickness = parts[1].trim();
     if (parts.length >= 3) {
@@ -108,24 +153,24 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
       if (!cylinderName || cylinderName === '-' || cylinderName === '无') return;
       if (isBuiltInCylinder(cylinderName)) return;
 
-      let dimensionRule: GenericMap | null = null;
+      let dimensionRule: CylinderDimensionVariant | null = null;
       let specialRemark = '';
 
-      const specialRules = mode === 'secondary'
-        ? (CYLINDER_MAPPING.secondarySpecialRules || [])
-        : (CYLINDER_MAPPING.specialRules || []);
+      const specialRules = (mode === 'secondary'
+        ? CYLINDER_MAPPING.secondarySpecialRules
+        : CYLINDER_MAPPING.specialRules) || [];
 
       const standardDimensions = mode === 'secondary'
         ? CYLINDER_MAPPING.secondaryDimensions
         : CYLINDER_MAPPING.dimensions;
 
-      for (const rule of specialRules as GenericMap[]) {
-        if (rule.thickness && rule.thickness !== thickness) continue;
-        if (shieldValue && shieldValue.includes(rule.keyword)) {
-          const variant = rule.variants[openDirection];
+      for (const rule of specialRules) {
+        if (String(rule.thickness || '') && String(rule.thickness) !== thickness) continue;
+        if (shieldValue && String(rule.keyword || '') && shieldValue.includes(String(rule.keyword))) {
+          const variant = rule.variants?.[openDirection];
           if (variant) {
             dimensionRule = variant;
-            specialRemark = variant.remark || '';
+            specialRemark = String(variant.remark || '');
             break;
           }
         }
@@ -138,7 +183,7 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
             const variant = standard.variants[openDirection];
             if (variant) {
               dimensionRule = variant;
-              specialRemark = variant.remark || '';
+              specialRemark = String(variant.remark || '');
             }
           } else {
             dimensionRule = standard;
@@ -153,7 +198,7 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
         || detectLogo(orderInfo.customerName);
 
       const mappingFromConfig = CYLINDER_MAPPING.mappings?.[cylinderName];
-      const mapping = mappingFromConfig || {
+      const mapping: CylinderMappingEntry = mappingFromConfig || {
         supplier: '未知供应商',
         template: `{code}${cylinderName}`,
       };
@@ -166,10 +211,10 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
           };
         }
         unmatchedCylinderMap[cylinderName].count += 1;
-        if (item.spec) unmatchedCylinderMap[cylinderName].samples.add(item.spec);
+        if (item.spec) unmatchedCylinderMap[cylinderName].samples.add(String(item.spec));
       }
 
-      let externalName = mapping.template.replace('{code}', dimensionRule.code);
+      let externalName = String(mapping.template || '').replace('{code}', String(dimensionRule.code || ''));
       let finalRemark = specialRemark;
 
       if (mode === 'secondary') {
@@ -177,7 +222,7 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
         finalRemark = finalRemark ? `${finalRemark}, ${keySuffix}` : keySuffix;
         externalName = `(副) ${externalName}`;
       } else {
-        const keySuffix = determineKeyConfig(cylinderName, orderInfo.customerName);
+        const keySuffix = determineKeyConfig(cylinderName, String(orderInfo.customerName || ''));
         finalRemark = finalRemark ? `${finalRemark}, ${keySuffix}` : keySuffix;
       }
 
@@ -188,23 +233,23 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
       const qtyPair = parseQuantityPair(item.qty);
       const totalQty = qtyPair.left + qtyPair.right;
 
-      const key = `${mapping.supplier}|${externalName}|${dimensionRule.eccentricity}|${finalRemark}`;
+      const key = `${String(mapping.supplier || '')}|${externalName}|${String(dimensionRule.eccentricity || '')}|${finalRemark}`;
 
       if (cylinderMap[key]) {
         cylinderMap[key].quantity += totalQty;
       } else {
         cylinderMap[key] = {
-          supplier: mapping.supplier,
+          supplier: String(mapping.supplier || ''),
           type: externalName,
-          eccentricity: dimensionRule.eccentricity,
+          eccentricity: String(dimensionRule.eccentricity || ''),
           remark: finalRemark,
           quantity: totalQty,
         };
       }
     };
 
-    process(item.sx, item.sxhz || '', 'primary');
-    process(item.fssx, item.fshz || '', 'secondary');
+    process(String(item.sx || ''), String(item.sxhz || ''), 'primary');
+    process(String(item.fssx || ''), String(item.fshz || ''), 'secondary');
   });
 
   const unmatchedEntries = Object.entries(unmatchedCylinderMap);
@@ -223,13 +268,13 @@ export function extractCylinderData(orderList: OrderItem[], orderInfo: GenericMa
   return Object.values(cylinderMap);
 }
 
-export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDER_MAPPING: GenericMap = {}): HardwareAccessoryResultRow[] {
+export function extractCylinderAccessoryPackData(orderList: CylinderOrderItem[], CYLINDER_MAPPING: CylinderMappingConfig = {}): HardwareAccessoryResultRow[] {
   const accessoryMap: Record<string, HardwareAccessoryResultRow> = {};
   const ruleSet = adaptCylinderAccessoryPackRulesToRuleSet(adaptCylinderMapping(CYLINDER_MAPPING));
   if (ruleSet.rules.length === 0) return [];
 
   const toText = (value: unknown) => (typeof value === 'string' ? value.trim() : String(value || '').trim());
-  const resolveThickness = (item: OrderItem) => {
+  const resolveThickness = (item: Pick<CylinderOrderItem, 'mshd' | 'spec'>) => {
     const directThickness = toText(item.mshd);
     if (directThickness) return directThickness;
     const parts = toText(item.spec).split('/');
@@ -266,7 +311,8 @@ export function extractCylinderAccessoryPackData(orderList: OrderItem[], CYLINDE
       if (!packName || !materialId) return;
 
       const supplier = toText(ruleResult.output.supplier) || '待人工处理';
-      const type = toText(ruleResult.output.type) || toText((item as GenericMap)[toText(rule.then.extra?.sourceField)]);
+      const sourceField = toText(rule.then.extra?.sourceField);
+      const type = toText(ruleResult.output.type) || toText(sourceField ? item[sourceField] : '');
       const remark = toText(ruleResult.output.remark);
       const unit = toText(ruleResult.output.unit) || '个';
       const key = `${materialId}|${supplier}|${type}|${packName}|${remark}|${unit}`;
