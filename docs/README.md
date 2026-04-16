@@ -72,6 +72,8 @@
   — 当前优先执行的重构总路线图
 - [WEEK1_HEALTH_BASELINE_EXECUTION_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/WEEK1_HEALTH_BASELINE_EXECUTION_2026-04-16.md)
   — 当前优先执行的 Week 1 施工图
+- [INVENTORY_PAGE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_PAGE_REFACTOR_PLAN_2026-04-16.md)
+  — Inventory 页面第一轮收口计划
 - [REFACTOR_EXECUTION_INDEX_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
   — 本轮结构治理总索引，适合作为背景导航
 

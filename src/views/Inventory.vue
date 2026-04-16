@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { refDebounced } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useInventoryPageState } from '@/features/inventory/composables/useInventoryPageState';
+import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
+import { useInventoryLocationState } from '@/features/inventory/composables/useInventoryLocationState';
 import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
 import DataTable from '@/components/data-table/DataTable.vue';
@@ -32,40 +34,6 @@ const router = useRouter();
 
 const activeTab = ref(String(route.query.tab || (route.query.orderNo ? 'receipts' : 'inventory')));
 const inventoryTableRef = ref<any>(null);
-
-const activeCategory = ref('ALL');
-const searchQuery = ref('');
-const debouncedSearchQuery = refDebounced(searchQuery, 300);
-const selectedWarehouseFilter = ref(String(route.query.warehouseId || ''));
-const selectedLocationFilter = ref(String(route.query.locationId || ''));
-const lowStockOnly = ref(String(route.query.lowStockOnly || '').toLowerCase() === 'true');
-const reconciliationOnly = ref(false);
-const selectedInventoryRows = ref<InventoryItem[]>([]);
-const selectedMovementItem = ref<InventoryItem | null>(null);
-
-const outboundDialogOpen = ref(false);
-const outboundSaving = ref(false);
-const outboundNoFilter = ref('');
-const outboundKeyword = ref('');
-const debouncedOutboundKeyword = refDebounced(outboundKeyword, 300);
-const outboundOperatorFilter = ref('');
-const outboundWarehouseFilter = ref('');
-const outboundLocationFilter = ref('');
-const outboundStartDate = ref('');
-const outboundEndDate = ref('');
-const outboundPage = ref(1);
-const outboundPageSize = ref(50);
-const selectedOutboundDetail = ref<InventoryOutbound | null>(null);
-const reverseOutboundDialogOpen = ref(false);
-const reverseOutboundTarget = ref<InventoryOutbound | null>(null);
-const reverseOutboundReason = ref('出库冲销');
-const reverseOutboundRemark = ref('');
-const reversingOutbound = ref(false);
-
-const locationSearchQuery = ref('');
-const locationDialogOpen = ref(false);
-const locationDialogSaving = ref(false);
-const editingLocation = ref<InventoryLocation | null>(null);
 
 const reverseReasonOptions = [
   { value: 'entry_error', label: '录入错误' },
@@ -96,77 +64,34 @@ const {
   loadReceipts: (orderNo = '') => loadReceipts(orderNo),
 });
 
-const availableReverseReasonOptions = computed(() => {
-  return [
-    { value: 'ALL', label: '全部原因' },
-    ...reverseReasonOptions,
-  ];
-});
-
-const availableInventoryLocations = computed(() => {
-  const warehouseId = Number(selectedWarehouseFilter.value);
-  const base = store.activeLocations;
-  if (!Number.isInteger(warehouseId) || warehouseId <= 0) return base;
-  return base.filter((location) => location.warehouse_id === warehouseId);
-});
-
-const availableOutboundLocations = computed(() => {
-  const warehouseId = Number(outboundWarehouseFilter.value);
-  const base = store.activeLocations;
-  if (!Number.isInteger(warehouseId) || warehouseId <= 0) return base;
-  return base.filter((location) => location.warehouse_id === warehouseId);
-});
-
-const filteredItems = computed(() => {
-  let list = store.sortedItems;
-  if (activeCategory.value !== 'ALL') {
-    list = list.filter((item) => item.category === activeCategory.value);
-  }
-  if (reconciliationOnly.value) {
-    list = list.filter((item) => {
-      const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
-      return Number(item.stock_quantity || 0) !== locationTotal;
-    });
-  }
-  return list;
-});
-
-const reconciliationSummary = computed(() => {
-  const rows = store.items.map((item) => {
-    const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
-    const diff = Number(item.stock_quantity || 0) - locationTotal;
-    return {
-      item,
-      locationTotal,
-      diff,
-      hasDiff: diff !== 0,
-    };
-  });
-
-  const mismatched = rows.filter((row) => row.hasDiff);
-  const totalAbsoluteDiff = mismatched.reduce((sum, row) => sum + Math.abs(row.diff), 0);
-
-  return {
-    mismatchedCount: mismatched.length,
-    totalAbsoluteDiff,
-    matchedCount: rows.length - mismatched.length,
-  };
+const {
+  activeCategory,
+  searchQuery,
+  selectedWarehouseFilter,
+  selectedLocationFilter,
+  lowStockOnly,
+  reconciliationOnly,
+  selectedInventoryRows,
+  selectedMovementItem,
+  availableInventoryLocations,
+  filteredItems,
+  reconciliationSummary,
+  selectedMovementSummary,
+  formatMovementSourceLabel,
+  loadInventoryList,
+  handleExportInventory,
+  handleExportReconciliation,
+  openMovementSheet,
+  closeMovementSheet,
+} = useInventoryPageState({
+  store,
+  toast,
+  initialWarehouseId: String(route.query.warehouseId || ''),
+  initialLocationId: String(route.query.locationId || ''),
+  initialLowStockOnly: String(route.query.lowStockOnly || '').toLowerCase() === 'true',
 });
 
 const filteredReceipts = computed(() => store.sortedReceipts);
-
-const filteredLocations = computed(() => {
-  const query = locationSearchQuery.value.trim().toLowerCase();
-  if (!query) return store.locations;
-  return store.locations.filter((location) => {
-    return [
-      location.code,
-      location.name,
-      location.warehouse_name,
-      location.remark,
-    ].some((candidate) => String(candidate || '').toLowerCase().includes(query));
-  });
-});
 
 const receiptSummary = computed(() => {
   const list = filteredReceipts.value;
@@ -187,46 +112,65 @@ const receiptSummary = computed(() => {
 });
 
 const receiptTotalPages = computed(() => Math.max(1, Math.ceil((store.receiptsTotal || 0) / (store.receiptsPageSize || 50))));
-
-const outboundSummary = computed(() => {
-  const list = store.sortedOutbounds;
-  const totalCount = list.length;
-  const totalLocations = new Set(list.map((item) => item.location_id)).size;
-  const totalIssuedQuantity = list
-    .filter((item) => item.direction === 'out')
-    .reduce((sum, item) => sum + item.items.reduce((itemSum, row) => itemSum + Number(row.quantity || 0), 0), 0);
-  const totalReversedQuantity = list
-    .filter((item) => item.direction === 'reversal')
-    .reduce((sum, item) => sum + item.items.reduce((itemSum, row) => itemSum + Number(row.quantity || 0), 0), 0);
-  return {
-    totalCount,
-    totalLocations,
-    totalIssuedQuantity,
-    netQuantity: totalIssuedQuantity - totalReversedQuantity,
-  };
+const {
+  outboundDialogOpen,
+  outboundSaving,
+  outboundNoFilter,
+  outboundKeyword,
+  outboundOperatorFilter,
+  outboundWarehouseFilter,
+  outboundLocationFilter,
+  outboundStartDate,
+  outboundEndDate,
+  outboundPage,
+  outboundPageSize,
+  selectedOutboundDetail,
+  reverseOutboundDialogOpen,
+  reverseOutboundTarget,
+  reverseOutboundReason,
+  reverseOutboundRemark,
+  reversingOutbound,
+  availableOutboundLocations,
+  outboundSummary,
+  outboundTotalPages,
+  loadOutbounds,
+  handleExportOutbounds,
+  openOutboundDialog,
+  handleSubmitOutbound,
+  confirmReverseOutbound,
+  nextOutboundPage,
+  prevOutboundPage,
+  closeOutboundDetail,
+} = useInventoryOutboundState({
+  store,
+  toast,
+  selectedInventoryRows,
+  clearInventorySelection: () => {
+    selectedInventoryRows.value = [];
+    inventoryTableRef.value?.clearSelection?.();
+  },
+  refreshInventory: () => loadInventoryList(),
 });
 
-const outboundTotalPages = computed(() => Math.max(1, Math.ceil((store.outboundsTotal || 0) / (store.outboundsPageSize || 50))));
-const selectedMovementSummary = computed(() => {
-  if (!selectedMovementItem.value) return null;
-  const rows = store.sortedMovements;
-  const netChange = rows.reduce((sum, row) => sum + Number(row.delta_quantity || 0), 0);
-  const lastMovement = rows[0];
-  return {
-    total: store.movementsTotal,
-    netChange,
-    lastOccurredAt: lastMovement?.occurred_at || lastMovement?.created_at || '',
-  };
+const {
+  locationSearchQuery,
+  locationDialogOpen,
+  locationDialogSaving,
+  editingLocation,
+  filteredLocations,
+  handleLocationSubmit,
+  openCreateLocationDialog,
+} = useInventoryLocationState({
+  store,
+  toast,
 });
 
-function formatMovementSourceLabel(sourceType: InventoryMovement['source_type']) {
-  if (sourceType === 'manual_adjustment') return '手工调账';
-  if (sourceType === 'receipt_in') return '采购入库';
-  if (sourceType === 'receipt_reversal') return '入库撤销';
-  if (sourceType === 'outbound') return '正式出库';
-  if (sourceType === 'outbound_reversal') return '出库冲销';
-  return sourceType || '-';
-}
+const availableReverseReasonOptions = computed(() => {
+  return [
+    { value: 'ALL', label: '全部原因' },
+    ...reverseReasonOptions,
+  ];
+});
 
 const currentExportLabel = computed(() => {
   if (activeTab.value === 'inventory') return '导出库位余额';
@@ -329,33 +273,6 @@ function prevReceiptPage() {
   receiptPage.value -= 1;
 }
 
-function nextOutboundPage() {
-  if (outboundPage.value >= outboundTotalPages.value) return;
-  outboundPage.value += 1;
-}
-
-function prevOutboundPage() {
-  if (outboundPage.value <= 1) return;
-  outboundPage.value -= 1;
-}
-
-async function loadInventoryList() {
-  try {
-    await store.fetchInventory({
-      warehouseId: selectedWarehouseFilter.value || undefined,
-      locationId: selectedLocationFilter.value || undefined,
-      keyword: debouncedSearchQuery.value.trim() || undefined,
-      lowStockOnly: lowStockOnly.value,
-    });
-  } catch {
-    toast({
-      title: '库存加载失败',
-      description: '无法获取最新库存数据，请稍后重试',
-      variant: 'destructive',
-    });
-  }
-}
-
 async function loadReceipts(orderNo = '') {
   try {
     await store.fetchInventoryReceipts(buildReceiptFetchParams(orderNo));
@@ -364,28 +281,6 @@ async function loadReceipts(orderNo = '') {
     toast({
       title: '入库记录加载失败',
       description: '无法获取最新采购入库记录，请稍后重试',
-      variant: 'destructive',
-    });
-  }
-}
-
-async function loadOutbounds() {
-  try {
-    await store.fetchInventoryOutbounds({
-      outboundNo: outboundNoFilter.value.trim() || undefined,
-      keyword: debouncedOutboundKeyword.value.trim() || undefined,
-      operator: outboundOperatorFilter.value.trim() || undefined,
-      warehouseId: outboundWarehouseFilter.value || undefined,
-      locationId: outboundLocationFilter.value || undefined,
-      startDate: outboundStartDate.value || undefined,
-      endDate: outboundEndDate.value || undefined,
-      page: outboundPage.value,
-      pageSize: outboundPageSize.value,
-    });
-  } catch {
-    toast({
-      title: '出库记录加载失败',
-      description: '无法获取最新出库流水，请稍后重试',
       variant: 'destructive',
     });
   }
@@ -434,78 +329,6 @@ function handleExportReceipts() {
   });
 }
 
-function handleExportInventory() {
-  if (filteredItems.value.length === 0) {
-    toast({
-      title: '暂无可导出的库存结果',
-      variant: 'destructive',
-    });
-    return;
-  }
-
-  store.exportInventoryToCSV(filteredItems.value);
-  toast({
-    title: '导出成功',
-    description: `已导出 ${filteredItems.value.length} 条库存物料及库位余额`,
-    variant: 'success',
-  });
-}
-
-function handleExportReconciliation() {
-  const mismatchedItems = filteredItems.value.filter((item) => {
-    const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
-    return Number(item.stock_quantity || 0) !== locationTotal;
-  });
-
-  if (mismatchedItems.length === 0) {
-    toast({
-      title: '暂无可导出的对账异常',
-      variant: 'destructive',
-    });
-    return;
-  }
-
-  store.exportReconciliationToCSV(mismatchedItems);
-  toast({
-    title: '导出成功',
-    description: `已导出 ${mismatchedItems.length} 条对账异常物料`,
-    variant: 'success',
-  });
-}
-
-function handleExportOutbounds() {
-  store.fetchAllInventoryOutbounds({
-    outboundNo: outboundNoFilter.value.trim() || undefined,
-    keyword: debouncedOutboundKeyword.value.trim() || undefined,
-    operator: outboundOperatorFilter.value.trim() || undefined,
-    warehouseId: outboundWarehouseFilter.value || undefined,
-    locationId: outboundLocationFilter.value || undefined,
-    startDate: outboundStartDate.value || undefined,
-    endDate: outboundEndDate.value || undefined,
-  }).then((rows) => {
-    if (rows.length === 0) {
-      toast({
-        title: '暂无可导出的出库记录',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    store.exportOutboundsToCSV(rows);
-    toast({
-      title: '导出成功',
-      description: `已导出 ${rows.length} 张正式出库单`,
-      variant: 'success',
-    });
-  }).catch(() => {
-    toast({
-      title: '导出失败',
-      description: '无法获取完整的正式出库记录，请稍后重试',
-      variant: 'destructive',
-    });
-  });
-}
-
 function handleContextExport() {
   if (activeTab.value === 'inventory') {
     handleExportInventory();
@@ -519,194 +342,6 @@ function handleContextExport() {
     handleExportOutbounds();
   }
 }
-
-function openOutboundDialog() {
-  if (selectedInventoryRows.value.length === 0) {
-    toast({
-      title: '请先勾选物料',
-      description: '至少选择一项库存物料后才能登记出库',
-      variant: 'destructive',
-    });
-    return;
-  }
-  outboundDialogOpen.value = true;
-}
-
-async function handleSubmitOutbound(payload: {
-  warehouse_id: number;
-  location_id: number;
-  operator?: string;
-  reason: string;
-  remark?: string;
-  outbound_date: string;
-  items: Array<{ material_id: number; item_name: string; unit: string; quantity: number }>;
-}) {
-  outboundSaving.value = true;
-  try {
-    await store.createInventoryOutbound(payload);
-    outboundDialogOpen.value = false;
-    selectedInventoryRows.value = [];
-    inventoryTableRef.value?.clearSelection?.();
-    await Promise.all([loadInventoryList(), loadOutbounds()]);
-    toast({
-      title: '出库登记成功',
-      description: `已生成 ${payload.items.length} 条出库明细`,
-      variant: 'success',
-    });
-  } catch {
-    toast({
-      title: '出库登记失败',
-      description: '请检查所选库位余额后重试',
-      variant: 'destructive',
-    });
-  } finally {
-    outboundSaving.value = false;
-  }
-}
-
-async function confirmReverseOutbound() {
-  if (!reverseOutboundTarget.value) return;
-  reversingOutbound.value = true;
-  try {
-    await store.reverseInventoryOutbound(reverseOutboundTarget.value.id, {
-      reason: reverseOutboundReason.value.trim() || '出库冲销',
-      remark: reverseOutboundRemark.value.trim() || undefined,
-      outbound_date: new Date().toISOString(),
-    });
-    reverseOutboundDialogOpen.value = false;
-    reverseOutboundTarget.value = null;
-    reverseOutboundReason.value = '出库冲销';
-    reverseOutboundRemark.value = '';
-    await Promise.all([loadInventoryList(), loadOutbounds()]);
-    toast({
-      title: '出库冲销成功',
-      description: '已恢复对应库位余额和总库存',
-      variant: 'success',
-    });
-  } catch {
-    toast({
-      title: '出库冲销失败',
-      description: '当前出库单可能已冲销或库存数据异常',
-      variant: 'destructive',
-    });
-  } finally {
-    reversingOutbound.value = false;
-  }
-}
-
-async function handleLocationSubmit(payload: {
-  warehouse_id: number;
-  code: string;
-  name: string;
-  status: 'active' | 'inactive';
-  remark?: string;
-  sort_order?: number;
-}) {
-  locationDialogSaving.value = true;
-  const isEditing = Boolean(editingLocation.value);
-  try {
-    if (editingLocation.value) {
-      await store.updateInventoryLocation(editingLocation.value.id, payload);
-    } else {
-      await store.createInventoryLocation(payload);
-    }
-    await store.fetchInventoryLocations();
-    locationDialogOpen.value = false;
-    editingLocation.value = null;
-    toast({
-      title: isEditing ? '库位更新成功' : '库位创建成功',
-      variant: 'success',
-    });
-  } catch {
-    toast({
-      title: '库位保存失败',
-      description: '请检查库位编码是否重复后重试',
-      variant: 'destructive',
-    });
-  } finally {
-    locationDialogSaving.value = false;
-  }
-}
-
-function openCreateLocationDialog() {
-  editingLocation.value = null;
-  locationDialogOpen.value = true;
-}
-
-function closeOutboundDetail() {
-  selectedOutboundDetail.value = null;
-}
-
-async function openMovementSheet(item: InventoryItem) {
-  selectedMovementItem.value = item;
-  try {
-    await store.fetchInventoryMovements({
-      materialId: item.id,
-      page: 1,
-      pageSize: 20,
-    });
-  } catch {
-    selectedMovementItem.value = null;
-    toast({
-      title: '轨迹加载失败',
-      description: '无法获取该物料的库存变动记录，请稍后重试',
-      variant: 'destructive',
-    });
-  }
-}
-
-function closeMovementSheet() {
-  selectedMovementItem.value = null;
-}
-
-watch(selectedWarehouseFilter, (warehouseId) => {
-  if (!warehouseId) {
-    selectedLocationFilter.value = '';
-    return;
-  }
-  const valid = availableInventoryLocations.value.some((location) => location.id === Number(selectedLocationFilter.value));
-  if (!valid) {
-    selectedLocationFilter.value = '';
-  }
-});
-
-watch(outboundWarehouseFilter, (warehouseId) => {
-  if (!warehouseId) {
-    outboundLocationFilter.value = '';
-    return;
-  }
-  const valid = availableOutboundLocations.value.some((location) => location.id === Number(outboundLocationFilter.value));
-  if (!valid) {
-    outboundLocationFilter.value = '';
-  }
-});
-
-watch(
-  [selectedWarehouseFilter, selectedLocationFilter, lowStockOnly, debouncedSearchQuery],
-  () => {
-    void loadInventoryList();
-  },
-);
-
-watch(
-  [
-    outboundNoFilter,
-    debouncedOutboundKeyword,
-    outboundOperatorFilter,
-    outboundWarehouseFilter,
-    outboundLocationFilter,
-    outboundStartDate,
-    outboundEndDate,
-  ],
-  () => {
-    outboundPage.value = 1;
-    void loadOutbounds();
-  },
-);
-
-watch([outboundPage, outboundPageSize], () => {
-  void loadOutbounds();
-});
 
 watch(activeTab, (tab) => {
   const nextQuery = { ...route.query };
