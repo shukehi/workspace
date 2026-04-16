@@ -53,6 +53,7 @@ import {
     OrderEditLockedError,
     ReceivedQuantityExceededError,
 } from './order.errors';
+import { deleteOrderWithRetry } from './order.service.delete';
 import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
 import type { PlainRecord } from '../../shared/types';
 import {
@@ -464,25 +465,7 @@ class OrderService {
             throw new Error('INVALID_ID');
         }
 
-        const maxAttempts = 3;
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            const transaction = await sequelize.transaction();
-            try {
-                await orderRepository.destroyIdempotencyKeysByOrderId(parsedId, transaction);
-                await orderRepository.destroyOrderItemsByOrderId(parsedId, transaction);
-                const deleted = await orderRepository.destroyOrderById(parsedId, transaction);
-                await transaction.commit();
-                return deleted;
-            } catch (error: any) {
-                await transaction.rollback();
-                const isBusy = error && (error.name === 'SequelizeTimeoutError' || String(error.message || '').includes('SQLITE_BUSY'));
-                if (isBusy && attempt < maxAttempts) {
-                    await new Promise((resolve) => setTimeout(resolve, 80 * attempt));
-                    continue;
-                }
-                throw error;
-            }
-        }
+        return await deleteOrderWithRetry(parsedId);
     }
 
     async markArrived(id: number | string, data: PlainRecord = {}) {
