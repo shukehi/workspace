@@ -127,9 +127,7 @@ export async function resolveStockInOrderUpdate(
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
 }
 
-export type StockInOrderLifecycleBindings = OrderByIdBinding;
-
-export function buildStockInOrderLifecycleDeps(bindings: StockInOrderLifecycleBindings, services: OrderStockInServiceDeps & OrderStatusGuardBindings) {
+export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, services: OrderStockInServiceDeps & OrderStatusGuardBindings) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderByIdWithItems: (orderId: number | string, transaction: Transaction | undefined) => orderRepository.findOrderByIdWithItems(orderId, transaction),

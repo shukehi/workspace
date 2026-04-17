@@ -1,10 +1,10 @@
 import { createPaginationResponse } from '../../shared/contracts/pagination';
 import type { OrderListQuery } from '../../models/types';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderQueryBindings, OrderQuerySurfaceBindings } from './order.service.contracts';
+import type { OrderQuerySurfaceBindings } from './order.service.contracts';
 import * as orderRepository from './order.repository';
 
-export function buildOrderQueryBindings(bindings: OrderQueryBindings) {
+export function buildOrderQueryBindings(bindings: OrderQuerySurfaceBindings) {
   return {
     serializeOrder: bindings.serializeOrder,
     buildOrderSummary: bindings.buildOrderSummary,

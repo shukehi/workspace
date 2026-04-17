@@ -89,7 +89,6 @@ export type OrderReadListDeps = Pick<OrderReadSurfaceBindings, 'serializeOrder'>
 
 export type OrderReadBindings = OrderReadListDeps & OrderReadSurfaceBindings;
 
-export type OrderQueryBindings = OrderQuerySurfaceBindings;
 
 export type OrderStatusNormalizerBinding = {
   normalizeStatus: (status: unknown, fallback?: string) => string;
