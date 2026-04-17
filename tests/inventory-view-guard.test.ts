@@ -34,6 +34,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const storeHistoryActions = read('src/features/inventory/inventoryStoreHistoryActions.ts');
   const storeCoreActions = read('src/features/inventory/inventoryStoreCoreActions.ts');
   const storeFlowActions = read('src/features/inventory/inventoryStoreFlowActions.ts');
+  const storeActions = read('src/features/inventory/inventoryStoreActions.ts');
   const storeState = read('src/features/inventory/inventoryStoreState.ts');
 
   assert.match(view, /采购入库记录/);
@@ -201,8 +202,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(routeState, /clearReceiptRouteFilters/);
   assert.match(routeState, /buildReceiptFetchParams/);
   assert.match(store, /createInventoryStoreState/);
-  assert.match(store, /createInventoryCoreActions/);
-  assert.match(store, /createInventoryFlowActions/);
+  assert.match(store, /createInventoryStoreActions/);
+  assert.match(store, /\.\.\.state/);
+  assert.match(store, /\.\.\.actions/);
   assert.match(storeState, /const receipts = ref/);
   assert.match(storeState, /const warehouses = ref/);
   assert.match(storeState, /const locations = ref/);
@@ -217,7 +219,14 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeState, /const movementsTotal = ref/);
   assert.match(storeState, /const movementsPage = ref/);
   assert.match(storeState, /const movementsPageSize = ref/);
-  assert.match(store, /createInventoryHistoryActions/);
+  assert.match(storeActions, /export function createInventoryStoreActions/);
+  assert.match(storeActions, /createInventoryCoreActions/);
+  assert.match(storeActions, /createInventoryHistoryActions/);
+  assert.match(storeActions, /createInventoryFlowActions/);
+  assert.match(storeActions, /exportReceiptsToCSV/);
+  assert.match(storeActions, /exportInventoryToCSV/);
+  assert.match(storeActions, /exportReconciliationToCSV/);
+  assert.match(storeActions, /exportOutboundsToCSV/);
   assert.match(storeCoreActions, /export function createInventoryCoreActions/);
   assert.match(storeCoreActions, /async function fetchInventory/);
   assert.match(storeCoreActions, /async function updateMinStock/);
@@ -243,8 +252,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeHistoryActions, /fetchInventoryReceiptsFlow/);
   assert.match(storeHistoryActions, /fetchAllInventoryReceiptsFlow/);
   assert.match(storeHistoryActions, /fetchInventoryMovementsFlow/);
-  assert.match(store, /fetchInventoryOutbounds/);
-  assert.match(store, /fetchInventoryLocations/);
+  assert.match(storeActions, /fetchInventoryOutbounds/);
+  assert.match(storeActions, /fetchInventoryLocations/);
   assert.match(storePaging, /export type PagedRowsResponse/);
   assert.match(storePaging, /export function normalizePagedRowsResponse/);
   assert.match(storePaging, /export async function fetchAllPagedRows/);
