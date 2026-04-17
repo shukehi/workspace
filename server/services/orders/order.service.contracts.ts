@@ -62,11 +62,6 @@ export type OrderLifecycleCreateBindings =
 
 
 
-export type OrderReadListDeps = OrderSerializationBindings & {
-  findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
-  normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
-};
-
 
 export type OrderStatusNormalizerBinding = {
   normalizeStatus: (status: unknown, fallback?: string) => string;
