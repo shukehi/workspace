@@ -32,6 +32,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const storeFlows = read('src/features/inventory/inventoryStoreFlows.ts');
   const storeHistoryFlows = read('src/features/inventory/inventoryStoreHistoryFlows.ts');
   const storeHistoryActions = read('src/features/inventory/inventoryStoreHistoryActions.ts');
+  const storeCoreActions = read('src/features/inventory/inventoryStoreCoreActions.ts');
   const storeState = read('src/features/inventory/inventoryStoreState.ts');
 
   assert.match(view, /采购入库记录/);
@@ -199,6 +200,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(routeState, /clearReceiptRouteFilters/);
   assert.match(routeState, /buildReceiptFetchParams/);
   assert.match(store, /createInventoryStoreState/);
+  assert.match(store, /createInventoryCoreActions/);
   assert.match(storeState, /const receipts = ref/);
   assert.match(storeState, /const warehouses = ref/);
   assert.match(storeState, /const locations = ref/);
@@ -214,6 +216,13 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeState, /const movementsPage = ref/);
   assert.match(storeState, /const movementsPageSize = ref/);
   assert.match(store, /createInventoryHistoryActions/);
+  assert.match(storeCoreActions, /export function createInventoryCoreActions/);
+  assert.match(storeCoreActions, /async function fetchInventory/);
+  assert.match(storeCoreActions, /async function updateMinStock/);
+  assert.match(storeCoreActions, /async function createInventoryAdjustment/);
+  assert.match(storeCoreActions, /fetchInventoryFlow/);
+  assert.match(storeCoreActions, /updateInventoryMinStockFlow/);
+  assert.match(storeCoreActions, /createInventoryAdjustmentFlow/);
   assert.match(store, /async function fetchInventoryLocations/);
   assert.match(store, /async function fetchInventoryOutbounds/);
   assert.match(store, /async function fetchInventoryOutbound/);
