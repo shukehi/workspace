@@ -1,0 +1,122 @@
+# Next Phase Priority Assessment Refresh 13 (2026-04-17)
+
+> 状态：当前决策文档。
+> 用途：在 `Inventory store / state pass 7` 已并入 `main` 后，再次刷新下一阶段主线优先级，确保后续治理继续跟随最新热点分布。
+
+---
+
+## 1. 为什么再次刷新
+
+上一版刷新结论是：
+
+> 优先做 **Inventory store / state pass 7**
+
+这一结论已经落地，并完成：
+- inventory core actions 下沉到 `inventoryStoreCoreActions.ts`
+- 分支封板并合并回 `main`
+
+因此现在需要重新回答：
+
+> **在最新 `main` 上，下一轮最值得继续投入的主线是什么？**
+
+---
+
+## 2. 当前客观状态（第十三次刷新后）
+
+### Inventory store / state
+- `src/stores/useInventoryStore.ts` 当前约 **227 行**
+- 已完成：
+  - pagination helper
+  - core flow helper
+  - core actions helper
+  - state helper
+  - history flows / history actions helper
+  - location / outbound flow helper
+
+说明：
+- store 主体已经非常薄
+- 再继续做 Inventory，更像 deeper partitioning / composable strategy 选择
+- 仍可继续，但不再是当前最直接、最低风险的下一刀来源
+
+### Order lifecycle
+- `server/services/orders/order.service.ts` 当前约 **236 行**
+- 已完成：
+  - query helper
+  - create helper
+  - update helper
+  - delete helper
+  - arrive / bulk-arrive helper
+  - stockIn helper
+  - support helper
+
+说明：
+- 订单域已经完成多轮收口，但仍然保留更集中的后端复杂度面
+- 相比 Inventory 当前的 deeper partitioning 判断，订单域更适合继续拿一刀小而稳的 normalization / surface cleanup 收益
+- 重新成为当前最值得优先处理的主线
+
+### Source-analysis
+- `src/services/sourceAnalysis.ts` 仍约 **91 行**
+- extractor / typing / shared contracts 三阶段已完成
+
+说明：
+- 当前依然稳定
+- 下一步主要是 deeper normalization，不是最紧迫热点
+
+---
+
+## 3. 新的收益排序
+
+### 第一优先：Order lifecycle pass 10
+**推荐重新回到订单生命周期主线。**
+
+原因：
+
+1. Inventory store 在连续多轮 helper / action / state 下沉后，已进入更深层设计判断阶段
+2. 订单域虽然也推进很多轮，但仍保留更集中的主服务复杂度
+3. Source-analysis 当前依旧最稳定、最不急迫
+
+### 第二优先：Inventory store / state deeper partitioning
+适合作为第二选择。
+
+原因：
+- 仍有空间
+- 但下一步更偏架构判断，而不是继续拿明显的低风险切口
+
+### 第三优先：Source-analysis deeper normalization
+适合作为第三选择。
+
+原因：
+- 当前稳定性最好
+- 下一步主要是质量提升型统一，而不是最紧迫热点
+
+---
+
+## 4. 推荐的新主线
+
+> **Order lifecycle pass 10**
+
+建议新分支方向：
+- `refactor/order-lifecycle-pass10`
+
+建议优先围绕：
+1. 继续处理剩余 service surface / deeper normalization 切口
+2. 评估 `getAllOrders` / read-path / log-path 这类更小、更安全的下一刀
+3. 保持小步、可验证的节奏
+
+---
+
+## 5. 与前几版决策的关系
+
+这不是机械轮换，而是：
+
+> **每完成一轮已封板主线，就基于最新 `main` 重新排序收益。**
+
+当前之所以切回订单主线，是因为：
+- Inventory store 已经收薄到更接近薄壳
+- 订单域重新成为更值得继续切小刀的后端热点
+
+---
+
+## 6. 一句话结论
+
+> **现在最值得继续投入的一轮优化，是回到订单生命周期主线，开始 pass 10。**
