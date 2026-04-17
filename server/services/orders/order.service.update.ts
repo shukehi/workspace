@@ -195,15 +195,7 @@ export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBind
 }
 
 export type UpdateOrderLifecycleDeps =
-    OrderLifecycleDepsCore
-    & Pick<UpdateOrderLifecycleBindings,
-        'getOrderById'
-        | 'findDuplicateAutoOrder'
-        | 'assertUniqueOrderNo'
-        | 'reserveIdempotencyKey'
-        | 'releaseIdempotencyKeys'
-        | 'syncActiveIdempotencyKey'
-    >
+    OrderLifecycleMutableRuntimeBindings
     & OrderLifecycleDepsPersistence
     & {
         findOrderById: (id: number | string, transaction?: any) => Promise<any>;

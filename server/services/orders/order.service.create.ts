@@ -12,7 +12,7 @@ import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
   OrderCoreLifecycleBindings,
-  OrderLifecycleDepsCore,
+  OrderLifecycleCoreRuntimeBindings,
 } from './order.service.contracts';
 
 export type CreateOrderContext = {
@@ -144,14 +144,10 @@ export function buildCreateOrderLifecycleDeps(args: {
 }
 
 export type CreateOrderLifecycleDeps =
-  OrderLifecycleDepsCore
+  OrderLifecycleCoreRuntimeBindings
   & Pick<CreateOrderLifecycleBindings,
-    'getOrderById'
-    | 'allocateNextManualOrderNo'
+    'allocateNextManualOrderNo'
     | 'allocateNextAutoOrderNo'
-    | 'assertUniqueOrderNo'
-    | 'findDuplicateAutoOrder'
-    | 'reserveIdempotencyKey'
   >
   & {
     shouldAutoAssignManualOrderNo: boolean;
