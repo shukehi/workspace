@@ -1,7 +1,7 @@
 import type { PlainRecord } from '../../shared/types';
-import type { OrderReadBindings, OrderReadListDeps, OrderReadSurfaceBindings } from './order.service.contracts';
+import type { OrderReadListDeps, OrderReadSurfaceBindings } from './order.service.contracts';
 
-export function buildOrderReadBindings(bindings: OrderReadBindings) {
+export function buildOrderReadBindings(bindings: OrderReadListDeps & OrderReadSurfaceBindings) {
   return {
     findAllOrdersWithItems: bindings.findAllOrdersWithItems,
     findOrderByIdWithItems: bindings.findOrderByIdWithItems,
