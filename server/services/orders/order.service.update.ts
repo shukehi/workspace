@@ -1,10 +1,14 @@
 import type { OrderAttributes, OrderCreateInput, OrderUpdateInput } from '../../models/types';
 import AppError from '../../app/errors/AppError';
 import ERROR_CODES from '../../app/errors/errorCodes';
-import { normalizeMetadata, resolveSourceContractCode } from './order.dedupe';
-import { assertValidStatusTransition, normalizeStatus } from './order.policy';
+import { normalizeMetadata, resolveSourceContractCode, buildOrderDedupeKey } from './order.dedupe';
+import { assertEditableOrderFields, assertValidStatusTransition, normalizeStatus } from './order.policy';
 import { sanitizeManualCreateItems, validateLockedManualOrderUpdate, validateManualCreateOrder } from './order-create.validation';
 import { normalizeNullableDate, normalizeOrderRemark, isUniqueOrderNoError } from './order.service.helpers';
+import { sequelize } from '../../models';
+import * as orderRepository from './order.repository';
+import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper';
+import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import { normalizeTemplateType } from './order.template';
 
@@ -162,6 +166,35 @@ export function buildNextOrderValues({
     };
 }
 
+
+export type UpdateOrderLifecycleBindings = {
+    getOrderById: (id: number | string) => Promise<any>;
+    findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<any>;
+    assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
+    releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
+    syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: any) => Promise<unknown>;
+};
+
+export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBindings) {
+    return {
+        transactionFactory: () => sequelize.transaction(),
+        findOrderById: (orderId: number | string, transaction?: any) => orderRepository.findOrderById(orderId, transaction),
+        getOrderById: bindings.getOrderById,
+        assertEditableOrderFields,
+        findDuplicateAutoOrder: (updateData: Record<string, unknown>, transaction?: any, options?: Record<string, unknown>) => bindings.findDuplicateAutoOrder(updateData as PlainRecord, transaction, options as PlainRecord),
+        buildOrderDedupeKey: (value: Record<string, unknown>) => buildOrderDedupeKey(value as PlainRecord),
+        assertUniqueOrderNo: bindings.assertUniqueOrderNo,
+        reserveIdempotencyKey: bindings.reserveIdempotencyKey,
+        releaseIdempotencyKeys: bindings.releaseIdempotencyKeys,
+        syncActiveIdempotencyKey: bindings.syncActiveIdempotencyKey,
+        updateOrderCreatedAt: (orderId: number, createdAt: Date | string, transaction?: any) => orderRepository.updateOrderCreatedAt(orderId, createdAt, transaction),
+        replaceOrderItems: (orderId: number, items: any[], transaction?: any) => orderRepository.replaceOrderItems(orderId, items, transaction),
+        findOrderItemsByOrderId: (orderId: number) => orderRepository.findOrderItemsByOrderId(orderId),
+        normalizeOrderItemForPersistence,
+        serializeOrder,
+    };
+}
 
 export async function updateOrderLifecycle(
     id: number | string,
