@@ -48,7 +48,7 @@ import {
     updateOrderLifecycle,
 } from './order.service.update';
 import {
-    stockInOrderLifecycle,
+    stockInOrderResult,
 } from './order.stockin';
 import {
     DuplicateOrderError,
@@ -202,7 +202,7 @@ class OrderService {
     }
 
     async stockInOrder(id: number | string, data: PlainRecord = {}) {
-        return await stockInOrderLifecycle(id, data, {
+        return await stockInOrderResult(id, data, {
             transactionFactory: () => sequelize.transaction(),
             findOrderByIdWithItems: (orderId, transaction) => orderRepository.findOrderByIdWithItems(orderId, transaction),
             normalizeStatus,
