@@ -1,11 +1,27 @@
 import type { PlainRecord } from '../../shared/types';
 
+export type OrderReadBindings = {
+  findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
+  findOrderByIdWithItems: (id: number | string) => Promise<PlainRecord | null>;
+  normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
+  serializeOrder: (order: PlainRecord | null) => PlainRecord | null;
+};
+
+export function buildOrderReadBindings(bindings: OrderReadBindings) {
+  return {
+    findAllOrdersWithItems: bindings.findAllOrdersWithItems,
+    findOrderByIdWithItems: bindings.findOrderByIdWithItems,
+    normalizeOrderForLog: bindings.normalizeOrderForLog,
+    serializeOrder: bindings.serializeOrder,
+  };
+}
+
 export async function getAllOrdersResult(
   category: string | undefined,
   deps: {
     findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
     normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
-    serializeOrder: (order: PlainRecord) => PlainRecord;
+    serializeOrder: (order: PlainRecord | null) => PlainRecord | null;
   },
 ) {
   const where: PlainRecord = {};
@@ -23,7 +39,7 @@ export async function getAllOrdersResult(
     console.warn('[OrderService] getAllOrders found records with missing created_at:', invalidOrders);
   }
 
-  return orders.map(deps.serializeOrder);
+  return orders.map((order) => deps.serializeOrder(order) as PlainRecord);
 }
 
 

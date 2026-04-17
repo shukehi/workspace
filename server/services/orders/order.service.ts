@@ -14,7 +14,7 @@ import {
     buildOrderSummary,
 } from './order.query-policy';
 import { getPaginatedOrdersResult } from './order.service.query';
-import { getAllOrdersResult, getOrderByIdResult } from './order.service.read';
+import { buildOrderReadBindings, getAllOrdersResult, getOrderByIdResult } from './order.service.read';
 import {
     normalizeOrderForLog,
     normalizeOrderItemForPersistence,
@@ -115,12 +115,17 @@ class OrderService {
         });
     }
 
-    async getAllOrders(category?: string) {
-        return await getAllOrdersResult(category, {
+    private buildReadBindings() {
+        return buildOrderReadBindings({
             findAllOrdersWithItems: (where) => orderRepository.findAllOrdersWithItems(where),
+            findOrderByIdWithItems: (orderId) => orderRepository.findOrderByIdWithItems(orderId),
             normalizeOrderForLog,
             serializeOrder,
         });
+    }
+
+    async getAllOrders(category?: string) {
+        return await getAllOrdersResult(category, this.buildReadBindings());
     }
 
     async getPaginatedOrders(query: OrderListQuery = {}) {
@@ -132,10 +137,7 @@ class OrderService {
     }
 
     async getOrderById(id: number | string) {
-        return await getOrderByIdResult(id, {
-            findOrderByIdWithItems: (orderId) => orderRepository.findOrderByIdWithItems(orderId),
-            serializeOrder,
-        });
+        return await getOrderByIdResult(id, this.buildReadBindings());
     }
 
     async createOrder(data: OrderCreateInput) {
