@@ -118,6 +118,8 @@
   — Order lifecycle deeper normalization 计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS3_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS3_PLAN_2026-04-17.md)
   — Order lifecycle normalization 第三刀计划
+- [ORDER_LIFECYCLE_NORMALIZATION_PASS4_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS4_PLAN_2026-04-17.md)
+  — Order lifecycle normalization 第四刀计划
 - [SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md)
   — source-analysis extractor 第一轮拆分计划
 - [SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md)
@@ -229,6 +231,8 @@
   — Order lifecycle normalization 第二刀当前成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS3_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS3_2026-04-17.md)
   — Order lifecycle normalization 第三刀当前成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS4_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS4_2026-04-17.md)
+  — Order lifecycle normalization 第四刀当前成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md)
   — Inventory store/state 第二轮当前阶段成果与停点建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS3_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS3_2026-04-17.md)

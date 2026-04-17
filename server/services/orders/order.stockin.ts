@@ -1,3 +1,5 @@
+import { sequelize } from '../../models';
+import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
 
@@ -131,6 +133,28 @@ export async function resolveStockInOrderUpdate(
     );
 
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
+}
+
+export type StockInOrderLifecycleBindings = {
+    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+};
+
+export function buildStockInOrderLifecycleDeps(bindings: StockInOrderLifecycleBindings, services: StockInDeps & {
+    normalizeStatus: (status: unknown, fallback?: string) => string;
+    InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
+}) {
+    return {
+        transactionFactory: () => sequelize.transaction(),
+        findOrderByIdWithItems: (orderId: number | string, transaction: Transaction | undefined) => orderRepository.findOrderByIdWithItems(orderId, transaction),
+        normalizeStatus: services.normalizeStatus,
+        InvalidStatusTransitionError: services.InvalidStatusTransitionError,
+        inventoryReceiptService: services.inventoryReceiptService,
+        MissingMaterialError: services.MissingMaterialError,
+        resolveOrderedQuantity: services.resolveOrderedQuantity,
+        ReceivedQuantityExceededError: services.ReceivedQuantityExceededError,
+        normalizeOrderRemark: services.normalizeOrderRemark,
+        getOrderById: bindings.getOrderById,
+    };
 }
 
 export async function stockInOrderLifecycle(
