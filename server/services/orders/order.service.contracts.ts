@@ -88,3 +88,16 @@ export type OrderLifecycleCreateBindings =
 export type OrderLifecycleSupportBindings =
   OrderLifecycleMutableBindings
   & OrderAllocationBindings;
+
+export type OrderReadListDeps = Pick<OrderReadSurfaceBindings, 'serializeOrder'> & {
+  findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
+  normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
+};
+
+export type OrderReadItemDeps = OrderReadSurfaceBindings;
+
+export type OrderPaginatedQueryDeps = OrderQuerySurfaceBindings;
+
+export type OrderReadBindings = OrderReadListDeps & OrderReadItemDeps;
+
+export type OrderQueryBindings = OrderPaginatedQueryDeps;
