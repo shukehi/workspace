@@ -14,6 +14,7 @@ import {
     buildOrderSummary,
 } from './order.query-policy';
 import { getPaginatedOrdersResult } from './order.service.query';
+import { getAllOrdersResult } from './order.service.read';
 import {
     normalizeOrderForLog,
     normalizeOrderItemForPersistence,
@@ -103,23 +104,11 @@ class OrderService {
     }, transaction as any);
 
     async getAllOrders(category?: string) {
-        const where: PlainRecord = {};
-        if (typeof category === 'string' && category.trim()) {
-            where.category = category.trim();
-        }
-
-        const orders = await orderRepository.findAllOrdersWithItems(where);
-
-        const invalidOrders = orders
-            .map((order: PlainRecord, index: number) => ({ order, index }))
-            .filter(({ order }: { order: PlainRecord }) => !order || !order.created_at)
-            .map(({ order }: { order: PlainRecord; index: number }) => normalizeOrderForLog(order));
-
-        if (invalidOrders.length > 0) {
-            console.warn('[OrderService] getAllOrders found records with missing created_at:', invalidOrders);
-        }
-
-        return orders.map(serializeOrder);
+        return await getAllOrdersResult(category, {
+            findAllOrdersWithItems: (where) => orderRepository.findAllOrdersWithItems(where),
+            normalizeOrderForLog,
+            serializeOrder,
+        });
     }
 
     async getPaginatedOrders(query: OrderListQuery = {}) {
