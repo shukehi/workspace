@@ -214,6 +214,8 @@
   — Order lifecycle 第十一轮收口当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS12_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS12_2026-04-17.md)
   — Order lifecycle 第十二轮收口当前阶段成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS13_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS13_2026-04-17.md)
+  — Order lifecycle 第十三轮收口当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md)
   — Inventory store/state 第二轮当前阶段成果与停点建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS3_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS3_2026-04-17.md)
