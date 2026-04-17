@@ -73,12 +73,6 @@ export type OrderLifecycleCreateBindings =
 
 
 
-export type OrderLifecycleCoreRuntimeBindings = OrderCoreLifecycleBindings;
-
-export type OrderLifecycleMutableRuntimeBindings = OrderLifecycleMutableBindings;
-
-export type OrderLifecycleCreateRuntimeBindings = OrderLifecycleCreateBindings;
-
 export type OrderStockInRuntimeBindings =
   OrderByIdBinding
   & OrderByIdWithItemsBinding;

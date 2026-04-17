@@ -13,7 +13,7 @@ import { DuplicateOrderError } from './order.errors';
 import type {
     OrderLifecycleDepsCore,
     OrderLifecycleDepsPersistence,
-    OrderLifecycleMutableRuntimeBindings,
+    OrderLifecycleMutableBindings,
     OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 import { normalizeTemplateType } from './order.template';
@@ -173,7 +173,7 @@ export function buildNextOrderValues({
 }
 
 
-export type UpdateOrderLifecycleBindings = OrderLifecycleMutableRuntimeBindings;
+export type UpdateOrderLifecycleBindings = OrderLifecycleMutableBindings;
 
 export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBindings) {
     return {
@@ -197,7 +197,7 @@ export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBind
 
 export type UpdateOrderLifecycleDeps =
     OrderTransactionFactoryBinding
-    & OrderLifecycleMutableRuntimeBindings
+    & OrderLifecycleMutableBindings
     & OrderLifecycleDepsPersistence
     & {
         findOrderById: (id: number | string, transaction?: any) => Promise<any>;
