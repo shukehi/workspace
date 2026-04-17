@@ -35,7 +35,7 @@
 
 ## 3. 相对 main 的提交
 
-- `$(git rev-parse --short HEAD)` — 抽出 OrderService read helper
+- `283866d` — 抽出 OrderService read helper
 
 ---
 
