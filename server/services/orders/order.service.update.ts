@@ -10,6 +10,7 @@ import * as orderRepository from './order.repository';
 import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper';
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
+import type { OrderLifecycleServiceBindings } from './order.service.support';
 import { normalizeTemplateType } from './order.template';
 
 type OrderLike = Pick<
@@ -167,14 +168,14 @@ export function buildNextOrderValues({
 }
 
 
-export type UpdateOrderLifecycleBindings = {
-    getOrderById: (id: number | string) => Promise<any>;
-    findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<any>;
-    assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
-    releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
-    syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: any) => Promise<unknown>;
-};
+export type UpdateOrderLifecycleBindings = Pick<OrderLifecycleServiceBindings,
+    'getOrderById'
+    | 'findDuplicateAutoOrder'
+    | 'assertUniqueOrderNo'
+    | 'reserveIdempotencyKey'
+    | 'releaseIdempotencyKeys'
+    | 'syncActiveIdempotencyKey'
+>;
 
 export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBindings) {
     return {

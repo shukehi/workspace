@@ -10,6 +10,7 @@ import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-cr
 import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.helpers';
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
+import type { OrderLifecycleServiceBindings } from './order.service.support';
 
 export type CreateOrderContext = {
   normalizedCategory: OrderAttributes['category'];
@@ -110,14 +111,14 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
 }
 
 
-export type CreateOrderLifecycleBindings = {
-  getOrderById: (id: number | string) => Promise<PlainRecord | null>;
-  allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
-  allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
-  assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-  findDuplicateAutoOrder: (data: PlainRecord, transaction: any) => Promise<PlainRecord | null>;
-  reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
-};
+export type CreateOrderLifecycleBindings = Pick<OrderLifecycleServiceBindings,
+  'getOrderById'
+  | 'allocateNextManualOrderNo'
+  | 'allocateNextAutoOrderNo'
+  | 'assertUniqueOrderNo'
+  | 'findDuplicateAutoOrder'
+  | 'reserveIdempotencyKey'
+>;
 
 export function buildCreateOrderLifecycleDeps(args: {
   data: OrderCreateInput;
