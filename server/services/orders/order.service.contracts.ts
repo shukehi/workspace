@@ -24,3 +24,20 @@ export type OrderByIdWithItemsBinding = {
 export type OrderItemPersistenceBindings = {
   normalizeOrderItemForPersistence: (item: Record<string, unknown>) => Record<string, unknown>;
 };
+
+export type OrderUniqueOrderNoBinding = {
+  assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+};
+
+export type OrderDuplicateAutoBinding = {
+  findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
+};
+
+export type OrderIdempotencyReserveBinding = {
+  reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
+};
+
+export type OrderIdempotencyMutationBindings = {
+  releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
+  syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: any) => Promise<unknown>;
+};

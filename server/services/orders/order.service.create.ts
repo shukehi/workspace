@@ -10,8 +10,13 @@ import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-cr
 import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.helpers';
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderTransactionFactoryBinding } from './order.service.contracts';
-import type { OrderLifecycleServiceBindings } from './order.service.support';
+import type {
+  OrderByIdBinding,
+  OrderDuplicateAutoBinding,
+  OrderIdempotencyReserveBinding,
+  OrderTransactionFactoryBinding,
+  OrderUniqueOrderNoBinding,
+} from './order.service.contracts';
 
 export type CreateOrderContext = {
   normalizedCategory: OrderAttributes['category'];
@@ -112,14 +117,14 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
 }
 
 
-export type CreateOrderLifecycleBindings = Pick<OrderLifecycleServiceBindings,
-  'getOrderById'
-  | 'allocateNextManualOrderNo'
-  | 'allocateNextAutoOrderNo'
-  | 'assertUniqueOrderNo'
-  | 'findDuplicateAutoOrder'
-  | 'reserveIdempotencyKey'
->;
+export type CreateOrderLifecycleBindings = OrderByIdBinding
+  & OrderUniqueOrderNoBinding
+  & OrderDuplicateAutoBinding
+  & OrderIdempotencyReserveBinding
+  & {
+    allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
+    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
+  };
 
 export function buildCreateOrderLifecycleDeps(args: {
   data: OrderCreateInput;
