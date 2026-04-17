@@ -11,11 +11,8 @@ import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.help
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
-  OrderByIdBinding,
-  OrderDuplicateAutoBinding,
-  OrderIdempotencyReserveBinding,
+  OrderCoreLifecycleBindings,
   OrderTransactionFactoryBinding,
-  OrderUniqueOrderNoBinding,
 } from './order.service.contracts';
 
 export type CreateOrderContext = {
@@ -117,11 +114,7 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
 }
 
 
-export type CreateOrderLifecycleBindings = OrderByIdBinding
-  & OrderUniqueOrderNoBinding
-  & OrderDuplicateAutoBinding
-  & OrderIdempotencyReserveBinding
-  & {
+export type CreateOrderLifecycleBindings = OrderCoreLifecycleBindings & {
     allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
     allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
   };
@@ -153,13 +146,13 @@ export function buildCreateOrderLifecycleDeps(args: {
 export type CreateOrderLifecycleDeps =
   OrderTransactionFactoryBinding
   & Pick<CreateOrderLifecycleBindings,
-    'allocateNextManualOrderNo'
+    'getOrderById'
+    | 'allocateNextManualOrderNo'
     | 'allocateNextAutoOrderNo'
     | 'assertUniqueOrderNo'
     | 'findDuplicateAutoOrder'
     | 'reserveIdempotencyKey'
   >
-  & OrderByIdBinding
   & {
     shouldAutoAssignManualOrderNo: boolean;
     shouldAutoAssignAutoOrderNo: boolean;
