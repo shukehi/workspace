@@ -22,6 +22,17 @@ import {
     normalizePagedRowsResponse,
     type PagedRowsResponse,
 } from '@/features/inventory/inventoryStorePaging';
+import {
+    createInventoryLocationFlow,
+    createInventoryOutboundFlow,
+    fetchAllInventoryOutboundsFlow,
+    fetchInventoryLocationsFlow,
+    fetchInventoryOutboundFlow,
+    fetchInventoryOutboundsFlow,
+    mergeInventoryLocation,
+    reverseInventoryOutboundFlow,
+    updateInventoryLocationFlow,
+} from '@/features/inventory/inventoryStoreFlows';
 import type {
     InventoryItem,
     InventoryAdjustmentPayload,
@@ -212,7 +223,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     async function fetchInventoryLocations() {
         locationsLoading.value = true;
         try {
-            const res = await api.get<InventoryLocationListResponse>('/inventory-locations');
+            const res = await fetchInventoryLocationsFlow();
             warehouses.value = Array.isArray(res?.warehouses) ? res.warehouses : [];
             locations.value = Array.isArray(res?.locations) ? res.locations : [];
             return res;
@@ -232,27 +243,21 @@ export const useInventoryStore = defineStore('inventory', () => {
         remark?: string;
         sort_order?: number;
     }) {
-        const created = await api.post<InventoryLocation>('/inventory-locations', payload);
-        const next = [...locations.value.filter((item) => item.id !== created.id), created];
-        locations.value = next.sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id));
+        const created = await createInventoryLocationFlow(payload);
+        locations.value = mergeInventoryLocation(locations.value, created);
         return created;
     }
 
     async function updateInventoryLocation(id: number, payload: Partial<InventoryLocation>) {
-        const updated = await api.put<InventoryLocation>(`/inventory-locations/${id}`, payload);
-        const index = locations.value.findIndex((item) => item.id === id);
-        if (index !== -1) {
-            locations.value[index] = updated;
-        }
+        const updated = await updateInventoryLocationFlow(id, payload);
+        locations.value = mergeInventoryLocation(locations.value, updated);
         return updated;
     }
 
     async function fetchInventoryOutbounds(params: OutboundQuery = {}) {
         outboundsLoading.value = true;
         try {
-            const suffix = buildOutboundQuery(params);
-            const res = await api.get<InventoryOutboundListResponse>(`/inventory-outbounds${suffix}`);
-            const normalized = normalizePagedRowsResponse(res, params);
+            const normalized = await fetchInventoryOutboundsFlow(params);
             outbounds.value = normalized.rows;
             outboundsTotal.value = normalized.total;
             outboundsPage.value = normalized.page;
@@ -268,7 +273,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
 
     async function fetchInventoryOutbound(id: number | string) {
-        return await api.get<InventoryOutbound>(`/inventory-outbounds/${id}`);
+        return await fetchInventoryOutboundFlow(id);
     }
 
     async function fetchInventoryMovements(params: MovementQuery = {}) {
@@ -293,17 +298,11 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
 
     async function fetchAllInventoryOutbounds(params: Omit<OutboundQuery, 'page' | 'pageSize'> = {}) {
-        return await fetchAllPagedRows<InventoryOutbound, Omit<OutboundQuery, 'page' | 'pageSize'>>({
-            params,
-            fetchPage: async (pagedParams) => {
-                const suffix = buildOutboundQuery(pagedParams);
-                return await api.get<InventoryOutboundListResponse>(`/inventory-outbounds${suffix}`);
-            },
-        });
+        return await fetchAllInventoryOutboundsFlow(params);
     }
 
     async function createInventoryOutbound(payload: InventoryOutboundPayload) {
-        return await api.post<InventoryOutbound>('/inventory-outbounds', payload);
+        return await createInventoryOutboundFlow(payload);
     }
 
     async function reverseInventoryOutbound(id: number | string, payload: {
@@ -312,7 +311,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         remark?: string;
         outbound_date?: string;
     } = {}) {
-        return await api.post<InventoryOutbound>(`/inventory-outbounds/${id}/reverse`, payload);
+        return await reverseInventoryOutboundFlow(id, payload);
     }
 
     return {
