@@ -73,15 +73,6 @@ export type OrderLifecycleCreateBindings =
 
 
 
-export type OrderStockInRuntimeBindings =
-  OrderByIdBinding
-  & OrderByIdWithItemsBinding;
-
-
-export type OrderLifecycleSupportBindings =
-  OrderLifecycleMutableBindings
-  & OrderAllocationBindings;
-
 export type OrderReadListDeps = Pick<OrderReadSurfaceBindings, 'serializeOrder'> & {
   findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
   normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
@@ -100,7 +91,8 @@ export type OrderStatusTransitionErrorBinding = {
 
 export type OrderStockInHelperDeps =
   OrderTransactionFactoryBinding
-  & OrderStockInRuntimeBindings
+  & OrderByIdBinding
+  & OrderByIdWithItemsBinding
   & OrderStatusNormalizerBinding
   & OrderStatusTransitionErrorBinding;
 
