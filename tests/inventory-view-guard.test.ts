@@ -28,6 +28,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const detailView = read('src/views/InventoryReceiptDetail.vue');
   const queryBuilders = read('src/features/inventory/inventoryQueryBuilders.ts');
   const csvExports = read('src/features/inventory/inventoryCsvExports.ts');
+  const storePaging = read('src/features/inventory/inventoryStorePaging.ts');
 
   assert.match(view, /采购入库记录/);
   assert.match(view, /正式出库记录/);
@@ -220,7 +221,12 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(locationDialog, /warehouseLocked/);
   assert.match(locationDialog, /:disabled="warehouseLocked"/);
   assert.match(locationDialog, /已建库位不允许更换所属仓库/);
-  assert.match(store, /const pageSize = 200/);
+  assert.match(store, /fetchAllPagedRows/);
+  assert.match(store, /normalizePagedRowsResponse/);
+  assert.match(storePaging, /export type PagedRowsResponse/);
+  assert.match(storePaging, /export function normalizePagedRowsResponse/);
+  assert.match(storePaging, /export async function fetchAllPagedRows/);
+  assert.match(storePaging, /const pageSize = options\.pageSize \?\? 200/);
   assert.match(queryBuilders, /function appendIfPresent/);
   assert.match(queryBuilders, /appendIfPresent\(query, 'keyword'/);
   assert.match(queryBuilders, /appendIfPresent\(query, 'direction'/);
