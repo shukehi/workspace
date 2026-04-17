@@ -25,3 +25,15 @@ export async function getAllOrdersResult(
 
   return orders.map(deps.serializeOrder);
 }
+
+
+export async function getOrderByIdResult(
+  id: number | string,
+  deps: {
+    findOrderByIdWithItems: (id: number | string) => Promise<PlainRecord | null>;
+    serializeOrder: (order: PlainRecord | null) => PlainRecord | null;
+  },
+) {
+  const order = await deps.findOrderByIdWithItems(id);
+  return deps.serializeOrder(order);
+}
