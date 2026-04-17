@@ -1,8 +1,6 @@
 import type { OrderAttributes, OrderListQuery, OrderCreateInput, OrderUpdateInput } from '../../models/types';
-import type { Transaction } from 'sequelize';
 import AppError from '../../app/errors/AppError';
 import ERROR_CODES from '../../app/errors/errorCodes';
-import { Op } from 'sequelize';
 import { sequelize } from '../../models';
 import { inventoryReceiptService } from '../inventory';
 import * as orderRepository from './order.repository';
@@ -24,9 +22,16 @@ import {
     toDuplicateOrderSummary,
 } from './order.mapper';
 import {
+    allocateNextAutoOrderNo,
+    allocateNextManualOrderNo,
+    assertUniqueOrderNo,
+    findDuplicateAutoOrder,
+    releaseIdempotencyKeys,
+    reserveIdempotencyKey,
+    syncActiveIdempotencyKey,
+} from './order.service.support';
+import {
     buildOrderDedupeKey,
-    normalizeDedupeText,
-    normalizeMetadata,
     resolveSourceContractCode,
 } from './order.dedupe';
 import { normalizeTemplateType } from './order.template';
@@ -78,103 +83,24 @@ class OrderService {
     ReceivedQuantityExceededError?: typeof ReceivedQuantityExceededError;
     buildOrderDedupeKey?: typeof buildOrderDedupeKey;
     toDuplicateOrderSummary?: typeof toDuplicateOrderSummary;
-
-    async allocateNextManualOrderNo(createdAt: unknown, transaction?: Transaction) {
-        const dateToken = formatManualOrderDateToken(createdAt);
-        const prefix = `PM-${dateToken}-`;
-        const latestSequence = await orderRepository.findMaxOrderNoSequenceByPrefix(prefix, transaction);
-        const nextSequence = Number.isInteger(latestSequence) && latestSequence >= 1001
-            ? latestSequence + 1
-            : 1001;
-        return buildManualOrderNo(dateToken, nextSequence);
-    }
-
-    async allocateNextAutoOrderNo(sourceContractCode: string, transaction?: Transaction) {
-        const normalizedSourceContractCode = String(sourceContractCode || '').trim();
-        if (!normalizedSourceContractCode) return '';
-
-        const existingOrderNos = await orderRepository.findOrderNosBySourceContractCode(normalizedSourceContractCode, transaction);
-        const usedSequences = new Set(
-            existingOrderNos
-                .map((orderNo) => parseAutoOrderSequence(orderNo, normalizedSourceContractCode))
-                .filter((sequence) => Number.isInteger(sequence) && sequence > 0),
-        );
-
-        let nextSequence = 1;
-        while (usedSequences.has(nextSequence)) {
-            nextSequence += 1;
-        }
-
-        return buildAutoOrderNo(normalizedSourceContractCode, nextSequence);
-    }
-
-    async assertUniqueOrderNo(orderNo: unknown, excludeId?: number | string, transaction?: Transaction) {
-        const normalizedOrderNo = String(orderNo || '').trim();
-        if (!normalizedOrderNo) return;
-
-        const existing = await orderRepository.findOrderByOrderNo(normalizedOrderNo, transaction);
-        if (!existing) return;
-
-        const existingId = Number(existing.id);
-        const normalizedExcludeId = Number(excludeId);
-        if (Number.isInteger(existingId) && Number.isInteger(normalizedExcludeId) && existingId === normalizedExcludeId) {
-            return;
-        }
-
-        throw new DuplicateOrderError(existing);
-    }
-
-    async reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: Transaction | undefined) {
-        if (!sourceContractCode || !dedupeKey || !orderId) return null;
-        try {
-            return await orderRepository.createIdempotencyKey({
-                scope: 'auto_po',
-                source_contract_code: sourceContractCode,
-                dedupe_key: dedupeKey,
-                order_id: orderId,
-                active: true,
-            }, transaction);
-        } catch (error: any) {
-            const message = String(error?.message || '');
-            const isUnique = error?.name === 'SequelizeUniqueConstraintError'
-                || message.includes('UNIQUE constraint failed')
-                || message.includes('idx_order_idempotency_active');
-            if (!isUnique) throw error;
-
-            const existingKey = await orderRepository.findActiveIdempotencyKey('auto_po', dedupeKey, transaction);
-            const existingOrder = existingKey
-                ? await this.getOrderById(existingKey.order_id)
-                : await this.findDuplicateAutoOrder({ source_contract_code: sourceContractCode, dedupe_key: dedupeKey }, transaction);
-            throw new DuplicateOrderError(existingOrder);
-        }
-    }
-
-    async releaseIdempotencyKeys(orderId: number, transaction: Transaction | undefined) {
-        await orderRepository.updateActiveIdempotencyKeysByOrderId(
-            orderId,
-            { active: false },
-            transaction
-        );
-    }
-
-    async syncActiveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: Transaction | undefined) {
-        if (!sourceContractCode || !dedupeKey || !orderId) return 0;
-        const [updated] = await orderRepository.updateScopedIdempotencyKeysByOrderId(
-            orderId,
-            'auto_po',
-            {
-                source_contract_code: sourceContractCode,
-                dedupe_key: dedupeKey,
-                active: true
-            },
-            transaction
-        );
-
-        if (updated > 0) return updated;
-
-        await this.reserveIdempotencyKey({ sourceContractCode, dedupeKey, orderId }, transaction);
-        return 1;
-    }
+    allocateNextAutoOrderNo = allocateNextAutoOrderNo;
+    allocateNextManualOrderNo = allocateNextManualOrderNo;
+    assertUniqueOrderNo = assertUniqueOrderNo;
+    findDuplicateAutoOrder = findDuplicateAutoOrder;
+    releaseIdempotencyKeys = releaseIdempotencyKeys;
+    reserveIdempotencyKey = (
+        args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number },
+        transaction: unknown,
+    ) => reserveIdempotencyKey(args, {
+        getOrderById: (id) => this.getOrderById(id),
+        findDuplicateAutoOrder: this.findDuplicateAutoOrder,
+    }, transaction as any);
+    syncActiveIdempotencyKey = (
+        args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number },
+        transaction: unknown,
+    ) => syncActiveIdempotencyKey(args, {
+        reserveIdempotencyKey: (reserveArgs, reserveTransaction) => this.reserveIdempotencyKey(reserveArgs, reserveTransaction),
+    }, transaction as any);
 
     async getAllOrders(category?: string) {
         const where: PlainRecord = {};
@@ -209,32 +135,6 @@ class OrderService {
         return serializeOrder(order);
     }
 
-    async findDuplicateAutoOrder(data: PlainRecord, transaction: Transaction | undefined, options: PlainRecord = {}) {
-        const sourceContractCode = resolveSourceContractCode(data);
-        const dedupeKey = normalizeDedupeText(data?.dedupe_key) || buildOrderDedupeKey(data);
-        const excludeId = Number(options.excludeId);
-
-        if (!sourceContractCode || !dedupeKey) return null;
-
-        const where: PlainRecord = {
-            source_contract_code: sourceContractCode,
-            status: { [Op.ne]: 'cancelled' }
-        };
-        if (Number.isInteger(excludeId) && excludeId > 0) {
-            where.id = { [Op.ne]: excludeId };
-        }
-
-        const candidates = await orderRepository.findAllOrdersWithItems(where, transaction);
-
-        const matched = candidates.find((candidate: PlainRecord) => {
-            const persisted = serializeOrder(candidate);
-            const candidateKey = normalizeDedupeText(candidate.dedupe_key) || buildOrderDedupeKey(persisted);
-            return candidateKey === dedupeKey;
-        });
-
-        return matched ? serializeOrder(matched) : null;
-    }
-
     async createOrder(data: OrderCreateInput) {
         const shouldAutoAssignManualOrderNo = data.metadata?.order_source === 'manual' && isGeneratedManualOrderNo(data.order_no);
         const requestedSourceContractCode = resolveSourceContractCode(data);
@@ -252,13 +152,13 @@ class OrderService {
 
         return await createOrderLifecycle(data, {
             transactionFactory: () => sequelize.transaction(),
-            allocateNextManualOrderNo: (createdAt, transaction) => this.allocateNextManualOrderNo(createdAt, transaction),
-            allocateNextAutoOrderNo: (sourceContractCode, transaction) => this.allocateNextAutoOrderNo(sourceContractCode, transaction),
+            allocateNextManualOrderNo: this.allocateNextManualOrderNo,
+            allocateNextAutoOrderNo: this.allocateNextAutoOrderNo,
             shouldAutoAssignManualOrderNo,
             shouldAutoAssignAutoOrderNo,
             requestedSourceContractCode,
-            assertUniqueOrderNo: (orderNo, excludeId, transaction) => this.assertUniqueOrderNo(orderNo, excludeId, transaction),
-            findDuplicateAutoOrder: (createData, transaction) => this.findDuplicateAutoOrder(createData, transaction),
+            assertUniqueOrderNo: this.assertUniqueOrderNo,
+            findDuplicateAutoOrder: this.findDuplicateAutoOrder,
             createOrder: (values, transaction) => orderRepository.createOrder(values, transaction),
             bulkCreateOrderItems: (items, transaction) => orderRepository.bulkCreateOrderItems(items as any, transaction),
             reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
@@ -275,9 +175,9 @@ class OrderService {
             assertEditableOrderFields,
             findDuplicateAutoOrder: (updateData, transaction, options) => this.findDuplicateAutoOrder(updateData as PlainRecord, transaction, options as PlainRecord),
             buildOrderDedupeKey: (value) => buildOrderDedupeKey(value as PlainRecord),
-            assertUniqueOrderNo: (orderNo, excludeId, transaction) => this.assertUniqueOrderNo(orderNo, excludeId, transaction),
+            assertUniqueOrderNo: this.assertUniqueOrderNo,
             reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
-            releaseIdempotencyKeys: (orderId, transaction) => this.releaseIdempotencyKeys(orderId, transaction),
+            releaseIdempotencyKeys: this.releaseIdempotencyKeys,
             syncActiveIdempotencyKey: (args, transaction) => this.syncActiveIdempotencyKey(args, transaction),
             updateOrderCreatedAt: (orderId, createdAt, transaction) => orderRepository.updateOrderCreatedAt(orderId, createdAt, transaction),
             replaceOrderItems: (orderId, items, transaction) => orderRepository.replaceOrderItems(orderId, items, transaction),
