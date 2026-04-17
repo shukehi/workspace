@@ -2,7 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderStatusGuardBindings, OrderStockInHelperDeps, OrderStockInServiceDeps } from './order.service.contracts';
+import type { OrderByIdBinding, OrderByIdWithItemsBinding, OrderStatusNormalizerBinding, OrderStatusTransitionErrorBinding, OrderStockInServiceDeps, OrderTransactionFactoryBinding } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -127,7 +127,7 @@ export async function resolveStockInOrderUpdate(
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
 }
 
-export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, services: OrderStockInServiceDeps & OrderStatusGuardBindings) {
+export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, services: OrderStockInServiceDeps & OrderStatusNormalizerBinding & OrderStatusTransitionErrorBinding) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderByIdWithItems: (orderId: number | string, transaction: Transaction | undefined) => orderRepository.findOrderByIdWithItems(orderId, transaction),
@@ -145,7 +145,7 @@ export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, servi
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,
-    deps: OrderStockInServiceDeps & OrderStockInHelperDeps & {
+    deps: OrderStockInServiceDeps & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & OrderStatusNormalizerBinding & OrderStatusTransitionErrorBinding & {
         getOrderById: OrderByIdBinding['getOrderById'];
     },
 ): Promise<PlainRecord | null> {
@@ -177,7 +177,7 @@ export async function stockInOrderLifecycle(
 export async function stockInOrderResult(
     id: number | string,
     data: PlainRecord = {},
-    deps: OrderStockInServiceDeps & OrderStockInHelperDeps & {
+    deps: OrderStockInServiceDeps & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & OrderStatusNormalizerBinding & OrderStatusTransitionErrorBinding & {
         getOrderById: OrderByIdBinding['getOrderById'];
     },
 ) {
