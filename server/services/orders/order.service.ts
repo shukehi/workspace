@@ -2,7 +2,6 @@ import type { OrderAttributes, OrderListQuery, OrderCreateInput, OrderUpdateInpu
 import type { Transaction } from 'sequelize';
 import AppError from '../../app/errors/AppError';
 import ERROR_CODES from '../../app/errors/errorCodes';
-import { createPaginationResponse } from '../../shared/contracts/pagination';
 import { Op } from 'sequelize';
 import { sequelize } from '../../models';
 import { inventoryReceiptService } from '../inventory';
@@ -16,6 +15,7 @@ import {
     buildOrderFacets,
     buildOrderSummary,
 } from './order.query-policy';
+import { getPaginatedOrdersResult } from './order.service.query';
 import {
     normalizeOrderForLog,
     normalizeOrderItemForPersistence,
@@ -198,40 +198,10 @@ class OrderService {
     }
 
     async getPaginatedOrders(query: OrderListQuery = {}) {
-        const page = Math.max(1, Number(query.page) || 1);
-        const pageSize = Math.min(200, Math.max(10, Number(query.pageSize) || 50));
-        const aggregates = await orderRepository.getPaginatedOrderAggregates(query);
-        if (aggregates.total === 0) {
-            return createPaginationResponse({
-                rows: [],
-                total: 0,
-                page,
-                pageSize,
-                summary: buildOrderSummary([]),
-                facets: buildOrderFacets([]),
-            });
-        }
-
-        const pagedIds = await orderRepository.findPaginatedOrderIds(query, page, pageSize);
-        const orders = await orderRepository.findOrdersWithItemsByIds(pagedIds);
-        const serializedOrders = orders.map(serializeOrder);
-        const rowsById = new Map<number, PlainRecord>();
-        serializedOrders.forEach((order) => {
-            if (order && Number.isInteger(order.id)) {
-                rowsById.set(Number(order.id), order);
-            }
-        });
-        const rows = pagedIds
-            .map((id) => rowsById.get(id))
-            .filter((order): order is PlainRecord => Boolean(order));
-
-        return createPaginationResponse({
-            rows,
-            total: aggregates.total,
-            page,
-            pageSize,
-            summary: aggregates.summary,
-            facets: aggregates.facets,
+        return await getPaginatedOrdersResult(query, {
+            serializeOrder,
+            buildOrderSummary,
+            buildOrderFacets,
         });
     }
 
