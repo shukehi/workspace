@@ -6,6 +6,7 @@ import { normalizeStatus } from './order.policy';
 import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper';
 import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
 import { normalizeOrderRemark } from './order.service.helpers';
+import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 
 export type CreateOrderContext = {
@@ -104,4 +105,84 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
     ...order.get({ plain: true }),
     items: Array.isArray(normalizedData.items) ? normalizedData.items : [],
   });
+}
+
+
+export async function createOrderLifecycle(
+  data: OrderCreateInput,
+  deps: {
+    transactionFactory: () => Promise<any>;
+    allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
+    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
+    shouldAutoAssignManualOrderNo: boolean;
+    shouldAutoAssignAutoOrderNo: boolean;
+    requestedSourceContractCode: string;
+    assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+    findDuplicateAutoOrder: (data: PlainRecord, transaction: any) => Promise<PlainRecord | null>;
+    createOrder: (values: OrderCreationAttributes, transaction?: any) => Promise<{ id: number; get: (options: { plain: true }) => PlainRecord }>;
+    bulkCreateOrderItems: (items: PlainRecord[], transaction?: any) => Promise<unknown>;
+    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
+    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+    isUniqueOrderNoError: (error: unknown) => boolean;
+  },
+): Promise<PlainRecord> {
+  let lastAttemptedOrderNo = String(data.order_no || '').trim();
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const transaction = await deps.transactionFactory();
+    try {
+      const createInput = deps.shouldAutoAssignManualOrderNo
+        ? { ...data, order_no: await deps.allocateNextManualOrderNo(data.created_at, transaction) }
+        : deps.shouldAutoAssignAutoOrderNo
+          ? { ...data, order_no: await deps.allocateNextAutoOrderNo(deps.requestedSourceContractCode, transaction) }
+          : data;
+      lastAttemptedOrderNo = String(createInput.order_no || '').trim() || lastAttemptedOrderNo;
+      assertCreateOrderInputValid(createInput);
+      const context = resolveCreateOrderContext(createInput);
+      const {
+        sourceContractCode,
+        normalizedData,
+        dedupeKey,
+      } = context;
+      const duplicate = await deps.findDuplicateAutoOrder(normalizedData, transaction);
+      if (duplicate) {
+        throw new DuplicateOrderError(duplicate as any);
+      }
+      await deps.assertUniqueOrderNo(normalizedData.order_no, undefined, transaction);
+
+      const order = await deps.createOrder(buildCreateOrderValues(context), transaction);
+      const items = buildCreateOrderItems(normalizedData, order.id);
+      if (items.length > 0) {
+        await deps.bulkCreateOrderItems(items, transaction);
+      }
+
+      await deps.reserveIdempotencyKey({
+        sourceContractCode,
+        dedupeKey,
+        orderId: order.id,
+      }, transaction);
+
+      await transaction.commit();
+      const persisted = await deps.getOrderById(order.id);
+      if (persisted) return persisted;
+
+      console.warn('[OrderService] createOrder fallback: persisted order not found after commit', {
+        id: order.id,
+        order_no: createInput.order_no,
+      });
+
+      return buildCreateOrderFallback(order, normalizedData);
+    } catch (error) {
+      await transaction.rollback();
+      if ((deps.shouldAutoAssignManualOrderNo || deps.shouldAutoAssignAutoOrderNo) && deps.isUniqueOrderNoError(error) && attempt < 4) {
+        continue;
+      }
+      if (deps.isUniqueOrderNoError(error)) {
+        await deps.assertUniqueOrderNo(lastAttemptedOrderNo || data.order_no);
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('Failed to allocate unique order number');
 }
