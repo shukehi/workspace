@@ -77,6 +77,11 @@ export type OrderLifecycleMutableRuntimeBindings =
   OrderLifecycleCoreRuntimeBindings
   & OrderIdempotencyMutationBindings;
 
+
+export type OrderLifecycleCreateRuntimeBindings =
+  OrderLifecycleCoreRuntimeBindings
+  & OrderAllocationBindings;
+
 export type OrderStockInRuntimeBindings =
   OrderByIdBinding
   & OrderByIdWithItemsBinding;
