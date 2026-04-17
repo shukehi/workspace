@@ -86,6 +86,8 @@
   — Inventory store/state 第六轮收口计划
 - [INVENTORY_STORE_PASS7_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_PASS7_PLAN_2026-04-17.md)
   — Inventory store/state 第七轮收口计划
+- [INVENTORY_STORE_PASS8_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_PASS8_PLAN_2026-04-17.md)
+  — Inventory store/state 第八轮收口计划
 - [ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md)
   — OrderService 第一轮收口计划
 - [ORDER_LIFECYCLE_PASS3_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_PASS3_PLAN_2026-04-17.md)
