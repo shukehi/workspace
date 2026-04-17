@@ -35,6 +35,7 @@ import {
     buildCreateOrderFallback,
     buildCreateOrderItems,
     buildCreateOrderValues,
+    createOrderLifecycle,
     resolveCreateOrderContext,
 } from './order.service.create';
 import {
@@ -242,76 +243,30 @@ class OrderService {
         const shouldAutoAssignAutoOrderNo = data.metadata?.order_source === 'auto'
             && Boolean(requestedSourceContractCode)
             && isGeneratedAutoOrderNo(data.order_no, requestedSourceContractCode);
-        let lastAttemptedOrderNo = String(data.order_no || '').trim();
 
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-            const transaction = await sequelize.transaction();
-            try {
-                const createInput = shouldAutoAssignManualOrderNo
-                    ? { ...data, order_no: await this.allocateNextManualOrderNo(data.created_at, transaction) }
-                    : shouldAutoAssignAutoOrderNo
-                        ? { ...data, order_no: await this.allocateNextAutoOrderNo(requestedSourceContractCode, transaction) }
-                        : data;
-                lastAttemptedOrderNo = String(createInput.order_no || '').trim() || lastAttemptedOrderNo;
-                assertCreateOrderInputValid(createInput);
-                const context = resolveCreateOrderContext(createInput);
-                const {
-                    sourceContractCode,
-                    metadata,
-                    normalizedStatus,
-                    normalizedData,
-                    dedupeKey,
-                } = context;
-                const duplicate = await this.findDuplicateAutoOrder(normalizedData, transaction);
-                if (duplicate) {
-                    throw new DuplicateOrderError(duplicate);
-                }
-                await this.assertUniqueOrderNo(normalizedData.order_no, undefined, transaction);
-
-                if (!data.created_at) {
-                    console.warn('[OrderService] createOrder payload missing created_at, falling back to current timestamp', {
-                        order_no: data.order_no,
-                        category: data.category,
-                        supplier: data.supplier
-                    });
-                }
-
-                const order = await orderRepository.createOrder(buildCreateOrderValues(context), transaction);
-
-                const items = buildCreateOrderItems(normalizedData, order.id);
-                if (items.length > 0) {
-                    await orderRepository.bulkCreateOrderItems(items, transaction);
-                }
-
-                await this.reserveIdempotencyKey({
-                    sourceContractCode,
-                        dedupeKey,
-                        orderId: order.id
-                    }, transaction);
-
-                await transaction.commit();
-                const persisted = await this.getOrderById(order.id);
-                if (persisted) return persisted;
-
-                console.warn('[OrderService] createOrder fallback: persisted order not found after commit', {
-                    id: order.id,
-                    order_no: createInput.order_no
-                });
-
-                return buildCreateOrderFallback(order, normalizedData);
-            } catch (error) {
-                await transaction.rollback();
-                if ((shouldAutoAssignManualOrderNo || shouldAutoAssignAutoOrderNo) && isUniqueOrderNoError(error) && attempt < 4) {
-                    continue;
-                }
-                if (isUniqueOrderNoError(error)) {
-                    await this.assertUniqueOrderNo(lastAttemptedOrderNo || data.order_no);
-                }
-                throw error;
-            }
+        if (!data.created_at) {
+            console.warn('[OrderService] createOrder payload missing created_at, falling back to current timestamp', {
+                order_no: data.order_no,
+                category: data.category,
+                supplier: data.supplier
+            });
         }
 
-        throw new Error('Failed to allocate unique order number');
+        return await createOrderLifecycle(data, {
+            transactionFactory: () => sequelize.transaction(),
+            allocateNextManualOrderNo: (createdAt, transaction) => this.allocateNextManualOrderNo(createdAt, transaction),
+            allocateNextAutoOrderNo: (sourceContractCode, transaction) => this.allocateNextAutoOrderNo(sourceContractCode, transaction),
+            shouldAutoAssignManualOrderNo,
+            shouldAutoAssignAutoOrderNo,
+            requestedSourceContractCode,
+            assertUniqueOrderNo: (orderNo, excludeId, transaction) => this.assertUniqueOrderNo(orderNo, excludeId, transaction),
+            findDuplicateAutoOrder: (createData, transaction) => this.findDuplicateAutoOrder(createData, transaction),
+            createOrder: (values, transaction) => orderRepository.createOrder(values, transaction),
+            bulkCreateOrderItems: (items, transaction) => orderRepository.bulkCreateOrderItems(items as any, transaction),
+            reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
+            getOrderById: (id) => this.getOrderById(id),
+            isUniqueOrderNoError,
+        });
     }
 
     async updateOrder(id: number | string, data: OrderUpdateInput) {
