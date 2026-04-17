@@ -74,6 +74,8 @@
   — 当前优先执行的 Week 1 施工图
 - [INVENTORY_PAGE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_PAGE_REFACTOR_PLAN_2026-04-16.md)
   — Inventory 页面第一轮收口计划
+- [INVENTORY_STORE_PASS2_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_PASS2_PLAN_2026-04-17.md)
+  — Inventory store/state 第二轮收口计划
 - [ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md)
   — OrderService 第一轮收口计划
 - [ORDER_LIFECYCLE_PASS3_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_PASS3_PLAN_2026-04-17.md)

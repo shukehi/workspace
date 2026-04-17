@@ -17,6 +17,11 @@ import {
     exportReceiptsToCSV,
     exportReconciliationToCSV,
 } from '@/features/inventory/inventoryCsvExports';
+import {
+    fetchAllPagedRows,
+    normalizePagedRowsResponse,
+    type PagedRowsResponse,
+} from '@/features/inventory/inventoryStorePaging';
 import type {
     InventoryItem,
     InventoryAdjustmentPayload,
@@ -161,11 +166,12 @@ export const useInventoryStore = defineStore('inventory', () => {
         receiptsLoading.value = true;
         try {
             const suffix = buildReceiptQuery(params);
-            const res = await api.get<{ rows?: InventoryReceipt[]; total?: number; page?: number; pageSize?: number }>(`/inventory-receipts${suffix}`);
-            receipts.value = Array.isArray(res?.rows) ? res.rows : [];
-            receiptsTotal.value = Number(res?.total || 0);
-            receiptsPage.value = Number(res?.page || params.page || 1);
-            receiptsPageSize.value = Number(res?.pageSize || params.pageSize || 50);
+            const res = await api.get<PagedRowsResponse<InventoryReceipt>>(`/inventory-receipts${suffix}`);
+            const normalized = normalizePagedRowsResponse(res, params);
+            receipts.value = normalized.rows;
+            receiptsTotal.value = normalized.total;
+            receiptsPage.value = normalized.page;
+            receiptsPageSize.value = normalized.pageSize;
         } catch (e) {
             receipts.value = [];
             receiptsTotal.value = 0;
@@ -177,22 +183,13 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
 
     async function fetchAllInventoryReceipts(params: Omit<ReceiptQuery, 'page' | 'pageSize'> = {}) {
-        const pageSize = 200;
-        let page = 1;
-        let total = 0;
-        const rows: InventoryReceipt[] = [];
-
-        do {
-            const suffix = buildReceiptQuery({ ...params, page, pageSize });
-            const res = await api.get<{ rows?: InventoryReceipt[]; total?: number }>(`/inventory-receipts${suffix}`);
-            const chunk = Array.isArray(res?.rows) ? res.rows : [];
-            total = Number(res?.total || 0);
-            rows.push(...chunk);
-            if (chunk.length === 0) break;
-            page += 1;
-        } while (rows.length < total);
-
-        return rows;
+        return await fetchAllPagedRows<InventoryReceipt, Omit<ReceiptQuery, 'page' | 'pageSize'>>({
+            params,
+            fetchPage: async (pagedParams) => {
+                const suffix = buildReceiptQuery(pagedParams);
+                return await api.get<PagedRowsResponse<InventoryReceipt>>(`/inventory-receipts${suffix}`);
+            },
+        });
     }
 
     async function fetchInventoryReceipt(id: number | string) {
@@ -255,10 +252,11 @@ export const useInventoryStore = defineStore('inventory', () => {
         try {
             const suffix = buildOutboundQuery(params);
             const res = await api.get<InventoryOutboundListResponse>(`/inventory-outbounds${suffix}`);
-            outbounds.value = Array.isArray(res?.rows) ? res.rows : [];
-            outboundsTotal.value = Number(res?.total || 0);
-            outboundsPage.value = Number(res?.page || params.page || 1);
-            outboundsPageSize.value = Number(res?.pageSize || params.pageSize || 50);
+            const normalized = normalizePagedRowsResponse(res, params);
+            outbounds.value = normalized.rows;
+            outboundsTotal.value = normalized.total;
+            outboundsPage.value = normalized.page;
+            outboundsPageSize.value = normalized.pageSize;
         } catch (e) {
             outbounds.value = [];
             outboundsTotal.value = 0;
@@ -278,10 +276,11 @@ export const useInventoryStore = defineStore('inventory', () => {
         try {
             const suffix = buildMovementQuery(params);
             const res = await api.get<InventoryMovementListResponse>(`/inventory-movements${suffix}`);
-            movements.value = Array.isArray(res?.rows) ? res.rows : [];
-            movementsTotal.value = Number(res?.total || 0);
-            movementsPage.value = Number(res?.page || params.page || 1);
-            movementsPageSize.value = Number(res?.pageSize || params.pageSize || 20);
+            const normalized = normalizePagedRowsResponse(res, { ...params, pageSize: params.pageSize || 20 });
+            movements.value = normalized.rows;
+            movementsTotal.value = normalized.total;
+            movementsPage.value = normalized.page;
+            movementsPageSize.value = normalized.pageSize;
             return res;
         } catch (e) {
             movements.value = [];
@@ -294,22 +293,13 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
 
     async function fetchAllInventoryOutbounds(params: Omit<OutboundQuery, 'page' | 'pageSize'> = {}) {
-        const pageSize = 200;
-        let page = 1;
-        let total = 0;
-        const rows: InventoryOutbound[] = [];
-
-        do {
-            const suffix = buildOutboundQuery({ ...params, page, pageSize });
-            const res = await api.get<InventoryOutboundListResponse>(`/inventory-outbounds${suffix}`);
-            const chunk = Array.isArray(res?.rows) ? res.rows : [];
-            total = Number(res?.total || 0);
-            rows.push(...chunk);
-            if (chunk.length === 0) break;
-            page += 1;
-        } while (rows.length < total);
-
-        return rows;
+        return await fetchAllPagedRows<InventoryOutbound, Omit<OutboundQuery, 'page' | 'pageSize'>>({
+            params,
+            fetchPage: async (pagedParams) => {
+                const suffix = buildOutboundQuery(pagedParams);
+                return await api.get<InventoryOutboundListResponse>(`/inventory-outbounds${suffix}`);
+            },
+        });
     }
 
     async function createInventoryOutbound(payload: InventoryOutboundPayload) {
