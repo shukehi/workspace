@@ -11,8 +11,7 @@ import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
-    OrderCoreLifecycleBindings,
-    OrderIdempotencyMutationBindings,
+    OrderLifecycleMutableBindings,
     OrderLifecycleDepsCore,
     OrderLifecycleDepsPersistence,
 } from './order.service.contracts';
@@ -173,7 +172,7 @@ export function buildNextOrderValues({
 }
 
 
-export type UpdateOrderLifecycleBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
+export type UpdateOrderLifecycleBindings = OrderLifecycleMutableBindings;
 
 export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBindings) {
     return {

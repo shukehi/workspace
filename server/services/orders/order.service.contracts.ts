@@ -55,3 +55,9 @@ export type OrderLifecycleDepsCore =
 export type OrderLifecycleDepsPersistence =
   OrderItemPersistenceBindings
   & OrderSerializationBindings;
+
+export type OrderReadSurfaceBindings = OrderSerializationBindings & OrderByIdWithItemsBinding;
+
+export type OrderQuerySurfaceBindings = OrderSerializationBindings & OrderSummaryFacetBindings;
+
+export type OrderLifecycleMutableBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
