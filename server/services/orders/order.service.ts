@@ -117,8 +117,8 @@ class OrderService {
 
     private buildReadBindings() {
         return buildOrderReadBindings({
-            findAllOrdersWithItems: (where) => orderRepository.findAllOrdersWithItems(where),
-            findOrderByIdWithItems: (orderId) => orderRepository.findOrderByIdWithItems(orderId),
+            findAllOrdersWithItems: (where: PlainRecord) => orderRepository.findAllOrdersWithItems(where),
+            findOrderByIdWithItems: (orderId: number | string) => orderRepository.findOrderByIdWithItems(orderId),
             normalizeOrderForLog,
             serializeOrder,
         });
