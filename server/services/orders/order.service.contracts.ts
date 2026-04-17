@@ -67,28 +67,22 @@ export type OrderQuerySurfaceBindings = OrderSerializationBindings & OrderSummar
 
 export type OrderLifecycleMutableBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
 
-export type OrderLifecycleCoreRuntimeBindings =
-  OrderByIdBinding
-  & OrderUniqueOrderNoBinding
-  & OrderDuplicateAutoBinding
-  & OrderIdempotencyReserveBinding;
-
-export type OrderLifecycleMutableRuntimeBindings =
-  OrderLifecycleCoreRuntimeBindings
-  & OrderIdempotencyMutationBindings;
-
-
-export type OrderLifecycleCreateRuntimeBindings =
-  OrderLifecycleCoreRuntimeBindings
+export type OrderLifecycleCreateBindings =
+  OrderCoreLifecycleBindings
   & OrderAllocationBindings;
+
+
+
+export type OrderLifecycleCoreRuntimeBindings = OrderCoreLifecycleBindings;
+
+export type OrderLifecycleMutableRuntimeBindings = OrderLifecycleMutableBindings;
+
+export type OrderLifecycleCreateRuntimeBindings = OrderLifecycleCreateBindings;
 
 export type OrderStockInRuntimeBindings =
   OrderByIdBinding
   & OrderByIdWithItemsBinding;
 
-export type OrderLifecycleCreateBindings =
-  OrderCoreLifecycleBindings
-  & OrderAllocationBindings;
 
 export type OrderLifecycleSupportBindings =
   OrderLifecycleMutableBindings
