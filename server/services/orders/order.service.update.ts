@@ -13,9 +13,8 @@ import { DuplicateOrderError } from './order.errors';
 import type {
     OrderCoreLifecycleBindings,
     OrderIdempotencyMutationBindings,
-    OrderItemPersistenceBindings,
-    OrderSerializationBindings,
-    OrderTransactionFactoryBinding,
+    OrderLifecycleDepsCore,
+    OrderLifecycleDepsPersistence,
 } from './order.service.contracts';
 import { normalizeTemplateType } from './order.template';
 
@@ -197,7 +196,7 @@ export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBind
 }
 
 export type UpdateOrderLifecycleDeps =
-    OrderTransactionFactoryBinding
+    OrderLifecycleDepsCore
     & Pick<UpdateOrderLifecycleBindings,
         'getOrderById'
         | 'findDuplicateAutoOrder'
@@ -206,8 +205,7 @@ export type UpdateOrderLifecycleDeps =
         | 'releaseIdempotencyKeys'
         | 'syncActiveIdempotencyKey'
     >
-    & OrderItemPersistenceBindings
-    & OrderSerializationBindings
+    & OrderLifecycleDepsPersistence
     & {
         findOrderById: (id: number | string, transaction?: any) => Promise<any>;
         assertEditableOrderFields: (order: any, data: Record<string, unknown>) => void;

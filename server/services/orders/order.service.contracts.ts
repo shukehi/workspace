@@ -47,3 +47,11 @@ export type OrderCoreLifecycleBindings =
   & OrderUniqueOrderNoBinding
   & OrderDuplicateAutoBinding
   & OrderIdempotencyReserveBinding;
+
+export type OrderLifecycleDepsCore =
+  OrderTransactionFactoryBinding
+  & OrderByIdBinding;
+
+export type OrderLifecycleDepsPersistence =
+  OrderItemPersistenceBindings
+  & OrderSerializationBindings;
