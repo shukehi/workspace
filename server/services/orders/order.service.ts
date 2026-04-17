@@ -14,7 +14,7 @@ import {
     buildOrderSummary,
 } from './order.query-policy';
 import { getPaginatedOrdersResult } from './order.service.query';
-import { getAllOrdersResult } from './order.service.read';
+import { getAllOrdersResult, getOrderByIdResult } from './order.service.read';
 import {
     normalizeOrderForLog,
     normalizeOrderItemForPersistence,
@@ -120,8 +120,10 @@ class OrderService {
     }
 
     async getOrderById(id: number | string) {
-        const order = await orderRepository.findOrderByIdWithItems(id);
-        return serializeOrder(order);
+        return await getOrderByIdResult(id, {
+            findOrderByIdWithItems: (orderId) => orderRepository.findOrderByIdWithItems(orderId),
+            serializeOrder,
+        });
     }
 
     async createOrder(data: OrderCreateInput) {
