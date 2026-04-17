@@ -1,5 +1,13 @@
 import type { PlainRecord } from '../../shared/types';
 
+export function buildMarkArrivedPayload(data: PlainRecord = {}): PlainRecord {
+  return {
+    ...data,
+    status: 'arrived',
+    arrived_at: data.arrived_at || new Date().toISOString(),
+  };
+}
+
 export type BulkArriveResult = {
   total: number;
   successCount: number;
