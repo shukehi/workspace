@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import * as orderRepository from './order.repository';
 import type { PlainRecord } from '../../shared/types';
 import type {
+  OrderAllocationBindings,
   OrderByIdBinding,
   OrderDuplicateAutoBinding,
   OrderIdempotencyMutationBindings,
@@ -29,10 +30,7 @@ export type OrderLifecycleServiceBindings = OrderByIdBinding
   & OrderDuplicateAutoBinding
   & OrderIdempotencyReserveBinding
   & OrderIdempotencyMutationBindings
-  & {
-    allocateNextManualOrderNo: (createdAt: unknown, transaction?: Transaction) => Promise<string>;
-    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: Transaction) => Promise<string>;
-  };
+  & OrderAllocationBindings;
 
 export function buildOrderLifecycleBindings(service: OrderLifecycleServiceBindings) {
   return {

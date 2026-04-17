@@ -11,8 +11,10 @@ import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.help
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
+  OrderAllocationBindings,
   OrderCoreLifecycleBindings,
   OrderLifecycleCoreRuntimeBindings,
+  OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
 export type CreateOrderContext = {
@@ -114,10 +116,7 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
 }
 
 
-export type CreateOrderLifecycleBindings = OrderCoreLifecycleBindings & {
-    allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
-    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
-  };
+export type CreateOrderLifecycleBindings = OrderCoreLifecycleBindings & OrderAllocationBindings;
 
 export function buildCreateOrderLifecycleDeps(args: {
   data: OrderCreateInput;
@@ -144,7 +143,8 @@ export function buildCreateOrderLifecycleDeps(args: {
 }
 
 export type CreateOrderLifecycleDeps =
-  OrderLifecycleCoreRuntimeBindings
+  OrderTransactionFactoryBinding
+  & OrderLifecycleCoreRuntimeBindings
   & Pick<CreateOrderLifecycleBindings,
     'allocateNextManualOrderNo'
     | 'allocateNextAutoOrderNo'
