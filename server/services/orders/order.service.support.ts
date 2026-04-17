@@ -18,9 +18,7 @@ import { serializeOrder } from './order.mapper';
 import { DuplicateOrderError } from './order.errors';
 
 
-export type OrderLifecycleServiceBindings = OrderLifecycleSupportBindings;
-
-export function buildOrderLifecycleBindings(service: OrderLifecycleServiceBindings) {
+export function buildOrderLifecycleBindings(service: OrderLifecycleSupportBindings) {
   return {
     getOrderById: service.getOrderById,
     allocateNextManualOrderNo: service.allocateNextManualOrderNo,
