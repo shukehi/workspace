@@ -114,6 +114,8 @@
   — Order lifecycle 第十二轮收口计划
 - [ORDER_LIFECYCLE_PASS13_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_PASS13_PLAN_2026-04-17.md)
   — Order lifecycle 第十三轮收口计划
+- [ORDER_LIFECYCLE_NORMALIZATION_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PLAN_2026-04-17.md)
+  — Order lifecycle deeper normalization 计划
 - [SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md)
   — source-analysis extractor 第一轮拆分计划
 - [SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md)

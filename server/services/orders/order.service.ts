@@ -45,6 +45,7 @@ import {
     resolveCreateOrderContext,
 } from './order.service.create';
 import {
+    buildUpdateOrderLifecycleDeps,
     updateOrderLifecycle,
 } from './order.service.update';
 import {
@@ -159,23 +160,14 @@ class OrderService {
     }
 
     async updateOrder(id: number | string, data: OrderUpdateInput) {
-        return await updateOrderLifecycle(id, data, {
-            transactionFactory: () => sequelize.transaction(),
-            findOrderById: (orderId, transaction) => orderRepository.findOrderById(orderId, transaction),
+        return await updateOrderLifecycle(id, data, buildUpdateOrderLifecycleDeps({
             getOrderById: (orderId) => this.getOrderById(orderId),
-            assertEditableOrderFields,
-            findDuplicateAutoOrder: (updateData, transaction, options) => this.findDuplicateAutoOrder(updateData as PlainRecord, transaction, options as PlainRecord),
-            buildOrderDedupeKey: (value) => buildOrderDedupeKey(value as PlainRecord),
+            findDuplicateAutoOrder: this.findDuplicateAutoOrder,
             assertUniqueOrderNo: this.assertUniqueOrderNo,
             reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
             releaseIdempotencyKeys: this.releaseIdempotencyKeys,
             syncActiveIdempotencyKey: (args, transaction) => this.syncActiveIdempotencyKey(args, transaction),
-            updateOrderCreatedAt: (orderId, createdAt, transaction) => orderRepository.updateOrderCreatedAt(orderId, createdAt, transaction),
-            replaceOrderItems: (orderId, items, transaction) => orderRepository.replaceOrderItems(orderId, items, transaction),
-            findOrderItemsByOrderId: (orderId) => orderRepository.findOrderItemsByOrderId(orderId),
-            normalizeOrderItemForPersistence,
-            serializeOrder,
-        });
+        }));
     }
 
     async deleteOrder(id: number | string) {
