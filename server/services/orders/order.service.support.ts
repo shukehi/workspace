@@ -16,6 +16,31 @@ import {
 import { serializeOrder } from './order.mapper';
 import { DuplicateOrderError } from './order.errors';
 
+
+export type OrderLifecycleServiceBindings = {
+  getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+  allocateNextManualOrderNo: (createdAt: unknown, transaction?: Transaction) => Promise<string>;
+  allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: Transaction) => Promise<string>;
+  assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: Transaction) => Promise<void>;
+  findDuplicateAutoOrder: (data: PlainRecord, transaction?: Transaction, options?: PlainRecord) => Promise<PlainRecord | null>;
+  reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
+  releaseIdempotencyKeys: (orderId: number, transaction?: Transaction) => Promise<unknown>;
+  syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: Transaction) => Promise<unknown>;
+};
+
+export function buildOrderLifecycleBindings(service: OrderLifecycleServiceBindings) {
+  return {
+    getOrderById: service.getOrderById,
+    allocateNextManualOrderNo: service.allocateNextManualOrderNo,
+    allocateNextAutoOrderNo: service.allocateNextAutoOrderNo,
+    assertUniqueOrderNo: service.assertUniqueOrderNo,
+    findDuplicateAutoOrder: service.findDuplicateAutoOrder,
+    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => service.reserveIdempotencyKey(args, transaction),
+    releaseIdempotencyKeys: service.releaseIdempotencyKeys,
+    syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: Transaction) => service.syncActiveIdempotencyKey(args, transaction),
+  };
+}
+
 export async function allocateNextManualOrderNo(createdAt: unknown, transaction?: Transaction) {
   const dateToken = formatManualOrderDateToken(createdAt);
   const prefix = `PM-${dateToken}-`;
