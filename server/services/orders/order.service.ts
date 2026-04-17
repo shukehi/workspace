@@ -54,7 +54,7 @@ import {
     ReceivedQuantityExceededError,
 } from './order.errors';
 import { deleteOrderWithRetry } from './order.service.delete';
-import { bulkMarkArrivedWithResult } from './order.service.arrive';
+import { buildMarkArrivedPayload, bulkMarkArrivedWithResult } from './order.service.arrive';
 import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
 import type { PlainRecord } from '../../shared/types';
 import {
@@ -470,12 +470,7 @@ class OrderService {
     }
 
     async markArrived(id: number | string, data: PlainRecord = {}) {
-        const payload = {
-            ...data,
-            status: 'arrived',
-            arrived_at: data.arrived_at || new Date().toISOString(),
-        };
-        return await this.updateOrder(id, payload);
+        return await this.updateOrder(id, buildMarkArrivedPayload(data));
     }
 
     async bulkMarkArrived(idsInput: unknown, data: PlainRecord = {}) {
