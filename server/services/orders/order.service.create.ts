@@ -11,9 +11,8 @@ import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.help
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
-  OrderAllocationBindings,
-  OrderCoreLifecycleBindings,
   OrderLifecycleCoreRuntimeBindings,
+  OrderLifecycleCreateBindings,
   OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
@@ -116,7 +115,7 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
 }
 
 
-export type CreateOrderLifecycleBindings = OrderCoreLifecycleBindings & OrderAllocationBindings;
+export type CreateOrderLifecycleBindings = OrderLifecycleCreateBindings;
 
 export function buildCreateOrderLifecycleDeps(args: {
   data: OrderCreateInput;
