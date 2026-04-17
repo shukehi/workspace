@@ -102,6 +102,8 @@
   — Order lifecycle 第八轮收口计划
 - [ORDER_LIFECYCLE_PASS9_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_PASS9_PLAN_2026-04-17.md)
   — Order lifecycle 第九轮收口计划
+- [ORDER_LIFECYCLE_PASS10_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_PASS10_PLAN_2026-04-17.md)
+  — Order lifecycle 第十轮收口计划
 - [SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md)
   — source-analysis extractor 第一轮拆分计划
 - [SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md)
@@ -191,6 +193,8 @@
   — Order lifecycle 第八轮收口当前阶段成果与停点建议
 - [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS9_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS9_2026-04-17.md)
   — Order lifecycle 第九轮收口当前阶段成果与停点建议
+- [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS10_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_PASS10_2026-04-17.md)
+  — Order lifecycle 第十轮收口当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md)
   — Inventory store/state 第二轮当前阶段成果与停点建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS3_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS3_2026-04-17.md)
