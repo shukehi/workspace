@@ -29,13 +29,7 @@ import {
     updateInventoryMinStockFlow,
 } from '@/features/inventory/inventoryStoreCoreFlows';
 import { createInventoryStoreState } from '@/features/inventory/inventoryStoreState';
-import {
-    fetchAllInventoryReceiptsFlow,
-    fetchInventoryMovementsFlow,
-    fetchInventoryReceiptFlow,
-    fetchInventoryReceiptsFlow,
-    reverseReceiptFlow,
-} from '@/features/inventory/inventoryStoreHistoryFlows';
+import { createInventoryHistoryActions } from '@/features/inventory/inventoryStoreHistoryActions';
 import type {
     InventoryAdjustmentPayload,
     InventoryAdjustmentResponse,
@@ -124,44 +118,24 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
-    async function fetchInventoryReceipts(params: ReceiptQuery = {}) {
-        receiptsLoading.value = true;
-        try {
-            const normalized = await fetchInventoryReceiptsFlow(params);
-            receipts.value = normalized.rows;
-            receiptsTotal.value = normalized.total;
-            receiptsPage.value = normalized.page;
-            receiptsPageSize.value = normalized.pageSize;
-        } catch (e) {
-            receipts.value = [];
-            receiptsTotal.value = 0;
-            console.error('Failed to fetch inventory receipts', e);
-            throw e;
-        } finally {
-            receiptsLoading.value = false;
-        }
-    }
-
-    async function fetchAllInventoryReceipts(params: Omit<ReceiptQuery, 'page' | 'pageSize'> = {}) {
-        return await fetchAllInventoryReceiptsFlow(params);
-    }
-
-    async function fetchInventoryReceipt(id: number | string) {
-        return await fetchInventoryReceiptFlow(id);
-    }
-
-    async function reverseReceipt(
-        id: number,
-        payload: {
-            operator?: string;
-            remark?: string;
-            reversed_at?: string;
-            reverse_reason?: string;
-            quantity?: number;
-        } = {},
-    ) {
-        return await reverseReceiptFlow(id, payload);
-    }
+    const {
+        fetchInventoryReceipts,
+        fetchAllInventoryReceipts,
+        fetchInventoryReceipt,
+        reverseReceipt,
+        fetchInventoryMovements,
+    } = createInventoryHistoryActions({
+        receipts,
+        receiptsLoading,
+        receiptsTotal,
+        receiptsPage,
+        receiptsPageSize,
+        movements,
+        movementsLoading,
+        movementsTotal,
+        movementsPage,
+        movementsPageSize,
+    });
 
     async function fetchInventoryLocations() {
         locationsLoading.value = true;
@@ -219,24 +193,6 @@ export const useInventoryStore = defineStore('inventory', () => {
         return await fetchInventoryOutboundFlow(id);
     }
 
-    async function fetchInventoryMovements(params: MovementQuery = {}) {
-        movementsLoading.value = true;
-        try {
-            const normalized = await fetchInventoryMovementsFlow(params);
-            movements.value = normalized.rows;
-            movementsTotal.value = normalized.total;
-            movementsPage.value = normalized.page;
-            movementsPageSize.value = normalized.pageSize;
-            return normalized;
-        } catch (e) {
-            movements.value = [];
-            movementsTotal.value = 0;
-            console.error('Failed to fetch inventory movements', e);
-            throw e;
-        } finally {
-            movementsLoading.value = false;
-        }
-    }
 
     async function fetchAllInventoryOutbounds(params: Omit<OutboundQuery, 'page' | 'pageSize'> = {}) {
         return await fetchAllInventoryOutboundsFlow(params);
