@@ -54,3 +54,30 @@ export async function bulkMarkArrivedWithResult(
     failed,
   };
 }
+
+
+export async function markArrivedResult(
+  id: number | string,
+  data: PlainRecord = {},
+  deps: {
+    updateOrder: (id: number | string, payload: PlainRecord) => Promise<unknown>;
+  },
+) {
+  return await deps.updateOrder(id, buildMarkArrivedPayload(data));
+}
+
+export async function bulkMarkArrivedResult(
+  idsInput: unknown,
+  data: PlainRecord = {},
+  deps: {
+    normalizeBulkOrderIds: (idsInput: unknown) => number[];
+    serializeBulkArriveError: (error: unknown) => { code: string; message: string };
+    markArrivedResult: (id: number, payload: PlainRecord) => Promise<unknown>;
+  },
+): Promise<BulkArriveResult> {
+  return await bulkMarkArrivedWithResult(idsInput, data, {
+    normalizeBulkOrderIds: deps.normalizeBulkOrderIds,
+    serializeBulkArriveError: deps.serializeBulkArriveError,
+    markArrived: (id, payload) => deps.markArrivedResult(id, payload),
+  });
+}
