@@ -37,12 +37,8 @@ import {
 } from './order.dedupe';
 import { normalizeTemplateType } from './order.template';
 import {
-    assertCreateOrderInputValid,
-    buildCreateOrderFallback,
-    buildCreateOrderItems,
-    buildCreateOrderValues,
+    buildCreateOrderLifecycleDeps,
     createOrderLifecycle,
-    resolveCreateOrderContext,
 } from './order.service.create';
 import {
     buildUpdateOrderLifecycleDeps,
@@ -142,21 +138,20 @@ class OrderService {
             });
         }
 
-        return await createOrderLifecycle(data, {
-            transactionFactory: () => sequelize.transaction(),
-            allocateNextManualOrderNo: this.allocateNextManualOrderNo,
-            allocateNextAutoOrderNo: this.allocateNextAutoOrderNo,
+        return await createOrderLifecycle(data, buildCreateOrderLifecycleDeps({
+            data,
             shouldAutoAssignManualOrderNo,
             shouldAutoAssignAutoOrderNo,
             requestedSourceContractCode,
-            assertUniqueOrderNo: this.assertUniqueOrderNo,
-            findDuplicateAutoOrder: this.findDuplicateAutoOrder,
-            createOrder: (values, transaction) => orderRepository.createOrder(values, transaction),
-            bulkCreateOrderItems: (items, transaction) => orderRepository.bulkCreateOrderItems(items as any, transaction),
-            reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
-            getOrderById: (id) => this.getOrderById(id),
-            isUniqueOrderNoError,
-        });
+            bindings: {
+                getOrderById: (id) => this.getOrderById(id),
+                allocateNextManualOrderNo: this.allocateNextManualOrderNo,
+                allocateNextAutoOrderNo: this.allocateNextAutoOrderNo,
+                assertUniqueOrderNo: this.assertUniqueOrderNo,
+                findDuplicateAutoOrder: this.findDuplicateAutoOrder,
+                reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
+            },
+        }));
     }
 
     async updateOrder(id: number | string, data: OrderUpdateInput) {
