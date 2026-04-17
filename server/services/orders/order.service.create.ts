@@ -12,7 +12,7 @@ import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
   OrderCoreLifecycleBindings,
-  OrderTransactionFactoryBinding,
+  OrderLifecycleDepsCore,
 } from './order.service.contracts';
 
 export type CreateOrderContext = {
@@ -144,7 +144,7 @@ export function buildCreateOrderLifecycleDeps(args: {
 }
 
 export type CreateOrderLifecycleDeps =
-  OrderTransactionFactoryBinding
+  OrderLifecycleDepsCore
   & Pick<CreateOrderLifecycleBindings,
     'getOrderById'
     | 'allocateNextManualOrderNo'
