@@ -2,7 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderStockInHelperDeps } from './order.service.contracts';
+import type { OrderByIdBinding, OrderStatusGuardBindings, OrderStockInHelperDeps, OrderStockInServiceDeps } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -10,15 +10,6 @@ type ReceiptItem = {
     itemKey: string;
 };
 
-type StockInDeps = {
-    inventoryReceiptService: {
-        createFromOrder: (order: PlainRecord, data: PlainRecord, transaction?: Transaction | null) => Promise<{ receiptItems?: ReceiptItem[] }>;
-    };
-    MissingMaterialError: new (materialId?: string) => Error;
-    resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;
-    ReceivedQuantityExceededError: new (itemId: number, orderedQuantity: number, nextReceived: number) => Error;
-    normalizeOrderRemark: (remark: unknown) => string;
-};
 
 export function assertOrderReadyForStockIn(
     order: PlainRecord | null | undefined,
@@ -35,7 +26,7 @@ export async function createReceiptItemsFromOrder(
     order: PlainRecord,
     data: PlainRecord,
     transaction: Transaction | undefined,
-    deps: Pick<StockInDeps, 'inventoryReceiptService' | 'MissingMaterialError'>,
+    deps: Pick<OrderStockInServiceDeps, 'inventoryReceiptService' | 'MissingMaterialError'>,
 ): Promise<ReceiptItem[]> {
     const { inventoryReceiptService, MissingMaterialError } = deps;
 
@@ -54,7 +45,7 @@ export async function syncStockInReceiptItems(
     order: PlainRecord,
     receiptItems: ReceiptItem[],
     transaction: Transaction | undefined,
-    deps: Pick<StockInDeps, 'resolveOrderedQuantity' | 'ReceivedQuantityExceededError'>,
+    deps: Pick<OrderStockInServiceDeps, 'resolveOrderedQuantity' | 'ReceivedQuantityExceededError'>,
 ): Promise<Map<number, PlainRecord>> {
     const { resolveOrderedQuantity, ReceivedQuantityExceededError } = deps;
     const updatesByOrderItemId = new Map<number, PlainRecord>();
@@ -115,7 +106,7 @@ export async function resolveStockInOrderUpdate(
     order: PlainRecord,
     data: PlainRecord,
     transaction: Transaction | undefined,
-    deps: StockInDeps,
+    deps: OrderStockInServiceDeps,
 ): Promise<PlainRecord> {
     const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
         inventoryReceiptService: deps.inventoryReceiptService,
@@ -138,10 +129,7 @@ export async function resolveStockInOrderUpdate(
 
 export type StockInOrderLifecycleBindings = OrderByIdBinding;
 
-export function buildStockInOrderLifecycleDeps(bindings: StockInOrderLifecycleBindings, services: StockInDeps & {
-    normalizeStatus: (status: unknown, fallback?: string) => string;
-    InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
-}) {
+export function buildStockInOrderLifecycleDeps(bindings: StockInOrderLifecycleBindings, services: OrderStockInServiceDeps & OrderStatusGuardBindings) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderByIdWithItems: (orderId: number | string, transaction: Transaction | undefined) => orderRepository.findOrderByIdWithItems(orderId, transaction),
@@ -159,7 +147,7 @@ export function buildStockInOrderLifecycleDeps(bindings: StockInOrderLifecycleBi
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,
-    deps: StockInDeps & OrderStockInHelperDeps & {
+    deps: OrderStockInServiceDeps & OrderStockInHelperDeps & {
         getOrderById: OrderByIdBinding['getOrderById'];
     },
 ): Promise<PlainRecord | null> {
@@ -191,7 +179,9 @@ export async function stockInOrderLifecycle(
 export async function stockInOrderResult(
     id: number | string,
     data: PlainRecord = {},
-    deps: Parameters<typeof stockInOrderLifecycle>[2],
+    deps: OrderStockInServiceDeps & OrderStockInHelperDeps & {
+        getOrderById: OrderByIdBinding['getOrderById'];
+    },
 ) {
     return await stockInOrderLifecycle(id, data, deps);
 }
