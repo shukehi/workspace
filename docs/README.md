@@ -151,6 +151,8 @@
   — Inventory store pass 4 合并后的优先级第六次刷新
 - [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_7_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_7_2026-04-17.md)
   — Order lifecycle pass 6 合并后的优先级第七次刷新
+- [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_8_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_8_2026-04-17.md)
+  — Order lifecycle pass 7 合并后的优先级第八次刷新
 - [REPO_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/REPO_HEALTH_BASELINE_2026-04-16.md)
   — Week 1 健康基线修复前后状态记录
 - [BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md)
