@@ -22,17 +22,10 @@ import {
     reverseInventoryOutboundFlow,
     updateInventoryLocationFlow,
 } from '@/features/inventory/inventoryStoreFlows';
-import {
-    createInventoryAdjustmentFlow,
-    fetchInventoryFlow,
-    mergeInventoryItem,
-    updateInventoryMinStockFlow,
-} from '@/features/inventory/inventoryStoreCoreFlows';
+import { createInventoryCoreActions } from '@/features/inventory/inventoryStoreCoreActions';
 import { createInventoryStoreState } from '@/features/inventory/inventoryStoreState';
 import { createInventoryHistoryActions } from '@/features/inventory/inventoryStoreHistoryActions';
 import type {
-    InventoryAdjustmentPayload,
-    InventoryAdjustmentResponse,
     InventoryLocation,
 } from '@/types/inventory';
 
@@ -81,42 +74,14 @@ export const useInventoryStore = defineStore('inventory', () => {
         sortedMovements,
     } = createInventoryStoreState();
 
-    async function fetchInventory(params: InventoryQuery = {}) {
-        loading.value = true;
-        try {
-            items.value = await fetchInventoryFlow(params);
-        } catch (e) {
-            console.error('Failed to fetch inventory', e);
-            throw e;
-        } finally {
-            loading.value = false;
-        }
-    }
-
-    async function updateMinStock(id: number, minStock: number) {
-        try {
-            const updated = await updateInventoryMinStockFlow(id, minStock);
-            items.value = mergeInventoryItem(items.value, updated);
-            return updated;
-        } catch (e) {
-            console.error('Failed to update stock', e);
-            throw e;
-        }
-    }
-
-    async function createInventoryAdjustment(payload: InventoryAdjustmentPayload) {
-        try {
-            const res = await createInventoryAdjustmentFlow(payload);
-            const item = res?.item;
-            if (item && typeof item.id === 'number') {
-                items.value = mergeInventoryItem(items.value, item);
-            }
-            return res;
-        } catch (e) {
-            console.error('Failed to create inventory adjustment', e);
-            throw e;
-        }
-    }
+    const {
+        fetchInventory,
+        updateMinStock,
+        createInventoryAdjustment,
+    } = createInventoryCoreActions({
+        items,
+        loading,
+    });
 
     const {
         fetchInventoryReceipts,
