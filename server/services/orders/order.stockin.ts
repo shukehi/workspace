@@ -2,6 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
+import type { OrderByIdBinding, OrderByIdWithItemsBinding } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -135,9 +136,7 @@ export async function resolveStockInOrderUpdate(
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
 }
 
-export type StockInOrderLifecycleBindings = {
-    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
-};
+export type StockInOrderLifecycleBindings = OrderByIdBinding;
 
 export function buildStockInOrderLifecycleDeps(bindings: StockInOrderLifecycleBindings, services: StockInDeps & {
     normalizeStatus: (status: unknown, fallback?: string) => string;
@@ -162,10 +161,10 @@ export async function stockInOrderLifecycle(
     data: PlainRecord,
     deps: StockInDeps & {
         transactionFactory: () => Promise<Transaction>;
-        findOrderByIdWithItems: (id: number | string, transaction: Transaction | undefined) => Promise<PlainRecord | null>;
+        findOrderByIdWithItems: OrderByIdWithItemsBinding['findOrderByIdWithItems'];
         normalizeStatus: (status: unknown, fallback?: string) => string;
         InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
-        getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+        getOrderById: OrderByIdBinding['getOrderById'];
     },
 ): Promise<PlainRecord | null> {
     const transaction = await deps.transactionFactory();

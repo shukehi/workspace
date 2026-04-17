@@ -2,6 +2,7 @@ import type { Transaction } from 'sequelize';
 import { Op } from 'sequelize';
 import * as orderRepository from './order.repository';
 import type { PlainRecord } from '../../shared/types';
+import type { OrderByIdBinding } from './order.service.contracts';
 import {
   buildAutoOrderNo,
   buildManualOrderNo,
@@ -17,8 +18,7 @@ import { serializeOrder } from './order.mapper';
 import { DuplicateOrderError } from './order.errors';
 
 
-export type OrderLifecycleServiceBindings = {
-  getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+export type OrderLifecycleServiceBindings = OrderByIdBinding & {
   allocateNextManualOrderNo: (createdAt: unknown, transaction?: Transaction) => Promise<string>;
   allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: Transaction) => Promise<string>;
   assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: Transaction) => Promise<void>;
@@ -119,7 +119,7 @@ export async function findDuplicateAutoOrder(
 export async function reserveIdempotencyKey(
   args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number },
   deps: {
-    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+    getOrderById: OrderByIdBinding['getOrderById'];
     findDuplicateAutoOrder: (data: PlainRecord, transaction?: Transaction, options?: PlainRecord) => Promise<PlainRecord | null>;
   },
   transaction: Transaction | undefined,
