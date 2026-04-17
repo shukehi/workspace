@@ -43,8 +43,7 @@ import {
     resolveUpdateOrderContext,
 } from './order.service.update';
 import {
-    assertOrderReadyForStockIn,
-    resolveStockInOrderUpdate,
+    stockInOrderLifecycle,
 } from './order.stockin';
 import {
     DuplicateOrderError,
@@ -482,28 +481,18 @@ class OrderService {
     }
 
     async stockInOrder(id: number | string, data: PlainRecord = {}) {
-        const transaction = await sequelize.transaction();
-        try {
-            const order = await orderRepository.findOrderByIdWithItems(id, transaction);
-            if (!order) throw new Error('Order not found');
-
-            assertOrderReadyForStockIn(order, normalizeStatus, InvalidStatusTransitionError);
-            const nextOrderValues = await resolveStockInOrderUpdate(order, data, transaction, {
-                inventoryReceiptService,
-                MissingMaterialError,
-                resolveOrderedQuantity,
-                ReceivedQuantityExceededError,
-                normalizeOrderRemark,
-            });
-
-            await order.update(nextOrderValues, { transaction });
-
-            await transaction.commit();
-            return await this.getOrderById(id);
-        } catch (error) {
-            await transaction.rollback();
-            throw error;
-        }
+        return await stockInOrderLifecycle(id, data, {
+            transactionFactory: () => sequelize.transaction(),
+            findOrderByIdWithItems: (orderId, transaction) => orderRepository.findOrderByIdWithItems(orderId, transaction),
+            normalizeStatus,
+            InvalidStatusTransitionError,
+            inventoryReceiptService,
+            MissingMaterialError,
+            resolveOrderedQuantity,
+            ReceivedQuantityExceededError,
+            normalizeOrderRemark,
+            getOrderById: (orderId) => this.getOrderById(orderId),
+        });
     }
 }
 

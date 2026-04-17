@@ -31,7 +31,7 @@ export function assertOrderReadyForStockIn(
 export async function createReceiptItemsFromOrder(
     order: PlainRecord,
     data: PlainRecord,
-    transaction: Transaction | null | undefined,
+    transaction: Transaction | undefined,
     deps: Pick<StockInDeps, 'inventoryReceiptService' | 'MissingMaterialError'>,
 ): Promise<ReceiptItem[]> {
     const { inventoryReceiptService, MissingMaterialError } = deps;
@@ -50,7 +50,7 @@ export async function createReceiptItemsFromOrder(
 export async function syncStockInReceiptItems(
     order: PlainRecord,
     receiptItems: ReceiptItem[],
-    transaction: Transaction | null | undefined,
+    transaction: Transaction | undefined,
     deps: Pick<StockInDeps, 'resolveOrderedQuantity' | 'ReceivedQuantityExceededError'>,
 ): Promise<Map<number, PlainRecord>> {
     const { resolveOrderedQuantity, ReceivedQuantityExceededError } = deps;
@@ -111,7 +111,7 @@ export function buildStockInOrderUpdate(
 export async function resolveStockInOrderUpdate(
     order: PlainRecord,
     data: PlainRecord,
-    transaction: Transaction | null | undefined,
+    transaction: Transaction | undefined,
     deps: StockInDeps,
 ): Promise<PlainRecord> {
     const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
@@ -131,4 +131,39 @@ export async function resolveStockInOrderUpdate(
     );
 
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
+}
+
+export async function stockInOrderLifecycle(
+    id: number | string,
+    data: PlainRecord,
+    deps: StockInDeps & {
+        transactionFactory: () => Promise<Transaction>;
+        findOrderByIdWithItems: (id: number | string, transaction: Transaction | undefined) => Promise<PlainRecord | null>;
+        normalizeStatus: (status: unknown, fallback?: string) => string;
+        InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
+        getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+    },
+): Promise<PlainRecord | null> {
+    const transaction = await deps.transactionFactory();
+    try {
+        const order = await deps.findOrderByIdWithItems(id, transaction);
+        if (!order) throw new Error('Order not found');
+
+        assertOrderReadyForStockIn(order, deps.normalizeStatus, deps.InvalidStatusTransitionError);
+        const nextOrderValues = await resolveStockInOrderUpdate(order, data, transaction, {
+            inventoryReceiptService: deps.inventoryReceiptService,
+            MissingMaterialError: deps.MissingMaterialError,
+            resolveOrderedQuantity: deps.resolveOrderedQuantity,
+            ReceivedQuantityExceededError: deps.ReceivedQuantityExceededError,
+            normalizeOrderRemark: deps.normalizeOrderRemark,
+        });
+
+        await order.update(nextOrderValues, { transaction });
+
+        await transaction.commit();
+        return await deps.getOrderById(id);
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
 }
