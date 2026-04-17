@@ -2,7 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderStockInRuntimeBindings } from './order.service.contracts';
+import type { OrderByIdBinding, OrderStockInRuntimeBindings, OrderTransactionFactoryBinding } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -159,7 +159,7 @@ export function buildStockInOrderLifecycleDeps(bindings: StockInOrderLifecycleBi
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,
-    deps: StockInDeps & OrderStockInRuntimeBindings & {
+    deps: StockInDeps & OrderTransactionFactoryBinding<Transaction> & OrderStockInRuntimeBindings & {
         normalizeStatus: (status: unknown, fallback?: string) => string;
         InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
         getOrderById: OrderByIdBinding['getOrderById'];

@@ -11,9 +11,10 @@ import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
-    OrderLifecycleMutableBindings,
     OrderLifecycleDepsCore,
     OrderLifecycleDepsPersistence,
+    OrderLifecycleMutableRuntimeBindings,
+    OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 import { normalizeTemplateType } from './order.template';
 
@@ -172,7 +173,7 @@ export function buildNextOrderValues({
 }
 
 
-export type UpdateOrderLifecycleBindings = OrderLifecycleMutableBindings;
+export type UpdateOrderLifecycleBindings = OrderLifecycleMutableRuntimeBindings;
 
 export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBindings) {
     return {
@@ -195,7 +196,8 @@ export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBind
 }
 
 export type UpdateOrderLifecycleDeps =
-    OrderLifecycleMutableRuntimeBindings
+    OrderTransactionFactoryBinding
+    & OrderLifecycleMutableRuntimeBindings
     & OrderLifecycleDepsPersistence
     & {
         findOrderById: (id: number | string, transaction?: any) => Promise<any>;
