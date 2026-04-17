@@ -11,7 +11,6 @@ import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
-    OrderLifecycleDepsCore,
     OrderLifecycleDepsPersistence,
     OrderLifecycleMutableBindings,
     OrderTransactionFactoryBinding,
