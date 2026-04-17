@@ -30,6 +30,7 @@ import {
     releaseIdempotencyKeys,
     reserveIdempotencyKey,
     syncActiveIdempotencyKey,
+    buildOrderLifecycleBindings,
 } from './order.service.support';
 import {
     buildOrderDedupeKey,
@@ -101,6 +102,19 @@ class OrderService {
         reserveIdempotencyKey: (reserveArgs, reserveTransaction) => this.reserveIdempotencyKey(reserveArgs, reserveTransaction),
     }, transaction as any);
 
+    private buildLifecycleBindings() {
+        return buildOrderLifecycleBindings({
+            getOrderById: (id) => this.getOrderById(id),
+            allocateNextManualOrderNo: this.allocateNextManualOrderNo,
+            allocateNextAutoOrderNo: this.allocateNextAutoOrderNo,
+            assertUniqueOrderNo: this.assertUniqueOrderNo,
+            findDuplicateAutoOrder: this.findDuplicateAutoOrder,
+            reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
+            releaseIdempotencyKeys: this.releaseIdempotencyKeys,
+            syncActiveIdempotencyKey: (args, transaction) => this.syncActiveIdempotencyKey(args, transaction),
+        });
+    }
+
     async getAllOrders(category?: string) {
         return await getAllOrdersResult(category, {
             findAllOrdersWithItems: (where) => orderRepository.findAllOrdersWithItems(where),
@@ -144,26 +158,12 @@ class OrderService {
             shouldAutoAssignManualOrderNo,
             shouldAutoAssignAutoOrderNo,
             requestedSourceContractCode,
-            bindings: {
-                getOrderById: (id) => this.getOrderById(id),
-                allocateNextManualOrderNo: this.allocateNextManualOrderNo,
-                allocateNextAutoOrderNo: this.allocateNextAutoOrderNo,
-                assertUniqueOrderNo: this.assertUniqueOrderNo,
-                findDuplicateAutoOrder: this.findDuplicateAutoOrder,
-                reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
-            },
+            bindings: this.buildLifecycleBindings(),
         }));
     }
 
     async updateOrder(id: number | string, data: OrderUpdateInput) {
-        return await updateOrderLifecycle(id, data, buildUpdateOrderLifecycleDeps({
-            getOrderById: (orderId) => this.getOrderById(orderId),
-            findDuplicateAutoOrder: this.findDuplicateAutoOrder,
-            assertUniqueOrderNo: this.assertUniqueOrderNo,
-            reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
-            releaseIdempotencyKeys: this.releaseIdempotencyKeys,
-            syncActiveIdempotencyKey: (args, transaction) => this.syncActiveIdempotencyKey(args, transaction),
-        }));
+        return await updateOrderLifecycle(id, data, buildUpdateOrderLifecycleDeps(this.buildLifecycleBindings()));
     }
 
     async deleteOrder(id: number | string) {
