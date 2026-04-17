@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api } from '@/lib/api';
 import {
-    buildInventoryQuery,
-    buildOutboundQuery,
     type InventoryQuery,
     type MovementQuery,
     type OutboundQuery,
@@ -26,6 +23,12 @@ import {
     reverseInventoryOutboundFlow,
     updateInventoryLocationFlow,
 } from '@/features/inventory/inventoryStoreFlows';
+import {
+    createInventoryAdjustmentFlow,
+    fetchInventoryFlow,
+    mergeInventoryItem,
+    updateInventoryMinStockFlow,
+} from '@/features/inventory/inventoryStoreCoreFlows';
 import {
     fetchAllInventoryReceiptsFlow,
     fetchInventoryMovementsFlow,
@@ -125,9 +128,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     async function fetchInventory(params: InventoryQuery = {}) {
         loading.value = true;
         try {
-            const suffix = buildInventoryQuery(params);
-            const res = await api.get<InventoryItem[]>(`/inventory${suffix}`);
-            items.value = Array.isArray(res) ? res : [];
+            items.value = await fetchInventoryFlow(params);
         } catch (e) {
             console.error('Failed to fetch inventory', e);
             throw e;
@@ -138,14 +139,9 @@ export const useInventoryStore = defineStore('inventory', () => {
 
     async function updateMinStock(id: number, minStock: number) {
         try {
-            const res = await api.put<InventoryItem>(`/inventory/${id}`, {
-                min_stock: minStock,
-            });
-            const index = items.value.findIndex((item) => item.id === id);
-            if (index !== -1) {
-                items.value[index] = res;
-            }
-            return res;
+            const updated = await updateInventoryMinStockFlow(id, minStock);
+            items.value = mergeInventoryItem(items.value, updated);
+            return updated;
         } catch (e) {
             console.error('Failed to update stock', e);
             throw e;
@@ -154,15 +150,10 @@ export const useInventoryStore = defineStore('inventory', () => {
 
     async function createInventoryAdjustment(payload: InventoryAdjustmentPayload) {
         try {
-            const res = await api.post<InventoryAdjustmentResponse>('/inventory-adjustments', payload);
+            const res = await createInventoryAdjustmentFlow(payload);
             const item = res?.item;
             if (item && typeof item.id === 'number') {
-                const index = items.value.findIndex((inventoryItem) => inventoryItem.id === item.id);
-                if (index !== -1) {
-                    items.value[index] = item;
-                } else {
-                    items.value.unshift(item);
-                }
+                items.value = mergeInventoryItem(items.value, item);
             }
             return res;
         } catch (e) {
