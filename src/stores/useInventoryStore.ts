@@ -3,9 +3,7 @@ import { ref, computed } from 'vue';
 import { api } from '@/lib/api';
 import {
     buildInventoryQuery,
-    buildMovementQuery,
     buildOutboundQuery,
-    buildReceiptQuery,
     type InventoryQuery,
     type MovementQuery,
     type OutboundQuery,
@@ -18,11 +16,6 @@ import {
     exportReconciliationToCSV,
 } from '@/features/inventory/inventoryCsvExports';
 import {
-    fetchAllPagedRows,
-    normalizePagedRowsResponse,
-    type PagedRowsResponse,
-} from '@/features/inventory/inventoryStorePaging';
-import {
     createInventoryLocationFlow,
     createInventoryOutboundFlow,
     fetchAllInventoryOutboundsFlow,
@@ -33,6 +26,13 @@ import {
     reverseInventoryOutboundFlow,
     updateInventoryLocationFlow,
 } from '@/features/inventory/inventoryStoreFlows';
+import {
+    fetchAllInventoryReceiptsFlow,
+    fetchInventoryMovementsFlow,
+    fetchInventoryReceiptFlow,
+    fetchInventoryReceiptsFlow,
+    reverseReceiptFlow,
+} from '@/features/inventory/inventoryStoreHistoryFlows';
 import type {
     InventoryItem,
     InventoryAdjustmentPayload,
@@ -40,9 +40,7 @@ import type {
     InventoryLocation,
     InventoryLocationListResponse,
     InventoryMovement,
-    InventoryMovementListResponse,
     InventoryOutbound,
-    InventoryOutboundListResponse,
     InventoryReceipt,
     Warehouse,
 } from '@/types/inventory';
@@ -176,9 +174,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     async function fetchInventoryReceipts(params: ReceiptQuery = {}) {
         receiptsLoading.value = true;
         try {
-            const suffix = buildReceiptQuery(params);
-            const res = await api.get<PagedRowsResponse<InventoryReceipt>>(`/inventory-receipts${suffix}`);
-            const normalized = normalizePagedRowsResponse(res, params);
+            const normalized = await fetchInventoryReceiptsFlow(params);
             receipts.value = normalized.rows;
             receiptsTotal.value = normalized.total;
             receiptsPage.value = normalized.page;
@@ -194,17 +190,11 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
 
     async function fetchAllInventoryReceipts(params: Omit<ReceiptQuery, 'page' | 'pageSize'> = {}) {
-        return await fetchAllPagedRows<InventoryReceipt, Omit<ReceiptQuery, 'page' | 'pageSize'>>({
-            params,
-            fetchPage: async (pagedParams) => {
-                const suffix = buildReceiptQuery(pagedParams);
-                return await api.get<PagedRowsResponse<InventoryReceipt>>(`/inventory-receipts${suffix}`);
-            },
-        });
+        return await fetchAllInventoryReceiptsFlow(params);
     }
 
     async function fetchInventoryReceipt(id: number | string) {
-        return await api.get<InventoryReceipt>(`/inventory-receipts/${id}`);
+        return await fetchInventoryReceiptFlow(id);
     }
 
     async function reverseReceipt(
@@ -217,7 +207,7 @@ export const useInventoryStore = defineStore('inventory', () => {
             quantity?: number;
         } = {},
     ) {
-        return await api.post<InventoryReceipt>(`/inventory-receipts/${id}/reverse`, payload);
+        return await reverseReceiptFlow(id, payload);
     }
 
     async function fetchInventoryLocations() {
@@ -279,14 +269,12 @@ export const useInventoryStore = defineStore('inventory', () => {
     async function fetchInventoryMovements(params: MovementQuery = {}) {
         movementsLoading.value = true;
         try {
-            const suffix = buildMovementQuery(params);
-            const res = await api.get<InventoryMovementListResponse>(`/inventory-movements${suffix}`);
-            const normalized = normalizePagedRowsResponse(res, { ...params, pageSize: params.pageSize || 20 });
+            const normalized = await fetchInventoryMovementsFlow(params);
             movements.value = normalized.rows;
             movementsTotal.value = normalized.total;
             movementsPage.value = normalized.page;
             movementsPageSize.value = normalized.pageSize;
-            return res;
+            return normalized;
         } catch (e) {
             movements.value = [];
             movementsTotal.value = 0;
