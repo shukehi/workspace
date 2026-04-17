@@ -12,37 +12,12 @@ import {
     exportReconciliationToCSV,
 } from '@/features/inventory/inventoryCsvExports';
 import {
-    createInventoryLocationFlow,
-    createInventoryOutboundFlow,
-    fetchAllInventoryOutboundsFlow,
-    fetchInventoryLocationsFlow,
-    fetchInventoryOutboundFlow,
-    fetchInventoryOutboundsFlow,
-    mergeInventoryLocation,
-    reverseInventoryOutboundFlow,
-    updateInventoryLocationFlow,
-} from '@/features/inventory/inventoryStoreFlows';
+    createInventoryFlowActions,
+    type InventoryOutboundPayload,
+} from '@/features/inventory/inventoryStoreFlowActions';
 import { createInventoryCoreActions } from '@/features/inventory/inventoryStoreCoreActions';
 import { createInventoryStoreState } from '@/features/inventory/inventoryStoreState';
 import { createInventoryHistoryActions } from '@/features/inventory/inventoryStoreHistoryActions';
-import type {
-    InventoryLocation,
-} from '@/types/inventory';
-
-type InventoryOutboundPayload = {
-    warehouse_id: number;
-    location_id: number;
-    operator?: string;
-    reason: string;
-    remark?: string;
-    outbound_date?: string;
-    items: Array<{
-        material_id: number | string;
-        item_name?: string;
-        unit?: string;
-        quantity: number;
-    }>;
-};
 
 export const useInventoryStore = defineStore('inventory', () => {
     const {
@@ -102,79 +77,25 @@ export const useInventoryStore = defineStore('inventory', () => {
         movementsPageSize,
     });
 
-    async function fetchInventoryLocations() {
-        locationsLoading.value = true;
-        try {
-            const res = await fetchInventoryLocationsFlow();
-            warehouses.value = Array.isArray(res?.warehouses) ? res.warehouses : [];
-            locations.value = Array.isArray(res?.locations) ? res.locations : [];
-            return res;
-        } catch (e) {
-            console.error('Failed to fetch inventory locations', e);
-            throw e;
-        } finally {
-            locationsLoading.value = false;
-        }
-    }
-
-    async function createInventoryLocation(payload: {
-        warehouse_id: number;
-        code: string;
-        name: string;
-        status?: 'active' | 'inactive';
-        remark?: string;
-        sort_order?: number;
-    }) {
-        const created = await createInventoryLocationFlow(payload);
-        locations.value = mergeInventoryLocation(locations.value, created);
-        return created;
-    }
-
-    async function updateInventoryLocation(id: number, payload: Partial<InventoryLocation>) {
-        const updated = await updateInventoryLocationFlow(id, payload);
-        locations.value = mergeInventoryLocation(locations.value, updated);
-        return updated;
-    }
-
-    async function fetchInventoryOutbounds(params: OutboundQuery = {}) {
-        outboundsLoading.value = true;
-        try {
-            const normalized = await fetchInventoryOutboundsFlow(params);
-            outbounds.value = normalized.rows;
-            outboundsTotal.value = normalized.total;
-            outboundsPage.value = normalized.page;
-            outboundsPageSize.value = normalized.pageSize;
-        } catch (e) {
-            outbounds.value = [];
-            outboundsTotal.value = 0;
-            console.error('Failed to fetch inventory outbounds', e);
-            throw e;
-        } finally {
-            outboundsLoading.value = false;
-        }
-    }
-
-    async function fetchInventoryOutbound(id: number | string) {
-        return await fetchInventoryOutboundFlow(id);
-    }
-
-
-    async function fetchAllInventoryOutbounds(params: Omit<OutboundQuery, 'page' | 'pageSize'> = {}) {
-        return await fetchAllInventoryOutboundsFlow(params);
-    }
-
-    async function createInventoryOutbound(payload: InventoryOutboundPayload) {
-        return await createInventoryOutboundFlow(payload);
-    }
-
-    async function reverseInventoryOutbound(id: number | string, payload: {
-        operator?: string;
-        reason?: string;
-        remark?: string;
-        outbound_date?: string;
-    } = {}) {
-        return await reverseInventoryOutboundFlow(id, payload);
-    }
+    const {
+        fetchInventoryLocations,
+        createInventoryLocation,
+        updateInventoryLocation,
+        fetchInventoryOutbounds,
+        fetchInventoryOutbound,
+        fetchAllInventoryOutbounds,
+        createInventoryOutbound,
+        reverseInventoryOutbound,
+    } = createInventoryFlowActions({
+        warehouses,
+        locations,
+        outbounds,
+        locationsLoading,
+        outboundsLoading,
+        outboundsTotal,
+        outboundsPage,
+        outboundsPageSize,
+    });
 
     return {
         items,
