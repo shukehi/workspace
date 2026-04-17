@@ -167,3 +167,12 @@ export async function stockInOrderLifecycle(
         throw error;
     }
 }
+
+
+export async function stockInOrderResult(
+    id: number | string,
+    data: PlainRecord = {},
+    deps: Parameters<typeof stockInOrderLifecycle>[2],
+) {
+    return await stockInOrderLifecycle(id, data, deps);
+}
