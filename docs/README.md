@@ -210,6 +210,8 @@
   — Inventory store/state 第六轮当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS7_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS7_2026-04-17.md)
   — Inventory store/state 第七轮当前阶段成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS8_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS8_2026-04-17.md)
+  — Inventory store/state 第八轮当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_EXTRACTORS_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_EXTRACTORS_2026-04-16.md)
   — Source-analysis extractor 分支的阶段性成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md)
