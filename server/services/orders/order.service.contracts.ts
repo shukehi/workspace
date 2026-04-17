@@ -53,9 +53,6 @@ export type OrderCoreLifecycleBindings =
   & OrderDuplicateAutoBinding
   & OrderIdempotencyReserveBinding;
 
-export type OrderReadSurfaceBindings = OrderSerializationBindings & OrderByIdWithItemsBinding;
-
-export type OrderQuerySurfaceBindings = OrderSerializationBindings & OrderSummaryFacetBindings;
 
 export type OrderLifecycleMutableBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
 
@@ -65,7 +62,7 @@ export type OrderLifecycleCreateBindings =
 
 
 
-export type OrderReadListDeps = Pick<OrderReadSurfaceBindings, 'serializeOrder'> & {
+export type OrderReadListDeps = OrderSerializationBindings & {
   findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
   normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
 };
