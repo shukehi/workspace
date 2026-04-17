@@ -54,6 +54,7 @@ import {
     ReceivedQuantityExceededError,
 } from './order.errors';
 import { deleteOrderWithRetry } from './order.service.delete';
+import { bulkMarkArrivedWithResult } from './order.service.arrive';
 import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
 import type { PlainRecord } from '../../shared/types';
 import {
@@ -478,34 +479,11 @@ class OrderService {
     }
 
     async bulkMarkArrived(idsInput: unknown, data: PlainRecord = {}) {
-        const ids = normalizeBulkOrderIds(idsInput);
-        const payload = {
-            arrived_at: data.arrived_at,
-            arrived_by: data.arrived_by,
-            arrived_remark: data.arrived_remark,
-        };
-        const succeededIds: number[] = [];
-        const failed: Array<{ id: number; code: string; message: string }> = [];
-
-        for (const id of ids) {
-            try {
-                await this.markArrived(id, payload);
-                succeededIds.push(id);
-            } catch (error) {
-                failed.push({
-                    id,
-                    ...serializeBulkArriveError(error),
-                });
-            }
-        }
-
-        return {
-            total: ids.length,
-            successCount: succeededIds.length,
-            failureCount: failed.length,
-            succeededIds,
-            failed,
-        };
+        return await bulkMarkArrivedWithResult(idsInput, data, {
+            normalizeBulkOrderIds,
+            serializeBulkArriveError,
+            markArrived: (id, payload) => this.markArrived(id, payload),
+        });
     }
 
     async stockInOrder(id: number | string, data: PlainRecord = {}) {
