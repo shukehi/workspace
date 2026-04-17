@@ -61,3 +61,17 @@ export type OrderReadSurfaceBindings = OrderSerializationBindings & OrderByIdWit
 export type OrderQuerySurfaceBindings = OrderSerializationBindings & OrderSummaryFacetBindings;
 
 export type OrderLifecycleMutableBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
+
+export type OrderLifecycleCoreRuntimeBindings =
+  OrderLifecycleDepsCore
+  & OrderUniqueOrderNoBinding
+  & OrderDuplicateAutoBinding
+  & OrderIdempotencyReserveBinding;
+
+export type OrderLifecycleMutableRuntimeBindings =
+  OrderLifecycleCoreRuntimeBindings
+  & OrderIdempotencyMutationBindings;
+
+export type OrderStockInRuntimeBindings =
+  OrderLifecycleDepsCore
+  & OrderByIdWithItemsBinding;
