@@ -3,6 +3,20 @@ import type { OrderListQuery } from '../../models/types';
 import type { PlainRecord } from '../../shared/types';
 import * as orderRepository from './order.repository';
 
+export type OrderQueryBindings = {
+  serializeOrder: (order: unknown) => PlainRecord;
+  buildOrderSummary: (orders: PlainRecord[]) => PlainRecord;
+  buildOrderFacets: (orders: PlainRecord[]) => PlainRecord;
+};
+
+export function buildOrderQueryBindings(bindings: OrderQueryBindings) {
+  return {
+    serializeOrder: bindings.serializeOrder,
+    buildOrderSummary: bindings.buildOrderSummary,
+    buildOrderFacets: bindings.buildOrderFacets,
+  };
+}
+
 export async function getPaginatedOrdersResult(
   query: OrderListQuery,
   deps: {

@@ -13,7 +13,7 @@ import {
     buildOrderFacets,
     buildOrderSummary,
 } from './order.query-policy';
-import { getPaginatedOrdersResult } from './order.service.query';
+import { buildOrderQueryBindings, getPaginatedOrdersResult } from './order.service.query';
 import { buildOrderReadBindings, getAllOrdersResult, getOrderByIdResult } from './order.service.read';
 import {
     normalizeOrderForLog,
@@ -128,12 +128,16 @@ class OrderService {
         return await getAllOrdersResult(category, this.buildReadBindings());
     }
 
-    async getPaginatedOrders(query: OrderListQuery = {}) {
-        return await getPaginatedOrdersResult(query, {
+    private buildQueryBindings() {
+        return buildOrderQueryBindings({
             serializeOrder,
             buildOrderSummary,
             buildOrderFacets,
         });
+    }
+
+    async getPaginatedOrders(query: OrderListQuery = {}) {
+        return await getPaginatedOrdersResult(query, this.buildQueryBindings());
     }
 
     async getOrderById(id: number | string) {

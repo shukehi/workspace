@@ -124,6 +124,8 @@
   — Order lifecycle normalization 第五刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS6_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS6_PLAN_2026-04-17.md)
   — Order lifecycle normalization 第六刀计划
+- [ORDER_LIFECYCLE_NORMALIZATION_PASS7_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS7_PLAN_2026-04-17.md)
+  — Order lifecycle normalization 第七刀计划
 - [SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_EXTRACTOR_REFACTOR_PLAN_2026-04-16.md)
   — source-analysis extractor 第一轮拆分计划
 - [SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_TYPE_TIGHTENING_PLAN_2026-04-16.md)
