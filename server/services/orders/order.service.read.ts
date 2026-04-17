@@ -1,7 +1,10 @@
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdWithItemsBinding, OrderReadListDeps, OrderSerializationBindings } from './order.service.contracts';
+import type { OrderByIdWithItemsBinding, OrderSerializationBindings } from './order.service.contracts';
 
-export function buildOrderReadBindings(bindings: OrderReadListDeps & OrderByIdWithItemsBinding) {
+export function buildOrderReadBindings(bindings: OrderSerializationBindings & OrderByIdWithItemsBinding & {
+  findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
+  normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
+}) {
   return {
     findAllOrdersWithItems: bindings.findAllOrdersWithItems,
     findOrderByIdWithItems: bindings.findOrderByIdWithItems,
@@ -13,9 +16,9 @@ export function buildOrderReadBindings(bindings: OrderReadListDeps & OrderByIdWi
 export async function getAllOrdersResult(
   category: string | undefined,
   deps: {
-    findAllOrdersWithItems: OrderReadListDeps['findAllOrdersWithItems'];
-    normalizeOrderForLog: OrderReadListDeps['normalizeOrderForLog'];
-    serializeOrder: OrderReadListDeps['serializeOrder'];
+    findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
+    normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
+    serializeOrder: OrderSerializationBindings['serializeOrder'];
   },
 ) {
   const where: PlainRecord = {};
