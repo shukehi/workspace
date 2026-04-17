@@ -101,3 +101,17 @@ export type OrderPaginatedQueryDeps = OrderQuerySurfaceBindings;
 export type OrderReadBindings = OrderReadListDeps & OrderReadItemDeps;
 
 export type OrderQueryBindings = OrderPaginatedQueryDeps;
+
+export type OrderStatusNormalizerBinding = {
+  normalizeStatus: (status: unknown, fallback?: string) => string;
+};
+
+export type OrderStatusTransitionErrorBinding = {
+  InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
+};
+
+export type OrderStockInHelperDeps =
+  OrderTransactionFactoryBinding
+  & OrderStockInRuntimeBindings
+  & OrderStatusNormalizerBinding
+  & OrderStatusTransitionErrorBinding;
