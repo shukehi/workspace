@@ -2,10 +2,12 @@ import type { OrderAttributes, OrderCreateInput, OrderCreationAttributes } from 
 import AppError from '../../app/errors/AppError';
 import ERROR_CODES from '../../app/errors/errorCodes';
 import { buildOrderDedupeKey, normalizeMetadata, resolveSourceContractCode } from './order.dedupe';
+import { sequelize } from '../../models';
+import * as orderRepository from './order.repository';
 import { normalizeStatus } from './order.policy';
 import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper';
 import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
-import { normalizeOrderRemark } from './order.service.helpers';
+import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.helpers';
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 
@@ -107,6 +109,39 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
   });
 }
 
+
+export type CreateOrderLifecycleBindings = {
+  getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+  allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
+  allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
+  assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+  findDuplicateAutoOrder: (data: PlainRecord, transaction: any) => Promise<PlainRecord | null>;
+  reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
+};
+
+export function buildCreateOrderLifecycleDeps(args: {
+  data: OrderCreateInput;
+  shouldAutoAssignManualOrderNo: boolean;
+  shouldAutoAssignAutoOrderNo: boolean;
+  requestedSourceContractCode: string;
+  bindings: CreateOrderLifecycleBindings;
+}) {
+  return {
+    transactionFactory: () => sequelize.transaction(),
+    allocateNextManualOrderNo: args.bindings.allocateNextManualOrderNo,
+    allocateNextAutoOrderNo: args.bindings.allocateNextAutoOrderNo,
+    shouldAutoAssignManualOrderNo: args.shouldAutoAssignManualOrderNo,
+    shouldAutoAssignAutoOrderNo: args.shouldAutoAssignAutoOrderNo,
+    requestedSourceContractCode: args.requestedSourceContractCode,
+    assertUniqueOrderNo: args.bindings.assertUniqueOrderNo,
+    findDuplicateAutoOrder: args.bindings.findDuplicateAutoOrder,
+    createOrder: (values: OrderCreationAttributes, transaction?: any) => orderRepository.createOrder(values, transaction),
+    bulkCreateOrderItems: (items: PlainRecord[], transaction?: any) => orderRepository.bulkCreateOrderItems(items as any, transaction),
+    reserveIdempotencyKey: args.bindings.reserveIdempotencyKey,
+    getOrderById: args.bindings.getOrderById,
+    isUniqueOrderNoError,
+  };
+}
 
 export async function createOrderLifecycle(
   data: OrderCreateInput,
