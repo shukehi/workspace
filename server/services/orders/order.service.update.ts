@@ -4,7 +4,9 @@ import ERROR_CODES from '../../app/errors/errorCodes';
 import { normalizeMetadata, resolveSourceContractCode } from './order.dedupe';
 import { assertValidStatusTransition, normalizeStatus } from './order.policy';
 import { sanitizeManualCreateItems, validateLockedManualOrderUpdate, validateManualCreateOrder } from './order-create.validation';
-import { normalizeNullableDate, normalizeOrderRemark } from './order.service.helpers';
+import { normalizeNullableDate, normalizeOrderRemark, isUniqueOrderNoError } from './order.service.helpers';
+import { DuplicateOrderError } from './order.errors';
+import { normalizeTemplateType } from './order.template';
 
 type OrderLike = Pick<
     OrderAttributes,
@@ -158,4 +160,139 @@ export function buildNextOrderValues({
         stocked_in_by: data.stocked_in_by === undefined ? order.stocked_in_by : data.stocked_in_by,
         stocked_in_remark: data.stocked_in_remark === undefined ? order.stocked_in_remark : normalizeOrderRemark(data.stocked_in_remark),
     };
+}
+
+
+export async function updateOrderLifecycle(
+    id: number | string,
+    data: OrderUpdateInput,
+    deps: {
+        transactionFactory: () => Promise<any>;
+        findOrderById: (id: number | string, transaction?: any) => Promise<any>;
+        getOrderById: (id: number | string) => Promise<any>;
+        assertEditableOrderFields: (order: any, data: Record<string, unknown>) => void;
+        findDuplicateAutoOrder: (data: Record<string, unknown>, transaction?: any, options?: Record<string, unknown>) => Promise<any>;
+        buildOrderDedupeKey: (data: Record<string, unknown>) => string;
+        assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+        reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
+        releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
+        syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: any) => Promise<unknown>;
+        updateOrderCreatedAt: (id: number, createdAt: Date | string, transaction?: any) => Promise<unknown>;
+        replaceOrderItems: (orderId: number, items: any[], transaction?: any) => Promise<unknown>;
+        findOrderItemsByOrderId: (orderId: number) => Promise<any[]>;
+        normalizeOrderItemForPersistence: (item: Record<string, unknown>) => Record<string, unknown>;
+        serializeOrder: (order: any) => any;
+    },
+): Promise<any> {
+    const transaction = await deps.transactionFactory();
+    try {
+        const order = await deps.findOrderById(id, transaction);
+        if (!order) throw new Error('Order not found');
+        deps.assertEditableOrderFields(order, data as Record<string, unknown>);
+
+        const existing = await deps.getOrderById(id);
+        const context = resolveUpdateOrderContext({ order, existing, data });
+        const {
+            nextCategory,
+            nextMetadata,
+            nextSourceContractCode,
+            nextSupplier,
+            nextOrderNo,
+            nextStatus,
+            nextItems,
+        } = context;
+
+        assertUpdateOrderInputValid({ order, data, context });
+        const nextDedupeKey = deps.buildOrderDedupeKey({
+            source_contract_code: nextSourceContractCode,
+            category: nextCategory,
+            supplier: nextSupplier,
+            items: nextItems,
+            metadata: nextMetadata,
+        });
+
+        const duplicate = nextStatus === 'cancelled'
+            ? null
+            : await deps.findDuplicateAutoOrder({
+                source_contract_code: nextSourceContractCode,
+                category: nextCategory,
+                supplier: nextSupplier,
+                items: nextItems,
+                metadata: nextMetadata,
+            }, transaction, { excludeId: id });
+        if (duplicate) {
+            throw new DuplicateOrderError(duplicate);
+        }
+        await deps.assertUniqueOrderNo(nextOrderNo, id, transaction);
+
+        const isAutoOrder = Boolean(nextSourceContractCode && nextDedupeKey);
+        const statusTransition = `${order.status}->${nextStatus}`;
+        if (order.status === 'cancelled' && nextStatus !== 'cancelled' && isAutoOrder) {
+            await deps.reserveIdempotencyKey({
+                sourceContractCode: nextSourceContractCode,
+                dedupeKey: nextDedupeKey,
+                orderId: Number(id)
+            }, transaction);
+        }
+
+        const nextOrderValues = buildNextOrderValues({
+            order,
+            data,
+            context,
+            nextDedupeKey,
+        });
+        await order.update(nextOrderValues, { transaction });
+
+        if (data.created_at !== undefined) {
+            await deps.updateOrderCreatedAt(Number(id), data.created_at, transaction);
+        }
+
+        if (data.items) {
+            const items = nextItems.map((item: Record<string, unknown>) => ({
+                ...deps.normalizeOrderItemForPersistence(item),
+                id: undefined,
+                order_id: id
+            }));
+            await deps.replaceOrderItems(Number(id), items, transaction);
+        }
+
+        if (isAutoOrder) {
+            if (nextStatus === 'cancelled') {
+                await deps.releaseIdempotencyKeys(Number(id), transaction);
+            } else if (!statusTransition.startsWith('cancelled->')) {
+                await deps.syncActiveIdempotencyKey({
+                    sourceContractCode: nextSourceContractCode,
+                    dedupeKey: nextDedupeKey,
+                    orderId: Number(id)
+                }, transaction);
+            }
+        }
+
+        await transaction.commit();
+        const persisted = await deps.getOrderById(id);
+        if (persisted) return persisted;
+
+        console.warn('[OrderService] updateOrder fallback: persisted order not found after commit', {
+            id,
+            order_no: order.order_no
+        });
+
+        return deps.serializeOrder({
+            ...order.get({ plain: true }),
+            created_at: data.created_at !== undefined ? data.created_at : order.created_at,
+            category: nextCategory,
+            metadata: {
+                ...(order.metadata || {}),
+                ...nextMetadata,
+                template_type: normalizeTemplateType(nextMetadata.template_type, nextCategory),
+            },
+            items: Array.isArray(data.items) ? data.items : await deps.findOrderItemsByOrderId(Number(id))
+        });
+    } catch (error) {
+        await transaction.rollback();
+        if (isUniqueOrderNoError(error)) {
+            await deps.assertUniqueOrderNo(data.order_no === undefined ? undefined : data.order_no, id);
+        }
+        throw error;
+    }
 }

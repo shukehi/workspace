@@ -39,9 +39,7 @@ import {
     resolveCreateOrderContext,
 } from './order.service.create';
 import {
-    assertUpdateOrderInputValid,
-    buildNextOrderValues,
-    resolveUpdateOrderContext,
+    updateOrderLifecycle,
 } from './order.service.update';
 import {
     stockInOrderLifecycle,
@@ -270,118 +268,23 @@ class OrderService {
     }
 
     async updateOrder(id: number | string, data: OrderUpdateInput) {
-        const transaction = await sequelize.transaction();
-        try {
-            const order = await orderRepository.findOrderById(id, transaction);
-            if (!order) throw new Error('Order not found');
-            assertEditableOrderFields(order, data as Record<string, unknown>);
-
-            const existing = await this.getOrderById(id);
-            const context = resolveUpdateOrderContext({ order, existing, data });
-            const {
-                nextCategory,
-                nextMetadata,
-                nextSourceContractCode,
-                nextSupplier,
-                nextOrderNo,
-                nextStatus,
-                nextCreatedAt,
-                nextItems,
-            } = context;
-
-            assertUpdateOrderInputValid({ order, data, context });
-            const nextDedupeKey = buildOrderDedupeKey({
-                source_contract_code: nextSourceContractCode,
-                category: nextCategory,
-                supplier: nextSupplier,
-                items: nextItems,
-                metadata: nextMetadata,
-            });
-
-            const duplicate = nextStatus === 'cancelled'
-                ? null
-                : await this.findDuplicateAutoOrder({
-                    source_contract_code: nextSourceContractCode,
-                    category: nextCategory,
-                    supplier: nextSupplier,
-                    items: nextItems,
-                    metadata: nextMetadata,
-                }, transaction, { excludeId: id });
-            if (duplicate) {
-                throw new DuplicateOrderError(duplicate);
-            }
-            await this.assertUniqueOrderNo(nextOrderNo, id, transaction);
-
-            const isAutoOrder = Boolean(nextSourceContractCode && nextDedupeKey);
-            const statusTransition = `${order.status}->${nextStatus}`;
-            if (order.status === 'cancelled' && nextStatus !== 'cancelled' && isAutoOrder) {
-                await this.reserveIdempotencyKey({
-                    sourceContractCode: nextSourceContractCode,
-                    dedupeKey: nextDedupeKey,
-                    orderId: Number(id)
-                }, transaction);
-            }
-
-            const nextOrderValues = buildNextOrderValues({
-                order,
-                data,
-                context,
-                nextDedupeKey,
-            });
-            await order.update(nextOrderValues, { transaction });
-
-            if (data.created_at !== undefined) {
-                await orderRepository.updateOrderCreatedAt(Number(id), data.created_at, transaction);
-            }
-
-            if (data.items) {
-                const items = nextItems.map((item: PlainRecord) => ({
-                    ...normalizeOrderItemForPersistence(item),
-                    id: undefined,
-                    order_id: id
-                }));
-                await orderRepository.replaceOrderItems(Number(id), items, transaction);
-            }
-
-            if (isAutoOrder) {
-                if (nextStatus === 'cancelled') {
-                    await this.releaseIdempotencyKeys(Number(id), transaction);
-                } else if (!statusTransition.startsWith('cancelled->')) {
-                    await this.syncActiveIdempotencyKey({
-                        sourceContractCode: nextSourceContractCode,
-                        dedupeKey: nextDedupeKey,
-                        orderId: Number(id)
-                    }, transaction);
-                }
-            }
-
-            await transaction.commit();
-            const persisted = await this.getOrderById(id);
-            if (persisted) return persisted;
-
-            console.warn('[OrderService] updateOrder fallback: persisted order not found after commit', {
-                id,
-                order_no: order.order_no
-            });
-
-            return serializeOrder({
-                ...order.get({ plain: true }),
-                created_at: data.created_at !== undefined ? data.created_at : order.created_at,
-                category: nextCategory,
-                metadata: {
-                    ...(order.metadata || {}),
-                    ...nextMetadata,
-                    template_type: normalizeTemplateType(nextMetadata.template_type, nextCategory),
-                },
-                items: Array.isArray(data.items) ? data.items : await orderRepository.findOrderItemsByOrderId(Number(id))
-            });
-        } catch (error) {
-            await transaction.rollback();
-            if (isUniqueOrderNoError(error)) {
-                await this.assertUniqueOrderNo(data.order_no === undefined ? undefined : data.order_no, id);
-            }
-            throw error;
-        }
+        return await updateOrderLifecycle(id, data, {
+            transactionFactory: () => sequelize.transaction(),
+            findOrderById: (orderId, transaction) => orderRepository.findOrderById(orderId, transaction),
+            getOrderById: (orderId) => this.getOrderById(orderId),
+            assertEditableOrderFields,
+            findDuplicateAutoOrder: (updateData, transaction, options) => this.findDuplicateAutoOrder(updateData as PlainRecord, transaction, options as PlainRecord),
+            buildOrderDedupeKey: (value) => buildOrderDedupeKey(value as PlainRecord),
+            assertUniqueOrderNo: (orderNo, excludeId, transaction) => this.assertUniqueOrderNo(orderNo, excludeId, transaction),
+            reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
+            releaseIdempotencyKeys: (orderId, transaction) => this.releaseIdempotencyKeys(orderId, transaction),
+            syncActiveIdempotencyKey: (args, transaction) => this.syncActiveIdempotencyKey(args, transaction),
+            updateOrderCreatedAt: (orderId, createdAt, transaction) => orderRepository.updateOrderCreatedAt(orderId, createdAt, transaction),
+            replaceOrderItems: (orderId, items, transaction) => orderRepository.replaceOrderItems(orderId, items, transaction),
+            findOrderItemsByOrderId: (orderId) => orderRepository.findOrderItemsByOrderId(orderId),
+            normalizeOrderItemForPersistence,
+            serializeOrder,
+        });
     }
 
     async deleteOrder(id: number | string) {
