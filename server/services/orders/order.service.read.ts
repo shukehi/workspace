@@ -1,5 +1,5 @@
 import type { PlainRecord } from '../../shared/types';
-import type { OrderReadBindings, OrderReadItemDeps, OrderReadListDeps } from './order.service.contracts';
+import type { OrderReadBindings, OrderReadListDeps, OrderReadSurfaceBindings } from './order.service.contracts';
 
 export function buildOrderReadBindings(bindings: OrderReadBindings) {
   return {
@@ -40,8 +40,8 @@ export async function getAllOrdersResult(
 export async function getOrderByIdResult(
   id: number | string,
   deps: {
-    findOrderByIdWithItems: OrderReadItemDeps['findOrderByIdWithItems'];
-    serializeOrder: OrderReadItemDeps['serializeOrder'];
+    findOrderByIdWithItems: OrderReadSurfaceBindings['findOrderByIdWithItems'];
+    serializeOrder: OrderReadSurfaceBindings['serializeOrder'];
   },
 ) {
   const order = await deps.findOrderByIdWithItems(id);
