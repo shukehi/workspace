@@ -1,13 +1,10 @@
 import { createPaginationResponse } from '../../shared/contracts/pagination';
 import type { OrderListQuery } from '../../models/types';
 import type { PlainRecord } from '../../shared/types';
+import type { OrderSerializationBindings, OrderSummaryFacetBindings } from './order.service.contracts';
 import * as orderRepository from './order.repository';
 
-export type OrderQueryBindings = {
-  serializeOrder: (order: unknown) => PlainRecord;
-  buildOrderSummary: (orders: PlainRecord[]) => PlainRecord;
-  buildOrderFacets: (orders: PlainRecord[]) => PlainRecord;
-};
+export type OrderQueryBindings = OrderSerializationBindings & OrderSummaryFacetBindings;
 
 export function buildOrderQueryBindings(bindings: OrderQueryBindings) {
   return {
@@ -20,9 +17,9 @@ export function buildOrderQueryBindings(bindings: OrderQueryBindings) {
 export async function getPaginatedOrdersResult(
   query: OrderListQuery,
   deps: {
-    serializeOrder: (order: unknown) => PlainRecord;
-    buildOrderSummary: (orders: PlainRecord[]) => PlainRecord;
-    buildOrderFacets: (orders: PlainRecord[]) => PlainRecord;
+    serializeOrder: OrderSerializationBindings['serializeOrder'];
+    buildOrderSummary: OrderSummaryFacetBindings['buildOrderSummary'];
+    buildOrderFacets: OrderSummaryFacetBindings['buildOrderFacets'];
   },
 ) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -41,7 +38,7 @@ export async function getPaginatedOrdersResult(
 
   const pagedIds = await orderRepository.findPaginatedOrderIds(query, page, pageSize);
   const orders = await orderRepository.findOrdersWithItemsByIds(pagedIds);
-  const serializedOrders = orders.map(deps.serializeOrder);
+  const serializedOrders = orders.map((order) => deps.serializeOrder(order) as PlainRecord);
   const rowsById = new Map<number, PlainRecord>();
   serializedOrders.forEach((order) => {
     if (order && Number.isInteger(order.id)) {
