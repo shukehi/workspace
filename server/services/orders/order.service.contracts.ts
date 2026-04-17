@@ -79,17 +79,6 @@ export type OrderStatusTransitionErrorBinding = {
   InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
 };
 
-export type OrderStockInHelperDeps =
-  OrderTransactionFactoryBinding
-  & OrderByIdBinding
-  & OrderByIdWithItemsBinding
-  & OrderStatusNormalizerBinding
-  & OrderStatusTransitionErrorBinding;
-
-export type OrderStatusGuardBindings =
-  OrderStatusNormalizerBinding
-  & OrderStatusTransitionErrorBinding;
-
 export type OrderStockInServiceDeps = {
   inventoryReceiptService: {
     createFromOrder: (order: PlainRecord, data: PlainRecord, transaction?: any) => Promise<{ receiptItems?: Array<{ orderItem: PlainRecord; quantity: number; itemKey: string }> }>;
