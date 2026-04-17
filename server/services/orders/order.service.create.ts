@@ -10,6 +10,7 @@ import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-cr
 import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.helpers';
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
+import type { OrderByIdBinding, OrderTransactionFactoryBinding } from './order.service.contracts';
 import type { OrderLifecycleServiceBindings } from './order.service.support';
 
 export type CreateOrderContext = {
@@ -144,23 +145,28 @@ export function buildCreateOrderLifecycleDeps(args: {
   };
 }
 
-export async function createOrderLifecycle(
-  data: OrderCreateInput,
-  deps: {
-    transactionFactory: () => Promise<any>;
-    allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
-    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
+export type CreateOrderLifecycleDeps =
+  OrderTransactionFactoryBinding
+  & Pick<CreateOrderLifecycleBindings,
+    'allocateNextManualOrderNo'
+    | 'allocateNextAutoOrderNo'
+    | 'assertUniqueOrderNo'
+    | 'findDuplicateAutoOrder'
+    | 'reserveIdempotencyKey'
+  >
+  & OrderByIdBinding
+  & {
     shouldAutoAssignManualOrderNo: boolean;
     shouldAutoAssignAutoOrderNo: boolean;
     requestedSourceContractCode: string;
-    assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-    findDuplicateAutoOrder: (data: PlainRecord, transaction: any) => Promise<PlainRecord | null>;
     createOrder: (values: OrderCreationAttributes, transaction?: any) => Promise<{ id: number; get: (options: { plain: true }) => PlainRecord }>;
     bulkCreateOrderItems: (items: PlainRecord[], transaction?: any) => Promise<unknown>;
-    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
-    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     isUniqueOrderNoError: (error: unknown) => boolean;
-  },
+  };
+
+export async function createOrderLifecycle(
+  data: OrderCreateInput,
+  deps: CreateOrderLifecycleDeps,
 ): Promise<PlainRecord> {
   let lastAttemptedOrderNo = String(data.order_no || '').trim();
 

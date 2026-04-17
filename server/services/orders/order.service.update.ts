@@ -10,6 +10,11 @@ import * as orderRepository from './order.repository';
 import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper';
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
+import type {
+    OrderItemPersistenceBindings,
+    OrderSerializationBindings,
+    OrderTransactionFactoryBinding,
+} from './order.service.contracts';
 import type { OrderLifecycleServiceBindings } from './order.service.support';
 import { normalizeTemplateType } from './order.template';
 
@@ -197,26 +202,31 @@ export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBind
     };
 }
 
-export async function updateOrderLifecycle(
-    id: number | string,
-    data: OrderUpdateInput,
-    deps: {
-        transactionFactory: () => Promise<any>;
+export type UpdateOrderLifecycleDeps =
+    OrderTransactionFactoryBinding
+    & Pick<UpdateOrderLifecycleBindings,
+        'getOrderById'
+        | 'findDuplicateAutoOrder'
+        | 'assertUniqueOrderNo'
+        | 'reserveIdempotencyKey'
+        | 'releaseIdempotencyKeys'
+        | 'syncActiveIdempotencyKey'
+    >
+    & OrderItemPersistenceBindings
+    & OrderSerializationBindings
+    & {
         findOrderById: (id: number | string, transaction?: any) => Promise<any>;
-        getOrderById: (id: number | string) => Promise<any>;
         assertEditableOrderFields: (order: any, data: Record<string, unknown>) => void;
-        findDuplicateAutoOrder: (data: Record<string, unknown>, transaction?: any, options?: Record<string, unknown>) => Promise<any>;
         buildOrderDedupeKey: (data: Record<string, unknown>) => string;
-        assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-        reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: any) => Promise<unknown>;
-        releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
-        syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: any) => Promise<unknown>;
         updateOrderCreatedAt: (id: number, createdAt: Date | string, transaction?: any) => Promise<unknown>;
         replaceOrderItems: (orderId: number, items: any[], transaction?: any) => Promise<unknown>;
         findOrderItemsByOrderId: (orderId: number) => Promise<any[]>;
-        normalizeOrderItemForPersistence: (item: Record<string, unknown>) => Record<string, unknown>;
-        serializeOrder: (order: any) => any;
-    },
+    };
+
+export async function updateOrderLifecycle(
+    id: number | string,
+    data: OrderUpdateInput,
+    deps: UpdateOrderLifecycleDeps,
 ): Promise<any> {
     const transaction = await deps.transactionFactory();
     try {
@@ -255,7 +265,7 @@ export async function updateOrderLifecycle(
                 metadata: nextMetadata,
             }, transaction, { excludeId: id });
         if (duplicate) {
-            throw new DuplicateOrderError(duplicate);
+            throw new DuplicateOrderError(duplicate as any);
         }
         await deps.assertUniqueOrderNo(nextOrderNo, id, transaction);
 
