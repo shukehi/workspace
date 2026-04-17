@@ -144,6 +144,8 @@
   — Order lifecycle normalization 第十七刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS18_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS18_PLAN_2026-04-17.md)
   — Order lifecycle normalization 第十八刀计划
+- [ORDER_LIFECYCLE_NORMALIZATION_PASS20_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS20_PLAN_2026-04-17.md)
+  — Order lifecycle normalization 第二十刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS19_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS19_PLAN_2026-04-17.md)
   — Order lifecycle normalization 第十九刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS11_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS11_PLAN_2026-04-17.md)
@@ -307,6 +309,8 @@
   — Order lifecycle normalization 第十八刀当前成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS19_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS19_2026-04-17.md)
   — Order lifecycle normalization 第十九刀当前成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS20_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS20_2026-04-17.md)
+  — Order lifecycle normalization 第二十刀当前成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS11_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_ORDER_LIFECYCLE_NORMALIZATION_PASS11_2026-04-17.md)
   — Order lifecycle normalization 第十一刀当前成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_PASS2_2026-04-17.md)
