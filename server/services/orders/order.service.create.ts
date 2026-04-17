@@ -114,14 +114,12 @@ export function buildCreateOrderFallback(order: { get: (options: { plain: true }
 }
 
 
-export type CreateOrderLifecycleBindings = OrderLifecycleCreateBindings;
-
 export function buildCreateOrderLifecycleDeps(args: {
   data: OrderCreateInput;
   shouldAutoAssignManualOrderNo: boolean;
   shouldAutoAssignAutoOrderNo: boolean;
   requestedSourceContractCode: string;
-  bindings: CreateOrderLifecycleBindings;
+  bindings: OrderLifecycleCreateBindings;
 }) {
   return {
     transactionFactory: () => sequelize.transaction(),

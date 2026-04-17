@@ -173,9 +173,7 @@ export function buildNextOrderValues({
 }
 
 
-export type UpdateOrderLifecycleBindings = OrderLifecycleMutableBindings;
-
-export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBindings) {
+export function buildUpdateOrderLifecycleDeps(bindings: OrderLifecycleMutableBindings) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderById: (orderId: number | string, transaction?: any) => orderRepository.findOrderById(orderId, transaction),
