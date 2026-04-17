@@ -58,7 +58,7 @@ import {
     ReceivedQuantityExceededError,
 } from './order.errors';
 import { deleteOrderWithRetry } from './order.service.delete';
-import { buildMarkArrivedPayload, bulkMarkArrivedWithResult } from './order.service.arrive';
+import { bulkMarkArrivedResult, markArrivedResult } from './order.service.arrive';
 import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-create.validation';
 import type { PlainRecord } from '../../shared/types';
 import {
@@ -188,14 +188,16 @@ class OrderService {
     }
 
     async markArrived(id: number | string, data: PlainRecord = {}) {
-        return await this.updateOrder(id, buildMarkArrivedPayload(data));
+        return await markArrivedResult(id, data, {
+            updateOrder: (orderId, payload) => this.updateOrder(orderId, payload),
+        });
     }
 
     async bulkMarkArrived(idsInput: unknown, data: PlainRecord = {}) {
-        return await bulkMarkArrivedWithResult(idsInput, data, {
+        return await bulkMarkArrivedResult(idsInput, data, {
             normalizeBulkOrderIds,
             serializeBulkArriveError,
-            markArrived: (id, payload) => this.markArrived(id, payload),
+            markArrivedResult: (id, payload) => this.markArrived(id, payload),
         });
     }
 
