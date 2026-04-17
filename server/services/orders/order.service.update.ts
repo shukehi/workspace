@@ -11,14 +11,11 @@ import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
-    OrderDuplicateAutoBinding,
+    OrderCoreLifecycleBindings,
     OrderIdempotencyMutationBindings,
-    OrderIdempotencyReserveBinding,
     OrderItemPersistenceBindings,
     OrderSerializationBindings,
     OrderTransactionFactoryBinding,
-    OrderUniqueOrderNoBinding,
-    OrderByIdBinding,
 } from './order.service.contracts';
 import { normalizeTemplateType } from './order.template';
 
@@ -177,11 +174,7 @@ export function buildNextOrderValues({
 }
 
 
-export type UpdateOrderLifecycleBindings = OrderByIdBinding
-    & OrderDuplicateAutoBinding
-    & OrderUniqueOrderNoBinding
-    & OrderIdempotencyReserveBinding
-    & OrderIdempotencyMutationBindings;
+export type UpdateOrderLifecycleBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
 
 export function buildUpdateOrderLifecycleDeps(bindings: UpdateOrderLifecycleBindings) {
     return {
