@@ -12,7 +12,6 @@ import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
   OrderLifecycleCreateBindings,
-  OrderLifecycleCreateRuntimeBindings,
   OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
@@ -143,7 +142,7 @@ export function buildCreateOrderLifecycleDeps(args: {
 
 export type CreateOrderLifecycleDeps =
   OrderTransactionFactoryBinding
-  & OrderLifecycleCreateRuntimeBindings
+  & OrderLifecycleCreateBindings
   & {
     shouldAutoAssignManualOrderNo: boolean;
     shouldAutoAssignAutoOrderNo: boolean;
