@@ -130,6 +130,8 @@
   — Order lifecycle normalization 第八刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS10_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS10_PLAN_2026-04-17.md)
   — Order lifecycle normalization 第十刀计划
+- [ORDER_LIFECYCLE_NORMALIZATION_PASS12_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS12_PLAN_2026-04-17.md)
+  — Order lifecycle normalization 第十二刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS11_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS11_PLAN_2026-04-17.md)
   — Order lifecycle normalization 第十一刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS9_PLAN_2026-04-17.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS9_PLAN_2026-04-17.md)

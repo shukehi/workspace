@@ -2,7 +2,13 @@ import type { Transaction } from 'sequelize';
 import { Op } from 'sequelize';
 import * as orderRepository from './order.repository';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding } from './order.service.contracts';
+import type {
+  OrderByIdBinding,
+  OrderDuplicateAutoBinding,
+  OrderIdempotencyMutationBindings,
+  OrderIdempotencyReserveBinding,
+  OrderUniqueOrderNoBinding,
+} from './order.service.contracts';
 import {
   buildAutoOrderNo,
   buildManualOrderNo,
@@ -18,15 +24,15 @@ import { serializeOrder } from './order.mapper';
 import { DuplicateOrderError } from './order.errors';
 
 
-export type OrderLifecycleServiceBindings = OrderByIdBinding & {
-  allocateNextManualOrderNo: (createdAt: unknown, transaction?: Transaction) => Promise<string>;
-  allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: Transaction) => Promise<string>;
-  assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: Transaction) => Promise<void>;
-  findDuplicateAutoOrder: (data: PlainRecord, transaction?: Transaction, options?: PlainRecord) => Promise<PlainRecord | null>;
-  reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
-  releaseIdempotencyKeys: (orderId: number, transaction?: Transaction) => Promise<unknown>;
-  syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: Transaction) => Promise<unknown>;
-};
+export type OrderLifecycleServiceBindings = OrderByIdBinding
+  & OrderUniqueOrderNoBinding
+  & OrderDuplicateAutoBinding
+  & OrderIdempotencyReserveBinding
+  & OrderIdempotencyMutationBindings
+  & {
+    allocateNextManualOrderNo: (createdAt: unknown, transaction?: Transaction) => Promise<string>;
+    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: Transaction) => Promise<string>;
+  };
 
 export function buildOrderLifecycleBindings(service: OrderLifecycleServiceBindings) {
   return {
