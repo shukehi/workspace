@@ -8,7 +8,7 @@ export function buildMarkArrivedPayload(data: PlainRecord = {}): PlainRecord {
   };
 }
 
-export type BulkArriveResult = {
+type BulkArriveResult = {
   total: number;
   successCount: number;
   failureCount: number;
