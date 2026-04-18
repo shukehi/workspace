@@ -14,7 +14,6 @@ import type {
     OrderByIdBinding,
     OrderDuplicateAutoBinding,
     OrderIdempotencyReserveBinding,
-    OrderUniqueOrderNoBinding,
     OrderIdempotencyMutationBindings,
     OrderSerializationBindings,
     OrderTransactionFactoryBinding,
@@ -176,7 +175,9 @@ export function buildNextOrderValues({
 }
 
 
-export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & OrderUniqueOrderNoBinding & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings) {
+export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & {
+    assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+} & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderById: (orderId: number | string, transaction?: any) => orderRepository.findOrderById(orderId, transaction),
@@ -199,7 +200,9 @@ export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & Order
 type UpdateOrderLifecycleDeps =
     OrderTransactionFactoryBinding
     & OrderByIdBinding
-    & OrderUniqueOrderNoBinding
+    & {
+        assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+    }
     & OrderDuplicateAutoBinding
     & OrderIdempotencyReserveBinding
     & OrderIdempotencyMutationBindings
