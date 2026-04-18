@@ -16,9 +16,6 @@ export type OrderByIdBinding = {
 
 
 
-export type OrderDuplicateAutoBinding = {
-  findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
-};
 
 export type OrderIdempotencyReserveBinding = {
   reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;

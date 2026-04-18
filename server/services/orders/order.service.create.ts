@@ -12,7 +12,6 @@ import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
   OrderByIdBinding,
-  OrderDuplicateAutoBinding,
   OrderIdempotencyReserveBinding,
   OrderTransactionFactoryBinding,
 } from './order.service.contracts';
@@ -123,7 +122,9 @@ export function buildCreateOrderLifecycleDeps(args: {
   requestedSourceContractCode: string;
   bindings: OrderByIdBinding & {
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-  } & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & {
+  } & {
+    findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
+  } & OrderIdempotencyReserveBinding & {
     allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
     allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
   };
@@ -151,7 +152,9 @@ type CreateOrderLifecycleDeps =
   & {
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
   }
-  & OrderDuplicateAutoBinding
+  & {
+    findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
+  }
   & OrderIdempotencyReserveBinding
   & {
     allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;

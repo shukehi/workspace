@@ -12,7 +12,6 @@ import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
     OrderByIdBinding,
-    OrderDuplicateAutoBinding,
     OrderIdempotencyReserveBinding,
     OrderIdempotencyMutationBindings,
     OrderSerializationBindings,
@@ -177,7 +176,9 @@ export function buildNextOrderValues({
 
 export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & {
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-} & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings) {
+} & {
+    findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
+} & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderById: (orderId: number | string, transaction?: any) => orderRepository.findOrderById(orderId, transaction),
@@ -203,7 +204,9 @@ type UpdateOrderLifecycleDeps =
     & {
         assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
     }
-    & OrderDuplicateAutoBinding
+    & {
+        findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
+    }
     & OrderIdempotencyReserveBinding
     & OrderIdempotencyMutationBindings
     & {
