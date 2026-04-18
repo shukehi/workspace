@@ -1,7 +1,7 @@
 import { createInventoryCoreActions } from '@/features/inventory/inventoryStoreCoreActions';
 import { createInventoryFlowActions } from '@/features/inventory/inventoryStoreFlowActions';
 import { createInventoryHistoryActions } from '@/features/inventory/inventoryStoreHistoryActions';
-import type { InventoryStoreState } from '@/features/inventory/inventoryStoreActions';
+import type { InventoryStoreState } from '@/features/inventory/inventoryStoreState';
 
 export function createInventoryStatefulActions(state: InventoryStoreState) {
   const coreActions = createInventoryCoreActions({
