@@ -11,7 +11,6 @@ import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.help
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
-  OrderAllocationBindings,
   OrderByIdBinding,
   OrderUniqueOrderNoBinding,
   OrderDuplicateAutoBinding,
@@ -123,7 +122,10 @@ export function buildCreateOrderLifecycleDeps(args: {
   shouldAutoAssignManualOrderNo: boolean;
   shouldAutoAssignAutoOrderNo: boolean;
   requestedSourceContractCode: string;
-  bindings: OrderByIdBinding & OrderUniqueOrderNoBinding & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & OrderAllocationBindings;
+  bindings: OrderByIdBinding & OrderUniqueOrderNoBinding & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & {
+    allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
+    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
+  };
 }) {
   return {
     transactionFactory: () => sequelize.transaction(),
@@ -148,7 +150,10 @@ type CreateOrderLifecycleDeps =
   & OrderUniqueOrderNoBinding
   & OrderDuplicateAutoBinding
   & OrderIdempotencyReserveBinding
-  & OrderAllocationBindings
+  & {
+    allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
+    allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
+  }
   & {
     shouldAutoAssignManualOrderNo: boolean;
     shouldAutoAssignAutoOrderNo: boolean;

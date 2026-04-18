@@ -17,11 +17,6 @@ export type OrderByIdBinding = {
   getOrderById: (id: number | string) => Promise<PlainRecord | null>;
 };
 
-
-export type OrderAllocationBindings = {
-  allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
-  allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
-};
 export type OrderByIdWithItemsBinding = {
   findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
 };
