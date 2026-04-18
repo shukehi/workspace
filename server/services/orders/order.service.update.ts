@@ -42,7 +42,7 @@ type UpdateOrderContext = {
     nextItems: any[];
 };
 
-export function resolveUpdateOrderContext({
+function resolveUpdateOrderContext({
     order,
     existing,
     data,
@@ -91,7 +91,7 @@ export function resolveUpdateOrderContext({
     };
 }
 
-export function assertUpdateOrderInputValid({
+function assertUpdateOrderInputValid({
     order,
     data,
     context,
@@ -137,7 +137,7 @@ export function assertUpdateOrderInputValid({
     }
 }
 
-export function buildNextOrderValues({
+function buildNextOrderValues({
     order,
     data,
     context,
