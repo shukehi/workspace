@@ -10,8 +10,6 @@ import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-cr
 import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.helpers';
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
-import type {
-} from './order.service.contracts';
 
 type CreateOrderContext = {
   normalizedCategory: OrderAttributes['category'];
