@@ -2,6 +2,7 @@ import { computed, ref, watch, type Ref } from 'vue';
 import { refDebounced } from '@vueuse/core';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import type { InventoryItem, InventoryLocation, InventoryOutbound } from '@/types/inventory';
+import type { InventoryOutboundPayload } from '@/features/inventory/inventoryStoreFlows';
 
 type ToastFn = (payload: {
   title: string;
@@ -131,15 +132,7 @@ export function useInventoryOutboundState(options: {
     outboundDialogOpen.value = true;
   }
 
-  async function handleSubmitOutbound(payload: {
-    warehouse_id: number;
-    location_id: number;
-    operator?: string;
-    reason: string;
-    remark?: string;
-    outbound_date: string;
-    items: Array<{ material_id: number; item_name: string; unit: string; quantity: number }>;
-  }) {
+  async function handleSubmitOutbound(payload: InventoryOutboundPayload) {
     outboundSaving.value = true;
     try {
       await options.store.createInventoryOutbound(payload);

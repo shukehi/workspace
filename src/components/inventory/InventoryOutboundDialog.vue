@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { InventoryItem, InventoryLocation, Warehouse } from '@/types/inventory';
+import type { InventoryOutboundPayload } from '@/features/inventory/inventoryStoreFlows';
 
 type DraftItem = {
   material_id: number;
@@ -31,20 +32,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
-  (e: 'submit', payload: {
-    warehouse_id: number;
-    location_id: number;
-    operator?: string;
-    reason: string;
-    remark?: string;
-    outbound_date: string;
-    items: Array<{
-      material_id: number;
-      item_name: string;
-      unit: string;
-      quantity: number;
-    }>;
-  }): void;
+  (e: 'submit', payload: InventoryOutboundPayload): void;
 }>();
 
 const selectedWarehouseId = ref('');
