@@ -99,3 +99,6 @@ export function createInventoryStoreState() {
     sortedMovements,
   };
 }
+
+
+export type InventoryStoreState = ReturnType<typeof createInventoryStoreState>;

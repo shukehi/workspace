@@ -207,6 +207,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(store, /createInventoryStoreActions/);
   assert.match(store, /\.\.\.state/);
   assert.match(store, /\.\.\.actions/);
+  assert.match(storeState, /export type InventoryStoreState = ReturnType<typeof createInventoryStoreState>/);
   assert.match(storeState, /const receipts = ref/);
   assert.match(storeState, /const warehouses = ref/);
   assert.match(storeState, /const locations = ref/);
@@ -222,10 +223,14 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeState, /const movementsPage = ref/);
   assert.match(storeState, /const movementsPageSize = ref/);
   assert.match(storeActions, /export function createInventoryStoreActions/);
+  assert.match(storeActions, /InventoryStoreState/);
+  assert.doesNotMatch(storeActions, /createInventoryStoreState/);
   assert.match(storeActions, /createInventoryStatefulActions/);
   assert.match(storeActions, /createInventoryExportActions/);
   assert.match(storeActions, /\.\.\.statefulActions/);
   assert.match(storeActions, /\.\.\.exportActions/);
+  assert.match(storeStatefulActions, /InventoryStoreState/);
+  assert.doesNotMatch(storeStatefulActions, /inventoryStoreActions/);
   assert.match(storeStatefulActions, /export function createInventoryStatefulActions/);
   assert.match(storeStatefulActions, /createInventoryCoreActions/);
   assert.match(storeStatefulActions, /createInventoryHistoryActions/);
