@@ -2,7 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderByIdWithItemsBinding, OrderStatusNormalizerBinding, OrderStatusTransitionErrorBinding, OrderTransactionFactoryBinding } from './order.service.contracts';
+import type { OrderByIdBinding, OrderByIdWithItemsBinding, OrderTransactionFactoryBinding } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -18,6 +18,11 @@ type StockInOrderServices = {
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;
     ReceivedQuantityExceededError: new (itemId: number, orderedQuantity: number, nextReceived: number) => Error;
     normalizeOrderRemark: (remark: unknown) => string;
+};
+
+type StockInOrderStatusDeps = {
+    normalizeStatus: (status: unknown, fallback?: string) => string;
+    InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
 };
 
 
@@ -137,7 +142,7 @@ export async function resolveStockInOrderUpdate(
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
 }
 
-export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, services: StockInOrderServices & OrderStatusNormalizerBinding & OrderStatusTransitionErrorBinding) {
+export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, services: StockInOrderServices & StockInOrderStatusDeps) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderByIdWithItems: (orderId: number | string, transaction: Transaction | undefined) => orderRepository.findOrderByIdWithItems(orderId, transaction),
@@ -155,7 +160,7 @@ export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, servi
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & OrderStatusNormalizerBinding & OrderStatusTransitionErrorBinding & {
+    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & StockInOrderStatusDeps & {
         getOrderById: OrderByIdBinding['getOrderById'];
     },
 ): Promise<PlainRecord | null> {
@@ -187,7 +192,7 @@ export async function stockInOrderLifecycle(
 export async function stockInOrderResult(
     id: number | string,
     data: PlainRecord = {},
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & OrderStatusNormalizerBinding & OrderStatusTransitionErrorBinding & {
+    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & StockInOrderStatusDeps & {
         getOrderById: OrderByIdBinding['getOrderById'];
     },
 ) {
