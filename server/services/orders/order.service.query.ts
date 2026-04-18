@@ -1,10 +1,13 @@
 import { createPaginationResponse } from '../../shared/contracts/pagination';
 import type { OrderListQuery } from '../../models/types';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderSerializationBindings, OrderSummaryFacetBindings } from './order.service.contracts';
+import type { OrderSerializationBindings } from './order.service.contracts';
 import * as orderRepository from './order.repository';
 
-export function buildOrderQueryBindings(bindings: OrderSerializationBindings & OrderSummaryFacetBindings) {
+export function buildOrderQueryBindings(bindings: OrderSerializationBindings & {
+  buildOrderSummary: (orders: PlainRecord[]) => PlainRecord;
+  buildOrderFacets: (orders: PlainRecord[]) => PlainRecord;
+}) {
   return {
     serializeOrder: bindings.serializeOrder,
     buildOrderSummary: bindings.buildOrderSummary,
@@ -16,8 +19,8 @@ export async function getPaginatedOrdersResult(
   query: OrderListQuery,
   deps: {
     serializeOrder: OrderSerializationBindings['serializeOrder'];
-    buildOrderSummary: OrderSummaryFacetBindings['buildOrderSummary'];
-    buildOrderFacets: OrderSummaryFacetBindings['buildOrderFacets'];
+    buildOrderSummary: (orders: PlainRecord[]) => PlainRecord;
+    buildOrderFacets: (orders: PlainRecord[]) => PlainRecord;
   },
 ) {
   const page = Math.max(1, Number(query.page) || 1);

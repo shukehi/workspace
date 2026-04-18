@@ -8,10 +8,6 @@ export type OrderTransactionFactoryBinding<T = any> = {
   transactionFactory: () => Promise<T>;
 };
 
-export type OrderSummaryFacetBindings = {
-  buildOrderSummary: (orders: PlainRecord[]) => PlainRecord;
-  buildOrderFacets: (orders: PlainRecord[]) => PlainRecord;
-};
 
 export type OrderByIdBinding = {
   getOrderById: (id: number | string) => Promise<PlainRecord | null>;
