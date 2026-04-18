@@ -12,7 +12,10 @@ import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
   OrderAllocationBindings,
-  OrderCoreLifecycleBindings,
+  OrderByIdBinding,
+  OrderUniqueOrderNoBinding,
+  OrderDuplicateAutoBinding,
+  OrderIdempotencyReserveBinding,
   OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
@@ -120,7 +123,7 @@ export function buildCreateOrderLifecycleDeps(args: {
   shouldAutoAssignManualOrderNo: boolean;
   shouldAutoAssignAutoOrderNo: boolean;
   requestedSourceContractCode: string;
-  bindings: OrderCoreLifecycleBindings & OrderAllocationBindings;
+  bindings: OrderByIdBinding & OrderUniqueOrderNoBinding & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & OrderAllocationBindings;
 }) {
   return {
     transactionFactory: () => sequelize.transaction(),
@@ -141,7 +144,10 @@ export function buildCreateOrderLifecycleDeps(args: {
 
 type CreateOrderLifecycleDeps =
   OrderTransactionFactoryBinding
-  & OrderCoreLifecycleBindings
+  & OrderByIdBinding
+  & OrderUniqueOrderNoBinding
+  & OrderDuplicateAutoBinding
+  & OrderIdempotencyReserveBinding
   & OrderAllocationBindings
   & {
     shouldAutoAssignManualOrderNo: boolean;
