@@ -2,7 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderTransactionFactoryBinding } from './order.service.contracts';
+import type { OrderTransactionFactoryBinding } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -142,7 +142,9 @@ export async function resolveStockInOrderUpdate(
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
 }
 
-export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, services: StockInOrderServices & StockInOrderStatusDeps) {
+export function buildStockInOrderLifecycleDeps(bindings: {
+    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+}, services: StockInOrderServices & StockInOrderStatusDeps) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderByIdWithItems: (orderId: number | string, transaction: Transaction | undefined) => orderRepository.findOrderByIdWithItems(orderId, transaction),
@@ -160,10 +162,12 @@ export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, servi
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & {
+    deps: StockInOrderServices & OrderTransactionFactoryBinding & {
+        getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+    } & {
         findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
     } & StockInOrderStatusDeps & {
-        getOrderById: OrderByIdBinding['getOrderById'];
+        getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     },
 ): Promise<PlainRecord | null> {
     const transaction = await deps.transactionFactory();
@@ -194,10 +198,12 @@ export async function stockInOrderLifecycle(
 export async function stockInOrderResult(
     id: number | string,
     data: PlainRecord = {},
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & {
+    deps: StockInOrderServices & OrderTransactionFactoryBinding & {
+        getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+    } & {
         findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
     } & StockInOrderStatusDeps & {
-        getOrderById: OrderByIdBinding['getOrderById'];
+        getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     },
 ) {
     return await stockInOrderLifecycle(id, data, deps);

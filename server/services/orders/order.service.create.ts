@@ -11,7 +11,6 @@ import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.help
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
-  OrderByIdBinding,
   OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
@@ -119,7 +118,8 @@ export function buildCreateOrderLifecycleDeps(args: {
   shouldAutoAssignManualOrderNo: boolean;
   shouldAutoAssignAutoOrderNo: boolean;
   requestedSourceContractCode: string;
-  bindings: OrderByIdBinding & {
+  bindings: {
+    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
   } & {
     findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
@@ -149,7 +149,9 @@ export function buildCreateOrderLifecycleDeps(args: {
 
 type CreateOrderLifecycleDeps =
   OrderTransactionFactoryBinding
-  & OrderByIdBinding
+  & {
+    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+  }
   & {
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
   }
