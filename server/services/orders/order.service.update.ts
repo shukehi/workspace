@@ -11,7 +11,6 @@ import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
-    OrderByIdBinding,
     OrderSerializationBindings,
     OrderTransactionFactoryBinding,
 } from './order.service.contracts';
@@ -172,7 +171,8 @@ export function buildNextOrderValues({
 }
 
 
-export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & {
+export function buildUpdateOrderLifecycleDeps(bindings: {
+    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
 } & {
     findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
@@ -202,7 +202,9 @@ export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & {
 
 type UpdateOrderLifecycleDeps =
     OrderTransactionFactoryBinding
-    & OrderByIdBinding
+    & {
+        getOrderById: (id: number | string) => Promise<PlainRecord | null>;
+    }
     & {
         assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
     }

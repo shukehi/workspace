@@ -9,10 +9,6 @@ export type OrderTransactionFactoryBinding<T = any> = {
 };
 
 
-export type OrderByIdBinding = {
-  getOrderById: (id: number | string) => Promise<PlainRecord | null>;
-};
-
 
 
 
