@@ -7,6 +7,14 @@ import type {
   InventoryReceipt,
 } from '@/types/inventory';
 
+export type InventoryReceiptReversePayload = {
+  operator?: string;
+  remark?: string;
+  reversed_at?: string;
+  reverse_reason?: string;
+  quantity?: number;
+};
+
 export async function fetchInventoryReceiptsFlow(params: ReceiptQuery = {}) {
   const suffix = buildReceiptQuery(params);
   const response = await api.get<PagedRowsResponse<InventoryReceipt>>(`/inventory-receipts${suffix}`);
@@ -29,13 +37,7 @@ export async function fetchInventoryReceiptFlow(id: number | string) {
 
 export async function reverseReceiptFlow(
   id: number,
-  payload: {
-    operator?: string;
-    remark?: string;
-    reversed_at?: string;
-    reverse_reason?: string;
-    quantity?: number;
-  } = {},
+  payload: InventoryReceiptReversePayload = {},
 ) {
   return await api.post<InventoryReceipt>(`/inventory-receipts/${id}/reverse`, payload);
 }

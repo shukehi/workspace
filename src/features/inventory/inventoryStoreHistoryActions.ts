@@ -6,6 +6,7 @@ import {
   fetchInventoryReceiptFlow,
   fetchInventoryReceiptsFlow,
   reverseReceiptFlow,
+  type InventoryReceiptReversePayload,
 } from '@/features/inventory/inventoryStoreHistoryFlows';
 import type { InventoryMovement, InventoryReceipt } from '@/types/inventory';
 
@@ -49,13 +50,7 @@ export function createInventoryHistoryActions(state: {
 
   async function reverseReceipt(
     id: number,
-    payload: {
-      operator?: string;
-      remark?: string;
-      reversed_at?: string;
-      reverse_reason?: string;
-      quantity?: number;
-    } = {},
+    payload: InventoryReceiptReversePayload = {},
   ) {
     return await reverseReceiptFlow(id, payload);
   }

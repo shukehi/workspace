@@ -189,6 +189,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(receiptsTab, /50 \/ 页/);
   assert.match(receiptsTab, /100 \/ 页/);
   assert.match(receiptsTab, /暂无采购入库记录/);
+  assert.match(receiptFlow, /InventoryReceiptReversePayload/);
   assert.match(receiptFlow, /requestReverseReceipt/);
   assert.match(receiptFlow, /confirmReverseReceipt/);
   assert.match(receiptFlow, /openReceiptAudit/);
@@ -289,6 +290,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(locationDialog, /warehouseLocked/);
   assert.match(locationDialog, /:disabled="warehouseLocked"/);
   assert.match(locationDialog, /已建库位不允许更换所属仓库/);
+  assert.match(storeHistoryActions, /InventoryReceiptReversePayload/);
   assert.match(storeHistoryActions, /fetchInventoryReceiptsFlow/);
   assert.match(storeHistoryActions, /fetchAllInventoryReceiptsFlow/);
   assert.match(storeHistoryActions, /fetchInventoryMovementsFlow/);
@@ -302,6 +304,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeFlows, /export async function fetchInventoryLocationsFlow/);
   assert.match(storeFlows, /export async function fetchInventoryOutboundsFlow/);
   assert.match(storeFlows, /export async function fetchAllInventoryOutboundsFlow/);
+  assert.match(storeHistoryFlows, /export type InventoryReceiptReversePayload/);
   assert.match(storeHistoryFlows, /export async function fetchInventoryReceiptsFlow/);
   assert.match(storeHistoryFlows, /export async function fetchAllInventoryReceiptsFlow/);
   assert.match(storeHistoryFlows, /export async function fetchInventoryMovementsFlow/);

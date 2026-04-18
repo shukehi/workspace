@@ -1,4 +1,5 @@
 import { computed, ref, type Ref } from 'vue';
+import type { InventoryReceiptReversePayload } from '@/features/inventory/inventoryStoreHistoryFlows';
 import type { InventoryReceipt } from '@/types/inventory';
 
 type ToastFn = (payload: {
@@ -12,13 +13,7 @@ type InventoryStoreLike = {
   fetchAllInventoryReceipts: (params: { orderNo?: string; orderId?: number | string }) => Promise<InventoryReceipt[]>;
   reverseReceipt: (
     id: number,
-    payload: {
-      operator?: string;
-      remark?: string;
-      reversed_at?: string;
-      reverse_reason?: string;
-      quantity?: number;
-    },
+    payload: InventoryReceiptReversePayload,
   ) => Promise<InventoryReceipt>;
 };
 
