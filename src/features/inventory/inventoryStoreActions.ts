@@ -1,9 +1,4 @@
-import {
-  exportInventoryToCSV,
-  exportOutboundsToCSV,
-  exportReceiptsToCSV,
-  exportReconciliationToCSV,
-} from '@/features/inventory/inventoryCsvExports';
+import { createInventoryExportActions } from '@/features/inventory/inventoryStoreExportActions';
 import { createInventoryCoreActions } from '@/features/inventory/inventoryStoreCoreActions';
 import { createInventoryFlowActions } from '@/features/inventory/inventoryStoreFlowActions';
 import { createInventoryHistoryActions } from '@/features/inventory/inventoryStoreHistoryActions';
@@ -12,6 +7,8 @@ import { createInventoryStoreState } from '@/features/inventory/inventoryStoreSt
 export type InventoryStoreState = ReturnType<typeof createInventoryStoreState>;
 
 export function createInventoryStoreActions(state: InventoryStoreState) {
+  const exportActions = createInventoryExportActions();
+
   const {
     fetchInventory,
     updateMinStock,
@@ -77,9 +74,6 @@ export function createInventoryStoreActions(state: InventoryStoreState) {
     fetchAllInventoryOutbounds,
     createInventoryOutbound,
     reverseInventoryOutbound,
-    exportReceiptsToCSV,
-    exportInventoryToCSV,
-    exportReconciliationToCSV,
-    exportOutboundsToCSV,
+    ...exportActions,
   };
 }
