@@ -38,7 +38,7 @@ type OrderLike = Pick<
     | 'stocked_in_remark'
 >;
 
-export type UpdateOrderContext = {
+type UpdateOrderContext = {
     nextCategory: OrderAttributes['category'];
     nextMetadata: Record<string, any>;
     nextSourceContractCode: string;
@@ -194,7 +194,7 @@ export function buildUpdateOrderLifecycleDeps(bindings: OrderCoreLifecycleBindin
     };
 }
 
-export type UpdateOrderLifecycleDeps =
+type UpdateOrderLifecycleDeps =
     OrderTransactionFactoryBinding
     & OrderCoreLifecycleBindings
     & OrderIdempotencyMutationBindings
