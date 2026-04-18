@@ -17,7 +17,7 @@ type InventoryLocationPayload = {
   sort_order?: number;
 };
 
-type InventoryOutboundPayload = {
+export type InventoryOutboundPayload = {
   warehouse_id: number;
   location_id: number;
   operator?: string;

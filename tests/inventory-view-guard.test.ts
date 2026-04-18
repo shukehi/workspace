@@ -254,6 +254,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeCoreActions, /fetchInventoryFlow/);
   assert.match(storeCoreActions, /updateInventoryMinStockFlow/);
   assert.match(storeCoreActions, /createInventoryAdjustmentFlow/);
+  assert.match(storeFlowActions, /InventoryOutboundPayload/);
+  assert.match(storeFlowActions, /inventoryStoreFlows/);
+  assert.doesNotMatch(storeFlowActions, /export type InventoryOutboundPayload/);
   assert.match(storeFlowActions, /export function createInventoryFlowActions/);
   assert.match(storeFlowActions, /async function fetchInventoryLocations/);
   assert.match(storeFlowActions, /async function createInventoryLocation/);
@@ -277,6 +280,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storePaging, /export function normalizePagedRowsResponse/);
   assert.match(storePaging, /export async function fetchAllPagedRows/);
   assert.match(storePaging, /const pageSize = options\.pageSize \?\? 200/);
+  assert.match(storeFlows, /export type InventoryOutboundPayload/);
   assert.match(storeFlows, /export async function fetchInventoryLocationsFlow/);
   assert.match(storeFlows, /export async function fetchInventoryOutboundsFlow/);
   assert.match(storeFlows, /export async function fetchAllInventoryOutboundsFlow/);

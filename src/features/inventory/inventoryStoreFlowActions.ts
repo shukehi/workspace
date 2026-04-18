@@ -10,27 +10,13 @@ import {
   mergeInventoryLocation,
   reverseInventoryOutboundFlow,
   updateInventoryLocationFlow,
+  type InventoryOutboundPayload,
 } from '@/features/inventory/inventoryStoreFlows';
 import type {
   InventoryLocation,
   InventoryOutbound,
   Warehouse,
 } from '@/types/inventory';
-
-export type InventoryOutboundPayload = {
-  warehouse_id: number;
-  location_id: number;
-  operator?: string;
-  reason: string;
-  remark?: string;
-  outbound_date?: string;
-  items: Array<{
-    material_id: number | string;
-    item_name?: string;
-    unit?: string;
-    quantity: number;
-  }>;
-};
 
 export function createInventoryFlowActions(state: {
   warehouses: Ref<Warehouse[]>;
