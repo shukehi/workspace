@@ -18,10 +18,6 @@ export type OrderByIdBinding = {
 
 
 
-export type OrderIdempotencyMutationBindings = {
-  releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
-  syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: any) => Promise<unknown>;
-};
 
 
 
