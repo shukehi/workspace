@@ -12,7 +12,6 @@ import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
     OrderSerializationBindings,
-    OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 import { normalizeTemplateType } from './order.template';
 
@@ -201,7 +200,9 @@ export function buildUpdateOrderLifecycleDeps(bindings: {
 }
 
 type UpdateOrderLifecycleDeps =
-    OrderTransactionFactoryBinding
+    {
+        transactionFactory: () => Promise<any>;
+    }
     & {
         getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     }
