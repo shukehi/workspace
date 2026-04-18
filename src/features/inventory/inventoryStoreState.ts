@@ -1,40 +1,22 @@
-import { ref } from 'vue';
-import type {
-  InventoryItem,
-  InventoryLocation,
-  InventoryMovement,
-  InventoryOutbound,
-  InventoryReceipt,
-  Warehouse,
-} from '@/types/inventory';
+import { createInventoryCollections } from '@/features/inventory/inventoryStoreCollections';
 import { createInventoryDerivedState } from '@/features/inventory/inventoryStoreDerivedState';
 import { createInventoryMetaState } from '@/features/inventory/inventoryStoreMetaState';
 
 export function createInventoryStoreState() {
-  const items = ref<InventoryItem[]>([]);
-  const receipts = ref<InventoryReceipt[]>([]);
-  const warehouses = ref<Warehouse[]>([]);
-  const locations = ref<InventoryLocation[]>([]);
-  const outbounds = ref<InventoryOutbound[]>([]);
-  const movements = ref<InventoryMovement[]>([]);
+  const collections = createInventoryCollections();
 
   const metaState = createInventoryMetaState();
 
   const derivedState = createInventoryDerivedState({
-    items,
-    receipts,
-    locations,
-    outbounds,
-    movements,
+    items: collections.items,
+    receipts: collections.receipts,
+    locations: collections.locations,
+    outbounds: collections.outbounds,
+    movements: collections.movements,
   });
 
   return {
-    items,
-    receipts,
-    warehouses,
-    locations,
-    outbounds,
-    movements,
+    ...collections,
     ...metaState,
     ...derivedState,
   };

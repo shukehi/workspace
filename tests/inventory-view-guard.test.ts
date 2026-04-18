@@ -40,6 +40,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const storeState = read('src/features/inventory/inventoryStoreState.ts');
   const storeDerivedState = read('src/features/inventory/inventoryStoreDerivedState.ts');
   const storeMetaState = read('src/features/inventory/inventoryStoreMetaState.ts');
+  const storeCollections = read('src/features/inventory/inventoryStoreCollections.ts');
 
   assert.match(view, /采购入库记录/);
   assert.match(view, /正式出库记录/);
@@ -210,13 +211,10 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(store, /\.\.\.state/);
   assert.match(store, /\.\.\.actions/);
   assert.match(storeState, /export type InventoryStoreState = ReturnType<typeof createInventoryStoreState>/);
-  assert.match(storeState, /const receipts = ref/);
-  assert.match(storeState, /const warehouses = ref/);
-  assert.match(storeState, /const locations = ref/);
-  assert.match(storeState, /const outbounds = ref/);
-  assert.match(storeState, /const movements = ref/);
+  assert.match(storeState, /createInventoryCollections/);
   assert.match(storeState, /createInventoryMetaState/);
   assert.match(storeState, /createInventoryDerivedState/);
+  assert.match(storeState, /\.\.\.collections/);
   assert.match(storeState, /\.\.\.metaState/);
   assert.match(storeState, /\.\.\.derivedState/);
   assert.match(storeDerivedState, /export function createInventoryDerivedState/);
@@ -226,6 +224,13 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeDerivedState, /const sortedItems = computed/);
   assert.match(storeDerivedState, /const lowStockItems = computed/);
   assert.match(storeDerivedState, /const activeLocations = computed/);
+  assert.match(storeCollections, /export function createInventoryCollections/);
+  assert.match(storeCollections, /const items = ref/);
+  assert.match(storeCollections, /const receipts = ref/);
+  assert.match(storeCollections, /const warehouses = ref/);
+  assert.match(storeCollections, /const locations = ref/);
+  assert.match(storeCollections, /const outbounds = ref/);
+  assert.match(storeCollections, /const movements = ref/);
   assert.match(storeMetaState, /export function createInventoryMetaState/);
   assert.match(storeMetaState, /const loading = ref/);
   assert.match(storeMetaState, /const receiptsTotal = ref/);
