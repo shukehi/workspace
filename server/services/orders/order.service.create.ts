@@ -12,7 +12,6 @@ import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
   OrderByIdBinding,
-  OrderIdempotencyReserveBinding,
   OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
@@ -124,7 +123,9 @@ export function buildCreateOrderLifecycleDeps(args: {
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
   } & {
     findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
-  } & OrderIdempotencyReserveBinding & {
+  } & {
+    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
+  } & {
     allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
     allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
   };
@@ -155,7 +156,9 @@ type CreateOrderLifecycleDeps =
   & {
     findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
   }
-  & OrderIdempotencyReserveBinding
+  & {
+    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
+  }
   & {
     allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
     allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;

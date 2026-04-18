@@ -12,7 +12,6 @@ import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
     OrderByIdBinding,
-    OrderIdempotencyReserveBinding,
     OrderIdempotencyMutationBindings,
     OrderSerializationBindings,
     OrderTransactionFactoryBinding,
@@ -178,7 +177,9 @@ export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & {
     assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
 } & {
     findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
-} & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings) {
+} & {
+    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
+} & OrderIdempotencyMutationBindings) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderById: (orderId: number | string, transaction?: any) => orderRepository.findOrderById(orderId, transaction),
@@ -207,7 +208,9 @@ type UpdateOrderLifecycleDeps =
     & {
         findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
     }
-    & OrderIdempotencyReserveBinding
+    & {
+        reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
+    }
     & OrderIdempotencyMutationBindings
     & {
         normalizeOrderItemForPersistence: (item: Record<string, unknown>) => Record<string, unknown>;

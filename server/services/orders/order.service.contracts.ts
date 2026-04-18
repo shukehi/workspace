@@ -17,9 +17,6 @@ export type OrderByIdBinding = {
 
 
 
-export type OrderIdempotencyReserveBinding = {
-  reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
-};
 
 export type OrderIdempotencyMutationBindings = {
   releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
