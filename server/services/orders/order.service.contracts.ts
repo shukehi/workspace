@@ -56,10 +56,6 @@ export type OrderCoreLifecycleBindings =
 
 export type OrderLifecycleMutableBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
 
-export type OrderLifecycleCreateBindings =
-  OrderCoreLifecycleBindings
-  & OrderAllocationBindings;
-
 
 
 
