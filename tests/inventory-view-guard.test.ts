@@ -24,6 +24,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const routeState = read('src/features/inventory/composables/useInventoryReceiptRouteState.ts');
   const columns = read('src/components/inventory/InventoryReceiptColumns.ts');
   const locationDialog = read('src/components/inventory/InventoryLocationDialog.vue');
+  const outboundDialog = read('src/components/inventory/InventoryOutboundDialog.vue');
   const router = read('src/router/index.ts');
   const detailView = read('src/views/InventoryReceiptDetail.vue');
   const queryBuilders = read('src/features/inventory/inventoryQueryBuilders.ts');
@@ -143,6 +144,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /createInventoryOutbound/);
   assert.match(outboundState, /reverseInventoryOutbound/);
   assert.match(outboundState, /function openOutboundDialog/);
+  assert.match(outboundState, /InventoryOutboundPayload/);
   assert.match(outboundState, /async function handleSubmitOutbound/);
   assert.match(outboundState, /async function confirmReverseOutbound/);
   assert.match(outboundState, /function handleExportOutbounds/);
@@ -155,6 +157,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(reverseDialogs, /resetReceiptReverseQuantityToMax/);
   assert.match(reverseDialogs, /confirmReverseReceipt/);
   assert.match(reverseDialogs, /confirmReverseOutbound/);
+  assert.match(outboundDialog, /InventoryOutboundPayload/);
   assert.match(outboundsTab, /出库单数/);
   assert.match(outboundsTab, /涉及库位/);
   assert.match(outboundsTab, /累计出库/);
