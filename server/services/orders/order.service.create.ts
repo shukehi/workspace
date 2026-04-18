@@ -12,7 +12,6 @@ import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
   OrderByIdBinding,
-  OrderUniqueOrderNoBinding,
   OrderDuplicateAutoBinding,
   OrderIdempotencyReserveBinding,
   OrderTransactionFactoryBinding,
@@ -122,7 +121,9 @@ export function buildCreateOrderLifecycleDeps(args: {
   shouldAutoAssignManualOrderNo: boolean;
   shouldAutoAssignAutoOrderNo: boolean;
   requestedSourceContractCode: string;
-  bindings: OrderByIdBinding & OrderUniqueOrderNoBinding & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & {
+  bindings: OrderByIdBinding & {
+    assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+  } & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & {
     allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
     allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
   };
@@ -147,7 +148,9 @@ export function buildCreateOrderLifecycleDeps(args: {
 type CreateOrderLifecycleDeps =
   OrderTransactionFactoryBinding
   & OrderByIdBinding
-  & OrderUniqueOrderNoBinding
+  & {
+    assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
+  }
   & OrderDuplicateAutoBinding
   & OrderIdempotencyReserveBinding
   & {

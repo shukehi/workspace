@@ -15,9 +15,6 @@ export type OrderByIdBinding = {
 
 
 
-export type OrderUniqueOrderNoBinding = {
-  assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-};
 
 export type OrderDuplicateAutoBinding = {
   findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
