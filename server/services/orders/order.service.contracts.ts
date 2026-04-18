@@ -13,9 +13,6 @@ export type OrderByIdBinding = {
   getOrderById: (id: number | string) => Promise<PlainRecord | null>;
 };
 
-export type OrderByIdWithItemsBinding = {
-  findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
-};
 
 
 export type OrderUniqueOrderNoBinding = {
