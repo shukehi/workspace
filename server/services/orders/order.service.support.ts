@@ -2,7 +2,7 @@ import type { Transaction } from 'sequelize';
 import { Op } from 'sequelize';
 import * as orderRepository from './order.repository';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderDuplicateAutoBinding, OrderIdempotencyMutationBindings, OrderIdempotencyReserveBinding } from './order.service.contracts';
+import type { OrderByIdBinding, OrderIdempotencyMutationBindings, OrderIdempotencyReserveBinding } from './order.service.contracts';
 import {
   buildAutoOrderNo,
   buildManualOrderNo,
@@ -20,7 +20,9 @@ import { DuplicateOrderError } from './order.errors';
 
 export function buildOrderLifecycleBindings(service: OrderByIdBinding & {
   assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-} & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings & {
+} & {
+  findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
+} & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings & {
   allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
   allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
 }) {
