@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import type { InventoryLocation } from '@/types/inventory';
+import type { InventoryLocationPayload } from '@/features/inventory/inventoryStoreFlows';
 
 type ToastFn = (payload: {
   title: string;
@@ -32,14 +33,7 @@ export function useInventoryLocationState(options: {
     });
   });
 
-  async function handleLocationSubmit(payload: {
-    warehouse_id: number;
-    code: string;
-    name: string;
-    status: 'active' | 'inactive';
-    remark?: string;
-    sort_order?: number;
-  }) {
+  async function handleLocationSubmit(payload: InventoryLocationPayload) {
     locationDialogSaving.value = true;
     const isEditing = Boolean(editingLocation.value);
     try {
