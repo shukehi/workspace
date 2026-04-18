@@ -12,6 +12,7 @@ import {
   updateInventoryLocationFlow,
   type InventoryLocationPayload,
   type InventoryOutboundPayload,
+  type InventoryOutboundReversePayload,
 } from '@/features/inventory/inventoryStoreFlows';
 import type {
   InventoryLocation,
@@ -86,12 +87,7 @@ export function createInventoryFlowActions(state: {
     return await createInventoryOutboundFlow(payload);
   }
 
-  async function reverseInventoryOutbound(id: number | string, payload: {
-    operator?: string;
-    reason?: string;
-    remark?: string;
-    outbound_date?: string;
-  } = {}) {
+  async function reverseInventoryOutbound(id: number | string, payload: InventoryOutboundReversePayload = {}) {
     return await reverseInventoryOutboundFlow(id, payload);
   }
 
