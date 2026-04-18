@@ -168,6 +168,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundsTab, /下一页/);
   assert.match(locationState, /const locationDialogOpen = ref/);
   assert.match(locationState, /InventoryLocationPayload/);
+  assert.match(locationDialog, /InventoryLocationPayload/);
   assert.match(locationState, /async function handleLocationSubmit/);
   assert.match(locationState, /fetchInventoryLocations/);
   assert.match(locationState, /function openCreateLocationDialog/);
