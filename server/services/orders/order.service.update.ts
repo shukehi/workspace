@@ -10,9 +10,6 @@ import * as orderRepository from './order.repository';
 import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper';
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
-import type {
-    OrderSerializationBindings,
-} from './order.service.contracts';
 import { normalizeTemplateType } from './order.template';
 
 type OrderLike = Pick<
@@ -220,7 +217,9 @@ type UpdateOrderLifecycleDeps =
     & {
         normalizeOrderItemForPersistence: (item: Record<string, unknown>) => Record<string, unknown>;
     }
-    & OrderSerializationBindings
+    & {
+        serializeOrder: (order: unknown) => PlainRecord | null;
+    }
     & {
         findOrderById: (id: number | string, transaction?: any) => Promise<any>;
         assertEditableOrderFields: (order: any, data: Record<string, unknown>) => void;
