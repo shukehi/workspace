@@ -34,6 +34,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const storeHistoryActions = read('src/features/inventory/inventoryStoreHistoryActions.ts');
   const storeCoreActions = read('src/features/inventory/inventoryStoreCoreActions.ts');
   const storeFlowActions = read('src/features/inventory/inventoryStoreFlowActions.ts');
+  const storeStatefulActions = read('src/features/inventory/inventoryStoreStatefulActions.ts');
   const storeActions = read('src/features/inventory/inventoryStoreActions.ts');
   const storeExportActions = read('src/features/inventory/inventoryStoreExportActions.ts');
   const storeState = read('src/features/inventory/inventoryStoreState.ts');
@@ -221,11 +222,14 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeState, /const movementsPage = ref/);
   assert.match(storeState, /const movementsPageSize = ref/);
   assert.match(storeActions, /export function createInventoryStoreActions/);
-  assert.match(storeActions, /createInventoryCoreActions/);
-  assert.match(storeActions, /createInventoryHistoryActions/);
-  assert.match(storeActions, /createInventoryFlowActions/);
+  assert.match(storeActions, /createInventoryStatefulActions/);
   assert.match(storeActions, /createInventoryExportActions/);
+  assert.match(storeActions, /\.\.\.statefulActions/);
   assert.match(storeActions, /\.\.\.exportActions/);
+  assert.match(storeStatefulActions, /export function createInventoryStatefulActions/);
+  assert.match(storeStatefulActions, /createInventoryCoreActions/);
+  assert.match(storeStatefulActions, /createInventoryHistoryActions/);
+  assert.match(storeStatefulActions, /createInventoryFlowActions/);
   assert.match(storeExportActions, /export function createInventoryExportActions/);
   assert.match(storeExportActions, /exportReceiptsToCSV/);
   assert.match(storeExportActions, /exportInventoryToCSV/);
@@ -256,8 +260,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeHistoryActions, /fetchInventoryReceiptsFlow/);
   assert.match(storeHistoryActions, /fetchAllInventoryReceiptsFlow/);
   assert.match(storeHistoryActions, /fetchInventoryMovementsFlow/);
-  assert.match(storeActions, /fetchInventoryOutbounds/);
-  assert.match(storeActions, /fetchInventoryLocations/);
+  assert.match(storeStatefulActions, /\.\.\.flowActions/);
   assert.match(storePaging, /export type PagedRowsResponse/);
   assert.match(storePaging, /export function normalizePagedRowsResponse/);
   assert.match(storePaging, /export async function fetchAllPagedRows/);
