@@ -70,13 +70,3 @@ export type OrderStatusNormalizerBinding = {
 export type OrderStatusTransitionErrorBinding = {
   InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
 };
-
-export type OrderStockInServiceDeps = {
-  inventoryReceiptService: {
-    createFromOrder: (order: PlainRecord, data: PlainRecord, transaction?: any) => Promise<{ receiptItems?: Array<{ orderItem: PlainRecord; quantity: number; itemKey: string }> }>;
-  };
-  MissingMaterialError: new (materialId?: string) => Error;
-  resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number;
-  ReceivedQuantityExceededError: new (itemId: number, orderedQuantity: number, nextReceived: number) => Error;
-  normalizeOrderRemark: (remark: unknown) => string;
-};
