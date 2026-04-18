@@ -2,7 +2,7 @@ import type { Transaction } from 'sequelize';
 import { Op } from 'sequelize';
 import * as orderRepository from './order.repository';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderAllocationBindings, OrderByIdBinding, OrderLifecycleMutableBindings } from './order.service.contracts';
+import type { OrderAllocationBindings, OrderByIdBinding, OrderCoreLifecycleBindings, OrderIdempotencyMutationBindings } from './order.service.contracts';
 import {
   buildAutoOrderNo,
   buildManualOrderNo,
@@ -18,7 +18,7 @@ import { serializeOrder } from './order.mapper';
 import { DuplicateOrderError } from './order.errors';
 
 
-export function buildOrderLifecycleBindings(service: OrderLifecycleMutableBindings & OrderAllocationBindings) {
+export function buildOrderLifecycleBindings(service: OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings & OrderAllocationBindings) {
   return {
     getOrderById: service.getOrderById,
     allocateNextManualOrderNo: service.allocateNextManualOrderNo,

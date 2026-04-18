@@ -54,8 +54,6 @@ export type OrderCoreLifecycleBindings =
   & OrderIdempotencyReserveBinding;
 
 
-export type OrderLifecycleMutableBindings = OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings;
-
 
 
 
