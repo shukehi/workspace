@@ -17,9 +17,6 @@ export type OrderByIdWithItemsBinding = {
   findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
 };
 
-export type OrderItemPersistenceBindings = {
-  normalizeOrderItemForPersistence: (item: Record<string, unknown>) => Record<string, unknown>;
-};
 
 export type OrderUniqueOrderNoBinding = {
   assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
