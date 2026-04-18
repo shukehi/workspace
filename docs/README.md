@@ -328,6 +328,8 @@
   — Order lifecycle normalization 第四十刀合并后的优先级第五十八次刷新
 - [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_59_2026-04-18.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_59_2026-04-18.md)
   — Order lifecycle normalization 第四十一刀合并后的优先级第五十九次刷新
+- [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_60_2026-04-18.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_60_2026-04-18.md)
+  — Order lifecycle normalization 第四十二刀合并后的优先级第六十次刷新
 - [REPO_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/REPO_HEALTH_BASELINE_2026-04-16.md)
   — Week 1 健康基线修复前后状态记录
 - [BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_FIX_WEEK1_HEALTH_BASELINE_2026-04-16.md)
