@@ -35,6 +35,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const storeCoreActions = read('src/features/inventory/inventoryStoreCoreActions.ts');
   const storeFlowActions = read('src/features/inventory/inventoryStoreFlowActions.ts');
   const storeActions = read('src/features/inventory/inventoryStoreActions.ts');
+  const storeExportActions = read('src/features/inventory/inventoryStoreExportActions.ts');
   const storeState = read('src/features/inventory/inventoryStoreState.ts');
 
   assert.match(view, /采购入库记录/);
@@ -223,10 +224,13 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeActions, /createInventoryCoreActions/);
   assert.match(storeActions, /createInventoryHistoryActions/);
   assert.match(storeActions, /createInventoryFlowActions/);
-  assert.match(storeActions, /exportReceiptsToCSV/);
-  assert.match(storeActions, /exportInventoryToCSV/);
-  assert.match(storeActions, /exportReconciliationToCSV/);
-  assert.match(storeActions, /exportOutboundsToCSV/);
+  assert.match(storeActions, /createInventoryExportActions/);
+  assert.match(storeActions, /\.\.\.exportActions/);
+  assert.match(storeExportActions, /export function createInventoryExportActions/);
+  assert.match(storeExportActions, /exportReceiptsToCSV/);
+  assert.match(storeExportActions, /exportInventoryToCSV/);
+  assert.match(storeExportActions, /exportReconciliationToCSV/);
+  assert.match(storeExportActions, /exportOutboundsToCSV/);
   assert.match(storeCoreActions, /export function createInventoryCoreActions/);
   assert.match(storeCoreActions, /async function fetchInventory/);
   assert.match(storeCoreActions, /async function updateMinStock/);
