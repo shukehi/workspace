@@ -38,6 +38,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const storeActions = read('src/features/inventory/inventoryStoreActions.ts');
   const storeExportActions = read('src/features/inventory/inventoryStoreExportActions.ts');
   const storeState = read('src/features/inventory/inventoryStoreState.ts');
+  const storeDerivedState = read('src/features/inventory/inventoryStoreDerivedState.ts');
 
   assert.match(view, /采购入库记录/);
   assert.match(view, /正式出库记录/);
@@ -213,9 +214,15 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeState, /const locations = ref/);
   assert.match(storeState, /const outbounds = ref/);
   assert.match(storeState, /const movements = ref/);
-  assert.match(storeState, /const sortedReceipts = computed/);
-  assert.match(storeState, /const sortedOutbounds = computed/);
-  assert.match(storeState, /const sortedMovements = computed/);
+  assert.match(storeState, /createInventoryDerivedState/);
+  assert.match(storeState, /\.\.\.derivedState/);
+  assert.match(storeDerivedState, /export function createInventoryDerivedState/);
+  assert.match(storeDerivedState, /const sortedReceipts = computed/);
+  assert.match(storeDerivedState, /const sortedOutbounds = computed/);
+  assert.match(storeDerivedState, /const sortedMovements = computed/);
+  assert.match(storeDerivedState, /const sortedItems = computed/);
+  assert.match(storeDerivedState, /const lowStockItems = computed/);
+  assert.match(storeDerivedState, /const activeLocations = computed/);
   assert.match(storeState, /const receiptsTotal = ref/);
   assert.match(storeState, /const receiptsPage = ref/);
   assert.match(storeState, /const receiptsPageSize = ref/);
