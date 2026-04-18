@@ -1,7 +1,7 @@
 # Next Phase Priority Assessment Refresh 60 (2026-04-18)
 
 > 状态：当前决策文档。
-> 用途：在 `Order lifecycle normalization` 第四十二刀已并入 `main` 后，再次刷新下一阶段主线优先级，确保后续治理继续跟随最新热点分布。
+> 用途：在 `Order lifecycle normalization` 第四十三刀已并入 `main` 后，再次刷新下一阶段主线优先级，确保后续治理继续跟随最新热点分布。
 
 ---
 
@@ -12,7 +12,7 @@
 > 继续 **Order lifecycle normalization**
 
 这一结论已经落地，并完成：
-- read/stock-in 侧的 by-id-with-items alias 已收束为显式 lookup signature
+- create/update/support 侧的 unique-order-no alias 已收束为显式函数签名
 - 分支封板并合并回 `main`
 
 因此现在需要重新回答：
@@ -93,7 +93,7 @@
 > **继续 Order lifecycle normalization**
 
 建议新分支方向：
-- `refactor/order-lifecycle-normalization-pass43`
+- `refactor/order-lifecycle-normalization-pass44`
 
 建议优先围绕：
 1. 评估 contracts 层剩余最小的 naming / organization cleanup target
