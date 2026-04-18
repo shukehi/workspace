@@ -12,7 +12,10 @@ import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import type {
     OrderItemPersistenceBindings,
-    OrderCoreLifecycleBindings,
+    OrderByIdBinding,
+    OrderDuplicateAutoBinding,
+    OrderIdempotencyReserveBinding,
+    OrderUniqueOrderNoBinding,
     OrderIdempotencyMutationBindings,
     OrderSerializationBindings,
     OrderTransactionFactoryBinding,
@@ -174,7 +177,7 @@ export function buildNextOrderValues({
 }
 
 
-export function buildUpdateOrderLifecycleDeps(bindings: OrderCoreLifecycleBindings & OrderIdempotencyMutationBindings) {
+export function buildUpdateOrderLifecycleDeps(bindings: OrderByIdBinding & OrderUniqueOrderNoBinding & OrderDuplicateAutoBinding & OrderIdempotencyReserveBinding & OrderIdempotencyMutationBindings) {
     return {
         transactionFactory: () => sequelize.transaction(),
         findOrderById: (orderId: number | string, transaction?: any) => orderRepository.findOrderById(orderId, transaction),
@@ -196,7 +199,10 @@ export function buildUpdateOrderLifecycleDeps(bindings: OrderCoreLifecycleBindin
 
 type UpdateOrderLifecycleDeps =
     OrderTransactionFactoryBinding
-    & OrderCoreLifecycleBindings
+    & OrderByIdBinding
+    & OrderUniqueOrderNoBinding
+    & OrderDuplicateAutoBinding
+    & OrderIdempotencyReserveBinding
     & OrderIdempotencyMutationBindings
     & OrderItemPersistenceBindings
     & OrderSerializationBindings
