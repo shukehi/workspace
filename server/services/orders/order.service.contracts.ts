@@ -57,10 +57,3 @@ export type OrderCoreLifecycleBindings =
 
 
 
-export type OrderStatusNormalizerBinding = {
-  normalizeStatus: (status: unknown, fallback?: string) => string;
-};
-
-export type OrderStatusTransitionErrorBinding = {
-  InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error;
-};
