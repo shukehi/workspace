@@ -21,7 +21,7 @@ type CreateOrderContext = {
   normalizedData: PlainRecord;
 };
 
-export function resolveCreateOrderContext(createInput: OrderCreateInput): CreateOrderContext {
+function resolveCreateOrderContext(createInput: OrderCreateInput): CreateOrderContext {
   const normalizedCategory = createInput.category || undefined;
   const sourceContractCode = resolveSourceContractCode(createInput);
   const metadata = normalizeMetadata(createInput.metadata, {}, normalizedCategory);
@@ -54,7 +54,7 @@ export function resolveCreateOrderContext(createInput: OrderCreateInput): Create
   };
 }
 
-export function assertCreateOrderInputValid(createInput: OrderCreateInput): void {
+function assertCreateOrderInputValid(createInput: OrderCreateInput): void {
   const createIssues = validateManualCreateOrder(createInput);
   if (createIssues.length > 0) {
     throw new AppError({
@@ -71,7 +71,7 @@ export function assertCreateOrderInputValid(createInput: OrderCreateInput): void
   }
 }
 
-export function buildCreateOrderValues(context: CreateOrderContext): OrderCreationAttributes {
+function buildCreateOrderValues(context: CreateOrderContext): OrderCreationAttributes {
   const { normalizedData, sourceContractCode, dedupeKey, normalizedStatus, metadata } = context;
   return {
     order_no: normalizedData.order_no,
@@ -93,7 +93,7 @@ export function buildCreateOrderValues(context: CreateOrderContext): OrderCreati
   };
 }
 
-export function buildCreateOrderItems(normalizedData: PlainRecord, orderId: number) {
+function buildCreateOrderItems(normalizedData: PlainRecord, orderId: number) {
   if (!normalizedData.items || normalizedData.items.length === 0) return [];
   return normalizedData.items.map((item: PlainRecord) => ({
     ...normalizeOrderItemForPersistence(item),
@@ -102,7 +102,7 @@ export function buildCreateOrderItems(normalizedData: PlainRecord, orderId: numb
   }));
 }
 
-export function buildCreateOrderFallback(order: { get: (options: { plain: true }) => PlainRecord }, normalizedData: PlainRecord) {
+function buildCreateOrderFallback(order: { get: (options: { plain: true }) => PlainRecord }, normalizedData: PlainRecord) {
   return serializeOrder({
     ...order.get({ plain: true }),
     items: Array.isArray(normalizedData.items) ? normalizedData.items : [],
