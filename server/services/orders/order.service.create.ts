@@ -11,7 +11,6 @@ import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.help
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
 import type {
-  OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
 type CreateOrderContext = {
@@ -148,7 +147,9 @@ export function buildCreateOrderLifecycleDeps(args: {
 }
 
 type CreateOrderLifecycleDeps =
-  OrderTransactionFactoryBinding
+  {
+    transactionFactory: () => Promise<any>;
+  }
   & {
     getOrderById: (id: number | string) => Promise<PlainRecord | null>;
   }

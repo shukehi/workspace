@@ -2,7 +2,6 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderTransactionFactoryBinding } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -162,7 +161,9 @@ export function buildStockInOrderLifecycleDeps(bindings: {
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & {
+    deps: StockInOrderServices & {
+        transactionFactory: () => Promise<any>;
+    } & {
         getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     } & {
         findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
@@ -198,7 +199,9 @@ export async function stockInOrderLifecycle(
 export async function stockInOrderResult(
     id: number | string,
     data: PlainRecord = {},
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & {
+    deps: StockInOrderServices & {
+        transactionFactory: () => Promise<any>;
+    } & {
         getOrderById: (id: number | string) => Promise<PlainRecord | null>;
     } & {
         findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
