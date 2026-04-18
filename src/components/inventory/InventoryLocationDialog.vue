@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import type { InventoryLocationPayload } from '@/features/inventory/inventoryStoreFlows';
 import type { InventoryLocation, Warehouse } from '@/types/inventory';
 
 const props = defineProps<{
@@ -21,14 +22,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
-  (e: 'submit', payload: {
-    warehouse_id: number;
-    code: string;
-    name: string;
-    status: 'active' | 'inactive';
-    remark?: string;
-    sort_order?: number;
-  }): void;
+  (e: 'submit', payload: InventoryLocationPayload): void;
 }>();
 
 const warehouseId = ref('');
