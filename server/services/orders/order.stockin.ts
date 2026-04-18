@@ -25,7 +25,7 @@ type StockInOrderStatusDeps = {
 };
 
 
-export function assertOrderReadyForStockIn(
+function assertOrderReadyForStockIn(
     order: PlainRecord | null | undefined,
     normalizeStatus: (status: unknown, fallback?: string) => string,
     InvalidStatusTransitionError: new (fromStatus: string, toStatus: string) => Error,
@@ -36,7 +36,7 @@ export function assertOrderReadyForStockIn(
     }
 }
 
-export async function createReceiptItemsFromOrder(
+async function createReceiptItemsFromOrder(
     order: PlainRecord,
     data: PlainRecord,
     transaction: Transaction | undefined,
@@ -55,7 +55,7 @@ export async function createReceiptItemsFromOrder(
     }
 }
 
-export async function syncStockInReceiptItems(
+async function syncStockInReceiptItems(
     order: PlainRecord,
     receiptItems: ReceiptItem[],
     transaction: Transaction | undefined,
@@ -83,7 +83,7 @@ export async function syncStockInReceiptItems(
     return updatesByOrderItemId;
 }
 
-export function areAllOrderItemsReceived(
+function areAllOrderItemsReceived(
     orderItems: PlainRecord[] | null | undefined,
     updatesByOrderItemId: Map<number, PlainRecord>,
     resolveOrderedQuantity: (rawOrderedQuantity: unknown, rawQuantity: unknown) => number,
@@ -96,7 +96,7 @@ export function areAllOrderItemsReceived(
     });
 }
 
-export function buildStockInOrderUpdate(
+function buildStockInOrderUpdate(
     order: PlainRecord,
     data: PlainRecord,
     allReceived: boolean,
@@ -116,7 +116,7 @@ export function buildStockInOrderUpdate(
     };
 }
 
-export async function resolveStockInOrderUpdate(
+async function resolveStockInOrderUpdate(
     order: PlainRecord,
     data: PlainRecord,
     transaction: Transaction | undefined,
