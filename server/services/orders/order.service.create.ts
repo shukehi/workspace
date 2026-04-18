@@ -16,7 +16,7 @@ import type {
   OrderTransactionFactoryBinding,
 } from './order.service.contracts';
 
-export type CreateOrderContext = {
+type CreateOrderContext = {
   normalizedCategory: OrderAttributes['category'];
   metadata: Record<string, any>;
   normalizedStatus: string;
@@ -139,7 +139,7 @@ export function buildCreateOrderLifecycleDeps(args: {
   };
 }
 
-export type CreateOrderLifecycleDeps =
+type CreateOrderLifecycleDeps =
   OrderTransactionFactoryBinding
   & OrderCoreLifecycleBindings
   & OrderAllocationBindings
