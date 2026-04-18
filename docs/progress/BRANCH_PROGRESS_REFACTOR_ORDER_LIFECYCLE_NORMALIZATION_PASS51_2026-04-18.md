@@ -38,7 +38,7 @@
 
 ## 3. 相对 main 的提交
 
-- `待写入提交哈希` — 取消 update helper-local function export
+- `6a70b33` — 取消 update helper-local function export
 
 ---
 
