@@ -8,7 +8,7 @@ import type {
   InventoryOutboundListResponse,
 } from '@/types/inventory';
 
-type InventoryLocationPayload = {
+export type InventoryLocationPayload = {
   warehouse_id: number;
   code: string;
   name: string;

@@ -10,6 +10,7 @@ import {
   mergeInventoryLocation,
   reverseInventoryOutboundFlow,
   updateInventoryLocationFlow,
+  type InventoryLocationPayload,
   type InventoryOutboundPayload,
 } from '@/features/inventory/inventoryStoreFlows';
 import type {
@@ -43,14 +44,7 @@ export function createInventoryFlowActions(state: {
     }
   }
 
-  async function createInventoryLocation(payload: {
-    warehouse_id: number;
-    code: string;
-    name: string;
-    status?: 'active' | 'inactive';
-    remark?: string;
-    sort_order?: number;
-  }) {
+  async function createInventoryLocation(payload: InventoryLocationPayload) {
     const created = await createInventoryLocationFlow(payload);
     state.locations.value = mergeInventoryLocation(state.locations.value, created);
     return created;

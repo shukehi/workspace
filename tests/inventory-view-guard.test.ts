@@ -164,6 +164,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundsTab, /上一页/);
   assert.match(outboundsTab, /下一页/);
   assert.match(locationState, /const locationDialogOpen = ref/);
+  assert.match(locationState, /InventoryLocationPayload/);
   assert.match(locationState, /async function handleLocationSubmit/);
   assert.match(locationState, /fetchInventoryLocations/);
   assert.match(locationState, /function openCreateLocationDialog/);
@@ -264,12 +265,14 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storeCoreActions, /fetchInventoryFlow/);
   assert.match(storeCoreActions, /updateInventoryMinStockFlow/);
   assert.match(storeCoreActions, /createInventoryAdjustmentFlow/);
+  assert.match(storeFlowActions, /InventoryLocationPayload/);
   assert.match(storeFlowActions, /InventoryOutboundPayload/);
   assert.match(storeFlowActions, /inventoryStoreFlows/);
   assert.doesNotMatch(storeFlowActions, /export type InventoryOutboundPayload/);
   assert.match(storeFlowActions, /export function createInventoryFlowActions/);
   assert.match(storeFlowActions, /async function fetchInventoryLocations/);
   assert.match(storeFlowActions, /async function createInventoryLocation/);
+  assert.doesNotMatch(storeFlowActions, /warehouse_id: number;\n    code: string;/);
   assert.match(storeFlowActions, /async function updateInventoryLocation/);
   assert.match(storeFlowActions, /async function fetchInventoryOutbounds/);
   assert.match(storeFlowActions, /async function fetchInventoryOutbound/);
@@ -290,6 +293,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(storePaging, /export function normalizePagedRowsResponse/);
   assert.match(storePaging, /export async function fetchAllPagedRows/);
   assert.match(storePaging, /const pageSize = options\.pageSize \?\? 200/);
+  assert.match(storeFlows, /export type InventoryLocationPayload/);
   assert.match(storeFlows, /export type InventoryOutboundPayload/);
   assert.match(storeFlows, /export async function fetchInventoryLocationsFlow/);
   assert.match(storeFlows, /export async function fetchInventoryOutboundsFlow/);
