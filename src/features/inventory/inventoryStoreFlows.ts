@@ -32,6 +32,13 @@ export type InventoryOutboundPayload = {
   }>;
 };
 
+export type InventoryOutboundReversePayload = {
+  operator?: string;
+  reason?: string;
+  remark?: string;
+  outbound_date?: string;
+};
+
 function sortLocations(locations: InventoryLocation[]) {
   return [...locations].sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id));
 }
@@ -76,11 +83,6 @@ export async function createInventoryOutboundFlow(payload: InventoryOutboundPayl
   return await api.post<InventoryOutbound>('/inventory-outbounds', payload);
 }
 
-export async function reverseInventoryOutboundFlow(id: number | string, payload: {
-  operator?: string;
-  reason?: string;
-  remark?: string;
-  outbound_date?: string;
-} = {}) {
+export async function reverseInventoryOutboundFlow(id: number | string, payload: InventoryOutboundReversePayload = {}) {
   return await api.post<InventoryOutbound>(`/inventory-outbounds/${id}/reverse`, payload);
 }
