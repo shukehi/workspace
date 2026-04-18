@@ -2,7 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
-import type { OrderByIdBinding, OrderByIdWithItemsBinding, OrderTransactionFactoryBinding } from './order.service.contracts';
+import type { OrderByIdBinding, OrderTransactionFactoryBinding } from './order.service.contracts';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -160,7 +160,9 @@ export function buildStockInOrderLifecycleDeps(bindings: OrderByIdBinding, servi
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & StockInOrderStatusDeps & {
+    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & {
+        findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
+    } & StockInOrderStatusDeps & {
         getOrderById: OrderByIdBinding['getOrderById'];
     },
 ): Promise<PlainRecord | null> {
@@ -192,7 +194,9 @@ export async function stockInOrderLifecycle(
 export async function stockInOrderResult(
     id: number | string,
     data: PlainRecord = {},
-    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & OrderByIdWithItemsBinding & StockInOrderStatusDeps & {
+    deps: StockInOrderServices & OrderTransactionFactoryBinding & OrderByIdBinding & {
+        findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
+    } & StockInOrderStatusDeps & {
         getOrderById: OrderByIdBinding['getOrderById'];
     },
 ) {
