@@ -13,6 +13,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const store = read('src/stores/useInventoryStore.ts');
   const pageState = read('src/features/inventory/composables/useInventoryPageState.ts');
   const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
+  const outboundQueryState = read('src/features/inventory/composables/useInventoryOutboundQueryState.ts');
   const locationState = read('src/features/inventory/composables/useInventoryLocationState.ts');
   const stockTab = read('src/features/inventory/components/InventoryStockTab.vue');
   const receiptsTab = read('src/features/inventory/components/InventoryReceiptsTab.vue');
@@ -149,6 +150,12 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /InventoryOutboundPayload/);
   assert.match(outboundState, /async function handleSubmitOutbound/);
   assert.match(outboundState, /export type InventoryOutboundReverseControls/);
+  assert.match(outboundState, /useInventoryOutboundQueryState/);
+  assert.match(outboundQueryState, /export function useInventoryOutboundQueryState/);
+  assert.match(outboundQueryState, /const outboundNoFilter = ref/);
+  assert.match(outboundQueryState, /const availableOutboundLocations = computed/);
+  assert.match(outboundQueryState, /const outboundSummary = computed/);
+  assert.match(outboundQueryState, /const outboundTotalPages = computed/);
   assert.match(outboundState, /async function confirmReverseOutbound/);
   assert.match(outboundState, /function handleExportOutbounds/);
   assert.match(outboundState, /async function openOutboundDetail/);

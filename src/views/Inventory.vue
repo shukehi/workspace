@@ -244,7 +244,7 @@ const {
   reversing,
   selectedReceiptAudit,
   requestReverseReceipt,
-  resetReceiptReverseQuantity: resetReceiptReverseQuantity,
+  resetReceiptReverseQuantityToMax: resetReceiptReverseQuantity,
   confirmReverseReceipt: confirmReceiptFlowReverse,
   openReceiptAudit,
   closeReceiptAudit,

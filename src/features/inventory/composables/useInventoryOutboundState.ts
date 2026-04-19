@@ -1,7 +1,7 @@
-import { computed, ref, watch, type Ref } from 'vue';
-import { refDebounced } from '@vueuse/core';
+import { ref, watch, type Ref } from 'vue';
 import { useInventoryStore } from '@/stores/useInventoryStore';
-import type { InventoryItem, InventoryLocation, InventoryOutbound } from '@/types/inventory';
+import { useInventoryOutboundQueryState } from '@/features/inventory/composables/useInventoryOutboundQueryState';
+import type { InventoryItem, InventoryOutbound } from '@/types/inventory';
 import type { InventoryOutboundPayload } from '@/features/inventory/inventoryStoreFlows';
 
 type ToastFn = (payload: {
@@ -30,49 +30,33 @@ export function useInventoryOutboundState(options: {
 }) {
   const outboundDialogOpen = ref(false);
   const outboundSaving = ref(false);
-  const outboundNoFilter = ref('');
-  const outboundKeyword = ref('');
-  const debouncedOutboundKeyword = refDebounced(outboundKeyword, 300);
-  const outboundOperatorFilter = ref('');
-  const outboundWarehouseFilter = ref('');
-  const outboundLocationFilter = ref('');
-  const outboundStartDate = ref('');
-  const outboundEndDate = ref('');
-  const outboundPage = ref(1);
-  const outboundPageSize = ref(50);
+  const {
+    outboundNoFilter,
+    outboundKeyword,
+    debouncedOutboundKeyword,
+    outboundOperatorFilter,
+    outboundWarehouseFilter,
+    outboundLocationFilter,
+    outboundStartDate,
+    outboundEndDate,
+    outboundPage,
+    outboundPageSize,
+    availableOutboundLocations,
+    outboundSummary,
+    outboundTotalPages,
+  } = useInventoryOutboundQueryState({
+    activeLocations: () => options.store.activeLocations,
+    sortedOutbounds: () => options.store.sortedOutbounds,
+    outboundsTotal: () => options.store.outboundsTotal,
+    outboundsPageSize: () => options.store.outboundsPageSize,
+  });
+
   const selectedOutboundDetail = ref<InventoryOutbound | null>(null);
   const reverseOutboundDialogOpen = ref(false);
   const reverseOutboundTarget = ref<InventoryOutbound | null>(null);
   const reverseOutboundReason = ref('出库冲销');
   const reverseOutboundRemark = ref('');
   const reversingOutbound = ref(false);
-
-  const availableOutboundLocations = computed(() => {
-    const warehouseId = Number(outboundWarehouseFilter.value);
-    const base = options.store.activeLocations;
-    if (!Number.isInteger(warehouseId) || warehouseId <= 0) return base;
-    return base.filter((location) => location.warehouse_id === warehouseId);
-  });
-
-  const outboundSummary = computed(() => {
-    const list = options.store.sortedOutbounds;
-    const totalCount = list.length;
-    const totalLocations = new Set(list.map((item) => item.location_id)).size;
-    const totalIssuedQuantity = list
-      .filter((item) => item.direction === 'out')
-      .reduce((sum, item) => sum + item.items.reduce((itemSum, row) => itemSum + Number(row.quantity || 0), 0), 0);
-    const totalReversedQuantity = list
-      .filter((item) => item.direction === 'reversal')
-      .reduce((sum, item) => sum + item.items.reduce((itemSum, row) => itemSum + Number(row.quantity || 0), 0), 0);
-    return {
-      totalCount,
-      totalLocations,
-      totalIssuedQuantity,
-      netQuantity: totalIssuedQuantity - totalReversedQuantity,
-    };
-  });
-
-  const outboundTotalPages = computed(() => Math.max(1, Math.ceil((options.store.outboundsTotal || 0) / (options.store.outboundsPageSize || 50))));
 
   async function loadOutbounds() {
     try {
