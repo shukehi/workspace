@@ -211,6 +211,10 @@ export function useInventoryOutboundState(options: {
     outboundPage.value -= 1;
   }
 
+  async function openOutboundDetail(outbound: InventoryOutbound) {
+    selectedOutboundDetail.value = await options.store.fetchInventoryOutbound(outbound.id);
+  }
+
   function closeOutboundDetail() {
     selectedOutboundDetail.value = null;
   }
@@ -276,6 +280,7 @@ export function useInventoryOutboundState(options: {
     confirmReverseOutbound,
     nextOutboundPage,
     prevOutboundPage,
+    openOutboundDetail,
     closeOutboundDetail,
   };
 }

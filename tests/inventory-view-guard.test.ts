@@ -14,7 +14,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const pageState = read('src/features/inventory/composables/useInventoryPageState.ts');
   const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
   const locationState = read('src/features/inventory/composables/useInventoryLocationState.ts');
-  const detailPanels = read('src/features/inventory/composables/useInventoryDetailPanels.ts');
   const stockTab = read('src/features/inventory/components/InventoryStockTab.vue');
   const receiptsTab = read('src/features/inventory/components/InventoryReceiptsTab.vue');
   const outboundsTab = read('src/features/inventory/components/InventoryOutboundsTab.vue');
@@ -61,7 +60,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /useInventoryPageState/);
   assert.match(view, /useInventoryOutboundState/);
   assert.match(view, /useInventoryLocationState/);
-  assert.match(view, /useInventoryDetailPanels/);
+  assert.doesNotMatch(view, /useInventoryDetailPanels/);
   assert.doesNotMatch(view, /useInventoryReverseDialogs/);
   assert.match(view, /库存影响轨迹/);
   assert.match(view, /确认冲销/);
@@ -149,12 +148,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /export type InventoryOutboundReverseControls/);
   assert.match(outboundState, /async function confirmReverseOutbound/);
   assert.match(outboundState, /function handleExportOutbounds/);
-  assert.match(detailPanels, /InventoryReceiptAuditState/);
-  assert.match(detailPanels, /handleOpenOutboundDetail/);
-  assert.match(detailPanels, /handleOpenMovementDetail/);
-  assert.match(detailPanels, /closeMovementSheet/);
-  assert.match(detailPanels, /closeOutboundDetail/);
-  assert.match(detailPanels, /closeReceiptAudit/);
+  assert.match(outboundState, /async function openOutboundDetail/);
+  assert.match(outboundState, /function closeOutboundDetail/);
+  assert.match(receiptFlow, /closeReceiptAudit/);
   assert.match(outboundState, /function requestReverseOutbound/);
   assert.match(receiptFlow, /function resetReceiptReverseQuantityToMax/);
   assert.match(receiptFlow, /confirmReverseReceipt/);

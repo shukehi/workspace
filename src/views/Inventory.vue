@@ -6,7 +6,6 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useInventoryPageState } from '@/features/inventory/composables/useInventoryPageState';
 import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
 import { useInventoryLocationState } from '@/features/inventory/composables/useInventoryLocationState';
-import { useInventoryDetailPanels } from '@/features/inventory/composables/useInventoryDetailPanels';
 import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
 import InventoryStockTab from '@/features/inventory/components/InventoryStockTab.vue';
@@ -146,6 +145,7 @@ const {
   confirmReverseOutbound,
   nextOutboundPage,
   prevOutboundPage,
+  openOutboundDetail: handleOpenOutboundDetail,
   closeOutboundDetail,
 } = useInventoryOutboundState({
   store,
@@ -263,22 +263,9 @@ async function confirmReverseReceipt() {
   await confirmReceiptFlowReverse(String(route.query.orderNo || '').trim());
 }
 
-const {
-  handleOpenOutboundDetail,
-  closeMovementSheet: closeMovementDetailPanel,
-  closeOutboundDetail: closeOutboundDetailPanel,
-  closeReceiptAudit: closeReceiptAuditPanel,
-} = useInventoryDetailPanels({
-  store,
-  toast,
-  selectedMovementItem,
-  selectedOutboundDetail,
-  openMovementSheet,
-  closeMovementSheet,
-  closeOutboundDetail,
-  selectedReceiptAudit,
-  closeReceiptAudit,
-});
+const closeMovementDetailPanel = closeMovementSheet;
+const closeOutboundDetailPanel = closeOutboundDetail;
+const closeReceiptAuditPanel = closeReceiptAudit;
 
 const requestReverseOutbound = handleRequestReverseOutbound;
 const resetReceiptReverseQuantityToMax = resetReceiptReverseQuantity;
