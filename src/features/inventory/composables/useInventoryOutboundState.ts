@@ -1,6 +1,10 @@
 import { ref, watch, type Ref } from 'vue';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useInventoryOutboundQueryState } from '@/features/inventory/composables/useInventoryOutboundQueryState';
+import {
+  useInventoryOutboundReverseState,
+  type InventoryOutboundReverseControls,
+} from '@/features/inventory/composables/useInventoryOutboundReverseState';
 import type { InventoryItem, InventoryOutbound } from '@/types/inventory';
 import type { InventoryOutboundPayload } from '@/features/inventory/inventoryStoreFlows';
 
@@ -11,15 +15,6 @@ type ToastFn = (payload: {
 }) => void;
 
 type InventoryStore = ReturnType<typeof useInventoryStore>;
-
-export type InventoryOutboundReverseControls = {
-  reverseOutboundDialogOpen: Ref<boolean>;
-  reverseOutboundTarget: Ref<InventoryOutbound | null>;
-  reverseOutboundReason: Ref<string>;
-  reverseOutboundRemark: Ref<string>;
-  reversingOutbound: Ref<boolean>;
-  confirmReverseOutbound: () => Promise<void>;
-};
 
 export function useInventoryOutboundState(options: {
   store: InventoryStore;
@@ -52,11 +47,6 @@ export function useInventoryOutboundState(options: {
   });
 
   const selectedOutboundDetail = ref<InventoryOutbound | null>(null);
-  const reverseOutboundDialogOpen = ref(false);
-  const reverseOutboundTarget = ref<InventoryOutbound | null>(null);
-  const reverseOutboundReason = ref('出库冲销');
-  const reverseOutboundRemark = ref('');
-  const reversingOutbound = ref(false);
 
   async function loadOutbounds() {
     try {
@@ -113,12 +103,20 @@ export function useInventoryOutboundState(options: {
     });
   }
 
-  function requestReverseOutbound(outbound: InventoryOutbound) {
-    reverseOutboundTarget.value = outbound;
-    reverseOutboundReason.value = '出库冲销';
-    reverseOutboundRemark.value = '';
-    reverseOutboundDialogOpen.value = true;
-  }
+  const {
+    reverseOutboundDialogOpen,
+    reverseOutboundTarget,
+    reverseOutboundReason,
+    reverseOutboundRemark,
+    reversingOutbound,
+    requestReverseOutbound,
+    confirmReverseOutbound,
+  } = useInventoryOutboundReverseState({
+    reverseInventoryOutbound: options.store.reverseInventoryOutbound,
+    refreshInventory: options.refreshInventory,
+    loadOutbounds,
+    toast: options.toast,
+  });
 
   function openOutboundDialog() {
     if (options.selectedInventoryRows.value.length === 0) {
@@ -152,36 +150,6 @@ export function useInventoryOutboundState(options: {
       });
     } finally {
       outboundSaving.value = false;
-    }
-  }
-
-  async function confirmReverseOutbound() {
-    if (!reverseOutboundTarget.value) return;
-    reversingOutbound.value = true;
-    try {
-      await options.store.reverseInventoryOutbound(reverseOutboundTarget.value.id, {
-        reason: reverseOutboundReason.value.trim() || '出库冲销',
-        remark: reverseOutboundRemark.value.trim() || undefined,
-        outbound_date: new Date().toISOString(),
-      });
-      reverseOutboundDialogOpen.value = false;
-      reverseOutboundTarget.value = null;
-      reverseOutboundReason.value = '出库冲销';
-      reverseOutboundRemark.value = '';
-      await Promise.all([options.refreshInventory(), loadOutbounds()]);
-      options.toast({
-        title: '出库冲销成功',
-        description: '已恢复对应库位余额和总库存',
-        variant: 'success',
-      });
-    } catch {
-      options.toast({
-        title: '出库冲销失败',
-        description: '当前出库单可能已冲销或库存数据异常',
-        variant: 'destructive',
-      });
-    } finally {
-      reversingOutbound.value = false;
     }
   }
 
