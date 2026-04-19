@@ -14,6 +14,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const pageState = read('src/features/inventory/composables/useInventoryPageState.ts');
   const pageQueryState = read('src/features/inventory/composables/useInventoryPageQueryState.ts');
   const movementDetailState = read('src/features/inventory/composables/useInventoryMovementDetailState.ts');
+  const pageListState = read('src/features/inventory/composables/useInventoryPageListState.ts');
   const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
   const outboundQueryState = read('src/features/inventory/composables/useInventoryOutboundQueryState.ts');
   const outboundReverseState = read('src/features/inventory/composables/useInventoryOutboundReverseState.ts');
@@ -130,6 +131,11 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /nextReceiptPage/);
   assert.match(view, /prevReceiptPage/);
   assert.match(pageState, /useInventoryPageQueryState/);
+  assert.match(pageState, /useInventoryPageListState/);
+  assert.match(pageListState, /export function useInventoryPageListState/);
+  assert.match(pageListState, /async function loadInventoryList/);
+  assert.match(pageListState, /function handleExportInventory/);
+  assert.match(pageListState, /function handleExportReconciliation/);
   assert.match(pageState, /useInventoryMovementDetailState/);
   assert.match(movementDetailState, /export function useInventoryMovementDetailState/);
   assert.match(movementDetailState, /const selectedMovementItem = ref/);
@@ -145,11 +151,11 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(pageQueryState, /const reconciliationSummary = computed/);
   assert.match(pageQueryState, /const reconciliationOnly = ref/);
   assert.match(movementDetailState, /const selectedMovementItem = ref/);
-  assert.match(pageState, /async function loadInventoryList/);
+  assert.match(pageListState, /async function loadInventoryList/);
   assert.match(movementDetailState, /async function openMovementSheet/);
   assert.match(pageState, /fetchInventoryMovements/);
-  assert.match(pageState, /function handleExportInventory/);
-  assert.match(pageState, /function handleExportReconciliation/);
+  assert.match(pageListState, /function handleExportInventory/);
+  assert.match(pageListState, /function handleExportReconciliation/);
   assert.match(pageQueryState, /selectedWarehouseFilter/);
   assert.match(pageQueryState, /selectedLocationFilter/);
   assert.match(stockTab, /总物料数/);
