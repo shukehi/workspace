@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue';
+import { watch, type Ref } from 'vue';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useInventoryOutboundQueryState } from '@/features/inventory/composables/useInventoryOutboundQueryState';
 import {
@@ -6,8 +6,8 @@ import {
   type InventoryOutboundReverseControls,
 } from '@/features/inventory/composables/useInventoryOutboundReverseState';
 import { useInventoryOutboundDetailState } from '@/features/inventory/composables/useInventoryOutboundDetailState';
+import { useInventoryOutboundSubmitState } from '@/features/inventory/composables/useInventoryOutboundSubmitState';
 import type { InventoryItem, InventoryOutbound } from '@/types/inventory';
-import type { InventoryOutboundPayload } from '@/features/inventory/inventoryStoreFlows';
 
 type ToastFn = (payload: {
   title: string;
@@ -24,8 +24,6 @@ export function useInventoryOutboundState(options: {
   clearInventorySelection: () => void;
   refreshInventory: () => Promise<void>;
 }) {
-  const outboundDialogOpen = ref(false);
-  const outboundSaving = ref(false);
   const {
     outboundNoFilter,
     outboundKeyword,
@@ -125,40 +123,19 @@ export function useInventoryOutboundState(options: {
     fetchInventoryOutbound: options.store.fetchInventoryOutbound,
   });
 
-  function openOutboundDialog() {
-    if (options.selectedInventoryRows.value.length === 0) {
-      options.toast({
-        title: '请先勾选物料',
-        description: '至少选择一项库存物料后才能登记出库',
-        variant: 'destructive',
-      });
-      return;
-    }
-    outboundDialogOpen.value = true;
-  }
-
-  async function handleSubmitOutbound(payload: InventoryOutboundPayload) {
-    outboundSaving.value = true;
-    try {
-      await options.store.createInventoryOutbound(payload);
-      outboundDialogOpen.value = false;
-      options.clearInventorySelection();
-      await Promise.all([options.refreshInventory(), loadOutbounds()]);
-      options.toast({
-        title: '出库登记成功',
-        description: `已生成 ${payload.items.length} 条出库明细`,
-        variant: 'success',
-      });
-    } catch {
-      options.toast({
-        title: '出库登记失败',
-        description: '请检查所选库位余额后重试',
-        variant: 'destructive',
-      });
-    } finally {
-      outboundSaving.value = false;
-    }
-  }
+  const {
+    outboundDialogOpen,
+    outboundSaving,
+    openOutboundDialog,
+    handleSubmitOutbound,
+  } = useInventoryOutboundSubmitState({
+    selectedInventoryRows: options.selectedInventoryRows,
+    clearInventorySelection: options.clearInventorySelection,
+    refreshInventory: options.refreshInventory,
+    loadOutbounds,
+    createInventoryOutbound: options.store.createInventoryOutbound,
+    toast: options.toast,
+  });
 
   function nextOutboundPage() {
     if (outboundPage.value >= outboundTotalPages.value) return;
