@@ -14,6 +14,16 @@ export type InventoryReceiptAuditState = {
   netQuantity: number;
 };
 
+export type InventoryReceiptReverseControls = {
+  reverseDialogOpen: Ref<boolean>;
+  reverseReceiptTarget: Ref<InventoryReceipt | null>;
+  reverseReason: Ref<string>;
+  reverseRemark: Ref<string>;
+  reverseQuantity: Ref<string>;
+  reversing: Ref<boolean>;
+  confirmReverseReceipt: () => Promise<void>;
+};
+
 type InventoryStoreLike = {
   receipts: InventoryReceipt[];
   fetchAllInventoryReceipts: (params: { orderNo?: string; orderId?: number | string }) => Promise<InventoryReceipt[]>;

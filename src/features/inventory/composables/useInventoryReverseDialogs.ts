@@ -1,28 +1,10 @@
-import type { Ref } from 'vue';
-import type { InventoryOutbound, InventoryReceipt } from '@/types/inventory';
-
-type ReceiptReverseControls = {
-  reverseDialogOpen: Ref<boolean>;
-  reverseReceiptTarget: Ref<InventoryReceipt | null>;
-  reverseReason: Ref<string>;
-  reverseRemark: Ref<string>;
-  reverseQuantity: Ref<string>;
-  reversing: Ref<boolean>;
-  confirmReverseReceipt: () => Promise<void>;
-};
-
-type OutboundReverseControls = {
-  reverseOutboundDialogOpen: Ref<boolean>;
-  reverseOutboundTarget: Ref<InventoryOutbound | null>;
-  reverseOutboundReason: Ref<string>;
-  reverseOutboundRemark: Ref<string>;
-  reversingOutbound: Ref<boolean>;
-  confirmReverseOutbound: () => Promise<void>;
-};
+import type { InventoryReceiptReverseControls } from '@/features/inventory/composables/useInventoryReceiptFlow';
+import type { InventoryOutboundReverseControls } from '@/features/inventory/composables/useInventoryOutboundState';
+import type { InventoryOutbound } from '@/types/inventory';
 
 export function useInventoryReverseDialogs(options: {
-  receipt: ReceiptReverseControls;
-  outbound: OutboundReverseControls;
+  receipt: InventoryReceiptReverseControls;
+  outbound: InventoryOutboundReverseControls;
 }) {
   function requestReverseOutbound(outbound: InventoryOutbound) {
     options.outbound.reverseOutboundTarget.value = outbound;
