@@ -3,7 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useToastStore } from '@/stores/useToastStore';
-import { useInventoryPageState } from '@/features/inventory/composables/useInventoryPageState';
+import { useInventoryPageQueryState } from '@/features/inventory/composables/useInventoryPageQueryState';
+import { useInventoryPageListState } from '@/features/inventory/composables/useInventoryPageListState';
+import { useInventoryMovementDetailState } from '@/features/inventory/composables/useInventoryMovementDetailState';
 import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
 import { useInventoryLocationQueryState } from '@/features/inventory/composables/useInventoryLocationQueryState';
 import { useInventoryLocationDialogState } from '@/features/inventory/composables/useInventoryLocationDialogState';
@@ -73,28 +75,52 @@ const {
 const {
   activeCategory,
   searchQuery,
+  debouncedSearchQuery,
   selectedWarehouseFilter,
   selectedLocationFilter,
   lowStockOnly,
   reconciliationOnly,
   selectedInventoryRows,
-  selectedMovementItem,
   availableInventoryLocations,
   filteredItems,
   reconciliationSummary,
-  selectedMovementSummary,
-  formatMovementSourceLabel,
-  loadInventoryList,
-  handleExportInventory,
-  handleExportReconciliation,
-  openMovementSheet,
-  closeMovementSheet,
-} = useInventoryPageState({
-  store,
-  toast,
+} = useInventoryPageQueryState({
+  activeLocations: () => store.activeLocations,
+  sortedItems: () => store.sortedItems,
+  items: () => store.items,
   initialWarehouseId: String(route.query.warehouseId || ''),
   initialLocationId: String(route.query.locationId || ''),
   initialLowStockOnly: String(route.query.lowStockOnly || '').toLowerCase() === 'true',
+});
+
+const {
+  selectedMovementItem,
+  selectedMovementSummary,
+  formatMovementSourceLabel,
+  openMovementSheet,
+  closeMovementSheet,
+} = useInventoryMovementDetailState({
+  sortedMovements: () => store.sortedMovements,
+  movementsTotal: () => store.movementsTotal,
+  fetchInventoryMovements: store.fetchInventoryMovements,
+  toast,
+});
+
+const {
+  loadInventoryList,
+  handleExportInventory,
+  handleExportReconciliation,
+} = useInventoryPageListState({
+  fetchInventory: store.fetchInventory,
+  exportInventoryToCSV: store.exportInventoryToCSV,
+  exportReconciliationToCSV: store.exportReconciliationToCSV,
+  toast,
+  selectedWarehouseFilter,
+  selectedLocationFilter,
+  lowStockOnly,
+  debouncedSearchQuery,
+  availableInventoryLocations,
+  filteredItems,
 });
 
 const filteredReceipts = computed(() => store.sortedReceipts);

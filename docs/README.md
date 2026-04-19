@@ -150,6 +150,8 @@
   — Inventory store/state deeper partitioning 第二十九刀计划
 - [INVENTORY_STORE_DEEPER_PARTITIONING_PASS30_2026-04-19.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_DEEPER_PARTITIONING_PASS30_2026-04-19.md)
   — Inventory store/state deeper partitioning 第三十刀计划
+- [INVENTORY_STORE_DEEPER_PARTITIONING_PASS32_2026-04-19.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_DEEPER_PARTITIONING_PASS32_2026-04-19.md)
+  — Inventory store/state deeper partitioning 第三十二刀计划
 - [INVENTORY_STORE_DEEPER_PARTITIONING_PASS31_2026-04-19.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_DEEPER_PARTITIONING_PASS31_2026-04-19.md)
   — Inventory store/state deeper partitioning 第三十一刀计划
 - [ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md)
