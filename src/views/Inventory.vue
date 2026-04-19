@@ -7,7 +7,8 @@ import { useInventoryPageState } from '@/features/inventory/composables/useInven
 import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
 import { useInventoryLocationQueryState } from '@/features/inventory/composables/useInventoryLocationQueryState';
 import { useInventoryLocationDialogState } from '@/features/inventory/composables/useInventoryLocationDialogState';
-import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
+import { useInventoryReceiptAuditState } from '@/features/inventory/composables/useInventoryReceiptAuditState';
+import { useInventoryReceiptReverseState } from '@/features/inventory/composables/useInventoryReceiptReverseState';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
 import InventoryStockTab from '@/features/inventory/components/InventoryStockTab.vue';
 import InventoryReceiptsTab from '@/features/inventory/components/InventoryReceiptsTab.vue';
@@ -243,33 +244,40 @@ function isReceiptReversible(receipt: InventoryReceipt) {
 }
 
 const {
+  auditReceiptId,
+  auditRows,
+  selectedReceiptAudit,
+  openReceiptAudit,
+  closeReceiptAudit,
+  reconcileReceiptAudit,
+} = useInventoryReceiptAuditState({
+  receipts: () => store.receipts,
+  fetchAllInventoryReceipts: store.fetchAllInventoryReceipts,
+  toast,
+});
+
+const {
   reverseDialogOpen,
   reverseReceiptTarget,
-  auditReceiptId,
   reverseReason,
   reverseRemark,
   reverseQuantity,
   reversing,
-  selectedReceiptAudit,
   requestReverseReceipt,
   resetReceiptReverseQuantityToMax: resetReceiptReverseQuantity,
-  confirmReverseReceipt: confirmReceiptFlowReverse,
-  openReceiptAudit,
-  closeReceiptAudit,
-  reconcileReceiptAudit,
-} = useInventoryReceiptFlow({
-  store,
-  toast,
+  confirmReverseReceipt,
+} = useInventoryReceiptReverseState({
+  reverseReceipt: store.reverseReceipt,
   loadReceipts: (orderNo = '') => loadReceipts(orderNo),
   reloadInventory: () => loadInventoryList(),
   notifyProcurementRefresh: () => {
     window.localStorage.setItem(PROCUREMENT_REFRESH_SIGNAL_KEY, String(Date.now()));
   },
+  onReversed: () => {
+    auditRows.value = [];
+  },
+  toast,
 });
-
-async function confirmReverseReceipt() {
-  await confirmReceiptFlowReverse(String(route.query.orderNo || '').trim());
-}
 
 function clearReceiptOrderFilter() {
   clearReceiptRouteFilters();
