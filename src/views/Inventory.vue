@@ -17,6 +17,7 @@ import { useInventoryLocationSubmitState } from '@/features/inventory/composable
 import { useInventoryReceiptAuditState } from '@/features/inventory/composables/useInventoryReceiptAuditState';
 import { useInventoryReceiptReverseState } from '@/features/inventory/composables/useInventoryReceiptReverseState';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
+import { useInventoryReceiptListState } from '@/features/inventory/composables/useInventoryReceiptListState';
 import InventoryStockTab from '@/features/inventory/components/InventoryStockTab.vue';
 import InventoryReceiptsTab from '@/features/inventory/components/InventoryReceiptsTab.vue';
 import InventoryOutboundsTab from '@/features/inventory/components/InventoryOutboundsTab.vue';
@@ -128,27 +129,6 @@ const {
   filteredItems,
 });
 
-const filteredReceipts = computed(() => store.sortedReceipts);
-
-const receiptSummary = computed(() => {
-  const list = filteredReceipts.value;
-  const uniqueOrders = new Set(list.map((receipt) => receipt.order_no)).size;
-  const totalQuantity = list
-    .filter((receipt) => receipt.direction !== 'reversal')
-    .reduce((sum, receipt) => sum + Number(receipt.quantity || 0), 0);
-  const netQuantity = list.reduce((sum, receipt) => sum + Number(receipt.quantity || 0), 0);
-  const latestReceiptDate = list[0]?.receipt_date || list[0]?.created_at || '';
-
-  return {
-    count: list.length,
-    uniqueOrders,
-    totalQuantity,
-    netQuantity,
-    latestReceiptDate: latestReceiptDate ? String(latestReceiptDate).slice(0, 10) : '-',
-  };
-});
-
-const receiptTotalPages = computed(() => Math.max(1, Math.ceil((store.receiptsTotal || 0) / (store.receiptsPageSize || 50))));
 const {
   outboundNoFilter,
   outboundKeyword,
@@ -335,6 +315,31 @@ const {
 });
 
 const {
+  filteredReceipts,
+  receiptSummary,
+  receiptTotalPages,
+  loadReceipts,
+  nextReceiptPage,
+  prevReceiptPage,
+  handleExportReceipts,
+} = useInventoryReceiptListState({
+  sortedReceipts: () => store.sortedReceipts,
+  receiptsTotal: () => store.receiptsTotal,
+  receiptsPageSize: () => store.receiptsPageSize,
+  receiptPage,
+  fetchInventoryReceipts: store.fetchInventoryReceipts,
+  fetchAllInventoryReceipts: store.fetchAllInventoryReceipts,
+  exportReceiptsToCSV: store.exportReceiptsToCSV,
+  buildReceiptFetchParams,
+  reconcileReceiptAudit,
+  toast,
+  getRouteOrderNo: () => String(route.query.orderNo || '').trim(),
+  getRouteKeyword: () => String(route.query.keyword || '').trim(),
+  getRouteDirection: () => String(route.query.direction || '').trim(),
+  getRouteReverseReason: () => String(route.query.reverseReason || '').trim(),
+});
+
+const {
   reverseDialogOpen,
   reverseReceiptTarget,
   reverseReason,
@@ -361,28 +366,6 @@ function clearReceiptOrderFilter() {
   clearReceiptRouteFilters();
 }
 
-function nextReceiptPage() {
-  if (receiptPage.value >= receiptTotalPages.value) return;
-  receiptPage.value += 1;
-}
-
-function prevReceiptPage() {
-  if (receiptPage.value <= 1) return;
-  receiptPage.value -= 1;
-}
-
-async function loadReceipts(orderNo = '') {
-  try {
-    await store.fetchInventoryReceipts(buildReceiptFetchParams(orderNo));
-    reconcileReceiptAudit();
-  } catch {
-    toast({
-      title: '入库记录加载失败',
-      description: '无法获取最新采购入库记录，请稍后重试',
-      variant: 'destructive',
-    });
-  }
-}
 
 async function loadInventoryData() {
   await Promise.all([
@@ -391,40 +374,6 @@ async function loadInventoryData() {
     loadReceipts(String(route.query.orderNo || '').trim()),
     loadOutbounds(),
   ]);
-}
-
-function handleExportReceipts() {
-  const orderNo = String(route.query.orderNo || '').trim();
-  const keyword = String(route.query.keyword || '').trim();
-  const direction = String(route.query.direction || '').trim();
-  const reverseReasonQuery = String(route.query.reverseReason || '').trim();
-  store.fetchAllInventoryReceipts({
-    ...(orderNo ? { orderNo } : {}),
-    ...(keyword ? { keyword } : {}),
-    ...(direction ? { direction: direction as 'in' | 'reversal' } : {}),
-    ...(reverseReasonQuery ? { reverseReason: reverseReasonQuery } : {}),
-  }).then((rows) => {
-    if (rows.length === 0) {
-      toast({
-        title: '暂无可导出的入库记录',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    store.exportReceiptsToCSV(rows);
-    toast({
-      title: '导出成功',
-      description: `已导出 ${rows.length} 条采购入库记录`,
-      variant: 'success',
-    });
-  }).catch(() => {
-    toast({
-      title: '导出失败',
-      description: '无法获取完整的采购入库记录，请稍后重试',
-      variant: 'destructive',
-    });
-  });
 }
 
 function handleContextExport() {
