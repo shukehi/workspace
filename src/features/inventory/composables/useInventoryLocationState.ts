@@ -1,5 +1,6 @@
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useInventoryStore } from '@/stores/useInventoryStore';
+import { useInventoryLocationQueryState } from '@/features/inventory/composables/useInventoryLocationQueryState';
 import type { InventoryLocation } from '@/types/inventory';
 import type { InventoryLocationPayload } from '@/features/inventory/inventoryStoreFlows';
 
@@ -15,23 +16,15 @@ export function useInventoryLocationState(options: {
   store: InventoryStore;
   toast: ToastFn;
 }) {
-  const locationSearchQuery = ref('');
+  const {
+    locationSearchQuery,
+    filteredLocations,
+  } = useInventoryLocationQueryState({
+    locations: () => options.store.locations,
+  });
   const locationDialogOpen = ref(false);
   const locationDialogSaving = ref(false);
   const editingLocation = ref<InventoryLocation | null>(null);
-
-  const filteredLocations = computed(() => {
-    const query = locationSearchQuery.value.trim().toLowerCase();
-    if (!query) return options.store.locations;
-    return options.store.locations.filter((location) => {
-      return [
-        location.code,
-        location.name,
-        location.warehouse_name,
-        location.remark,
-      ].some((candidate) => String(candidate || '').toLowerCase().includes(query));
-    });
-  });
 
   async function handleLocationSubmit(payload: InventoryLocationPayload) {
     locationDialogSaving.value = true;
