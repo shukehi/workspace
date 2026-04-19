@@ -5,7 +5,8 @@ import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useInventoryPageState } from '@/features/inventory/composables/useInventoryPageState';
 import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
-import { useInventoryLocationState } from '@/features/inventory/composables/useInventoryLocationState';
+import { useInventoryLocationQueryState } from '@/features/inventory/composables/useInventoryLocationQueryState';
+import { useInventoryLocationDialogState } from '@/features/inventory/composables/useInventoryLocationDialogState';
 import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
 import InventoryStockTab from '@/features/inventory/components/InventoryStockTab.vue';
@@ -160,15 +161,22 @@ const {
 
 const {
   locationSearchQuery,
+  filteredLocations,
+} = useInventoryLocationQueryState({
+  locations: () => store.locations,
+});
+
+const {
   locationDialogOpen,
   locationDialogSaving,
   editingLocation,
-  filteredLocations,
   handleLocationSubmit,
   openCreateLocationDialog,
   openEditLocationDialog,
-} = useInventoryLocationState({
-  store,
+} = useInventoryLocationDialogState({
+  createInventoryLocation: store.createInventoryLocation,
+  updateInventoryLocation: store.updateInventoryLocation,
+  fetchInventoryLocations: store.fetchInventoryLocations,
   toast,
 });
 
