@@ -30,6 +30,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const receiptReverseState = read('src/features/inventory/composables/useInventoryReceiptReverseState.ts');
   const receiptListState = read('src/features/inventory/composables/useInventoryReceiptListState.ts');
   const routeState = read('src/features/inventory/composables/useInventoryReceiptRouteState.ts');
+  const receiptQueryState = read('src/features/inventory/composables/useInventoryReceiptQueryState.ts');
   const columns = read('src/components/inventory/InventoryReceiptColumns.ts');
   const locationDialog = read('src/components/inventory/InventoryLocationDialog.vue');
   const outboundDialog = read('src/components/inventory/InventoryOutboundDialog.vue');
@@ -270,8 +271,11 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(receiptReverseState, /reverseReceipt:/);
   assert.match(receiptReverseState, /撤销成功/);
   assert.match(receiptReverseState, /撤销失败/);
-  assert.match(routeState, /refDebounced/);
-  assert.match(routeState, /debouncedReceiptSearchQuery/);
+  assert.match(receiptQueryState, /export function useInventoryReceiptQueryState/);
+  assert.match(receiptQueryState, /refDebounced/);
+  assert.match(receiptQueryState, /debouncedReceiptSearchQuery/);
+  assert.match(receiptQueryState, /buildReceiptFetchParams/);
+  assert.match(receiptQueryState, /resetReceiptFilters/);
   assert.match(routeState, /route\.query\.keyword/);
   assert.match(routeState, /route\.query\.direction/);
   assert.match(routeState, /route\.query\.reverseReason/);
@@ -280,7 +284,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(routeState, /route\.query\.tab/);
   assert.match(routeState, /updateInventoryReceiptRouteQuery/);
   assert.match(routeState, /clearReceiptRouteFilters/);
-  assert.match(routeState, /buildReceiptFetchParams/);
+  assert.match(routeState, /useInventoryReceiptQueryState/);
   assert.match(store, /createInventoryStoreState/);
   assert.match(store, /createInventoryStoreActions/);
   assert.match(store, /\.\.\.state/);

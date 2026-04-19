@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { nextTick, reactive, ref } from 'vue';
 import { useInventoryReceiptRouteState } from '../src/features/inventory/composables/useInventoryReceiptRouteState';
+import { useInventoryReceiptQueryState } from '../src/features/inventory/composables/useInventoryReceiptQueryState';
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -91,4 +92,43 @@ test('useInventoryReceiptRouteState syncs route state and builds receipt fetch p
       tab: 'receipts',
     },
   });
+});
+
+
+test('useInventoryReceiptQueryState owns receipt query refs and fetch-param shaping', () => {
+  const state = useInventoryReceiptQueryState({
+    query: {
+      orderNo: 'PO-777',
+      keyword: '锁芯',
+      direction: 'reversal',
+      reverseReason: 'entry_error',
+      page: '2',
+      pageSize: '100',
+    },
+    defaultPageSize: 50,
+  });
+
+  assert.equal(state.receiptOrderFilter.value, 'PO-777');
+  assert.equal(state.receiptSearchQuery.value, '锁芯');
+  assert.equal(state.receiptDirectionFilter.value, 'reversal');
+  assert.equal(state.reverseReasonFilter.value, 'entry_error');
+  assert.equal(state.receiptPage.value, 2);
+  assert.equal(state.receiptPageSize.value, 100);
+  assert.deepEqual(state.buildReceiptFetchParams('PO-777'), {
+    orderNo: 'PO-777',
+    keyword: '锁芯',
+    direction: 'reversal',
+    reverseReason: 'entry_error',
+    page: 2,
+    pageSize: 100,
+  });
+
+  state.resetReceiptFilters();
+
+  assert.equal(state.receiptOrderFilter.value, '');
+  assert.equal(state.receiptSearchQuery.value, '');
+  assert.equal(state.receiptDirectionFilter.value, 'ALL');
+  assert.equal(state.reverseReasonFilter.value, 'ALL');
+  assert.equal(state.receiptPage.value, 1);
+  assert.equal(state.receiptPageSize.value, 50);
 });

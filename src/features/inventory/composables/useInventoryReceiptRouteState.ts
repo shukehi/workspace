@@ -1,15 +1,14 @@
-import { ref, watch, type Ref } from 'vue';
-import { refDebounced } from '@vueuse/core';
+import { watch, type Ref } from 'vue';
 import type {
   LocationQueryRaw,
   Router,
   RouteLocationNormalizedLoaded,
   RouteLocationRaw,
 } from 'vue-router';
+import { useInventoryReceiptQueryState } from '@/features/inventory/composables/useInventoryReceiptQueryState';
 
 type RouteLike = Pick<RouteLocationNormalizedLoaded, 'query'>;
 type RouterLike = Pick<Router, 'replace'>;
-type ReceiptDirectionFilter = 'ALL' | 'in' | 'reversal';
 
 type InventoryReceiptRouteStateOptions = {
   activeTab: Ref<string>;
@@ -22,39 +21,28 @@ function readQueryValue(value: unknown): string {
   return String(value || '').trim();
 }
 
-function clampReceiptPage(value: unknown): number {
-  return Math.max(1, Number(value) || 1);
-}
-
-function clampReceiptPageSize(value: unknown, fallback: number): number {
-  return Math.min(200, Math.max(10, Number(value) || fallback));
-}
-
 export function useInventoryReceiptRouteState(
   route: RouteLike,
   router: RouterLike,
   options: InventoryReceiptRouteStateOptions,
 ) {
-  const fallbackPageSize = clampReceiptPageSize(options.defaultPageSize, 50);
-  const receiptSearchQuery = ref(readQueryValue(route.query.keyword));
-  const receiptOrderFilter = ref(readQueryValue(route.query.orderNo));
-  const receiptDirectionFilter = ref<ReceiptDirectionFilter>(
-    (readQueryValue(route.query.direction) || 'ALL') as ReceiptDirectionFilter,
-  );
-  const reverseReasonFilter = ref(readQueryValue(route.query.reverseReason) || 'ALL');
-  const receiptPage = ref(clampReceiptPage(route.query.page));
-  const receiptPageSize = ref(clampReceiptPageSize(route.query.pageSize, fallbackPageSize));
-  const debouncedReceiptOrderFilter = refDebounced(receiptOrderFilter, 300);
-  const debouncedReceiptSearchQuery = refDebounced(receiptSearchQuery, 300);
-
-  function syncReceiptFiltersFromRoute() {
-    receiptSearchQuery.value = readQueryValue(route.query.keyword);
-    receiptOrderFilter.value = readQueryValue(route.query.orderNo);
-    receiptDirectionFilter.value = (readQueryValue(route.query.direction) || 'ALL') as ReceiptDirectionFilter;
-    reverseReasonFilter.value = readQueryValue(route.query.reverseReason) || 'ALL';
-    receiptPage.value = clampReceiptPage(route.query.page);
-    receiptPageSize.value = clampReceiptPageSize(route.query.pageSize, fallbackPageSize);
-  }
+  const queryState = useInventoryReceiptQueryState({
+    query: route.query,
+    defaultPageSize: options.defaultPageSize,
+  });
+  const {
+    receiptSearchQuery,
+    receiptOrderFilter,
+    receiptDirectionFilter,
+    reverseReasonFilter,
+    receiptPage,
+    receiptPageSize,
+    debouncedReceiptOrderFilter,
+    debouncedReceiptSearchQuery,
+    syncReceiptFiltersFromRoute: syncReceiptQueryStateFromRoute,
+    resetReceiptFilters,
+    buildReceiptFetchParams,
+  } = queryState;
 
   function updateInventoryReceiptRouteQuery(
     orderNo: string,
@@ -89,25 +77,13 @@ export function useInventoryReceiptRouteState(
     router.replace({ query: nextQuery } as RouteLocationRaw).catch(() => undefined);
   }
 
-  function clearReceiptRouteFilters() {
-    receiptSearchQuery.value = '';
-    receiptOrderFilter.value = '';
-    receiptDirectionFilter.value = 'ALL';
-    reverseReasonFilter.value = 'ALL';
-    receiptPage.value = 1;
-    receiptPageSize.value = 50;
-    updateInventoryReceiptRouteQuery('', '', 'ALL', 'ALL', 1, 50);
+  function syncReceiptFiltersFromRoute() {
+    syncReceiptQueryStateFromRoute(route.query);
   }
 
-  function buildReceiptFetchParams(orderNo = '') {
-    return {
-      ...(orderNo ? { orderNo } : {}),
-      ...(receiptSearchQuery.value.trim() ? { keyword: receiptSearchQuery.value.trim() } : {}),
-      ...(receiptDirectionFilter.value !== 'ALL' ? { direction: receiptDirectionFilter.value } : {}),
-      ...(reverseReasonFilter.value !== 'ALL' ? { reverseReason: reverseReasonFilter.value } : {}),
-      page: receiptPage.value,
-      pageSize: receiptPageSize.value,
-    };
+  function clearReceiptRouteFilters() {
+    resetReceiptFilters();
+    updateInventoryReceiptRouteQuery('', '', 'ALL', 'ALL', 1, 50);
   }
 
   watch(
@@ -120,7 +96,7 @@ export function useInventoryReceiptRouteState(
       route.query.pageSize,
     ],
     () => {
-      syncReceiptFiltersFromRoute();
+      syncReceiptQueryStateFromRoute(route.query);
       void options.loadReceipts(readQueryValue(route.query.orderNo));
     },
   );
@@ -180,17 +156,9 @@ export function useInventoryReceiptRouteState(
   );
 
   return {
-    receiptSearchQuery,
-    receiptOrderFilter,
-    receiptDirectionFilter,
-    reverseReasonFilter,
-    receiptPage,
-    receiptPageSize,
-    debouncedReceiptOrderFilter,
-    debouncedReceiptSearchQuery,
+    ...queryState,
     syncReceiptFiltersFromRoute,
     updateInventoryReceiptRouteQuery,
     clearReceiptRouteFilters,
-    buildReceiptFetchParams,
   };
 }
