@@ -6,7 +6,11 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useInventoryPageQueryState } from '@/features/inventory/composables/useInventoryPageQueryState';
 import { useInventoryPageListState } from '@/features/inventory/composables/useInventoryPageListState';
 import { useInventoryMovementDetailState } from '@/features/inventory/composables/useInventoryMovementDetailState';
-import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
+import { useInventoryOutboundQueryState } from '@/features/inventory/composables/useInventoryOutboundQueryState';
+import { useInventoryOutboundListState } from '@/features/inventory/composables/useInventoryOutboundListState';
+import { useInventoryOutboundReverseState } from '@/features/inventory/composables/useInventoryOutboundReverseState';
+import { useInventoryOutboundDetailState } from '@/features/inventory/composables/useInventoryOutboundDetailState';
+import { useInventoryOutboundSubmitState } from '@/features/inventory/composables/useInventoryOutboundSubmitState';
 import { useInventoryLocationQueryState } from '@/features/inventory/composables/useInventoryLocationQueryState';
 import { useInventoryLocationDialogState } from '@/features/inventory/composables/useInventoryLocationDialogState';
 import { useInventoryReceiptAuditState } from '@/features/inventory/composables/useInventoryReceiptAuditState';
@@ -145,10 +149,9 @@ const receiptSummary = computed(() => {
 
 const receiptTotalPages = computed(() => Math.max(1, Math.ceil((store.receiptsTotal || 0) / (store.receiptsPageSize || 50))));
 const {
-  outboundDialogOpen,
-  outboundSaving,
   outboundNoFilter,
   outboundKeyword,
+  debouncedOutboundKeyword,
   outboundOperatorFilter,
   outboundWarehouseFilter,
   outboundLocationFilter,
@@ -156,34 +159,77 @@ const {
   outboundEndDate,
   outboundPage,
   outboundPageSize,
-  selectedOutboundDetail,
+  availableOutboundLocations,
+  outboundSummary,
+  outboundTotalPages,
+} = useInventoryOutboundQueryState({
+  activeLocations: () => store.activeLocations,
+  sortedOutbounds: () => store.sortedOutbounds,
+  outboundsTotal: () => store.outboundsTotal,
+  outboundsPageSize: () => store.outboundsPageSize,
+});
+
+const {
+  loadOutbounds,
+  handleExportOutbounds,
+  nextOutboundPage,
+  prevOutboundPage,
+} = useInventoryOutboundListState({
+  fetchInventoryOutbounds: store.fetchInventoryOutbounds,
+  fetchAllInventoryOutbounds: store.fetchAllInventoryOutbounds,
+  exportOutboundsToCSV: store.exportOutboundsToCSV,
+  toast,
+  outboundNoFilter,
+  debouncedOutboundKeyword,
+  outboundOperatorFilter,
+  outboundWarehouseFilter,
+  outboundLocationFilter,
+  outboundStartDate,
+  outboundEndDate,
+  outboundPage,
+  outboundPageSize,
+  outboundTotalPages,
+  availableOutboundLocations,
+});
+
+const {
   reverseOutboundDialogOpen,
   reverseOutboundTarget,
   reverseOutboundReason,
   reverseOutboundRemark,
   reversingOutbound,
-  availableOutboundLocations,
-  outboundSummary,
-  outboundTotalPages,
-  loadOutbounds,
-  handleExportOutbounds,
   requestReverseOutbound: handleRequestReverseOutbound,
-  openOutboundDialog,
-  handleSubmitOutbound,
   confirmReverseOutbound,
-  nextOutboundPage,
-  prevOutboundPage,
+} = useInventoryOutboundReverseState({
+  reverseInventoryOutbound: store.reverseInventoryOutbound,
+  refreshInventory: () => loadInventoryList(),
+  loadOutbounds,
+  toast,
+});
+
+const {
+  selectedOutboundDetail,
   openOutboundDetail: handleOpenOutboundDetail,
   closeOutboundDetail,
-} = useInventoryOutboundState({
-  store,
-  toast,
+} = useInventoryOutboundDetailState({
+  fetchInventoryOutbound: store.fetchInventoryOutbound,
+});
+
+const {
+  outboundDialogOpen,
+  outboundSaving,
+  openOutboundDialog,
+  handleSubmitOutbound,
+} = useInventoryOutboundSubmitState({
   selectedInventoryRows,
   clearInventorySelection: () => {
     selectedInventoryRows.value = [];
     inventoryTableRef.value?.clearSelection?.();
   },
   refreshInventory: () => loadInventoryList(),
+  loadOutbounds,
+  createInventoryOutbound: store.createInventoryOutbound,
+  toast,
 });
 
 const {

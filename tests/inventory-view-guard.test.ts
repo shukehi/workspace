@@ -14,7 +14,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const pageQueryState = read('src/features/inventory/composables/useInventoryPageQueryState.ts');
   const movementDetailState = read('src/features/inventory/composables/useInventoryMovementDetailState.ts');
   const pageListState = read('src/features/inventory/composables/useInventoryPageListState.ts');
-  const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
   const outboundQueryState = read('src/features/inventory/composables/useInventoryOutboundQueryState.ts');
   const outboundReverseState = read('src/features/inventory/composables/useInventoryOutboundReverseState.ts');
   const outboundDetailState = read('src/features/inventory/composables/useInventoryOutboundDetailState.ts');
@@ -67,7 +66,12 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /reconciliationSummary/);
   assert.match(view, /fetchInventoryLocations/);
   assert.doesNotMatch(view, /useInventoryPageState/);
-  assert.match(view, /useInventoryOutboundState/);
+  assert.doesNotMatch(view, /useInventoryOutboundState/);
+  assert.match(view, /useInventoryOutboundQueryState/);
+  assert.match(view, /useInventoryOutboundListState/);
+  assert.match(view, /useInventoryOutboundReverseState/);
+  assert.match(view, /useInventoryOutboundDetailState/);
+  assert.match(view, /useInventoryOutboundSubmitState/);
   assert.doesNotMatch(view, /useInventoryLocationState/);
   assert.doesNotMatch(view, /useInventoryDetailPanels/);
   assert.doesNotMatch(view, /const reverseReceiptDialogOpen =/);
@@ -164,10 +168,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(stockTab, /导出对账异常/);
   assert.match(stockTab, /出库登记/);
   assert.match(outboundSubmitState, /const outboundDialogOpen = ref/);
-  assert.match(outboundState, /useInventoryOutboundReverseState/);
-  assert.match(outboundState, /useInventoryOutboundDetailState/);
-  assert.match(outboundState, /useInventoryOutboundSubmitState/);
-  assert.match(outboundState, /useInventoryOutboundListState/);
   assert.match(outboundListState, /export function useInventoryOutboundListState/);
   assert.match(outboundListState, /fetchInventoryOutbounds/);
   assert.match(outboundListState, /fetchAllInventoryOutbounds/);
@@ -188,13 +188,11 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundSubmitState, /function openOutboundDialog/);
   assert.match(outboundSubmitState, /InventoryOutboundPayload/);
   assert.match(outboundSubmitState, /async function handleSubmitOutbound/);
-  assert.match(outboundState, /useInventoryOutboundReverseState/);
   assert.match(outboundReverseState, /export function useInventoryOutboundReverseState/);
   assert.match(outboundReverseState, /reverseInventoryOutbound/);
   assert.match(outboundReverseState, /export type InventoryOutboundReverseControls/);
   assert.match(outboundReverseState, /function requestReverseOutbound/);
   assert.match(outboundReverseState, /async function confirmReverseOutbound/);
-  assert.match(outboundState, /useInventoryOutboundQueryState/);
   assert.match(outboundQueryState, /export function useInventoryOutboundQueryState/);
   assert.match(outboundQueryState, /const outboundNoFilter = ref/);
   assert.match(outboundQueryState, /const availableOutboundLocations = computed/);
