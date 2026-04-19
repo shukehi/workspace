@@ -13,8 +13,8 @@ import {
     buildOrderFacets,
     buildOrderSummary,
 } from './order.query-policy';
-import { buildOrderQueryBindings, getPaginatedOrdersResult } from './order.service.query';
-import { buildOrderReadBindings, getAllOrdersResult, getOrderByIdResult } from './order.service.read';
+import { getPaginatedOrdersResult } from './order.service.query';
+import { getAllOrdersResult, getOrderByIdResult } from './order.service.read';
 import {
     normalizeOrderForLog,
     normalizeOrderItemForPersistence,
@@ -116,12 +116,12 @@ class OrderService {
     }
 
     private buildReadBindings() {
-        return buildOrderReadBindings({
+        return {
             findAllOrdersWithItems: (where: PlainRecord) => orderRepository.findAllOrdersWithItems(where),
             findOrderByIdWithItems: (orderId: number | string) => orderRepository.findOrderByIdWithItems(orderId),
             normalizeOrderForLog,
             serializeOrder,
-        });
+        };
     }
 
     async getAllOrders(category?: string) {
@@ -129,11 +129,11 @@ class OrderService {
     }
 
     private buildQueryBindings() {
-        return buildOrderQueryBindings({
+        return {
             serializeOrder,
             buildOrderSummary,
             buildOrderFacets,
-        });
+        };
     }
 
     async getPaginatedOrders(query: OrderListQuery = {}) {
