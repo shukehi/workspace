@@ -61,6 +61,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /useInventoryOutboundState/);
   assert.match(view, /useInventoryLocationState/);
   assert.doesNotMatch(view, /useInventoryDetailPanels/);
+  assert.doesNotMatch(view, /const reverseReceiptDialogOpen =/);
+  assert.doesNotMatch(view, /const reverseOutboundConfirmOpen =/);
+  assert.doesNotMatch(view, /const closeReceiptAuditPanel =/);
   assert.doesNotMatch(view, /useInventoryReverseDialogs/);
   assert.match(view, /库存影响轨迹/);
   assert.match(view, /确认冲销/);
