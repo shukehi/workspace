@@ -13,6 +13,7 @@ import { useInventoryOutboundDetailState } from '@/features/inventory/composable
 import { useInventoryOutboundSubmitState } from '@/features/inventory/composables/useInventoryOutboundSubmitState';
 import { useInventoryLocationQueryState } from '@/features/inventory/composables/useInventoryLocationQueryState';
 import { useInventoryLocationDialogState } from '@/features/inventory/composables/useInventoryLocationDialogState';
+import { useInventoryLocationSubmitState } from '@/features/inventory/composables/useInventoryLocationSubmitState';
 import { useInventoryReceiptAuditState } from '@/features/inventory/composables/useInventoryReceiptAuditState';
 import { useInventoryReceiptReverseState } from '@/features/inventory/composables/useInventoryReceiptReverseState';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
@@ -241,12 +242,17 @@ const {
 
 const {
   locationDialogOpen,
-  locationDialogSaving,
   editingLocation,
-  handleLocationSubmit,
   openCreateLocationDialog,
   openEditLocationDialog,
-} = useInventoryLocationDialogState({
+} = useInventoryLocationDialogState();
+
+const {
+  locationDialogSaving,
+  handleLocationSubmit,
+} = useInventoryLocationSubmitState({
+  editingLocation,
+  locationDialogOpen,
   createInventoryLocation: store.createInventoryLocation,
   updateInventoryLocation: store.updateInventoryLocation,
   fetchInventoryLocations: store.fetchInventoryLocations,
