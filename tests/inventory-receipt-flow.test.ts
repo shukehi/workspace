@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reactive } from 'vue';
-import { useInventoryReceiptFlow } from '../src/features/inventory/composables/useInventoryReceiptFlow';
+import { useInventoryReceiptAuditState } from '../src/features/inventory/composables/useInventoryReceiptAuditState';
+import { useInventoryReceiptReverseState } from '../src/features/inventory/composables/useInventoryReceiptReverseState';
 import type { InventoryReceipt } from '../src/types/inventory';
 
 function createReceipt(overrides: Partial<InventoryReceipt> = {}): InventoryReceipt {
@@ -49,11 +50,18 @@ test('useInventoryReceiptFlow manages audit state and reverse flow', async () =>
   let refreshCount = 0;
   let inventoryReloadCount = 0;
 
-  const flow = useInventoryReceiptFlow({
-    store,
-    toast: (payload) => {
-      toastCalls.push(payload);
-    },
+  const toast = (payload: { title: string; description?: string; variant?: string }) => {
+    toastCalls.push(payload);
+  };
+
+  const audit = useInventoryReceiptAuditState({
+    receipts: () => store.receipts,
+    fetchAllInventoryReceipts: store.fetchAllInventoryReceipts,
+    toast,
+  });
+
+  const reverse = useInventoryReceiptReverseState({
+    reverseReceipt: store.reverseReceipt,
     loadReceipts: async (orderNo = '') => {
       loadCalls.push(orderNo);
     },
@@ -63,7 +71,16 @@ test('useInventoryReceiptFlow manages audit state and reverse flow', async () =>
     notifyProcurementRefresh: () => {
       refreshCount += 1;
     },
+    onReversed: () => {
+      audit.auditRows.value = [];
+    },
+    toast,
   });
+
+  const flow = {
+    ...audit,
+    ...reverse,
+  };
 
   await flow.openReceiptAudit(originalReceipt);
   assert.equal(flow.auditReceiptId.value, 1);
