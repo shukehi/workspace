@@ -85,6 +85,10 @@ export function useInventoryReceiptFlow(options: {
     reverseDialogOpen.value = true;
   }
 
+  function resetReceiptReverseQuantityToMax() {
+    reverseQuantity.value = String(reverseReceiptTarget.value?.reversible_quantity || '');
+  }
+
   function resetReverseDialog() {
     reverseDialogOpen.value = false;
     reverseReceiptTarget.value = null;
@@ -179,6 +183,7 @@ export function useInventoryReceiptFlow(options: {
     reversing,
     selectedReceiptAudit,
     requestReverseReceipt,
+    resetReceiptReverseQuantityToMax,
     confirmReverseReceipt,
     openReceiptAudit,
     closeReceiptAudit,

@@ -7,7 +7,6 @@ import { useInventoryPageState } from '@/features/inventory/composables/useInven
 import { useInventoryOutboundState } from '@/features/inventory/composables/useInventoryOutboundState';
 import { useInventoryLocationState } from '@/features/inventory/composables/useInventoryLocationState';
 import { useInventoryDetailPanels } from '@/features/inventory/composables/useInventoryDetailPanels';
-import { useInventoryReverseDialogs } from '@/features/inventory/composables/useInventoryReverseDialogs';
 import { useInventoryReceiptFlow } from '@/features/inventory/composables/useInventoryReceiptFlow';
 import { useInventoryReceiptRouteState } from '@/features/inventory/composables/useInventoryReceiptRouteState';
 import InventoryStockTab from '@/features/inventory/components/InventoryStockTab.vue';
@@ -141,6 +140,7 @@ const {
   outboundTotalPages,
   loadOutbounds,
   handleExportOutbounds,
+  requestReverseOutbound: handleRequestReverseOutbound,
   openOutboundDialog,
   handleSubmitOutbound,
   confirmReverseOutbound,
@@ -244,6 +244,7 @@ const {
   reversing,
   selectedReceiptAudit,
   requestReverseReceipt,
+  resetReceiptReverseQuantityToMax: resetReceiptReverseQuantity,
   confirmReverseReceipt: confirmReceiptFlowReverse,
   openReceiptAudit,
   closeReceiptAudit,
@@ -279,41 +280,21 @@ const {
   closeReceiptAudit,
 });
 
-const {
-  requestReverseOutbound,
-  resetReceiptReverseQuantityToMax,
-  reverseDialogOpen: reverseReceiptDialogOpen,
-  reverseReceiptTarget: reverseReceiptDialogTarget,
-  reverseReason: reverseReceiptReason,
-  reverseRemark: reverseReceiptRemark,
-  reverseQuantity: reverseReceiptQuantity,
-  reversing: reversingReceipt,
-  confirmReverseReceipt: confirmReceiptReverseDialog,
-  reverseOutboundDialogOpen: reverseOutboundConfirmOpen,
-  reverseOutboundTarget: reverseOutboundConfirmTarget,
-  reverseOutboundReason: reverseOutboundConfirmReason,
-  reverseOutboundRemark: reverseOutboundConfirmRemark,
-  reversingOutbound: reversingOutboundConfirm,
-  confirmReverseOutbound: confirmOutboundReverseDialog,
-} = useInventoryReverseDialogs({
-  receipt: {
-    reverseDialogOpen,
-    reverseReceiptTarget,
-    reverseReason,
-    reverseRemark,
-    reverseQuantity,
-    reversing,
-    confirmReverseReceipt,
-  },
-  outbound: {
-    reverseOutboundDialogOpen,
-    reverseOutboundTarget,
-    reverseOutboundReason,
-    reverseOutboundRemark,
-    reversingOutbound,
-    confirmReverseOutbound,
-  },
-});
+const requestReverseOutbound = handleRequestReverseOutbound;
+const resetReceiptReverseQuantityToMax = resetReceiptReverseQuantity;
+const reverseReceiptDialogOpen = reverseDialogOpen;
+const reverseReceiptDialogTarget = reverseReceiptTarget;
+const reverseReceiptReason = reverseReason;
+const reverseReceiptRemark = reverseRemark;
+const reverseReceiptQuantity = reverseQuantity;
+const reversingReceipt = reversing;
+const confirmReceiptReverseDialog = confirmReverseReceipt;
+const reverseOutboundConfirmOpen = reverseOutboundDialogOpen;
+const reverseOutboundConfirmTarget = reverseOutboundTarget;
+const reverseOutboundConfirmReason = reverseOutboundReason;
+const reverseOutboundConfirmRemark = reverseOutboundRemark;
+const reversingOutboundConfirm = reversingOutbound;
+const confirmOutboundReverseDialog = confirmReverseOutbound;
 
 function clearReceiptOrderFilter() {
   clearReceiptRouteFilters();
