@@ -1,4 +1,8 @@
-import { computed, ref, type Ref } from 'vue';
+import { ref, type Ref } from 'vue';
+import {
+  useInventoryReceiptAuditState,
+  type InventoryReceiptAuditState,
+} from '@/features/inventory/composables/useInventoryReceiptAuditState';
 import type { InventoryReceiptReversePayload } from '@/features/inventory/inventoryStoreHistoryFlows';
 import type { InventoryReceipt } from '@/types/inventory';
 
@@ -7,12 +11,6 @@ type ToastFn = (payload: {
   description?: string;
   variant?: 'default' | 'destructive' | 'success';
 }) => void;
-
-export type InventoryReceiptAuditState = {
-  original: InventoryReceipt;
-  reversals: InventoryReceipt[];
-  netQuantity: number;
-};
 
 export type InventoryReceiptReverseControls = {
   reverseDialogOpen: Ref<boolean>;
@@ -42,39 +40,21 @@ export function useInventoryReceiptFlow(options: {
 }) {
   const reverseDialogOpen = ref(false);
   const reverseReceiptTarget = ref<InventoryReceipt | null>(null);
-  const auditReceiptId = ref<number | null>(null);
-  const auditRows = ref<InventoryReceipt[]>([]);
   const reverseReason = ref('entry_error');
   const reverseRemark = ref('');
   const reverseQuantity = ref('');
   const reversing = ref(false);
-
-  const selectedReceiptAudit = computed<InventoryReceiptAuditState | null>(() => {
-    if (!auditReceiptId.value) return null;
-
-    const source = auditRows.value.length > 0 ? auditRows.value : options.store.receipts;
-    const matched = source.find((receipt) => Number(receipt.id) === Number(auditReceiptId.value))
-      || source.find((receipt) => Number(receipt.source_receipt_id || 0) === Number(auditReceiptId.value));
-
-    if (!matched) return null;
-
-    const originalId = matched.direction === 'reversal'
-      ? Number(matched.source_receipt_id || 0)
-      : Number(matched.id);
-
-    const original = source.find((receipt) => Number(receipt.id) === originalId && receipt.direction !== 'reversal');
-    if (!original) return null;
-
-    const reversals = source
-      .filter((receipt) => Number(receipt.source_receipt_id || 0) === originalId)
-      .sort((a, b) => new Date(b.receipt_date || b.created_at || 0).getTime() - new Date(a.receipt_date || a.created_at || 0).getTime());
-    const netQuantity = Number(original.quantity || 0) - reversals.reduce((sum, receipt) => sum + Math.abs(Number(receipt.quantity || 0)), 0);
-
-    return {
-      original,
-      reversals,
-      netQuantity,
-    };
+  const {
+    auditReceiptId,
+    auditRows,
+    selectedReceiptAudit,
+    openReceiptAudit,
+    closeReceiptAudit,
+    reconcileReceiptAudit,
+  } = useInventoryReceiptAuditState({
+    receipts: () => options.store.receipts,
+    fetchAllInventoryReceipts: options.store.fetchAllInventoryReceipts,
+    toast: options.toast,
   });
 
   function requestReverseReceipt(receipt: InventoryReceipt) {
@@ -138,37 +118,6 @@ export function useInventoryReceiptFlow(options: {
       });
     } finally {
       reversing.value = false;
-    }
-  }
-
-  async function openReceiptAudit(receipt: InventoryReceipt) {
-    const originalId = receipt.direction === 'reversal'
-      ? Number(receipt.source_receipt_id || 0)
-      : Number(receipt.id);
-    auditReceiptId.value = originalId;
-
-    try {
-      auditRows.value = await options.store.fetchAllInventoryReceipts({
-        orderId: receipt.order_id,
-      });
-    } catch {
-      auditRows.value = [];
-      options.toast({
-        title: '轨迹加载失败',
-        description: '无法获取完整的入库撤销轨迹，请稍后重试',
-        variant: 'destructive',
-      });
-    }
-  }
-
-  function closeReceiptAudit() {
-    auditReceiptId.value = null;
-    auditRows.value = [];
-  }
-
-  function reconcileReceiptAudit() {
-    if (auditReceiptId.value && !selectedReceiptAudit.value) {
-      closeReceiptAudit();
     }
   }
 
