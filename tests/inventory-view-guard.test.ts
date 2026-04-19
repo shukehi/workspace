@@ -15,6 +15,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
   const outboundQueryState = read('src/features/inventory/composables/useInventoryOutboundQueryState.ts');
   const outboundReverseState = read('src/features/inventory/composables/useInventoryOutboundReverseState.ts');
+  const outboundDetailState = read('src/features/inventory/composables/useInventoryOutboundDetailState.ts');
   const locationState = read('src/features/inventory/composables/useInventoryLocationState.ts');
   const stockTab = read('src/features/inventory/components/InventoryStockTab.vue');
   const receiptsTab = read('src/features/inventory/components/InventoryReceiptsTab.vue');
@@ -148,6 +149,11 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /createInventoryOutbound/);
   assert.match(outboundState, /reverseInventoryOutbound/);
   assert.match(outboundState, /useInventoryOutboundReverseState/);
+  assert.match(outboundState, /useInventoryOutboundDetailState/);
+  assert.match(outboundDetailState, /export function useInventoryOutboundDetailState/);
+  assert.match(outboundDetailState, /const selectedOutboundDetail = ref/);
+  assert.match(outboundDetailState, /async function openOutboundDetail/);
+  assert.match(outboundDetailState, /function closeOutboundDetail/);
   assert.match(outboundState, /function openOutboundDialog/);
   assert.match(outboundState, /InventoryOutboundPayload/);
   assert.match(outboundState, /async function handleSubmitOutbound/);
@@ -164,8 +170,8 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundQueryState, /const outboundTotalPages = computed/);
   assert.match(outboundReverseState, /async function confirmReverseOutbound/);
   assert.match(outboundState, /function handleExportOutbounds/);
-  assert.match(outboundState, /async function openOutboundDetail/);
-  assert.match(outboundState, /function closeOutboundDetail/);
+  assert.match(outboundDetailState, /async function openOutboundDetail/);
+  assert.match(outboundDetailState, /function closeOutboundDetail/);
   assert.match(receiptFlow, /closeReceiptAudit/);
   assert.match(receiptFlow, /function resetReceiptReverseQuantityToMax/);
   assert.match(receiptFlow, /confirmReverseReceipt/);

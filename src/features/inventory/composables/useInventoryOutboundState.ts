@@ -5,6 +5,7 @@ import {
   useInventoryOutboundReverseState,
   type InventoryOutboundReverseControls,
 } from '@/features/inventory/composables/useInventoryOutboundReverseState';
+import { useInventoryOutboundDetailState } from '@/features/inventory/composables/useInventoryOutboundDetailState';
 import type { InventoryItem, InventoryOutbound } from '@/types/inventory';
 import type { InventoryOutboundPayload } from '@/features/inventory/inventoryStoreFlows';
 
@@ -45,8 +46,6 @@ export function useInventoryOutboundState(options: {
     outboundsTotal: () => options.store.outboundsTotal,
     outboundsPageSize: () => options.store.outboundsPageSize,
   });
-
-  const selectedOutboundDetail = ref<InventoryOutbound | null>(null);
 
   async function loadOutbounds() {
     try {
@@ -118,6 +117,14 @@ export function useInventoryOutboundState(options: {
     toast: options.toast,
   });
 
+  const {
+    selectedOutboundDetail,
+    openOutboundDetail,
+    closeOutboundDetail,
+  } = useInventoryOutboundDetailState({
+    fetchInventoryOutbound: options.store.fetchInventoryOutbound,
+  });
+
   function openOutboundDialog() {
     if (options.selectedInventoryRows.value.length === 0) {
       options.toast({
@@ -161,14 +168,6 @@ export function useInventoryOutboundState(options: {
   function prevOutboundPage() {
     if (outboundPage.value <= 1) return;
     outboundPage.value -= 1;
-  }
-
-  async function openOutboundDetail(outbound: InventoryOutbound) {
-    selectedOutboundDetail.value = await options.store.fetchInventoryOutbound(outbound.id);
-  }
-
-  function closeOutboundDetail() {
-    selectedOutboundDetail.value = null;
   }
 
   watch(outboundWarehouseFilter, (warehouseId) => {
