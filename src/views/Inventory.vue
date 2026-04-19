@@ -166,6 +166,7 @@ const {
   filteredLocations,
   handleLocationSubmit,
   openCreateLocationDialog,
+  openEditLocationDialog,
 } = useInventoryLocationState({
   store,
   toast,
@@ -225,8 +226,7 @@ const outboundColumns = createInventoryOutboundColumns({
 });
 const locationColumns = createInventoryLocationColumns({
   onEdit: (location) => {
-    editingLocation.value = location;
-    locationDialogOpen.value = true;
+    openEditLocationDialog(location);
   },
 });
 
