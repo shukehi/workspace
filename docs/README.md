@@ -158,6 +158,8 @@
   — Inventory store/state deeper partitioning 第三十四刀计划
 - [INVENTORY_STORE_DEEPER_PARTITIONING_PASS35_2026-04-19.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_DEEPER_PARTITIONING_PASS35_2026-04-19.md)
   — Inventory store/state deeper partitioning 第三十五刀计划
+- [INVENTORY_STORE_DEEPER_PARTITIONING_PASS36_2026-04-19.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_DEEPER_PARTITIONING_PASS36_2026-04-19.md)
+  — Inventory store/state deeper partitioning 第三十六刀计划
 - [INVENTORY_STORE_DEEPER_PARTITIONING_PASS31_2026-04-19.md](/Users/aries/Dve/workspace/docs/roadmaps/INVENTORY_STORE_DEEPER_PARTITIONING_PASS31_2026-04-19.md)
   — Inventory store/state deeper partitioning 第三十一刀计划
 - [ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_SERVICE_REFACTOR_PLAN_2026-04-16.md)
@@ -673,6 +675,8 @@
   — Inventory store/state 第三十四轮当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_DEEPER_PARTITIONING_PASS35_2026-04-19.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_DEEPER_PARTITIONING_PASS35_2026-04-19.md)
   — Inventory store/state 第三十五轮当前阶段成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_DEEPER_PARTITIONING_PASS36_2026-04-19.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_INVENTORY_STORE_DEEPER_PARTITIONING_PASS36_2026-04-19.md)
+  — Inventory store/state 第三十六轮当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_EXTRACTORS_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_EXTRACTORS_2026-04-16.md)
   — Source-analysis extractor 分支的阶段性成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_TYPES_2026-04-16.md)
