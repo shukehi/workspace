@@ -148,6 +148,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /async function handleSubmitOutbound/);
   assert.match(outboundState, /async function confirmReverseOutbound/);
   assert.match(outboundState, /function handleExportOutbounds/);
+  assert.match(detailPanels, /InventoryReceiptAuditState/);
   assert.match(detailPanels, /handleOpenOutboundDetail/);
   assert.match(detailPanels, /handleOpenMovementDetail/);
   assert.match(detailPanels, /closeMovementSheet/);
@@ -190,6 +191,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(receiptsTab, /100 \/ 页/);
   assert.match(receiptsTab, /暂无采购入库记录/);
   assert.match(receiptFlow, /InventoryReceiptReversePayload/);
+  assert.match(receiptFlow, /export type InventoryReceiptAuditState/);
   assert.match(receiptFlow, /requestReverseReceipt/);
   assert.match(receiptFlow, /confirmReverseReceipt/);
   assert.match(receiptFlow, /openReceiptAudit/);
