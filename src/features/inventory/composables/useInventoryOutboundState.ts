@@ -12,6 +12,15 @@ type ToastFn = (payload: {
 
 type InventoryStore = ReturnType<typeof useInventoryStore>;
 
+export type InventoryOutboundReverseControls = {
+  reverseOutboundDialogOpen: Ref<boolean>;
+  reverseOutboundTarget: Ref<InventoryOutbound | null>;
+  reverseOutboundReason: Ref<string>;
+  reverseOutboundRemark: Ref<string>;
+  reversingOutbound: Ref<boolean>;
+  confirmReverseOutbound: () => Promise<void>;
+};
+
 export function useInventoryOutboundState(options: {
   store: InventoryStore;
   toast: ToastFn;
