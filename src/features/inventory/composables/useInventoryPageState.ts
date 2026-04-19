@@ -1,6 +1,6 @@
 import { computed, ref, watch, type Ref } from 'vue';
-import { refDebounced } from '@vueuse/core';
 import { useInventoryStore } from '@/stores/useInventoryStore';
+import { useInventoryPageQueryState } from '@/features/inventory/composables/useInventoryPageQueryState';
 import type { InventoryItem, InventoryMovement } from '@/types/inventory';
 
 type ToastFn = (payload: {
@@ -18,58 +18,28 @@ export function useInventoryPageState(options: {
   initialLocationId?: string;
   initialLowStockOnly?: boolean;
 }) {
-  const activeCategory = ref('ALL');
-  const searchQuery = ref('');
-  const debouncedSearchQuery = refDebounced(searchQuery, 300);
-  const selectedWarehouseFilter = ref(options.initialWarehouseId || '');
-  const selectedLocationFilter = ref(options.initialLocationId || '');
-  const lowStockOnly = ref(Boolean(options.initialLowStockOnly));
-  const reconciliationOnly = ref(false);
-  const selectedInventoryRows = ref<InventoryItem[]>([]);
+  const {
+    activeCategory,
+    searchQuery,
+    debouncedSearchQuery,
+    selectedWarehouseFilter,
+    selectedLocationFilter,
+    lowStockOnly,
+    reconciliationOnly,
+    selectedInventoryRows,
+    availableInventoryLocations,
+    filteredItems,
+    reconciliationSummary,
+  } = useInventoryPageQueryState({
+    activeLocations: () => options.store.activeLocations,
+    sortedItems: () => options.store.sortedItems,
+    items: () => options.store.items,
+    initialWarehouseId: options.initialWarehouseId,
+    initialLocationId: options.initialLocationId,
+    initialLowStockOnly: options.initialLowStockOnly,
+  });
+
   const selectedMovementItem = ref<InventoryItem | null>(null);
-
-  const availableInventoryLocations = computed(() => {
-    const warehouseId = Number(selectedWarehouseFilter.value);
-    const base = options.store.activeLocations;
-    if (!Number.isInteger(warehouseId) || warehouseId <= 0) return base;
-    return base.filter((location) => location.warehouse_id === warehouseId);
-  });
-
-  const filteredItems = computed(() => {
-    let list = options.store.sortedItems;
-    if (activeCategory.value !== 'ALL') {
-      list = list.filter((item) => item.category === activeCategory.value);
-    }
-    if (reconciliationOnly.value) {
-      list = list.filter((item) => {
-        const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
-        return Number(item.stock_quantity || 0) !== locationTotal;
-      });
-    }
-    return list;
-  });
-
-  const reconciliationSummary = computed(() => {
-    const rows = options.store.items.map((item) => {
-      const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
-      const diff = Number(item.stock_quantity || 0) - locationTotal;
-      return {
-        item,
-        locationTotal,
-        diff,
-        hasDiff: diff !== 0,
-      };
-    });
-
-    const mismatched = rows.filter((row) => row.hasDiff);
-    const totalAbsoluteDiff = mismatched.reduce((sum, row) => sum + Math.abs(row.diff), 0);
-
-    return {
-      mismatchedCount: mismatched.length,
-      totalAbsoluteDiff,
-      matchedCount: rows.length - mismatched.length,
-    };
-  });
 
   const selectedMovementSummary = computed(() => {
     if (!selectedMovementItem.value) return null;
