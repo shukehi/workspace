@@ -13,6 +13,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const store = read('src/stores/useInventoryStore.ts');
   const pageState = read('src/features/inventory/composables/useInventoryPageState.ts');
   const pageQueryState = read('src/features/inventory/composables/useInventoryPageQueryState.ts');
+  const movementDetailState = read('src/features/inventory/composables/useInventoryMovementDetailState.ts');
   const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
   const outboundQueryState = read('src/features/inventory/composables/useInventoryOutboundQueryState.ts');
   const outboundReverseState = read('src/features/inventory/composables/useInventoryOutboundReverseState.ts');
@@ -127,6 +128,13 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /nextReceiptPage/);
   assert.match(view, /prevReceiptPage/);
   assert.match(pageState, /useInventoryPageQueryState/);
+  assert.match(pageState, /useInventoryMovementDetailState/);
+  assert.match(movementDetailState, /export function useInventoryMovementDetailState/);
+  assert.match(movementDetailState, /const selectedMovementItem = ref/);
+  assert.match(movementDetailState, /const selectedMovementSummary = computed/);
+  assert.match(movementDetailState, /function formatMovementSourceLabel/);
+  assert.match(movementDetailState, /async function openMovementSheet/);
+  assert.match(movementDetailState, /function closeMovementSheet/);
   assert.match(pageQueryState, /export function useInventoryPageQueryState/);
   assert.match(pageQueryState, /const activeCategory = ref/);
   assert.match(pageQueryState, /const debouncedSearchQuery = refDebounced/);
@@ -134,9 +142,9 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(pageQueryState, /const filteredItems = computed/);
   assert.match(pageQueryState, /const reconciliationSummary = computed/);
   assert.match(pageQueryState, /const reconciliationOnly = ref/);
-  assert.match(pageState, /const selectedMovementItem = ref/);
+  assert.match(movementDetailState, /const selectedMovementItem = ref/);
   assert.match(pageState, /async function loadInventoryList/);
-  assert.match(pageState, /async function openMovementSheet/);
+  assert.match(movementDetailState, /async function openMovementSheet/);
   assert.match(pageState, /fetchInventoryMovements/);
   assert.match(pageState, /function handleExportInventory/);
   assert.match(pageState, /function handleExportReconciliation/);
