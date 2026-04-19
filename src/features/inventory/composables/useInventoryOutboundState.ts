@@ -129,6 +129,13 @@ export function useInventoryOutboundState(options: {
     });
   }
 
+  function requestReverseOutbound(outbound: InventoryOutbound) {
+    reverseOutboundTarget.value = outbound;
+    reverseOutboundReason.value = '出库冲销';
+    reverseOutboundRemark.value = '';
+    reverseOutboundDialogOpen.value = true;
+  }
+
   function openOutboundDialog() {
     if (options.selectedInventoryRows.value.length === 0) {
       options.toast({
@@ -263,6 +270,7 @@ export function useInventoryOutboundState(options: {
     outboundTotalPages,
     loadOutbounds,
     handleExportOutbounds,
+    requestReverseOutbound,
     openOutboundDialog,
     handleSubmitOutbound,
     confirmReverseOutbound,

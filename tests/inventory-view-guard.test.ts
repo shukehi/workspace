@@ -15,7 +15,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const outboundState = read('src/features/inventory/composables/useInventoryOutboundState.ts');
   const locationState = read('src/features/inventory/composables/useInventoryLocationState.ts');
   const detailPanels = read('src/features/inventory/composables/useInventoryDetailPanels.ts');
-  const reverseDialogs = read('src/features/inventory/composables/useInventoryReverseDialogs.ts');
   const stockTab = read('src/features/inventory/components/InventoryStockTab.vue');
   const receiptsTab = read('src/features/inventory/components/InventoryReceiptsTab.vue');
   const outboundsTab = read('src/features/inventory/components/InventoryOutboundsTab.vue');
@@ -63,7 +62,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /useInventoryOutboundState/);
   assert.match(view, /useInventoryLocationState/);
   assert.match(view, /useInventoryDetailPanels/);
-  assert.match(view, /useInventoryReverseDialogs/);
+  assert.doesNotMatch(view, /useInventoryReverseDialogs/);
   assert.match(view, /库存影响轨迹/);
   assert.match(view, /确认冲销/);
   assert.match(view, /receiptSearchQuery/);
@@ -143,6 +142,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /fetchAllInventoryOutbounds/);
   assert.match(outboundState, /createInventoryOutbound/);
   assert.match(outboundState, /reverseInventoryOutbound/);
+  assert.match(outboundState, /function requestReverseOutbound/);
   assert.match(outboundState, /function openOutboundDialog/);
   assert.match(outboundState, /InventoryOutboundPayload/);
   assert.match(outboundState, /async function handleSubmitOutbound/);
@@ -150,17 +150,15 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundState, /async function confirmReverseOutbound/);
   assert.match(outboundState, /function handleExportOutbounds/);
   assert.match(detailPanels, /InventoryReceiptAuditState/);
-  assert.match(reverseDialogs, /InventoryReceiptReverseControls/);
-  assert.match(reverseDialogs, /InventoryOutboundReverseControls/);
   assert.match(detailPanels, /handleOpenOutboundDetail/);
   assert.match(detailPanels, /handleOpenMovementDetail/);
   assert.match(detailPanels, /closeMovementSheet/);
   assert.match(detailPanels, /closeOutboundDetail/);
   assert.match(detailPanels, /closeReceiptAudit/);
-  assert.match(reverseDialogs, /requestReverseOutbound/);
-  assert.match(reverseDialogs, /resetReceiptReverseQuantityToMax/);
-  assert.match(reverseDialogs, /confirmReverseReceipt/);
-  assert.match(reverseDialogs, /confirmReverseOutbound/);
+  assert.match(outboundState, /function requestReverseOutbound/);
+  assert.match(receiptFlow, /function resetReceiptReverseQuantityToMax/);
+  assert.match(receiptFlow, /confirmReverseReceipt/);
+  assert.match(outboundState, /confirmReverseOutbound/);
   assert.match(outboundDialog, /InventoryOutboundPayload/);
   assert.match(outboundsTab, /出库单数/);
   assert.match(outboundsTab, /涉及库位/);
@@ -197,6 +195,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(receiptFlow, /export type InventoryReceiptAuditState/);
   assert.match(receiptFlow, /export type InventoryReceiptReverseControls/);
   assert.match(receiptFlow, /requestReverseReceipt/);
+  assert.match(receiptFlow, /function resetReceiptReverseQuantityToMax/);
   assert.match(receiptFlow, /confirmReverseReceipt/);
   assert.match(receiptFlow, /openReceiptAudit/);
   assert.match(receiptFlow, /closeReceiptAudit/);
