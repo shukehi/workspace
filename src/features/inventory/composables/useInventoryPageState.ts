@@ -1,7 +1,8 @@
-import { watch, type Ref } from 'vue';
+import type { Ref } from 'vue';
 import { useInventoryStore } from '@/stores/useInventoryStore';
 import { useInventoryPageQueryState } from '@/features/inventory/composables/useInventoryPageQueryState';
 import { useInventoryMovementDetailState } from '@/features/inventory/composables/useInventoryMovementDetailState';
+import { useInventoryPageListState } from '@/features/inventory/composables/useInventoryPageListState';
 import type { InventoryItem } from '@/types/inventory';
 
 type ToastFn = (payload: {
@@ -53,79 +54,22 @@ export function useInventoryPageState(options: {
     toast: options.toast,
   });
 
-  async function loadInventoryList() {
-    try {
-      await options.store.fetchInventory({
-        warehouseId: selectedWarehouseFilter.value || undefined,
-        locationId: selectedLocationFilter.value || undefined,
-        keyword: debouncedSearchQuery.value.trim() || undefined,
-        lowStockOnly: lowStockOnly.value,
-      });
-    } catch {
-      options.toast({
-        title: '库存加载失败',
-        description: '无法获取最新库存数据，请稍后重试',
-        variant: 'destructive',
-      });
-    }
-  }
-
-  function handleExportInventory() {
-    if (filteredItems.value.length === 0) {
-      options.toast({
-        title: '暂无可导出的库存结果',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    options.store.exportInventoryToCSV(filteredItems.value);
-    options.toast({
-      title: '导出成功',
-      description: `已导出 ${filteredItems.value.length} 条库存物料及库位余额`,
-      variant: 'success',
-    });
-  }
-
-  function handleExportReconciliation() {
-    const mismatchedItems = filteredItems.value.filter((item) => {
-      const locationTotal = item.locations.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
-      return Number(item.stock_quantity || 0) !== locationTotal;
-    });
-
-    if (mismatchedItems.length === 0) {
-      options.toast({
-        title: '暂无可导出的对账异常',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    options.store.exportReconciliationToCSV(mismatchedItems);
-    options.toast({
-      title: '导出成功',
-      description: `已导出 ${mismatchedItems.length} 条对账异常物料`,
-      variant: 'success',
-    });
-  }
-
-  watch(selectedWarehouseFilter, (warehouseId) => {
-    if (!warehouseId) {
-      selectedLocationFilter.value = '';
-      return;
-    }
-    const valid = availableInventoryLocations.value.some((location) => location.id === Number(selectedLocationFilter.value));
-    if (!valid) {
-      selectedLocationFilter.value = '';
-    }
+  const {
+    loadInventoryList,
+    handleExportInventory,
+    handleExportReconciliation,
+  } = useInventoryPageListState({
+    fetchInventory: options.store.fetchInventory,
+    exportInventoryToCSV: options.store.exportInventoryToCSV,
+    exportReconciliationToCSV: options.store.exportReconciliationToCSV,
+    toast: options.toast,
+    selectedWarehouseFilter,
+    selectedLocationFilter,
+    lowStockOnly,
+    debouncedSearchQuery,
+    availableInventoryLocations,
+    filteredItems,
   });
-
-  watch(
-    [selectedWarehouseFilter, selectedLocationFilter, lowStockOnly, debouncedSearchQuery],
-    () => {
-      void loadInventoryList();
-    },
-  );
 
   return {
     activeCategory,
