@@ -30,7 +30,6 @@ import {
     releaseIdempotencyKeys,
     reserveIdempotencyKey,
     syncActiveIdempotencyKey,
-    buildOrderLifecycleBindings,
 } from './order.service.support';
 import {
     buildOrderDedupeKey,
@@ -103,16 +102,16 @@ class OrderService {
     }, transaction as any);
 
     private buildLifecycleBindings() {
-        return buildOrderLifecycleBindings({
-            getOrderById: (id) => this.getOrderById(id),
+        return {
+            getOrderById: (id: number | string) => this.getOrderById(id),
             allocateNextManualOrderNo: this.allocateNextManualOrderNo,
             allocateNextAutoOrderNo: this.allocateNextAutoOrderNo,
             assertUniqueOrderNo: this.assertUniqueOrderNo,
             findDuplicateAutoOrder: this.findDuplicateAutoOrder,
-            reserveIdempotencyKey: (args, transaction) => this.reserveIdempotencyKey(args, transaction),
+            reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => this.reserveIdempotencyKey(args, transaction),
             releaseIdempotencyKeys: this.releaseIdempotencyKeys,
-            syncActiveIdempotencyKey: (args, transaction) => this.syncActiveIdempotencyKey(args, transaction),
-        });
+            syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => this.syncActiveIdempotencyKey(args, transaction),
+        };
     }
 
     private buildReadBindings() {

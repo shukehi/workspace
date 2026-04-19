@@ -17,31 +17,6 @@ import { serializeOrder } from './order.mapper';
 import { DuplicateOrderError } from './order.errors';
 
 
-export function buildOrderLifecycleBindings(service: {
-  getOrderById: (id: number | string) => Promise<PlainRecord | null>;
-  assertUniqueOrderNo: (orderNo: unknown, excludeId?: number | string, transaction?: any) => Promise<void>;
-} & {
-  findDuplicateAutoOrder: (data: PlainRecord, transaction?: any, options?: PlainRecord) => Promise<PlainRecord | null>;
-} & {
-  reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => Promise<unknown>;
-  releaseIdempotencyKeys: (orderId: number, transaction?: any) => Promise<unknown>;
-  syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: any) => Promise<unknown>;
-} & {
-  allocateNextManualOrderNo: (createdAt: unknown, transaction?: any) => Promise<string>;
-  allocateNextAutoOrderNo: (sourceContractCode: string, transaction?: any) => Promise<string>;
-}) {
-  return {
-    getOrderById: service.getOrderById,
-    allocateNextManualOrderNo: service.allocateNextManualOrderNo,
-    allocateNextAutoOrderNo: service.allocateNextAutoOrderNo,
-    assertUniqueOrderNo: service.assertUniqueOrderNo,
-    findDuplicateAutoOrder: service.findDuplicateAutoOrder,
-    reserveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction: unknown) => service.reserveIdempotencyKey(args, transaction),
-    releaseIdempotencyKeys: service.releaseIdempotencyKeys,
-    syncActiveIdempotencyKey: (args: { sourceContractCode?: string; dedupeKey?: string; orderId?: number }, transaction?: Transaction) => service.syncActiveIdempotencyKey(args, transaction),
-  };
-}
-
 export async function allocateNextManualOrderNo(createdAt: unknown, transaction?: Transaction) {
   const dateToken = formatManualOrderDateToken(createdAt);
   const prefix = `PM-${dateToken}-`;
