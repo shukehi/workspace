@@ -19,7 +19,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const outboundReverseState = read('src/features/inventory/composables/useInventoryOutboundReverseState.ts');
   const outboundDetailState = read('src/features/inventory/composables/useInventoryOutboundDetailState.ts');
   const outboundSubmitState = read('src/features/inventory/composables/useInventoryOutboundSubmitState.ts');
-  const locationState = read('src/features/inventory/composables/useInventoryLocationState.ts');
   const locationQueryState = read('src/features/inventory/composables/useInventoryLocationQueryState.ts');
   const locationDialogState = read('src/features/inventory/composables/useInventoryLocationDialogState.ts');
   const stockTab = read('src/features/inventory/components/InventoryStockTab.vue');
@@ -69,7 +68,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(view, /fetchInventoryLocations/);
   assert.match(view, /useInventoryPageState/);
   assert.match(view, /useInventoryOutboundState/);
-  assert.match(view, /useInventoryLocationState/);
+  assert.doesNotMatch(view, /useInventoryLocationState/);
   assert.doesNotMatch(view, /useInventoryDetailPanels/);
   assert.doesNotMatch(view, /const reverseReceiptDialogOpen =/);
   assert.doesNotMatch(view, /const reverseOutboundConfirmOpen =/);
@@ -210,8 +209,6 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundsTab, /清空筛选/);
   assert.match(outboundsTab, /上一页/);
   assert.match(outboundsTab, /下一页/);
-  assert.match(locationState, /useInventoryLocationQueryState/);
-  assert.match(locationState, /useInventoryLocationDialogState/);
   assert.match(locationDialogState, /export function useInventoryLocationDialogState/);
   assert.match(locationDialogState, /const locationDialogOpen = ref/);
   assert.match(locationDialogState, /const locationDialogSaving = ref/);
@@ -222,7 +219,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(locationQueryState, /export function useInventoryLocationQueryState/);
   assert.match(locationQueryState, /const locationSearchQuery = ref/);
   assert.match(locationQueryState, /const filteredLocations = computed/);
-  assert.match(locationState, /InventoryLocationPayload/);
+  assert.match(locationDialogState, /InventoryLocationPayload/);
   assert.match(locationDialog, /InventoryLocationPayload/);
   assert.match(locationDialogState, /async function handleLocationSubmit/);
   assert.match(locationDialogState, /fetchInventoryLocations/);
