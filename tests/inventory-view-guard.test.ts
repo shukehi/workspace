@@ -20,6 +20,7 @@ test('inventory view guard: shows inventory receipts section with order filter s
   const outboundDetailState = read('src/features/inventory/composables/useInventoryOutboundDetailState.ts');
   const outboundSubmitState = read('src/features/inventory/composables/useInventoryOutboundSubmitState.ts');
   const locationState = read('src/features/inventory/composables/useInventoryLocationState.ts');
+  const locationQueryState = read('src/features/inventory/composables/useInventoryLocationQueryState.ts');
   const stockTab = read('src/features/inventory/components/InventoryStockTab.vue');
   const receiptsTab = read('src/features/inventory/components/InventoryReceiptsTab.vue');
   const outboundsTab = read('src/features/inventory/components/InventoryOutboundsTab.vue');
@@ -208,6 +209,10 @@ test('inventory view guard: shows inventory receipts section with order filter s
   assert.match(outboundsTab, /清空筛选/);
   assert.match(outboundsTab, /上一页/);
   assert.match(outboundsTab, /下一页/);
+  assert.match(locationState, /useInventoryLocationQueryState/);
+  assert.match(locationQueryState, /export function useInventoryLocationQueryState/);
+  assert.match(locationQueryState, /const locationSearchQuery = ref/);
+  assert.match(locationQueryState, /const filteredLocations = computed/);
   assert.match(locationState, /const locationDialogOpen = ref/);
   assert.match(locationState, /InventoryLocationPayload/);
   assert.match(locationDialog, /InventoryLocationPayload/);
