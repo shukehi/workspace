@@ -8,6 +8,12 @@ type ToastFn = (payload: {
   variant?: 'default' | 'destructive' | 'success';
 }) => void;
 
+export type InventoryReceiptAuditState = {
+  original: InventoryReceipt;
+  reversals: InventoryReceipt[];
+  netQuantity: number;
+};
+
 type InventoryStoreLike = {
   receipts: InventoryReceipt[];
   fetchAllInventoryReceipts: (params: { orderNo?: string; orderId?: number | string }) => Promise<InventoryReceipt[]>;
@@ -33,7 +39,7 @@ export function useInventoryReceiptFlow(options: {
   const reverseQuantity = ref('');
   const reversing = ref(false);
 
-  const selectedReceiptAudit = computed(() => {
+  const selectedReceiptAudit = computed<InventoryReceiptAuditState | null>(() => {
     if (!auditReceiptId.value) return null;
 
     const source = auditRows.value.length > 0 ? auditRows.value : options.store.receipts;
