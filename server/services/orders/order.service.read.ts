@@ -1,19 +1,5 @@
 import type { PlainRecord } from '../../shared/types';
 
-export function buildOrderReadBindings(bindings: {
-  serializeOrder: (order: unknown) => PlainRecord | null;
-  findOrderByIdWithItems: (id: number | string, transaction?: any) => Promise<PlainRecord | null>;
-  findAllOrdersWithItems: (where: PlainRecord) => Promise<PlainRecord[]>;
-  normalizeOrderForLog: (order: PlainRecord) => PlainRecord;
-}) {
-  return {
-    findAllOrdersWithItems: bindings.findAllOrdersWithItems,
-    findOrderByIdWithItems: bindings.findOrderByIdWithItems,
-    normalizeOrderForLog: bindings.normalizeOrderForLog,
-    serializeOrder: bindings.serializeOrder,
-  };
-}
-
 export async function getAllOrdersResult(
   category: string | undefined,
   deps: {
