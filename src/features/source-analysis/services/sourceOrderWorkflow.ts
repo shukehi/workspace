@@ -20,6 +20,7 @@ import { failSourceOrderFetch, failSourceOrderHistoryLoad } from './sourceOrderR
 import { runSourceContractFetch, runSourceHistoryContractLoad } from './sourceOrderFetchRunner';
 import { clearSourceOrderWorkflowState } from './sourceOrderClearApplier';
 import { runSourceOrderApplyPipeline } from './sourceOrderApplyRunner';
+import { runSourceOrderRehydrate } from './sourceOrderRehydrateRunner';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -107,13 +108,11 @@ export function createSourceOrderWorkflow(
   }
 
   async function rehydrateFromSnapshot() {
-    if (!state.currentOrder.value || !Array.isArray(state.currentOrder.value.list)) return;
-
-    try {
-      await calculateMaterials();
-    } catch (error) {
-      warnSourceAnalysisRehydrateFailure(error);
-    }
+    await runSourceOrderRehydrate({
+      state,
+      calculateMaterials: () => calculateMaterials(),
+      warn: (error) => warnSourceAnalysisRehydrateFailure(error),
+    });
   }
 
   return {

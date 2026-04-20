@@ -258,3 +258,20 @@ test('source order workflow runs apply pipeline in the same visible order for fe
 
   assert.deepEqual(calls, ['fetch:C-PIPE', 'persist:C-PIPE', 'cache:C-PIPE', 'analyze:C-PIPE']);
 });
+
+
+test('source order workflow rehydrate ignores empty snapshot state', async () => {
+  const state = createState();
+  let called = false;
+  const workflow = createSourceOrderWorkflow(state, {
+    analyzeOrder: async () => {
+      called = true;
+      return createResult();
+    },
+  });
+
+  await workflow.rehydrateFromSnapshot();
+
+  assert.equal(called, false);
+  assert.equal(state.analysisResult.value, null);
+});
