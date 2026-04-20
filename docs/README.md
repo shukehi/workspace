@@ -314,6 +314,8 @@
   — source-analysis deeper normalization 第六刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS8_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS8_2026-04-20.md)
   — source-analysis deeper normalization 第八刀计划
+- [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS10_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS10_2026-04-20.md)
+  — source-analysis deeper normalization 第十刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md)
   — source-analysis deeper normalization 第九刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS7_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS7_2026-04-20.md)
@@ -743,6 +745,8 @@
   — Source-analysis deeper normalization 第八刀分支的当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md)
   — Source-analysis deeper normalization 第九刀分支的当前阶段成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS10_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS10_2026-04-20.md)
+  — Source-analysis deeper normalization 第十刀分支的当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS7_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS7_2026-04-20.md)
   — Source-analysis deeper normalization 第七刀分支的当前阶段成果与封板建议
 
