@@ -18,6 +18,10 @@ const {
   historyDialogOpen,
   sourceTableMinWidth,
   columns,
+  loading,
+  hasOrder,
+  orderItems,
+  currentOrder,
   handleSearch,
   handleHistoryLoaded,
 } = useSourcePageState(store, {
@@ -54,11 +58,11 @@ const {
             />
           </div>
 
-          <Button @click="handleSearch" :disabled="store.loading">
+          <Button @click="handleSearch" :disabled="loading">
             {{ store.loading ? 'Fetching...' : '获取合同' }}
           </Button>
 
-          <Button variant="outline" :disabled="store.loading" @click="historyDialogOpen = true">
+          <Button variant="outline" :disabled="loading" @click="historyDialogOpen = true">
             历史合同
           </Button>
 
@@ -86,12 +90,12 @@ const {
             </button>
           </div>
 
-          <div v-if="store.currentOrder" class="lg:ml-auto flex items-center gap-3 lg:text-right">
+          <div v-if="currentOrder" class="lg:ml-auto flex items-center gap-3 lg:text-right">
             <div>
-              <div class="text-sm font-semibold">{{ store.currentOrder.customerName }}</div>
-              <div class="text-xs text-muted-foreground">{{ store.currentOrder.code }}</div>
+              <div class="text-sm font-semibold">{{ currentOrder.customerName }}</div>
+              <div class="text-xs text-muted-foreground">{{ currentOrder.code }}</div>
             </div>
-            <GeneratePODialog :disabled="!store.hasOrder" />
+            <GeneratePODialog :disabled="!hasOrder" />
           </div>
         </div>
       </CardContent>
@@ -99,11 +103,11 @@ const {
 
     <Card class="flex-1 min-h-0">
       <CardContent class="h-full p-4">
-        <p v-if="store.hasOrder" class="px-1 pb-2 text-[11px] text-muted-foreground md:hidden">表格可左右滑动查看更多列</p>
+        <p v-if="hasOrder" class="px-1 pb-2 text-[11px] text-muted-foreground md:hidden">表格可左右滑动查看更多列</p>
         <DataTable
-          v-if="store.hasOrder"
+          v-if="hasOrder"
           :columns="columns"
-          :data="store.orderItems"
+          :data="orderItems"
           :enable-selection="false"
           density="compact"
           :use-column-size="true"
