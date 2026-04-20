@@ -157,3 +157,19 @@ test('source order workflow writes stable analysis error message when analysis f
   assert.equal(state.hardwareRequirements.value, null);
   assert.equal(state.error.value, 'Material calculation failed');
 });
+
+
+test('source order workflow maps history 404 into the canonical request error message', async () => {
+  const state = createState();
+  const workflow = createSourceOrderWorkflow(state, {
+    fetchHistoryContractByCode: async () => {
+      const error: any = new Error('raw history error');
+      error.response = { status: 404 };
+      throw error;
+    },
+  });
+
+  await assert.rejects(() => workflow.loadHistoryContractByCode('HISTORY-404'), /未找到历史合同/);
+  assert.equal(state.loading.value, false);
+  assert.equal(state.error.value, '未找到历史合同');
+});
