@@ -16,6 +16,7 @@ import { POGenerator } from '@/services/poGenerator';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import { useRouter } from 'vue-router';
 import { useSourceStore } from '@/stores/useSourceStore';
+import { useGeneratePOSourceState } from '@/features/source-analysis/composables/useGeneratePOSourceState';
 import { parseQuantityPair } from '@/lib/erp-engine/parsers';
 import { useToastStore } from '@/stores/useToastStore';
 import type { Order, OrderItem } from '@/types/order';
@@ -28,6 +29,7 @@ const open = ref(false);
 const mergeConfirmOpen = ref(false);
 const procurementStore = useProcurementStore();
 const sourceStore = useSourceStore();
+const { hasOrder, currentOrder, currentOrderItems, currentContractCode } = useGeneratePOSourceState(sourceStore);
 const generator = new POGenerator({ sourceStore });
 const router = useRouter();
 const { toast } = useToastStore();
@@ -150,7 +152,7 @@ const packagingPreviewRows = computed(() => {
     const hasPackagingSelected = pendingGroups.value.some(group => group.category === '包装');
     if (!hasPackagingSelected) return [];
 
-    const orderItems = sourceStore.currentOrder?.list || [];
+    const orderItems = currentOrderItems.value;
     return orderItems
         .filter((item: any) => String(item?.bz || '').trim())
         .map((item: any, index: number) => {
@@ -192,12 +194,12 @@ const toggleAllCategories = (checked: boolean | 'indeterminate') => {
 
 // Load proposals when dialog opens
 watch(open, (isOpen) => {
-    if (isOpen && sourceStore.hasOrder) {
+    if (isOpen && hasOrder.value) {
         void (async () => {
             const results = generator.generateProposal();
             proposals.value = results;
             selectedCategories.value = [];
-            const contractCode = normalizeText(sourceStore.currentOrder?.code);
+            const contractCode = normalizeText(currentContractCode.value);
             if (!contractCode) {
                 duplicateProposalKeys.value = new Set();
                 return;
@@ -311,7 +313,7 @@ const handleConfirm = () => {
 <template>
   <Dialog v-model:open="open">
     <DialogTrigger as-child>
-      <Button variant="default" :disabled="disabled || !sourceStore.hasOrder">
+      <Button variant="default" :disabled="disabled || !hasOrder">
         一键生成采购单
       </Button>
     </DialogTrigger>
