@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue';
+import { useSourceStore } from '@/stores/useSourceStore';
 import { useSourcePageTableState } from './useSourcePageTableState';
 
 type LongTextMode = 'clip' | 'hover' | 'expand';
@@ -12,6 +13,7 @@ interface SourcePageStateStore {
 }
 
 interface SourcePageStateOptions {
+  store?: SourcePageStateStore;
   renderLongTextCell?: (params: {
     text: string | number | null | undefined;
     mode: LongTextMode;
@@ -20,10 +22,8 @@ interface SourcePageStateOptions {
   }) => unknown;
 }
 
-export function useSourcePageState(
-  store: SourcePageStateStore,
-  options: SourcePageStateOptions = {},
-) {
+export function useSourcePageState(options: SourcePageStateOptions = {}) {
+  const store = options.store || useSourceStore();
   const contractInput = ref('');
   const longTextMode = ref<LongTextMode>('hover');
   const historyDialogOpen = ref(false);
@@ -32,7 +32,6 @@ export function useSourcePageState(
     sourceTableMinWidth,
     columns,
   } = useSourcePageTableState(longTextMode, options);
-
 
   function handleSearch() {
     const contractCode = contractInput.value.trim();

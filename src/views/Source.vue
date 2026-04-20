@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { h } from 'vue';
-import { useSourceStore } from '@/stores/useSourceStore';
 import GeneratePODialog from '@/components/source/GeneratePODialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,6 @@ import ContractHistoryDialog from '@/components/source/ContractHistoryDialog.vue
 import LongTextCell from '@/components/source/LongTextCell.vue';
 import { useSourcePageState } from '@/features/source-analysis/composables/useSourcePageState';
 
-const store = useSourceStore();
 const {
   contractInput,
   longTextMode,
@@ -25,7 +23,7 @@ const {
   currentOrder,
   handleSearch,
   handleHistoryLoaded,
-} = useSourcePageState(store, {
+} = useSourcePageState({
   renderLongTextCell: ({ text, mode, maxWidth, label }) => h(LongTextCell, {
     text,
     mode,
