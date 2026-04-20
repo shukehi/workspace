@@ -318,8 +318,8 @@
   — source-analysis deeper normalization 第十刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS11_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS11_2026-04-20.md)
   — source-analysis deeper normalization 第十一刀计划
-- [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS13_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS13_2026-04-20.md)
-  — source-analysis deeper normalization 第十三刀计划
+- [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS12_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS12_2026-04-20.md)
+  — source-analysis deeper normalization 第十二刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS13_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS13_2026-04-20.md)
   — source-analysis deeper normalization 第十三刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md)
@@ -539,6 +539,7 @@
 - [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_119_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_119_2026-04-20.md)
 - [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_120_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_120_2026-04-20.md)
 - [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_121_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_121_2026-04-20.md)
+- [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_122_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_122_2026-04-20.md)
   — Inventory deeper partitioning 第三十五刀合并后的优先级第一百零四次刷新
 - [NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_102_2026-04-19.md](/Users/aries/Dve/workspace/docs/progress/NEXT_PHASE_PRIORITY_ASSESSMENT_REFRESH_102_2026-04-19.md)
   — Inventory deeper partitioning 第三十三刀合并后的优先级第一百零二次刷新
