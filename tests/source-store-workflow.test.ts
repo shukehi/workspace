@@ -94,4 +94,6 @@ test('source order workflow rehydrates from snapshot and can clear state', async
   assert.deepEqual(calls, ['analyze:SNAPSHOT-01', 'clearSnapshot']);
   assert.equal(state.currentOrder.value, null);
   assert.equal(state.analysisResult.value, null);
+  assert.equal(state.materialRequirements.value, null);
+  assert.equal(state.hardwareRequirements.value, null);
 });
