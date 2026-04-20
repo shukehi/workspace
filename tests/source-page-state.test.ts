@@ -5,12 +5,14 @@ import { useSourcePageState } from '../src/features/source-analysis/composables/
 test('useSourcePageState trims contract input and exposes source table columns', () => {
   const fetchCalls: string[] = [];
   const state = useSourcePageState({
-    loading: false,
-    hasOrder: true,
-    orderItems: [{ id: 1 }],
-    currentOrder: { code: 'C20260313-001', customerName: '客户A' },
-    fetchContract: (contractId) => {
-      fetchCalls.push(contractId);
+    store: {
+      loading: false,
+      hasOrder: true,
+      orderItems: [{ id: 1 }],
+      currentOrder: { code: 'C20260313-001', customerName: '客户A' },
+      fetchContract: (contractId) => {
+        fetchCalls.push(contractId);
+      },
     },
   });
 
@@ -33,12 +35,14 @@ test('useSourcePageState trims contract input and exposes source table columns',
 test('useSourcePageState ignores empty searches', () => {
   let callCount = 0;
   const state = useSourcePageState({
-    loading: false,
-    hasOrder: false,
-    orderItems: [],
-    currentOrder: null,
-    fetchContract: () => {
-      callCount += 1;
+    store: {
+      loading: false,
+      hasOrder: false,
+      orderItems: [],
+      currentOrder: null,
+      fetchContract: () => {
+        callCount += 1;
+      },
     },
   });
 
