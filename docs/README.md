@@ -338,6 +338,8 @@
   — source-analysis deeper normalization 第二十四刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS25_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS25_2026-04-20.md)
   — source-analysis deeper normalization 第二十五刀计划
+- [SOURCE_ORDER_INVENTORY_OPTIMIZATION_CLOSEOUT_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/SOURCE_ORDER_INVENTORY_OPTIMIZATION_CLOSEOUT_2026-04-20.md)
+  — Source / Order / Inventory 本轮优化阶段总结与停手判断
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS23_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS23_2026-04-20.md)
   — source-analysis deeper normalization 第二十三刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS17_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS17_2026-04-20.md)
