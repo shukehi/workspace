@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { api } from '@/lib/api';
 import { useSourceStore } from '@/stores/useSourceStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useContractsHistorySourceLoadState } from '@/features/source-analysis/composables/useContractsHistorySourceLoadState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,6 +40,10 @@ interface ContractRow {
 const router = useRouter();
 const sourceStore = useSourceStore();
 const { toast } = useToastStore();
+const { loadingContractId, loadContract } = useContractsHistorySourceLoadState(sourceStore, {
+  toast,
+  push: (path) => router.push(path),
+});
 
 const loading = ref(false);
 const page = ref(1);
@@ -49,7 +54,6 @@ const rows = ref<ContractRow[]>([]);
 const jsonDialogOpen = ref(false);
 const activeJsonContract = ref<ContractRow | null>(null);
 const copied = ref(false);
-const loadingContractId = ref<string | null>(null);
 
 const deleteConfirmOpen = ref(false);
 const isDeleting = ref(false);
@@ -106,27 +110,6 @@ async function copyJson() {
     toast({ title: '复制成功', variant: 'success' });
   } catch (e) {
     toast({ title: '复制失败', variant: 'destructive' });
-  }
-}
-
-async function loadContract(code: string) {
-  loadingContractId.value = code;
-  try {
-    await sourceStore.loadHistoryContractByCode(code);
-    toast({
-      title: '加载成功',
-      description: `合同 ${code} 已成功载入数据源`,
-      variant: 'success'
-    });
-    router.push('/source');
-  } catch (e: any) {
-    toast({
-      title: '加载失败',
-      description: e.message || '由于未知错误无法加载该合同',
-      variant: 'destructive'
-    });
-  } finally {
-    loadingContractId.value = null;
   }
 }
 
