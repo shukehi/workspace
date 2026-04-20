@@ -11,10 +11,12 @@ function read(filePath: string): string {
 test('source table guard: source page keeps horizontal-scroll hint and min table width', () => {
   const content = read('src/views/Source.vue')
   const pageState = read('src/features/source-analysis/composables/useSourcePageState.ts')
+  const pageTableState = read('src/features/source-analysis/composables/useSourcePageTableState.ts')
 
   assert.match(content, /表格可左右滑动查看更多列/)
-  assert.match(pageState, /const sourceTableMinWidth = computed/)
-  assert.match(pageState, /sourceColumns\.reduce/)
+  assert.match(pageState, /useSourcePageTableState/)
+  assert.match(pageTableState, /const sourceTableMinWidth = computed/)
+  assert.match(pageTableState, /sourceColumns\.reduce/)
   assert.match(content, /:table-min-width="sourceTableMinWidth"/)
   assert.doesNotMatch(content, /store\.hasOrder/)
   assert.doesNotMatch(content, /store\.currentOrder/)
