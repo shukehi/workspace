@@ -14,7 +14,8 @@ import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAn
 import { failSourceAnalysisCalculation, warnSourceAnalysisRehydrateFailure } from './sourceAnalysisErrorApplier';
 import { applySourceOrderContractData, clearSourceOrderContractData } from './sourceOrderContractStateApplier';
 import { applySourceOrderContractCache } from './sourceOrderContractCacheApplier';
-import { beginSourceOrderRequest, failSourceOrderRequest, finishSourceOrderRequest } from './sourceOrderRequestStateApplier';
+import { beginSourceOrderRequest, finishSourceOrderRequest } from './sourceOrderRequestStateApplier';
+import { failSourceOrderFetch, failSourceOrderHistoryLoad } from './sourceOrderRequestErrorApplier';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -85,8 +86,7 @@ export function createSourceOrderWorkflow(
       const orderData = await fetchErpContract(normalizedContractId);
       await applyContractData(orderData, { persistCache: true });
     } catch (error: any) {
-      console.error('Fetch failed', error);
-      failSourceOrderRequest(state, error.message || 'Failed to fetch contract');
+      failSourceOrderFetch(state, error);
     } finally {
       finishSourceOrderRequest(state);
     }
@@ -110,11 +110,7 @@ export function createSourceOrderWorkflow(
       await applyContractData(rawOrder, { persistCache: false });
       return rawOrder;
     } catch (error: any) {
-      console.error('Load history contract failed', error);
-      const message = error?.response?.status === 404
-        ? '未找到历史合同'
-        : (error.message || '历史合同加载失败，请稍后重试');
-      failSourceOrderRequest(state, message);
+      const message = failSourceOrderHistoryLoad(state, error);
       throw new Error(message);
     } finally {
       finishSourceOrderRequest(state);
