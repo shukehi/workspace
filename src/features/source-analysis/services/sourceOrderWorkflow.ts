@@ -13,10 +13,11 @@ import { sourceAnalysisRuntime } from './sourceAnalysisRuntime';
 import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAnalysisStateApplier';
 import { failSourceAnalysisCalculation, warnSourceAnalysisRehydrateFailure } from './sourceAnalysisErrorApplier';
 import { runSourceOrderAnalysis } from './sourceOrderAnalysisRunner';
-import { applySourceOrderContractData, clearSourceOrderContractData } from './sourceOrderContractStateApplier';
+import { applySourceOrderContractData } from './sourceOrderContractStateApplier';
 import { applySourceOrderContractCache } from './sourceOrderContractCacheApplier';
 import { beginSourceOrderRequest, finishSourceOrderRequest } from './sourceOrderRequestStateApplier';
 import { failSourceOrderFetch, failSourceOrderHistoryLoad } from './sourceOrderRequestErrorApplier';
+import { clearSourceOrderWorkflowState } from './sourceOrderClearApplier';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -119,10 +120,7 @@ export function createSourceOrderWorkflow(
   }
 
   function clear() {
-    clearSourceOrderContractData(state);
-    clearSourceAnalysisResult(state);
-    state.error.value = null;
-    clearSourceOrderSnapshot();
+    clearSourceOrderWorkflowState(state, clearSourceOrderSnapshot);
   }
 
   async function rehydrateFromSnapshot() {

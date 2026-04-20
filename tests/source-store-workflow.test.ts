@@ -190,3 +190,29 @@ test('source order workflow does nothing when calculateMaterials runs without a 
   assert.equal(called, false);
   assert.equal(state.analysisResult.value, null);
 });
+
+
+test('source order workflow clear delegates full reset through the clear owner', async () => {
+  const state = createState();
+  state.currentOrder.value = { code: 'C-CLEAR', list: [{ id: 1 }] };
+  state.analysisResult.value = createResult();
+  state.materialRequirements.value = { rows: ['materials'] };
+  state.hardwareRequirements.value = { cylinders: [] };
+  state.error.value = 'stale error';
+  const calls: string[] = [];
+
+  const workflow = createSourceOrderWorkflow(state, {
+    clearSourceOrderSnapshot: () => {
+      calls.push('clearSnapshot');
+    },
+  });
+
+  workflow.clear();
+
+  assert.equal(state.currentOrder.value, null);
+  assert.equal(state.analysisResult.value, null);
+  assert.equal(state.materialRequirements.value, null);
+  assert.equal(state.hardwareRequirements.value, null);
+  assert.equal(state.error.value, null);
+  assert.deepEqual(calls, ['clearSnapshot']);
+});
