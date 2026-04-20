@@ -232,3 +232,29 @@ test('source order workflow ignores blank contract input without toggling reques
   assert.equal(state.error.value, null);
   assert.equal(state.currentOrder.value, null);
 });
+
+
+test('source order workflow runs apply pipeline in the same visible order for fetched contracts', async () => {
+  const state = createState();
+  const calls: string[] = [];
+  const workflow = createSourceOrderWorkflow(state, {
+    fetchErpContract: async (contractId: string) => {
+      calls.push(`fetch:${contractId}`);
+      return { code: contractId, list: [{ id: 5 }] };
+    },
+    persistSourceOrderSnapshot: (orderData: any) => {
+      calls.push(`persist:${orderData.code}`);
+    },
+    cacheErpContractSnapshot: async (orderData: any) => {
+      calls.push(`cache:${orderData.code}`);
+    },
+    analyzeOrder: async ({ order }) => {
+      calls.push(`analyze:${order.code}`);
+      return createResult();
+    },
+  });
+
+  await workflow.fetchContract('C-PIPE');
+
+  assert.deepEqual(calls, ['fetch:C-PIPE', 'persist:C-PIPE', 'cache:C-PIPE', 'analyze:C-PIPE']);
+});

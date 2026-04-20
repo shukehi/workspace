@@ -19,6 +19,7 @@ import { beginSourceOrderRequest, finishSourceOrderRequest } from './sourceOrder
 import { failSourceOrderFetch, failSourceOrderHistoryLoad } from './sourceOrderRequestErrorApplier';
 import { runSourceContractFetch, runSourceHistoryContractLoad } from './sourceOrderFetchRunner';
 import { clearSourceOrderWorkflowState } from './sourceOrderClearApplier';
+import { runSourceOrderApplyPipeline } from './sourceOrderApplyRunner';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -65,18 +66,18 @@ export function createSourceOrderWorkflow(
   }
 
   async function applyContractData(orderData: any, options: { persistCache?: boolean } = {}) {
-    const persistCache = options.persistCache ?? true;
-
-    applySourceOrderContractData(state, orderData, persistSourceOrderSnapshot);
-
-    await applySourceOrderContractCache({
+    await runSourceOrderApplyPipeline({
       orderData,
-      persistCache,
-      cacheErpContractSnapshot,
-      warn: (message, error) => console.warn(message, error),
+      persistCache: options.persistCache,
+      applyContractState: (currentOrderData) => applySourceOrderContractData(state, currentOrderData, persistSourceOrderSnapshot),
+      applyContractCache: ({ orderData: currentOrderData, persistCache }) => applySourceOrderContractCache({
+        orderData: currentOrderData,
+        persistCache,
+        cacheErpContractSnapshot,
+        warn: (message, error) => console.warn(message, error),
+      }),
+      calculateMaterials: () => calculateMaterials(),
     });
-
-    await calculateMaterials();
   }
 
   async function fetchContract(contractId: string) {
