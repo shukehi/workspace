@@ -35,10 +35,8 @@ export const useSourceStore = defineStore('source', () => {
     } = useSourceAnalysisDerivedState(analysisResult);
 
     const {
-        applyContractData,
         fetchContract,
         loadHistoryContractByCode,
-        calculateMaterials,
         clear,
     } = useSourceStoreWorkflow({
         currentOrder,
@@ -65,10 +63,8 @@ export const useSourceStore = defineStore('source', () => {
         flatForks,
         flatAccessories,
         flatPackaging,
-        applyContractData,
         fetchContract,
         loadHistoryContractByCode,
-        calculateMaterials,
         clear
     };
 });
