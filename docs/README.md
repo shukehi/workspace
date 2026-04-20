@@ -304,6 +304,8 @@
   — source-analysis deeper normalization 当前计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS2_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS2_2026-04-20.md)
   — source-analysis deeper normalization 第二刀计划
+- [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS3_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS3_2026-04-20.md)
+  — source-analysis deeper normalization 第三刀计划
 - [REFACTOR_EXECUTION_INDEX_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
   — 本轮结构治理总索引，适合作为背景导航
 
