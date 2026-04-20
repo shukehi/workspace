@@ -11,6 +11,7 @@ import {
 } from './sourceOrderSnapshot';
 import { sourceAnalysisRuntime } from './sourceAnalysisRuntime';
 import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAnalysisStateApplier';
+import { failSourceAnalysisCalculation, warnSourceAnalysisRehydrateFailure } from './sourceAnalysisErrorApplier';
 import { applySourceOrderContractData, clearSourceOrderContractData } from './sourceOrderContractStateApplier';
 import { applySourceOrderContractCache } from './sourceOrderContractCacheApplier';
 import { beginSourceOrderRequest, failSourceOrderRequest, finishSourceOrderRequest } from './sourceOrderRequestStateApplier';
@@ -55,9 +56,7 @@ export function createSourceOrderWorkflow(
 
       applySourceAnalysisResult(state, result);
     } catch (error) {
-      console.error('Calculation failed', error);
-      clearSourceAnalysisResult(state);
-      state.error.value = 'Material calculation failed';
+      failSourceAnalysisCalculation(state, error);
     }
   }
 
@@ -135,7 +134,7 @@ export function createSourceOrderWorkflow(
     try {
       await calculateMaterials();
     } catch (error) {
-      console.warn('[SourceStore] failed to re-calculate materials from snapshot:', error);
+      warnSourceAnalysisRehydrateFailure(error);
     }
   }
 

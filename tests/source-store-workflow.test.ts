@@ -139,3 +139,21 @@ test('source order workflow writes normalized fetch error message into request s
   assert.equal(state.loading.value, false);
   assert.equal(state.error.value, 'network failed');
 });
+
+
+test('source order workflow writes stable analysis error message when analysis fails', async () => {
+  const state = createState();
+  state.currentOrder.value = { code: 'FAIL-ANALYZE', list: [{ id: 1 }] };
+  const workflow = createSourceOrderWorkflow(state, {
+    analyzeOrder: async () => {
+      throw new Error('analysis failed');
+    },
+  });
+
+  await workflow.calculateMaterials();
+
+  assert.equal(state.analysisResult.value, null);
+  assert.equal(state.materialRequirements.value, null);
+  assert.equal(state.hardwareRequirements.value, null);
+  assert.equal(state.error.value, 'Material calculation failed');
+});
