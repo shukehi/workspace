@@ -12,6 +12,7 @@ import {
 import { sourceAnalysisRuntime } from './sourceAnalysisRuntime';
 import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAnalysisStateApplier';
 import { failSourceAnalysisCalculation, warnSourceAnalysisRehydrateFailure } from './sourceAnalysisErrorApplier';
+import { runSourceOrderAnalysis } from './sourceOrderAnalysisRunner';
 import { applySourceOrderContractData, clearSourceOrderContractData } from './sourceOrderContractStateApplier';
 import { applySourceOrderContractCache } from './sourceOrderContractCacheApplier';
 import { beginSourceOrderRequest, finishSourceOrderRequest } from './sourceOrderRequestStateApplier';
@@ -47,13 +48,13 @@ export function createSourceOrderWorkflow(
   const analyzeOrder = deps.analyzeOrder || sourceAnalysisRuntime.analyzeOrder.bind(sourceAnalysisRuntime);
 
   async function calculateMaterials(itemsToProcess?: any[]) {
-    if (!state.currentOrder.value) return;
-
     try {
-      const result = await analyzeOrder({
-        order: state.currentOrder.value,
+      const result = await runSourceOrderAnalysis({
+        state,
+        analyzeOrder,
         items: itemsToProcess,
       });
+      if (!result) return;
 
       applySourceAnalysisResult(state, result);
     } catch (error) {
