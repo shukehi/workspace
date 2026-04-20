@@ -10,6 +10,7 @@ import {
   persistSourceOrderSnapshot as defaultPersistSourceOrderSnapshot,
 } from './sourceOrderSnapshot';
 import { sourceAnalysisRuntime } from './sourceAnalysisRuntime';
+import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAnalysisStateApplier';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -49,14 +50,10 @@ export function createSourceOrderWorkflow(
         items: itemsToProcess,
       });
 
-      state.analysisResult.value = result;
-      state.materialRequirements.value = result.materialRequirements;
-      state.hardwareRequirements.value = result.hardwareRequirements;
+      applySourceAnalysisResult(state, result);
     } catch (error) {
       console.error('Calculation failed', error);
-      state.analysisResult.value = null;
-      state.materialRequirements.value = null;
-      state.hardwareRequirements.value = null;
+      clearSourceAnalysisResult(state);
       state.error.value = 'Material calculation failed';
     }
   }
@@ -132,9 +129,7 @@ export function createSourceOrderWorkflow(
 
   function clear() {
     state.currentOrder.value = null;
-    state.analysisResult.value = null;
-    state.materialRequirements.value = null;
-    state.hardwareRequirements.value = null;
+    clearSourceAnalysisResult(state);
     state.error.value = null;
     clearSourceOrderSnapshot();
   }
