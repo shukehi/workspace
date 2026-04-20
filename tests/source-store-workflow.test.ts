@@ -173,3 +173,20 @@ test('source order workflow maps history 404 into the canonical request error me
   assert.equal(state.loading.value, false);
   assert.equal(state.error.value, '未找到历史合同');
 });
+
+
+test('source order workflow does nothing when calculateMaterials runs without a current order', async () => {
+  const state = createState();
+  let called = false;
+  const workflow = createSourceOrderWorkflow(state, {
+    analyzeOrder: async () => {
+      called = true;
+      return createResult();
+    },
+  });
+
+  await workflow.calculateMaterials();
+
+  assert.equal(called, false);
+  assert.equal(state.analysisResult.value, null);
+});
