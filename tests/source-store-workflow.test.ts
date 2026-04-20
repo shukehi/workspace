@@ -62,6 +62,7 @@ test('source order workflow applies ERP contract data, persists snapshot, and an
   await workflow.fetchContract(' C-7001 ');
 
   assert.equal(state.currentOrder.value.code, 'C-7001');
+  assert.deepEqual(state.currentOrder.value.list, [{ id: 1 }]);
   assert.deepEqual(state.analysisResult.value?.flatMaterials, [{ code: 'M1' }]);
   assert.deepEqual(calls, [
     'fetch:C-7001',

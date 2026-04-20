@@ -11,6 +11,7 @@ import {
 } from './sourceOrderSnapshot';
 import { sourceAnalysisRuntime } from './sourceAnalysisRuntime';
 import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAnalysisStateApplier';
+import { applySourceOrderContractData, clearSourceOrderContractData } from './sourceOrderContractStateApplier';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -61,12 +62,7 @@ export function createSourceOrderWorkflow(
   async function applyContractData(orderData: any, options: { persistCache?: boolean } = {}) {
     const persistCache = options.persistCache ?? true;
 
-    if (!orderData || !Array.isArray(orderData.list)) {
-      throw new Error('Contract not found or empty');
-    }
-
-    state.currentOrder.value = orderData;
-    persistSourceOrderSnapshot(orderData);
+    applySourceOrderContractData(state, orderData, persistSourceOrderSnapshot);
 
     if (persistCache) {
       try {
@@ -128,7 +124,7 @@ export function createSourceOrderWorkflow(
   }
 
   function clear() {
-    state.currentOrder.value = null;
+    clearSourceOrderContractData(state);
     clearSourceAnalysisResult(state);
     state.error.value = null;
     clearSourceOrderSnapshot();
