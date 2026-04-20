@@ -98,3 +98,29 @@ test('source order workflow rehydrates from snapshot and can clear state', async
   assert.equal(state.materialRequirements.value, null);
   assert.equal(state.hardwareRequirements.value, null);
 });
+
+
+test('source order workflow skips cache side effect for history loads', async () => {
+  const state = createState();
+  const calls: string[] = [];
+  const workflow = createSourceOrderWorkflow(state, {
+    fetchHistoryContractByCode: async (contractCode: string) => ({
+      code: contractCode,
+      list: [{ id: 9 }],
+    }),
+    persistSourceOrderSnapshot: (orderData: any) => {
+      calls.push(`persist:${orderData.code}`);
+    },
+    cacheErpContractSnapshot: async (orderData: any) => {
+      calls.push(`cache:${orderData.code}`);
+    },
+    analyzeOrder: async ({ order }) => {
+      calls.push(`analyze:${order.code}`);
+      return createResult();
+    },
+  });
+
+  await workflow.loadHistoryContractByCode('HISTORY-009');
+
+  assert.deepEqual(calls, ['persist:HISTORY-009', 'analyze:HISTORY-009']);
+});

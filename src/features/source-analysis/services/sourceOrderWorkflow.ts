@@ -12,6 +12,7 @@ import {
 import { sourceAnalysisRuntime } from './sourceAnalysisRuntime';
 import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAnalysisStateApplier';
 import { applySourceOrderContractData, clearSourceOrderContractData } from './sourceOrderContractStateApplier';
+import { applySourceOrderContractCache } from './sourceOrderContractCacheApplier';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -64,13 +65,12 @@ export function createSourceOrderWorkflow(
 
     applySourceOrderContractData(state, orderData, persistSourceOrderSnapshot);
 
-    if (persistCache) {
-      try {
-        await cacheErpContractSnapshot(orderData);
-      } catch (cacheError) {
-        console.warn('[SourceStore] failed to cache ERP contract snapshot:', cacheError);
-      }
-    }
+    await applySourceOrderContractCache({
+      orderData,
+      persistCache,
+      cacheErpContractSnapshot,
+      warn: (message, error) => console.warn(message, error),
+    });
 
     await calculateMaterials();
   }

@@ -306,6 +306,8 @@
   — source-analysis deeper normalization 第二刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS3_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS3_2026-04-20.md)
   — source-analysis deeper normalization 第三刀计划
+- [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS4_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS4_2026-04-20.md)
+  — source-analysis deeper normalization 第四刀计划
 - [REFACTOR_EXECUTION_INDEX_2026-03-13.md](/Users/aries/Dve/workspace/docs/roadmaps/REFACTOR_EXECUTION_INDEX_2026-03-13.md)
   — 本轮结构治理总索引，适合作为背景导航
 
@@ -715,6 +717,8 @@
   — Source-analysis deeper normalization 第二刀分支的当前阶段成果与封板建议
 - [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS3_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS3_2026-04-20.md)
   — Source-analysis deeper normalization 第三刀分支的当前阶段成果与封板建议
+- [BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS4_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_REFACTOR_SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS4_2026-04-20.md)
+  — Source-analysis deeper normalization 第四刀分支的当前阶段成果与封板建议
 
 历史阶段进度（不作为当前阶段结果入口）：
 
