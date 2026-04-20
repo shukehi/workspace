@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analyzeSourceOrder } from '@/services/sourceAnalysis';
+import { createEmptySourceAnalysisResult, createSourceAnalysisResult } from '@/services/sourceAnalysisResultBuilder';
 
 test('source analysis: empty order returns empty analysis result', () => {
     const result = analyzeSourceOrder({
@@ -82,7 +83,8 @@ test('source analysis: computes material and hardware flat views from config sna
     assert.equal(result.materialRequirements.missing.length, 0);
     assert.equal(result.flatMaterials.length, 1);
     assert.equal(result.flatMaterials[0].supplierName, '供应商A');
-    assert.equal(result.flatMaterials[0].totalUsage, 2);
+    assert.equal(result.flatMaterials[0].totalUsage, 1);
+    assert.equal(result.flatMaterials[0].details[0].doorCount, 2);
     assert.deepEqual(result.flatCylinders, []);
     assert.deepEqual(result.flatLocks, []);
     assert.deepEqual(result.flatHandles, []);
@@ -90,4 +92,44 @@ test('source analysis: computes material and hardware flat views from config sna
     assert.deepEqual(result.flatAccessories, []);
     assert.equal(result.flatPackaging.length, 1);
     assert.equal(result.flatPackaging[0].internalName, '未匹配');
+});
+
+
+test('source analysis result builder keeps empty and flattened result shaping stable', () => {
+    const empty = createEmptySourceAnalysisResult();
+    assert.deepEqual(empty.hardwareRequirements, {
+        cylinders: [],
+        locks: [],
+        handles: [],
+        lockForks: [],
+        accessories: [],
+        packaging: {},
+    });
+    assert.deepEqual(empty.flatMaterials, []);
+    assert.deepEqual(empty.flatPackaging, []);
+
+    const shaped = createSourceAnalysisResult({
+        materialRequirements: {
+            requirements: {
+                supplierA: {
+                    supplierName: '供应商A',
+                    materials: [{ code: 'MAT-1', totalUsage: 2 }],
+                },
+            },
+        },
+        hardwareRequirements: {
+            cylinders: [],
+            locks: [],
+            handles: [],
+            lockForks: [],
+            accessories: [],
+            packaging: {
+                box: { internalName: '纸箱' },
+            },
+        },
+    });
+
+    assert.equal(shaped.flatMaterials[0].supplierName, '供应商A');
+    assert.equal(shaped.flatMaterials[0].code, 'MAT-1');
+    assert.equal(shaped.flatPackaging[0].internalName, '纸箱');
 });

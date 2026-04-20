@@ -7,53 +7,22 @@ import {
     extractLockForkData,
     extractPackagingData,
 } from '@/lib/erp-engine/dataExtractors';
+import {
+    createEmptySourceAnalysisResult,
+    createSourceAnalysisResult,
+} from '@/services/sourceAnalysisResultBuilder';
 import type {
     HardwareRequirements,
     SourceAnalysisInput,
     SourceAnalysisResult,
 } from '@/types/sourceAnalysis';
 
-function buildFlatMaterials(materialRequirements: any): any[] {
-    if (!materialRequirements?.requirements) return [];
-
-    const list: any[] = [];
-    Object.values(materialRequirements.requirements).forEach((group: any) => {
-        group.materials.forEach((material: any) => {
-            list.push({ ...material, supplierName: group.supplierName });
-        });
-    });
-    return list;
-}
-
-function buildFlatPackaging(hardwareRequirements: HardwareRequirements): any[] {
-    return Object.values(hardwareRequirements.packaging || {});
-}
-
 export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisResult {
     const { order, config } = input;
     const targetItems = input.items || order?.list || [];
 
     if (!order || !Array.isArray(targetItems) || targetItems.length === 0) {
-        const hardwareRequirements: HardwareRequirements = {
-            cylinders: [],
-            locks: [],
-            handles: [],
-            lockForks: [],
-            accessories: [],
-            packaging: {},
-        };
-
-        return {
-            materialRequirements: null,
-            hardwareRequirements,
-            flatMaterials: [],
-            flatCylinders: [],
-            flatLocks: [],
-            flatHandles: [],
-            flatForks: [],
-            flatAccessories: [],
-            flatPackaging: [],
-        };
+        return createEmptySourceAnalysisResult();
     }
 
     const items = targetItems.map((item: any, index: number) => ({
@@ -77,15 +46,8 @@ export function analyzeSourceOrder(input: SourceAnalysisInput): SourceAnalysisRe
         packaging: extractPackagingData(targetItems, config.packagingMapping),
     };
 
-    return {
+    return createSourceAnalysisResult({
         materialRequirements,
         hardwareRequirements,
-        flatMaterials: buildFlatMaterials(materialRequirements),
-        flatCylinders: hardwareRequirements.cylinders,
-        flatLocks: hardwareRequirements.locks,
-        flatHandles: hardwareRequirements.handles,
-        flatForks: hardwareRequirements.lockForks,
-        flatAccessories: hardwareRequirements.accessories,
-        flatPackaging: buildFlatPackaging(hardwareRequirements),
-    };
+    });
 }
