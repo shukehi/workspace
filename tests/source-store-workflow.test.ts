@@ -124,3 +124,18 @@ test('source order workflow skips cache side effect for history loads', async ()
 
   assert.deepEqual(calls, ['persist:HISTORY-009', 'analyze:HISTORY-009']);
 });
+
+
+test('source order workflow writes normalized fetch error message into request state', async () => {
+  const state = createState();
+  const workflow = createSourceOrderWorkflow(state, {
+    fetchErpContract: async () => {
+      throw new Error('network failed');
+    },
+  });
+
+  await workflow.fetchContract('C-ERR');
+
+  assert.equal(state.loading.value, false);
+  assert.equal(state.error.value, 'network failed');
+});
