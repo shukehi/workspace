@@ -12,6 +12,7 @@ test('materials page exposes all hardware analysis sections', () => {
   const view = read('src/views/Materials.vue');
   const columns = read('src/components/materials/MaterialColumns.ts');
   const store = read('src/stores/useSourceStore.ts');
+  const derived = read('src/features/source-analysis/composables/useSourceAnalysisDerivedState.ts');
 
   assert.match(view, /Locks \(锁具\)/);
   assert.match(view, /Handles \(拉手\)/);
@@ -27,6 +28,7 @@ test('materials page exposes all hardware analysis sections', () => {
   assert.match(columns, /accessorKey: 'matchedRules'/);
   assert.match(columns, /accessorKey: 'winningRules'/);
 
-  assert.match(store, /const flatAccessories = computed/);
+  assert.match(store, /useSourceAnalysisDerivedState/);
+  assert.match(derived, /const flatAccessories = computed/);
   assert.match(store, /flatAccessories,/);
 });

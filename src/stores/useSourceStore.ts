@@ -1,8 +1,9 @@
 
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { createSourceOrderWorkflow } from '@/features/source-analysis/services/sourceOrderWorkflow';
 import { useSourceAnalysisDerivedState } from '@/features/source-analysis/composables/useSourceAnalysisDerivedState';
+import { useSourceOrderSelectors } from '@/features/source-analysis/composables/useSourceOrderSelectors';
 import { loadSourceOrderSnapshot } from '@/features/source-analysis/services/sourceOrderSnapshot';
 import type { SourceAnalysisResult } from '@/types/sourceAnalysis';
 
@@ -16,8 +17,10 @@ export const useSourceStore = defineStore('source', () => {
     const error = ref<string | null>(null);
 
     // Getters
-    const hasOrder = computed(() => !!currentOrder.value);
-    const orderItems = computed(() => currentOrder.value?.list || []);
+    const {
+        hasOrder,
+        orderItems,
+    } = useSourceOrderSelectors(currentOrder);
 
     // Flattened Data for Views
     const {
