@@ -2,6 +2,7 @@
 import { computed, watch, ref } from 'vue';
 import { useSourceStore } from '@/stores/useSourceStore';
 import { useContractHistoryStore } from '@/stores/useContractHistoryStore';
+import { useSourceHistoryLoadState } from '@/features/source-analysis/composables/useSourceHistoryLoadState';
 import type { ContractHistoryRow } from '@/types/source';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 
 const store = useSourceStore();
 const historyStore = useContractHistoryStore();
+const { hasOrder, loading, loadButtonLabel, loadContract, resolveLoadError } = useSourceHistoryLoadState(store);
 
 const totalPages = computed(() => historyStore.historyTotalPages);
 
@@ -72,17 +74,17 @@ async function handleLoadSelected() {
   const selected = historyStore.historySelected;
   if (!selected) return;
 
-  if (store.hasOrder) {
+  if (hasOrder.value) {
     const shouldReplace = window.confirm('当前页面已有合同数据，继续将覆盖当前内容。是否继续？');
     if (!shouldReplace) return;
   }
 
   try {
-    await store.loadHistoryContractByCode(selected.contract_code);
+    await loadContract(selected.contract_code);
     emit('loaded', selected.contract_code);
     emit('update:open', false);
   } catch (e: any) {
-    const message = e?.message || store.error || '历史合同加载失败，请稍后重试';
+    const message = resolveLoadError(e);
     window.alert(message);
   }
 }
@@ -178,9 +180,9 @@ async function copyJson() {
 
       <DialogFooter>
         <Button variant="outline" @click="handleClose">取消</Button>
-        <Button :disabled="!historyStore.historySelected || store.loading" @click="handleLoadSelected">
-          <Loader2 v-if="store.loading" class="w-4 h-4 mr-2 animate-spin" />
-          {{ store.loading ? '加载中...' : '加载该合同' }}
+        <Button :disabled="!historyStore.historySelected || loading" @click="handleLoadSelected">
+          <Loader2 v-if="loading" class="w-4 h-4 mr-2 animate-spin" />
+          {{ loadButtonLabel }}
         </Button>
       </DialogFooter>
     </DialogContent>
