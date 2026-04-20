@@ -1,7 +1,7 @@
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { createSourceOrderWorkflow } from '@/features/source-analysis/services/sourceOrderWorkflow';
+import { useSourceStoreWorkflow } from '@/features/source-analysis/composables/useSourceStoreWorkflow';
 import { useSourceAnalysisDerivedState } from '@/features/source-analysis/composables/useSourceAnalysisDerivedState';
 import { useSourceOrderSelectors } from '@/features/source-analysis/composables/useSourceOrderSelectors';
 import { loadSourceOrderSnapshot } from '@/features/source-analysis/services/sourceOrderSnapshot';
@@ -39,8 +39,7 @@ export const useSourceStore = defineStore('source', () => {
         loadHistoryContractByCode,
         calculateMaterials,
         clear,
-        rehydrateFromSnapshot,
-    } = createSourceOrderWorkflow({
+    } = useSourceStoreWorkflow({
         currentOrder,
         materialRequirements,
         hardwareRequirements,
@@ -48,9 +47,6 @@ export const useSourceStore = defineStore('source', () => {
         loading,
         error,
     });
-
-    // Rehydrate analysis data after browser refresh if an order snapshot exists.
-    void rehydrateFromSnapshot();
 
     return {
         currentOrder,
