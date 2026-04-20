@@ -322,6 +322,8 @@
   — source-analysis deeper normalization 第十二刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS13_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS13_2026-04-20.md)
   — source-analysis deeper normalization 第十三刀计划
+- [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS14_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS14_2026-04-20.md)
+  — source-analysis deeper normalization 第十四刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS9_2026-04-20.md)
   — source-analysis deeper normalization 第九刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS7_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS7_2026-04-20.md)
