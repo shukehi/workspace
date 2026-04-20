@@ -1,20 +1,21 @@
 
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
 import { useSourceStoreWorkflow } from '@/features/source-analysis/composables/useSourceStoreWorkflow';
+import { useSourceStoreState } from '@/features/source-analysis/composables/useSourceStoreState';
 import { useSourceAnalysisDerivedState } from '@/features/source-analysis/composables/useSourceAnalysisDerivedState';
 import { useSourceOrderSelectors } from '@/features/source-analysis/composables/useSourceOrderSelectors';
-import { loadSourceOrderSnapshot } from '@/features/source-analysis/services/sourceOrderSnapshot';
 import type { SourceAnalysisResult } from '@/types/sourceAnalysis';
 
 export const useSourceStore = defineStore('source', () => {
     // State
-    const currentOrder = ref<any>(loadSourceOrderSnapshot()); // Raw ERP Order
-    const materialRequirements = ref<any>(null);
-    const hardwareRequirements = ref<any>(null);
-    const analysisResult = ref<SourceAnalysisResult | null>(null);
-    const loading = ref(false);
-    const error = ref<string | null>(null);
+    const {
+        currentOrder,
+        materialRequirements,
+        hardwareRequirements,
+        analysisResult,
+        loading,
+        error,
+    } = useSourceStoreState();
 
     // Getters
     const {
