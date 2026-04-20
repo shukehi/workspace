@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { createSourceOrderWorkflow } from '@/features/source-analysis/services/sourceOrderWorkflow';
+import { useSourceAnalysisDerivedState } from '@/features/source-analysis/composables/useSourceAnalysisDerivedState';
 import { loadSourceOrderSnapshot } from '@/features/source-analysis/services/sourceOrderSnapshot';
 import type { SourceAnalysisResult } from '@/types/sourceAnalysis';
 
@@ -19,13 +20,15 @@ export const useSourceStore = defineStore('source', () => {
     const orderItems = computed(() => currentOrder.value?.list || []);
 
     // Flattened Data for Views
-    const flatMaterials = computed(() => analysisResult.value?.flatMaterials || []);
-    const flatCylinders = computed(() => analysisResult.value?.flatCylinders || []);
-    const flatLocks = computed(() => analysisResult.value?.flatLocks || []);
-    const flatHandles = computed(() => analysisResult.value?.flatHandles || []);
-    const flatForks = computed(() => analysisResult.value?.flatForks || []);
-    const flatAccessories = computed(() => analysisResult.value?.flatAccessories || []);
-    const flatPackaging = computed(() => analysisResult.value?.flatPackaging || []);
+    const {
+        flatMaterials,
+        flatCylinders,
+        flatLocks,
+        flatHandles,
+        flatForks,
+        flatAccessories,
+        flatPackaging,
+    } = useSourceAnalysisDerivedState(analysisResult);
 
     const {
         applyContractData,
