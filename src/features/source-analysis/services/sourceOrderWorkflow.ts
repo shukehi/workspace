@@ -17,6 +17,7 @@ import { applySourceOrderContractData } from './sourceOrderContractStateApplier'
 import { applySourceOrderContractCache } from './sourceOrderContractCacheApplier';
 import { beginSourceOrderRequest, finishSourceOrderRequest } from './sourceOrderRequestStateApplier';
 import { failSourceOrderFetch, failSourceOrderHistoryLoad } from './sourceOrderRequestErrorApplier';
+import { runSourceContractFetch, runSourceHistoryContractLoad } from './sourceOrderFetchRunner';
 import { clearSourceOrderWorkflowState } from './sourceOrderClearApplier';
 
 interface SourceOrderWorkflowState {
@@ -79,44 +80,25 @@ export function createSourceOrderWorkflow(
   }
 
   async function fetchContract(contractId: string) {
-    const normalizedContractId = String(contractId || '').trim();
-    if (!normalizedContractId) return;
-
-    beginSourceOrderRequest(state);
-
-    try {
-      const orderData = await fetchErpContract(normalizedContractId);
-      await applyContractData(orderData, { persistCache: true });
-    } catch (error: any) {
-      failSourceOrderFetch(state, error);
-    } finally {
-      finishSourceOrderRequest(state);
-    }
+    await runSourceContractFetch({
+      contractId,
+      beginRequest: () => beginSourceOrderRequest(state),
+      finishRequest: () => finishSourceOrderRequest(state),
+      fetchErpContract,
+      applyContractData,
+      failSourceOrderFetch: (error) => failSourceOrderFetch(state, error),
+    });
   }
 
   async function loadHistoryContractByCode(code: string) {
-    const contractCode = String(code || '').trim();
-    if (!contractCode) {
-      throw new Error('合同号不能为空');
-    }
-
-    beginSourceOrderRequest(state);
-
-    try {
-      const rawOrder = await fetchHistoryContractByCode(contractCode);
-
-      if (!rawOrder || !Array.isArray(rawOrder.list)) {
-        throw new Error('历史合同数据不完整，无法加载');
-      }
-
-      await applyContractData(rawOrder, { persistCache: false });
-      return rawOrder;
-    } catch (error: any) {
-      const message = failSourceOrderHistoryLoad(state, error);
-      throw new Error(message);
-    } finally {
-      finishSourceOrderRequest(state);
-    }
+    return await runSourceHistoryContractLoad({
+      code,
+      beginRequest: () => beginSourceOrderRequest(state),
+      finishRequest: () => finishSourceOrderRequest(state),
+      fetchHistoryContractByCode,
+      applyContractData,
+      failSourceOrderHistoryLoad: (error) => failSourceOrderHistoryLoad(state, error),
+    });
   }
 
   function clear() {

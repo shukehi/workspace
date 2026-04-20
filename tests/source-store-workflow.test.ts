@@ -216,3 +216,19 @@ test('source order workflow clear delegates full reset through the clear owner',
   assert.equal(state.error.value, null);
   assert.deepEqual(calls, ['clearSnapshot']);
 });
+
+
+test('source order workflow ignores blank contract input without toggling request state', async () => {
+  const state = createState();
+  const workflow = createSourceOrderWorkflow(state, {
+    fetchErpContract: async () => {
+      throw new Error('should not run');
+    },
+  });
+
+  await workflow.fetchContract('   ');
+
+  assert.equal(state.loading.value, false);
+  assert.equal(state.error.value, null);
+  assert.equal(state.currentOrder.value, null);
+});
