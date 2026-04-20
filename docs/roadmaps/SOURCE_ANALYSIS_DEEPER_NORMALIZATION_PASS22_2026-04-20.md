@@ -1,7 +1,7 @@
-# Source-analysis Deeper Normalization Pass 21 (2026-04-20)
+# Source-analysis Deeper Normalization Pass 22 (2026-04-20)
 
 > 状态：当前执行计划。
-> 分支：`refactor/source-analysis-deeper-normalization-pass21`
+> 分支：`refactor/source-analysis-deeper-normalization-pass22`
 > 范围：在不改变历史合同加载行为的前提下，把 ContractHistoryDialog 对 Source store 的 direct reads 收束到独立 owner。
 
 ---
