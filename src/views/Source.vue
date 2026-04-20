@@ -19,6 +19,7 @@ const {
   sourceTableMinWidth,
   columns,
   loading,
+  searchButtonLabel,
   hasOrder,
   orderItems,
   currentOrder,
@@ -59,7 +60,7 @@ const {
           </div>
 
           <Button @click="handleSearch" :disabled="loading">
-            {{ store.loading ? 'Fetching...' : '获取合同' }}
+            {{ searchButtonLabel }}
           </Button>
 
           <Button variant="outline" :disabled="loading" @click="historyDialogOpen = true">

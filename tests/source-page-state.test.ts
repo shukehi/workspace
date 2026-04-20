@@ -22,6 +22,7 @@ test('useSourcePageState trims contract input and exposes source table columns',
   assert.equal(state.columns.value.length, sourceColumns.length + 1);
   assert.equal(state.sourceTableMinWidth.value > 1000, true);
   assert.equal(state.loading.value, false);
+  assert.equal(state.searchButtonLabel.value, '获取合同');
   assert.equal(state.hasOrder.value, true);
   assert.deepEqual(state.orderItems.value, [{ id: 1 }]);
   assert.equal(state.currentOrder.value.code, 'C20260313-001');

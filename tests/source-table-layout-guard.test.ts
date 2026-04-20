@@ -22,4 +22,5 @@ test('source table guard: source page keeps horizontal-scroll hint and min table
   assert.match(content, /v-if="hasOrder"/)
   assert.match(content, /:data="orderItems"/)
   assert.match(content, /:use-column-size="true"/)
+  assert.doesNotMatch(content, /store\./)
 })
