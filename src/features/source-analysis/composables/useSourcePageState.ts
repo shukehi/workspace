@@ -99,6 +99,7 @@ export function useSourcePageState(
     sourceTableMinWidth,
     columns,
     loading: computed(() => store.loading),
+    searchButtonLabel: computed(() => store.loading ? 'Fetching...' : '获取合同'),
     hasOrder: computed(() => store.hasOrder),
     orderItems: computed(() => store.orderItems),
     currentOrder: computed(() => store.currentOrder),
