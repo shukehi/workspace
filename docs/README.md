@@ -264,6 +264,8 @@
   — Order lifecycle 尾段复盘与最小收尾计划
 - [ORDER_LIFECYCLE_TAIL_REASSESSMENT_PASS2_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_TAIL_REASSESSMENT_PASS2_2026-04-20.md)
   — Order lifecycle 尾段复盘第二刀计划
+- [ORDER_LIFECYCLE_TAIL_REASSESSMENT_PASS3_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_TAIL_REASSESSMENT_PASS3_2026-04-20.md)
+  — Order lifecycle 尾段复盘第三刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS43_PLAN_2026-04-18.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS43_PLAN_2026-04-18.md)
   — Order lifecycle normalization 第四十三刀计划
 - [ORDER_LIFECYCLE_NORMALIZATION_PASS44_PLAN_2026-04-18.md](/Users/aries/Dve/workspace/docs/roadmaps/ORDER_LIFECYCLE_NORMALIZATION_PASS44_PLAN_2026-04-18.md)

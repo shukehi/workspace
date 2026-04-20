@@ -141,23 +141,6 @@ async function resolveStockInOrderUpdate(
     return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
 }
 
-export function buildStockInOrderLifecycleDeps(bindings: {
-    getOrderById: (id: number | string) => Promise<PlainRecord | null>;
-}, services: StockInOrderServices & StockInOrderStatusDeps) {
-    return {
-        transactionFactory: () => sequelize.transaction(),
-        findOrderByIdWithItems: (orderId: number | string, transaction: Transaction | undefined) => orderRepository.findOrderByIdWithItems(orderId, transaction),
-        normalizeStatus: services.normalizeStatus,
-        InvalidStatusTransitionError: services.InvalidStatusTransitionError,
-        inventoryReceiptService: services.inventoryReceiptService,
-        MissingMaterialError: services.MissingMaterialError,
-        resolveOrderedQuantity: services.resolveOrderedQuantity,
-        ReceivedQuantityExceededError: services.ReceivedQuantityExceededError,
-        normalizeOrderRemark: services.normalizeOrderRemark,
-        getOrderById: bindings.getOrderById,
-    };
-}
-
 export async function stockInOrderLifecycle(
     id: number | string,
     data: PlainRecord,

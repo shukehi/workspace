@@ -44,10 +44,7 @@ import {
     buildUpdateOrderLifecycleDeps,
     updateOrderLifecycle,
 } from './order.service.update';
-import {
-    buildStockInOrderLifecycleDeps,
-    stockInOrderResult,
-} from './order.stockin';
+import { stockInOrderResult } from './order.stockin';
 import {
     DuplicateOrderError,
     InvalidStatusTransitionError,
@@ -195,9 +192,10 @@ class OrderService {
     }
 
     async stockInOrder(id: number | string, data: PlainRecord = {}) {
-        return await stockInOrderResult(id, data, buildStockInOrderLifecycleDeps({
-            getOrderById: (orderId) => this.getOrderById(orderId),
-        }, {
+        return await stockInOrderResult(id, data, {
+            transactionFactory: () => sequelize.transaction(),
+            findOrderByIdWithItems: (orderId: number | string, transaction?: any) => orderRepository.findOrderByIdWithItems(orderId, transaction),
+            getOrderById: (orderId: number | string) => this.getOrderById(orderId),
             normalizeStatus,
             InvalidStatusTransitionError,
             inventoryReceiptService,
@@ -205,7 +203,7 @@ class OrderService {
             resolveOrderedQuantity,
             ReceivedQuantityExceededError,
             normalizeOrderRemark,
-        }));
+        });
     }
 }
 
