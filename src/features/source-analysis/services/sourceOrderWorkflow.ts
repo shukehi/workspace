@@ -13,6 +13,7 @@ import { sourceAnalysisRuntime } from './sourceAnalysisRuntime';
 import { applySourceAnalysisResult, clearSourceAnalysisResult } from './sourceAnalysisStateApplier';
 import { applySourceOrderContractData, clearSourceOrderContractData } from './sourceOrderContractStateApplier';
 import { applySourceOrderContractCache } from './sourceOrderContractCacheApplier';
+import { beginSourceOrderRequest, failSourceOrderRequest, finishSourceOrderRequest } from './sourceOrderRequestStateApplier';
 
 interface SourceOrderWorkflowState {
   currentOrder: Ref<any>;
@@ -79,17 +80,16 @@ export function createSourceOrderWorkflow(
     const normalizedContractId = String(contractId || '').trim();
     if (!normalizedContractId) return;
 
-    state.loading.value = true;
-    state.error.value = null;
+    beginSourceOrderRequest(state);
 
     try {
       const orderData = await fetchErpContract(normalizedContractId);
       await applyContractData(orderData, { persistCache: true });
     } catch (error: any) {
       console.error('Fetch failed', error);
-      state.error.value = error.message || 'Failed to fetch contract';
+      failSourceOrderRequest(state, error.message || 'Failed to fetch contract');
     } finally {
-      state.loading.value = false;
+      finishSourceOrderRequest(state);
     }
   }
 
@@ -99,8 +99,7 @@ export function createSourceOrderWorkflow(
       throw new Error('合同号不能为空');
     }
 
-    state.loading.value = true;
-    state.error.value = null;
+    beginSourceOrderRequest(state);
 
     try {
       const rawOrder = await fetchHistoryContractByCode(contractCode);
@@ -116,10 +115,10 @@ export function createSourceOrderWorkflow(
       const message = error?.response?.status === 404
         ? '未找到历史合同'
         : (error.message || '历史合同加载失败，请稍后重试');
-      state.error.value = message;
+      failSourceOrderRequest(state, message);
       throw new Error(message);
     } finally {
-      state.loading.value = false;
+      finishSourceOrderRequest(state);
     }
   }
 
