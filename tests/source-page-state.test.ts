@@ -7,6 +7,9 @@ test('useSourcePageState trims contract input and exposes source table columns',
   const fetchCalls: string[] = [];
   const state = useSourcePageState({
     loading: false,
+    hasOrder: true,
+    orderItems: [{ id: 1 }],
+    currentOrder: { code: 'C20260313-001', customerName: '客户A' },
     fetchContract: (contractId) => {
       fetchCalls.push(contractId);
     },
@@ -18,6 +21,10 @@ test('useSourcePageState trims contract input and exposes source table columns',
   assert.deepEqual(fetchCalls, ['C20260313-001']);
   assert.equal(state.columns.value.length, sourceColumns.length + 1);
   assert.equal(state.sourceTableMinWidth.value > 1000, true);
+  assert.equal(state.loading.value, false);
+  assert.equal(state.hasOrder.value, true);
+  assert.deepEqual(state.orderItems.value, [{ id: 1 }]);
+  assert.equal(state.currentOrder.value.code, 'C20260313-001');
 
   state.handleHistoryLoaded('HISTORY-001');
   assert.equal(state.contractInput.value, 'HISTORY-001');
@@ -27,6 +34,9 @@ test('useSourcePageState ignores empty searches', () => {
   let callCount = 0;
   const state = useSourcePageState({
     loading: false,
+    hasOrder: false,
+    orderItems: [],
+    currentOrder: null,
     fetchContract: () => {
       callCount += 1;
     },

@@ -6,6 +6,9 @@ type LongTextMode = 'clip' | 'hover' | 'expand';
 
 interface SourcePageStateStore {
   loading: boolean;
+  hasOrder: boolean;
+  orderItems: any[];
+  currentOrder: any;
   fetchContract: (contractId: string) => void | Promise<void>;
 }
 
@@ -95,6 +98,10 @@ export function useSourcePageState(
     historyDialogOpen,
     sourceTableMinWidth,
     columns,
+    loading: computed(() => store.loading),
+    hasOrder: computed(() => store.hasOrder),
+    orderItems: computed(() => store.orderItems),
+    currentOrder: computed(() => store.currentOrder),
     handleSearch,
     handleHistoryLoaded,
   };
