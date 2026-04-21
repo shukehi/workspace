@@ -14,6 +14,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Edit2, Plus } from 'lucide-vue-next';
 import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterShell.vue';
+import SupplierAuditPanel from '@/features/master-data/components/SupplierAuditPanel.vue';
+import SupplierDiagnosticsPanel from '@/features/master-data/components/SupplierDiagnosticsPanel.vue';
+import SupplierLinkedMaterialsPanel from '@/features/master-data/components/SupplierLinkedMaterialsPanel.vue';
+import SupplierSummaryCards from '@/features/master-data/components/SupplierSummaryCards.vue';
 import { useSupplierMaster } from '@/features/master-data/composables/useSupplierMaster';
 
 const {
@@ -65,97 +69,19 @@ onMounted(() => {
       </CardContent>
     </Card>
 
-    <Card v-if="filteredItems.some((item) => item.hasLinkedMaterialsWhileInactive)">
-      <CardContent class="p-4 text-sm text-amber-700">
-        存在 inactive 但仍关联物料的供应商，请优先处理。
-      </CardContent>
-    </Card>
+    <SupplierSummaryCards :health="relationshipHealth" />
 
-    <div class="grid gap-4 md:grid-cols-3">
-      <Card>
-        <CardContent class="p-4 space-y-1">
-          <div class="text-sm text-muted-foreground">关联健康总览</div>
-          <div class="text-2xl font-semibold">{{ relationshipHealth.totalSuppliers }}</div>
-          <div class="text-xs text-muted-foreground">已纳入供应商主数据的供应商数</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4 space-y-1">
-          <div class="text-sm text-muted-foreground">关联物料总数</div>
-          <div class="text-2xl font-semibold">{{ relationshipHealth.totalLinkedMaterials }}</div>
-          <div class="text-xs text-muted-foreground">已正式链接到 Supplier Master 的物料数</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4 space-y-1">
-          <div class="text-sm text-muted-foreground">异常供应商数</div>
-          <div class="text-2xl font-semibold text-amber-700">
-            {{ relationshipHealth.inactiveLinkedSupplierCount + relationshipHealth.suppliersWithUnlinkedMaterialsCount }}
-          </div>
-          <div class="text-xs text-muted-foreground">inactive 仍关联 / 有物料但尚未正式链接</div>
-        </CardContent>
-      </Card>
-    </div>
+    <SupplierAuditPanel
+      :audit-logs="auditLogs"
+      :audit-trend-summary="auditTrendSummary"
+    />
 
-    <Card>
-      <CardContent class="p-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-        <div>最近 5 条变更</div>
-        <div>create: {{ auditTrendSummary.createCount }}</div>
-        <div>update: {{ auditTrendSummary.updateCount }}</div>
-        <div>archive: {{ auditTrendSummary.archiveCount }}</div>
-        <div v-if="auditTrendSummary.latestCreatedAt">latest: {{ auditTrendSummary.latestCreatedAt }}</div>
-      </CardContent>
-    </Card>
-
-    <div
-      v-if="relationshipHealth.inactiveLinkedSupplierCount > 0 || relationshipHealth.suppliersWithUnlinkedMaterialsCount > 0"
-      class="grid gap-4 md:grid-cols-2"
-    >
-      <Card v-if="relationshipHealth.inactiveLinkedSupplierCount > 0">
-        <CardHeader>
-          <CardTitle>inactive 但仍有关联物料</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2 text-sm">
-          <div
-            v-for="item in relationshipHealth.inactiveLinkedSuppliers"
-            :key="`inactive-linked-${item.normalizedName}`"
-            class="rounded-md border bg-background px-3 py-2"
-          >
-            <div class="font-medium">{{ item.supplierName }}</div>
-            <div class="text-muted-foreground">已链接物料：{{ item.linkedMaterialCount }}</div>
-            <div class="mt-2 flex items-center gap-2">
-              <Button size="sm" variant="outline" @click="loadLinkedMaterials(Number(item.id), item)">
-                查看关联物料
-              </Button>
-              <Button size="sm" variant="outline" @click="openEditDialog(item)">
-                打开编辑
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card v-if="relationshipHealth.suppliersWithUnlinkedMaterialsCount > 0">
-        <CardHeader>
-          <CardTitle>需补充正式链接</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2 text-sm">
-          <div
-            v-for="item in actionableRelationshipGroups.suppliersWithUnlinkedMaterials"
-            :key="`unlinked-supplier-${item.normalizedName}`"
-            class="rounded-md border bg-background px-3 py-2"
-          >
-            <div class="font-medium">{{ item.supplierName }}</div>
-            <div class="text-muted-foreground">物料数：{{ item.materialCount }} · 已链接：{{ item.linkedMaterialCount }}</div>
-            <div class="mt-2">
-              <Button size="sm" variant="outline" @click="openEditDialog(item)">
-                打开编辑
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <SupplierDiagnosticsPanel
+      :relationship-health="relationshipHealth"
+      :actionable-groups="actionableRelationshipGroups"
+      @view-linked-materials="loadLinkedMaterials(Number($event.id), $event)"
+      @open-edit="openEditDialog"
+    />
 
     <Card>
       <CardContent class="p-4 flex items-center gap-3">
@@ -217,46 +143,11 @@ onMounted(() => {
       </CardContent>
     </Card>
 
-    <Card v-if="selectedSupplier">
-      <CardHeader>
-        <CardTitle>关联物料明细 · {{ selectedSupplier.supplierName }}</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-2 text-sm">
-        <div v-if="linkedMaterialsLoading" class="text-muted-foreground">加载关联物料中...</div>
-        <div v-else-if="linkedMaterials.length === 0" class="text-muted-foreground">
-          当前 supplier master 暂无已关联物料
-        </div>
-        <div
-          v-for="material in linkedMaterials.slice(0, 10)"
-          :key="material.id"
-          class="rounded-md border bg-background px-3 py-2"
-        >
-          <div class="font-medium">{{ material.code }} · {{ material.name }}</div>
-          <div class="text-muted-foreground">
-            {{ material.category || '未分类' }} · {{ material.supplier || '未填写供应商' }}
-          </div>
-        </div>
-        <div v-if="linkedMaterials.length > 10" class="text-muted-foreground">
-          仅展示最近 10 条，请使用物料管理页查看完整列表。
-        </div>
-      </CardContent>
-    </Card>
-
-    <Card v-if="auditLogs.length > 0">
-      <CardHeader>
-        <CardTitle>最近审计记录</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-2 text-sm">
-        <div
-          v-for="log in auditLogs.slice(0, 5)"
-          :key="log.id"
-          class="rounded-md border bg-background px-3 py-2"
-        >
-          <div class="font-medium">{{ log.action }}</div>
-          <div class="text-muted-foreground">{{ log.operator }} · {{ log.createdAt }}</div>
-        </div>
-      </CardContent>
-    </Card>
+    <SupplierLinkedMaterialsPanel
+      :selected-supplier="selectedSupplier"
+      :linked-materials="linkedMaterials"
+      :loading="linkedMaterialsLoading"
+    />
 
     <Dialog :open="isEditDialogOpen" @update:open="isEditDialogOpen = $event">
       <DialogContent class="sm:max-w-[425px]">

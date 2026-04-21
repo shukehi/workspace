@@ -14,6 +14,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, Plus, Edit2 } from 'lucide-vue-next';
 import { useMaterialManagementPageState } from '@/features/materials/composables/useMaterialManagementPageState';
+import MaterialAuditPanel from '@/features/master-data/components/MaterialAuditPanel.vue';
+import MaterialDiagnosticsPanel from '@/features/master-data/components/MaterialDiagnosticsPanel.vue';
+import MaterialSummaryCards from '@/features/master-data/components/MaterialSummaryCards.vue';
 
 const {
   materials,
@@ -67,172 +70,17 @@ const {
       </CardContent>
     </Card>
 
-    <div class="grid gap-4 md:grid-cols-3">
-      <Card>
-        <CardContent class="p-4 space-y-1">
-          <div class="text-sm text-muted-foreground">物料总数</div>
-          <div class="text-2xl font-semibold">{{ relationshipHealth.totalMaterials }}</div>
-          <div class="text-xs text-muted-foreground">当前列表中的主数据物料条目</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4 space-y-1">
-          <div class="text-sm text-muted-foreground">已正式链接</div>
-          <div class="text-2xl font-semibold text-emerald-700">{{ relationshipHealth.linkedMaterialCount }}</div>
-          <div class="text-xs text-muted-foreground">已关联 Supplier Master 的物料数</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4 space-y-1">
-          <div class="text-sm text-muted-foreground">关系异常数</div>
-          <div class="text-2xl font-semibold text-amber-700">
-            {{ relationshipHealth.unlinkedMaterialCount + relationshipHealth.inactiveSupplierLinkedMaterialCount }}
-          </div>
-          <div class="text-xs text-muted-foreground">未关联 / 链接到 inactive Supplier Master</div>
-        </CardContent>
-      </Card>
-    </div>
+    <MaterialSummaryCards :health="relationshipHealth" />
 
-    <div v-if="referenceCheck" class="grid gap-4 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>主数据引用检查</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2 text-sm">
-          <div v-if="!referenceCheck.hasIssues" class="text-emerald-700">当前未发现主数据引用问题</div>
-          <div v-if="referenceCheck.unlinkedMaterialCount" class="rounded-md border bg-background px-3 py-2">
-            未关联 Supplier Master 的物料：{{ referenceCheck.unlinkedMaterialCount }}
-          </div>
-          <div v-if="referenceCheck.missingMaterialCodes.length > 0" class="rounded-md border bg-background px-3 py-2">
-            缺失物料编码：{{ referenceCheck.missingMaterialCodes.join('，') }}
-          </div>
-          <div v-if="referenceCheck.suppliersMissingInSupplierMaster.length > 0" class="rounded-md border bg-background px-3 py-2">
-            未出现在 Supplier Master 中的供应商：{{ referenceCheck.suppliersMissingInSupplierMaster.join('，') }}
-          </div>
-        </CardContent>
-      </Card>
+    <MaterialDiagnosticsPanel
+      :reference-check="referenceCheck"
+      :relationship-health="relationshipHealth"
+      :actionable-groups="actionableRelationshipGroups"
+      @auto-relink="autoRelinkMaterial"
+      @open-edit="openEditDialog"
+    />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>引用路径样例</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2 text-sm">
-          <div
-            v-for="item in referenceCheck.supplierRefItems?.slice(0, 5) || []"
-            :key="`supplier-ref-${item.path}-${item.value}`"
-            class="rounded-md border bg-background px-3 py-2"
-          >
-            <div class="font-medium">{{ item.path }}</div>
-            <div class="text-muted-foreground">{{ item.value }}</div>
-          </div>
-          <div v-if="(referenceCheck.supplierRefItems?.length || 0) === 0" class="text-muted-foreground">
-            暂无 supplier 引用路径
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card v-if="relationshipHealth.unlinkedMaterialSamples.length > 0 || relationshipHealth.inactiveSupplierLinkedMaterials.length > 0">
-        <CardHeader>
-          <CardTitle>关系异常分组</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-3 text-sm">
-          <div v-if="relationshipHealth.unlinkedMaterialSamples.length > 0">
-            <div class="font-medium mb-2">未关联 Supplier Master 的物料</div>
-            <div
-              v-for="item in relationshipHealth.unlinkedMaterialSamples"
-              :key="`unlinked-material-${item.path}-${item.code}`"
-              class="rounded-md border bg-background px-3 py-2 mb-2"
-            >
-              <div class="font-medium">{{ item.code }}</div>
-              <div class="text-muted-foreground">{{ item.supplier || '未填写供应商' }}</div>
-            </div>
-          </div>
-          <div v-if="relationshipHealth.inactiveSupplierLinkedMaterials.length > 0">
-            <div class="font-medium mb-2">链接到 inactive Supplier Master</div>
-            <div
-              v-for="item in relationshipHealth.inactiveSupplierLinkedMaterials"
-              :key="`inactive-linked-material-${item.code}`"
-              class="rounded-md border bg-background px-3 py-2 mb-2"
-            >
-              <div class="font-medium">{{ item.code }}</div>
-              <div class="text-muted-foreground">{{ item.supplier }} · {{ item.supplierMasterName }}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-
-    <div
-      v-if="actionableRelationshipGroups.autoFixCandidates.length > 0 || actionableRelationshipGroups.manualReviewCandidates.length > 0"
-      class="grid gap-4 md:grid-cols-2"
-    >
-      <Card v-if="actionableRelationshipGroups.autoFixCandidates.length > 0">
-        <CardHeader>
-          <CardTitle>可自动修复</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2 text-sm">
-          <div
-            v-for="item in actionableRelationshipGroups.autoFixCandidates"
-            :key="`auto-fix-${item.id}`"
-            class="rounded-md border bg-background px-3 py-2"
-          >
-            <div class="font-medium">{{ item.code }} · {{ item.name }}</div>
-            <div class="text-muted-foreground">
-              {{ item.supplier }} → 建议关联 {{ item.suggestedSupplierMaster?.supplierName }}
-            </div>
-            <div class="mt-2">
-              <Button size="sm" variant="outline" @click="autoRelinkMaterial(item)">
-                自动重连
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card v-if="actionableRelationshipGroups.manualReviewCandidates.length > 0">
-        <CardHeader>
-          <CardTitle>需人工处理</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2 text-sm">
-          <div
-            v-for="item in actionableRelationshipGroups.manualReviewCandidates"
-            :key="`manual-review-${item.id}`"
-            class="rounded-md border bg-background px-3 py-2"
-          >
-            <div class="font-medium">{{ item.code }} · {{ item.name }}</div>
-            <div class="text-muted-foreground">
-              <template v-if="item.supplierMaster?.status === 'inactive'">
-                当前链接的 Supplier Master 已 inactive
-              </template>
-              <template v-else>
-                未找到可自动匹配的 Supplier Master
-              </template>
-            </div>
-            <div class="mt-2">
-              <Button size="sm" variant="outline" @click="openEditDialog(item)">
-                打开编辑
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-
-    <Card v-if="auditLogs.length > 0">
-      <CardHeader>
-        <CardTitle>最近审计记录</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-2 text-sm">
-        <div
-          v-for="log in auditLogs.slice(0, 5)"
-          :key="log.id"
-          class="rounded-md border bg-background px-3 py-2"
-        >
-          <div class="font-medium">{{ log.action }}</div>
-          <div class="text-muted-foreground">{{ log.operator }} · {{ log.createdAt }}</div>
-        </div>
-      </CardContent>
-    </Card>
+    <MaterialAuditPanel :audit-logs="auditLogs" />
 
     <Card class="flex-1 min-h-0">
       <CardContent class="p-0 h-full overflow-auto">
