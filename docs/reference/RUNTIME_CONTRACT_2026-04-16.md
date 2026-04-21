@@ -49,22 +49,21 @@
 `src/services/configRepository.ts`
 
 #### materials
-1. `/api/config/material-catalog/published`
-2. `/api/config/materials`
-3. `/data/materials-catalog.json`
+1. `/api/config/profiles/material_catalog/detail`
+2. `/data/materials-catalog.json`
 
 #### formulas
-- `/api/config/formulas/published-map`
+- `/api/config/profiles/formulas/detail`
 - 当前没有 static fallback
 
 #### mappings
-- `/api/config/mappings/:type/published`
+- `/api/config/profiles/:type/detail`
 - 当前没有 static fallback
 - 属于 fail-closed
 
 ### 2.3 运行时结论
 - materials 允许 fallback 到 static
-- mappings 不允许 fallback，published payload 缺失就应视为运行时配置不完整
+- mappings 不允许 fallback，profile published/detail payload 缺失就应视为运行时配置不完整
 - formulas 当前允许降级，不阻断 app mount
 
 ---

@@ -3,9 +3,9 @@ import { computed, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
+import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
-import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { useProfileEditor } from '@/features/config-editor/composables/useProfileEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
@@ -156,9 +156,10 @@ async function scrollToFirstIssue() {
   });
 }
 
-const editor = useMappingConfigEditor<HandleMappingConfig>({
+const editor = useProfileEditor<HandleMappingConfig>({
   endpoint: CONFIG_ENDPOINTS.HANDLE.path,
   workflowProfileCode: CONFIG_ENDPOINTS.HANDLE.profile,
+  workflowBasePath: CONFIG_ENDPOINTS.HANDLE.basePath,
   loadErrorDescription: '无法读取拉手映射配置',
   saveSuccessDescription: '拉手映射已更新',
   getPayload: () => payload.value,
@@ -174,7 +175,7 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout
+  <ProfileEditorHost
     title="拉手配置"
     description="维护拉手单双活映射、门厚配件包与人工处理策略。"
     :editor="editor"
@@ -277,5 +278,5 @@ onMounted(editor.load);
         </CardContent>
       </Card>
     </div>
-  </ConfigPageLayout>
+  </ProfileEditorHost>
 </template>

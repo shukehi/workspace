@@ -10,9 +10,12 @@ import InventoryMovement from './InventoryMovement';
 import InventoryOutbound from './InventoryOutbound';
 import InventoryOutboundItem from './InventoryOutboundItem';
 import Material from './Material';
+import MaterialMasterAuditLog from './MaterialMasterAuditLog';
 import MaterialCatalogProfile from './MaterialCatalogProfile';
 import MaterialCatalogRevision from './MaterialCatalogRevision';
 import MaterialCatalogAuditLog from './MaterialCatalogAuditLog';
+import SupplierMaster from './SupplierMaster';
+import SupplierMasterAuditLog from './SupplierMasterAuditLog';
 import ErpContract from './ErpContract';
 import FormulaDefinition from './FormulaDefinition';
 import FormulaRevision from './FormulaRevision';
@@ -50,6 +53,8 @@ import type {
 export type MaterialInstance = ModelInstance<MaterialAttributes, MaterialCreationAttributes> & {
     locationBalances?: InventoryLocationBalanceInstance[];
     outboundItems?: InventoryOutboundItemInstance[];
+    supplierMaster?: SupplierMasterInstance | null;
+    auditLogs?: MaterialMasterAuditLogInstance[];
 };
 export type OrderInstance = ModelInstance<OrderAttributes, OrderCreationAttributes> & {
     items?: OrderItemInstance[];
@@ -96,6 +101,7 @@ export type InventoryOutboundItemInstance = ModelInstance<InventoryOutboundItemA
     outbound?: InventoryOutboundInstance | null;
     material?: MaterialInstance | null;
 };
+export type MaterialMasterAuditLogInstance = ModelInstance<import('./MaterialMasterAuditLog').MaterialMasterAuditLogAttributes, import('./MaterialMasterAuditLog').MaterialMasterAuditLogCreationAttributes>;
 export type FormulaDefinitionInstance = ModelInstance<FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes>;
 export type FormulaRevisionInstance = ModelInstance<FormulaRevisionAttributes, FormulaRevisionCreationAttributes>;
 export type FormulaAuditLogInstance = ModelInstance<FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes>;
@@ -106,6 +112,8 @@ export type MappingUnmatchedEventInstance = ModelInstance<MappingUnmatchedEventA
 export type MaterialCatalogProfileInstance = ModelInstance<MaterialCatalogProfileAttributes, MaterialCatalogProfileCreationAttributes>;
 export type MaterialCatalogRevisionInstance = ModelInstance<MaterialCatalogRevisionAttributes, MaterialCatalogRevisionCreationAttributes>;
 export type MaterialCatalogAuditLogInstance = ModelInstance<MaterialCatalogAuditLogAttributes, MaterialCatalogAuditLogCreationAttributes>;
+export type SupplierMasterInstance = ModelInstance<import('./SupplierMaster').SupplierMasterAttributes, import('./SupplierMaster').SupplierMasterCreationAttributes> & { auditLogs?: SupplierMasterAuditLogInstance[] };
+export type SupplierMasterAuditLogInstance = ModelInstance<import('./SupplierMasterAuditLog').SupplierMasterAuditLogAttributes, import('./SupplierMasterAuditLog').SupplierMasterAuditLogCreationAttributes>;
 
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
@@ -118,6 +126,12 @@ Warehouse.hasMany(InventoryLocation, { foreignKey: 'warehouse_id', as: 'location
 InventoryLocation.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
 Material.hasMany(InventoryLocationBalance, { foreignKey: 'material_id', as: 'locationBalances', onDelete: 'CASCADE' });
 InventoryLocationBalance.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
+Material.hasMany(MaterialMasterAuditLog, { foreignKey: 'material_id', as: 'auditLogs', onDelete: 'CASCADE' });
+MaterialMasterAuditLog.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
+SupplierMaster.hasMany(Material, { foreignKey: 'supplier_master_id', as: 'materials', onDelete: 'SET NULL' });
+Material.belongsTo(SupplierMaster, { foreignKey: 'supplier_master_id', as: 'supplierMaster' });
+SupplierMaster.hasMany(SupplierMasterAuditLog, { foreignKey: 'supplier_master_id', as: 'auditLogs', onDelete: 'CASCADE' });
+SupplierMasterAuditLog.belongsTo(SupplierMaster, { foreignKey: 'supplier_master_id', as: 'supplierMaster' });
 Warehouse.hasMany(InventoryLocationBalance, { foreignKey: 'warehouse_id', as: 'locationBalances', onDelete: 'CASCADE' });
 InventoryLocationBalance.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
 InventoryLocation.hasMany(InventoryLocationBalance, { foreignKey: 'location_id', as: 'balances', onDelete: 'CASCADE' });
@@ -187,9 +201,12 @@ export {
     InventoryOutbound,
     InventoryOutboundItem,
     Material,
+    MaterialMasterAuditLog,
     MaterialCatalogProfile,
     MaterialCatalogRevision,
     MaterialCatalogAuditLog,
+    SupplierMaster,
+    SupplierMasterAuditLog,
     ErpContract,
     FormulaDefinition,
     FormulaRevision,

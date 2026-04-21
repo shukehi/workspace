@@ -3,10 +3,10 @@ import { computed, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
+import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
 import RuleExplainPlayground from '@/features/config-editor/components/RuleExplainPlayground.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
-import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { useProfileEditor } from '@/features/config-editor/composables/useProfileEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
 import {
   useRuleExplainPreview,
@@ -199,9 +199,10 @@ function resetWithPayload(data: CylinderMappingConfig) {
   baselineSnapshot.value = JSON.stringify(payload.value);
 }
 
-const editor = useMappingConfigEditor<CylinderMappingConfig>({
+const editor = useProfileEditor<CylinderMappingConfig>({
   endpoint: CONFIG_ENDPOINTS.CYLINDER.path,
   workflowProfileCode: CONFIG_ENDPOINTS.CYLINDER.profile,
+  workflowBasePath: CONFIG_ENDPOINTS.CYLINDER.basePath,
   loadErrorDescription: '无法读取锁芯映射配置',
   saveSuccessDescription: '锁芯映射已更新',
   getPayload: () => payload.value,
@@ -222,7 +223,7 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout
+  <ProfileEditorHost
     title="锁芯配置"
     description="维护锁芯规格、规则与供应商映射。"
     :editor="editor"
@@ -362,5 +363,5 @@ onMounted(editor.load);
         <Card><CardHeader><CardTitle>排除锁芯</CardTitle></CardHeader><CardContent><ConfigTable :columns="[{key:'value',label:'锁芯名称'}]" :rows="excludedCylinders.list.value" @add="excludedCylinders.add()" @remove="excludedCylinders.remove"><template #cell-value="{row}"><Input v-model="row.value" /></template></ConfigTable></CardContent></Card>
       </div>
     </div>
-  </ConfigPageLayout>
+  </ProfileEditorHost>
 </template>

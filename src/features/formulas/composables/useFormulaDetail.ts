@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue';
-import { formulaApi } from '@/services/formulaApi';
+import { formulaProfileApi } from '@/services/formulaProfileApi';
 import type { FormulaBOMItem, FormulaDetail, FormulaRevisionMeta } from '@/types/formula';
 
 interface FormulaDetailApi {
@@ -38,7 +38,7 @@ export function useFormulaDetail(options: UseFormulaDetailOptions) {
     validationErrors,
     resetDraftWithDetail,
     onLoadError,
-    api = formulaApi,
+    api = formulaProfileApi,
   } = options;
 
   const detailLoading = ref(false);

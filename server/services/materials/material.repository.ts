@@ -5,7 +5,7 @@ import type {
     MaterialCreationAttributes,
 } from '../../models/types';
 
-import { Material } from '../../models';
+import { Material, SupplierMaster } from '../../models';
 import sequelize from '../../config/database';
 
 /**
@@ -17,11 +17,12 @@ interface MaterialInstance extends Model<MaterialAttributes, MaterialCreationAtt
  * 物料数据访问层 (Repository) - 最高标准封装
  */
 export class MaterialRepository {
+    static readonly SUPPLIER_MASTER_INCLUDE = [{ model: SupplierMaster, as: 'supplierMaster', required: false }];
     /**
      * 根据 ID 查找物料
      */
     static async findById(id: number, transaction?: Transaction): Promise<any> {
-        return Material.findByPk(id, { transaction });
+        return Material.findByPk(id, { transaction, include: this.SUPPLIER_MASTER_INCLUDE });
     }
 
     /**
@@ -63,14 +64,14 @@ export class MaterialRepository {
                 { supplier: { [Op.like]: `%${query}%` } }
             ];
         }
-        return Material.findAll({ where, limit });
+        return Material.findAll({ where, limit, include: this.SUPPLIER_MASTER_INCLUDE });
     }
 
     /**
      * 获取所有物料
      */
     static async findAll(): Promise<any[]> {
-        return Material.findAll();
+        return Material.findAll({ include: this.SUPPLIER_MASTER_INCLUDE });
     }
 
     /**

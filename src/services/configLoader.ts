@@ -17,6 +17,7 @@ import {
     type ConfigRepository,
     type ConfigSource,
     type MappingKind,
+    type RuntimeConfigSnapshot,
 } from '@/services/configRepository';
 import type { CylinderMappingConfig, HandleMappingConfig, LockForkMappingConfig, LockMappingConfig, PackagingMappingConfig } from '@/types/mapping';
 import type { SourceAnalysisConfig } from '@/types/sourceAnalysis';
@@ -45,6 +46,7 @@ export class ConfigLoaderService {
     private materialCatalog: MaterialCatalog = {};
     private colorFormulas: ColorFormulas = {};
     private isLoaded = false;
+    private runtimeVersion = '';
     private loadSources: ConfigLoadSources = {
         materials: 'empty',
         formulas: 'empty',
@@ -65,6 +67,61 @@ export class ConfigLoaderService {
 
     constructor(private readonly repository: ConfigRepository = createDefaultConfigRepository()) {}
 
+    private applyRuntimeSnapshot(snapshot: RuntimeConfigSnapshot, source: ConfigSource) {
+        const profiles = (snapshot?.profiles || {}) as RuntimeConfigSnapshot['profiles'];
+        if (!profiles.material_catalog || typeof profiles.material_catalog !== 'object') {
+            throw new Error('Runtime config snapshot is missing material_catalog');
+        }
+
+        const requiredMappings: Array<{ key: keyof ConfigLoadSources; payload: unknown }> = [
+            { key: 'packaging', payload: profiles.packaging },
+            { key: 'cylinder', payload: profiles.cylinder },
+            { key: 'lock', payload: profiles.lock },
+            { key: 'handle', payload: profiles.handle },
+            { key: 'lockFork', payload: profiles.lock_fork },
+        ];
+        for (const mapping of requiredMappings) {
+            if (!mapping.payload || typeof mapping.payload !== 'object') {
+                throw new Error(`Runtime config snapshot is missing ${mapping.key}`);
+            }
+        }
+
+        this.materialCatalog = DataNormalizer.normalizeMaterialCatalog(profiles.material_catalog as MaterialCatalog);
+        this.colorFormulas = profiles.formulas && typeof profiles.formulas === 'object'
+            ? profiles.formulas
+            : {};
+        this.applyRuntimeMapping('packaging', profiles.packaging);
+        this.applyRuntimeMapping('cylinder', profiles.cylinder);
+        this.applyRuntimeMapping('lock', profiles.lock);
+        this.applyRuntimeMapping('handle', profiles.handle);
+        this.applyRuntimeMapping('lockFork', profiles.lock_fork);
+
+        this.runtimeVersion = String(snapshot.version || '').trim();
+        this.loadSources = {
+            materials: source,
+            formulas: source,
+            cylinder: source,
+            lock: source,
+            lockFork: source,
+            packaging: source,
+            handle: source,
+        };
+    }
+
+    private async tryLoadRuntimeSnapshot(): Promise<boolean> {
+        if (typeof this.repository.readRuntimeSnapshot !== 'function') return false;
+
+        try {
+            const result = await this.repository.readRuntimeSnapshot();
+            this.applyRuntimeSnapshot(result.payload, result.source);
+            this.isLoaded = true;
+            return true;
+        } catch (error) {
+            console.warn('⚠️ loadRuntimeSnapshot failed, falling back to granular config reads', error);
+            return false;
+        }
+    }
+
     /**
      * Bootstrap runtime configuration before the app mounts.
      *
@@ -76,19 +133,22 @@ export class ConfigLoaderService {
         if (this.isLoaded) return;
 
         try {
-            await Promise.all([
-                this.loadMaterials(),
-                this.loadCylinderMapping(),
-                this.loadLockMapping(),
-                this.loadLockForkMapping(),
-                this.loadPackagingMapping(),
-                this.loadHandleMapping()
-            ]);
-            try {
-                await this.loadFormulas();
-            } catch (e) {
-                // Formula API can be temporarily unavailable; keep app usable with cached/empty formulas.
-                console.warn('⚠️ loadFormulas failed during loadAll, continue with fallback formulas', e);
+            const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+            if (!loadedFromSnapshot) {
+                await Promise.all([
+                    this.loadMaterials(),
+                    this.loadCylinderMapping(),
+                    this.loadLockMapping(),
+                    this.loadLockForkMapping(),
+                    this.loadPackagingMapping(),
+                    this.loadHandleMapping()
+                ]);
+                try {
+                    await this.loadFormulas();
+                } catch (e) {
+                    // Formula API can be temporarily unavailable; keep app usable with cached/empty formulas.
+                    console.warn('⚠️ loadFormulas failed during loadAll, continue with fallback formulas', e);
+                }
             }
             this.isLoaded = true;
         } catch (e) {
@@ -166,6 +226,8 @@ export class ConfigLoaderService {
     }
 
     async refreshFormulas() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         try {
             await this.loadFormulasFromRepository();
         } catch (e) {
@@ -176,30 +238,44 @@ export class ConfigLoaderService {
     }
 
     async refreshMaterials() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         await this.loadMaterials();
     }
 
     async refreshPackagingMapping() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         await this.loadPackagingMapping();
     }
 
     async refreshCylinderMapping() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         await this.loadCylinderMapping();
     }
 
     async refreshLockForkMapping() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         await this.loadLockForkMapping();
     }
 
     async refreshLockMapping() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         await this.loadLockMapping();
     }
 
     async refreshHandleMapping() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         await this.loadHandleMapping();
     }
 
     async refreshSourceAnalysisInputs() {
+        const loadedFromSnapshot = await this.tryLoadRuntimeSnapshot();
+        if (loadedFromSnapshot) return;
         await this.loadAll();
         await this.refreshMaterials();
         await this.refreshFormulas();
@@ -224,6 +300,7 @@ export class ConfigLoaderService {
     getLockForkMapping() { return this.lockForkMapping; }
     getPackagingMapping() { return this.packagingMapping; }
     getHandleMapping() { return this.handleMapping; }
+    getRuntimeVersion() { return this.runtimeVersion; }
     getLoadSources() { return { ...this.loadSources }; }
 }
 

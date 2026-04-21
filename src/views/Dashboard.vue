@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { api } from '@/lib/api'
+import { formulaProfileApi } from '@/services/formulaProfileApi'
 
 interface DashboardStat {
   label: string;
@@ -20,7 +21,7 @@ async function fetchStats() {
     const [ordersRes, inventoryRes, formulasRes] = await Promise.all([
       api.get<any[]>('/orders'),
       api.get<any[]>('/inventory'),
-      api.get<any>('/config/formulas')
+      formulaProfileApi.list({ page: 1, pageSize: 1 })
     ]);
 
     const orders = Array.isArray(ordersRes) ? ordersRes : [];

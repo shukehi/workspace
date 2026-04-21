@@ -19,6 +19,7 @@ export interface MaterialAttributes {
     name: string;
     model?: string | null;
     supplier?: string | null;
+    supplier_master_id?: number | null;
     unit: string;
     price: number;
     category?: string | null;
@@ -36,6 +37,7 @@ export interface MaterialCreationAttributes {
     name: string;
     model?: string | null;
     supplier?: string | null;
+    supplier_master_id?: number | null;
     unit?: string;
     price?: number;
     category?: string | null;

@@ -24,18 +24,20 @@ function rgFiles(pattern: string, roots: string[] = ['src']): string[] {
 
 test('config source guard: workflow published endpoints must be the default mapping sources', () => {
   const repository = read('src/services/configRepository.ts');
-  assert.notEqual(repository.indexOf('/api/config/mappings/${workflowType}/published'), -1);
-  assert.notEqual(repository.indexOf('/api/config/material-catalog/published'), -1);
+  assert.notEqual(repository.indexOf('/api/config/profiles/${workflowType}/detail'), -1);
+  assert.notEqual(repository.indexOf('/api/config/profiles/material_catalog/detail'), -1);
 });
 
 test('config source guard: legacy config endpoints stay isolated to repository and compatibility tests', () => {
   assert.deepEqual(
     rgFiles('/api/config/materials', ['src', 'tests']).sort(),
-    ['src/services/configRepository.ts', 'tests/config-endpoint-source-guard.test.ts', 'tests/config-routes.test.ts'],
+    [
+      'tests/config-endpoint-source-guard.test.ts',
+    ],
   );
   assert.deepEqual(
     rgFiles('/api/config/packaging', ['src', 'tests']).sort(),
-    ['tests/config-endpoint-source-guard.test.ts', 'tests/config-routes.test.ts'],
+    ['tests/config-endpoint-source-guard.test.ts'],
   );
   assert.deepEqual(
     rgFiles('/api/config/cylinder', ['src', 'tests']).sort(),
@@ -43,11 +45,15 @@ test('config source guard: legacy config endpoints stay isolated to repository a
   );
   assert.deepEqual(
     rgFiles('/api/config/lock', ['src', 'tests']).sort(),
-    ['tests/config-endpoint-source-guard.test.ts', 'tests/config-routes.test.ts'],
+    ['tests/config-endpoint-source-guard.test.ts'],
   );
   assert.deepEqual(
     rgFiles('/api/config/handle', ['src', 'tests']).sort(),
-    ['tests/config-endpoint-source-guard.test.ts', 'tests/config-routes.test.ts'],
+    ['tests/config-endpoint-source-guard.test.ts'],
+  );
+  assert.deepEqual(
+    rgFiles('/api/config/packaging-mapping', ['src', 'tests']).sort(),
+    ['tests/config-endpoint-source-guard.test.ts'],
   );
 });
 
@@ -61,11 +67,46 @@ test('config source guard: static JSON fallback reads are removed for mappings',
 });
 
 test('config source guard: src must not add new direct dependencies on legacy compatibility routes', () => {
-  assert.deepEqual(rgFiles('/api/config/materials', ['src']).sort(), ['src/services/configRepository.ts']);
+  assert.deepEqual(rgFiles('/api/config/materials', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/packaging', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/cylinder', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/lock', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/lock-fork', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/handle', ['src']).sort(), []);
   assert.deepEqual(rgFiles('/api/config/packaging-mapping', ['src']).sort(), []);
+});
+
+test('config source guard: front-end direct `/config/formulas` reads stay isolated behind formula adapter files only', () => {
+  assert.deepEqual(
+    rgFiles('/config/formulas', ['src']).sort(),
+    [],
+  );
+});
+
+test('config source guard: compatibility shims must not regain production consumers', () => {
+  assert.equal(fs.existsSync(`${ROOT}/src/features/config-editor/composables/useMappingConfigEditor.ts`), false);
+  assert.equal(fs.existsSync(`${ROOT}/src/services/formulaApi.ts`), false);
+  assert.equal(fs.existsSync(`${ROOT}/src/features/config-editor/components/ConfigPageLayout.vue`), false);
+  assert.deepEqual(rgFiles('ConfigPageLayout', ['src']).sort(), []);
+  assert.deepEqual(rgFiles('useMappingConfigEditor', ['src']).sort(), []);
+  assert.deepEqual(rgFiles('formulaApi', ['src']).sort(), []);
+});
+
+test('config source guard: legacy route mounts stay isolated to dedicated bridge contract tests', () => {
+  assert.deepEqual(
+    rgFiles("app.use\\('/api/config/formulas'", ['tests']).sort(),
+    [],
+  );
+  assert.deepEqual(
+    rgFiles("app.use\\('/api/config/material-catalog'", ['tests']).sort(),
+    [],
+  );
+  assert.deepEqual(
+    rgFiles("app.use\\('/api/config/materials'", ['tests']).sort(),
+    [],
+  );
+  assert.deepEqual(
+    rgFiles("app.use\\('/api/config/mappings'", ['tests']).sort(),
+    [],
+  );
 });

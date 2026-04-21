@@ -1,5 +1,10 @@
 # Legacy 配置接口退场策略（2026-03-10）
 
+> 历史治理文档。
+> 当前运行时 legacy bridge 已经移除；请优先参考：
+> - `docs/governance/CONFIG_CENTER_REFACTOR_HANDOFF_2026-04-21.md`
+> - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_REFACTOR_FINAL_SUMMARY_2026-04-21.md`
+
 ## 目的
 
 当前配置域已经形成两层接口：

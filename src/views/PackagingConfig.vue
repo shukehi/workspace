@@ -2,9 +2,9 @@
 import { computed, onMounted, ref } from 'vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
+import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
-import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { useProfileEditor } from '@/features/config-editor/composables/useProfileEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
@@ -67,9 +67,10 @@ function resetWithPayload(data: PackagingMappingConfig) {
   baselineSnapshot.value = JSON.stringify(sorted);
 }
 
-const editor = useMappingConfigEditor<PackagingMappingConfig>({
+const editor = useProfileEditor<PackagingMappingConfig>({
   endpoint: CONFIG_ENDPOINTS.PACKAGING.path,
   workflowProfileCode: CONFIG_ENDPOINTS.PACKAGING.profile,
+  workflowBasePath: CONFIG_ENDPOINTS.PACKAGING.basePath,
   loadErrorDescription: '无法读取包装映射配置',
   saveSuccessDescription: '包装映射已更新',
   getPayload: () => payload.value,
@@ -87,7 +88,7 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout
+  <ProfileEditorHost
     title="包装配置"
     description="管理包装名称映射。"
     :editor="editor"
@@ -127,5 +128,5 @@ onMounted(editor.load);
         </ConfigTable>
       </CardContent>
     </Card>
-  </ConfigPageLayout>
+  </ProfileEditorHost>
 </template>

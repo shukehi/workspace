@@ -1,6 +1,8 @@
 import type { Transaction } from 'sequelize';
 import type { MaterialAttributes, MaterialCreationAttributes } from '../models/types';
 import MaterialRepository from './materials/material.repository';
+import { SupplierMaster } from '../models';
+import { createMaterialMasterAuditLog } from './config-platform/material-master.audit';
 
 // 解决循环依赖或 JS/TS 混合环境下使用的延迟引用
 const getErrorInfrastructures = () => {
@@ -14,12 +16,67 @@ const getErrorInfrastructures = () => {
  * 负责业务逻辑编排、事务传播与智能匹配
  */
 export class MaterialService {
+    private toPlainMaterial(material: any): MaterialAttributes & {
+        supplierMaster?: { id: number; supplier_name: string; normalized_name: string; status: string } | null;
+    } {
+        const plain = material.get({ plain: true });
+        const supplierMaster = plain.supplierMaster
+            ? {
+                id: Number(plain.supplierMaster.id),
+                supplier_name: String(plain.supplierMaster.supplier_name || ''),
+                normalized_name: String(plain.supplierMaster.normalized_name || ''),
+                status: String(plain.supplierMaster.status || 'active'),
+            }
+            : null;
+        return {
+            ...plain,
+            supplierMaster,
+        };
+    }
+
+    private async resolveSupplierMasterId(supplier: unknown, transaction?: Transaction): Promise<number | null> {
+        const normalizedSupplier = String(supplier || '').trim();
+        if (!normalizedSupplier) return null;
+
+        const match = await SupplierMaster.findOne({
+            where: {
+                // sqlite-friendly dual match without custom operators
+                supplier_name: normalizedSupplier,
+            },
+            transaction,
+        }) || await SupplierMaster.findOne({
+            where: {
+                normalized_name: normalizedSupplier.toLowerCase(),
+            },
+            transaction,
+        });
+
+        const plain = match && typeof (match as any).get === 'function'
+            ? (match as any).get({ plain: true })
+            : match;
+        const id = Number((plain as any)?.id || 0);
+        return Number.isInteger(id) && id > 0 ? id : null;
+    }
+
+    private async resolveExplicitSupplierMasterId(value: unknown, transaction?: Transaction): Promise<number | null> {
+        if (value === undefined) return null;
+        if (value === null || value === '') return null;
+        const id = Number(value);
+        if (!Number.isInteger(id) || id <= 0) return null;
+        const match = await SupplierMaster.findByPk(id, { transaction });
+        const plain = match && typeof (match as any).get === 'function'
+            ? (match as any).get({ plain: true })
+            : match;
+        const foundId = Number((plain as any)?.id || 0);
+        return Number.isInteger(foundId) && foundId > 0 ? foundId : null;
+    }
+
     /**
      * 搜索物料
      */
     async searchMaterials(query = ''): Promise<MaterialAttributes[]> {
         const materials = await MaterialRepository.search(query);
-        return materials.map(m => m.get({ plain: true }));
+        return materials.map(m => this.toPlainMaterial(m));
     }
 
     /**
@@ -27,15 +84,30 @@ export class MaterialService {
      */
     async getAllMaterials(): Promise<MaterialAttributes[]> {
         const materials = await MaterialRepository.findAll();
-        return materials.map(m => m.get({ plain: true }));
+        return materials.map(m => this.toPlainMaterial(m));
     }
 
     /**
      * 创建物料
      */
     async createMaterial(data: MaterialCreationAttributes, transaction?: Transaction): Promise<MaterialAttributes> {
-        const material = await MaterialRepository.create(data, transaction);
-        return material.get({ plain: true });
+        const explicitSupplierMasterId = await this.resolveExplicitSupplierMasterId((data as any).supplier_master_id, transaction);
+        const material = await MaterialRepository.create({
+            ...data,
+            supplier_master_id: explicitSupplierMasterId ?? await this.resolveSupplierMasterId(data.supplier, transaction),
+        }, transaction);
+        const created = await MaterialRepository.findById((material.get({ plain: true }) as MaterialAttributes).id, transaction);
+        const result = this.toPlainMaterial(created || material);
+        await createMaterialMasterAuditLog({
+            materialId: result.id,
+            action: 'create',
+            meta: {
+                code: result.code,
+                supplier: result.supplier,
+                supplier_master_id: result.supplier_master_id ?? null,
+            },
+        });
+        return result;
     }
 
     /**
@@ -54,14 +126,38 @@ export class MaterialService {
         }
         
         // 执行更新逻辑
-        await MaterialRepository.update(id, data, transaction);
+        const hasSupplierMasterIdOverride = Object.prototype.hasOwnProperty.call(data, 'supplier_master_id');
+        const explicitSupplierMasterId = await this.resolveExplicitSupplierMasterId((data as any).supplier_master_id, transaction);
+        const currentMaterial = materialInstance.get({ plain: true }) as MaterialAttributes;
+        const nextSupplier = data.supplier === undefined ? currentMaterial.supplier : data.supplier;
+        const nextSupplierMasterId = explicitSupplierMasterId !== null
+            ? explicitSupplierMasterId
+            : hasSupplierMasterIdOverride
+                ? await this.resolveSupplierMasterId(nextSupplier, transaction)
+                : data.supplier === undefined
+                    ? currentMaterial.supplier_master_id ?? null
+                    : await this.resolveSupplierMasterId(data.supplier, transaction);
+        await MaterialRepository.update(id, {
+            ...data,
+            supplier_master_id: nextSupplierMasterId,
+        }, transaction);
         
         // 重新从数据库加载最新实例，确保返回的对象包含所有触发器、默认值或 hooks 改动
         // 且必须在同一事务上下文中回读以保证隔离性
         const updatedInstance = await MaterialRepository.findById(id, transaction);
         if (!updatedInstance) throw new Error('Consistency Error: Material record lost during update');
 
-        return updatedInstance.get({ plain: true });
+        const result = this.toPlainMaterial(updatedInstance);
+        await createMaterialMasterAuditLog({
+            materialId: result.id,
+            action: 'update',
+            meta: {
+                code: result.code,
+                supplier: result.supplier,
+                supplier_master_id: result.supplier_master_id ?? null,
+            },
+        });
+        return result;
     }
 
     /**

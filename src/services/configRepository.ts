@@ -1,12 +1,31 @@
 export type ConfigSource = 'api' | 'static' | 'memory' | 'empty';
 export type MappingKind = 'packaging' | 'cylinder' | 'lockFork' | 'handle' | 'lock';
 
+export interface RuntimeConfigSnapshot {
+    version: string;
+    publishedAt: string;
+    profiles: {
+        material_catalog: Record<string, unknown>;
+        formulas: Record<string, any>;
+        packaging: unknown;
+        cylinder: unknown;
+        lock: unknown;
+        handle: unknown;
+        lock_fork: unknown;
+    };
+    meta?: {
+        revisions?: Record<string, number | null>;
+        degradedProfiles?: string[];
+    };
+}
+
 export interface ConfigReadResult<T> {
     payload: T;
     source: ConfigSource;
 }
 
 export interface ConfigRepository {
+    readRuntimeSnapshot?(): Promise<ConfigReadResult<RuntimeConfigSnapshot>>;
     readMaterials(): Promise<ConfigReadResult<unknown>>;
     readFormulas(): Promise<ConfigReadResult<Record<string, any>>>;
     readMapping(kind: MappingKind): Promise<ConfigReadResult<unknown>>;
@@ -28,15 +47,32 @@ async function defaultFetchJson(url: string) {
 export class ApiWithStaticFallbackConfigRepository implements ConfigRepository {
     constructor(private readonly fetchJson: FetchJson = defaultFetchJson) {}
 
-    async readMaterials(): Promise<ConfigReadResult<unknown>> {
-        const workflowPayload = await this.fetchJson('/api/config/material-catalog/published');
-        if (workflowPayload !== null) {
-            return { payload: workflowPayload, source: 'api' };
+    async readRuntimeSnapshot(): Promise<ConfigReadResult<RuntimeConfigSnapshot>> {
+        const snapshotPayload = await this.fetchJson('/api/runtime/config-snapshot');
+        if (snapshotPayload === null) {
+            throw new Error('Failed to load runtime config snapshot');
         }
 
-        const apiPayload = await this.fetchJson('/api/config/materials');
-        if (apiPayload !== null) {
-            return { payload: apiPayload, source: 'api' };
+        return {
+            payload: snapshotPayload as RuntimeConfigSnapshot,
+            source: 'api',
+        };
+    }
+
+    private extractDetailPublishedPayload<T>(payload: unknown): T | null {
+        if (!payload || typeof payload !== 'object') return null;
+        const detail = (payload as { detail?: { publishedPayload?: T } }).detail;
+        const publishedPayload = detail?.publishedPayload;
+        return publishedPayload && typeof publishedPayload === 'object'
+            ? publishedPayload
+            : null;
+    }
+
+    async readMaterials(): Promise<ConfigReadResult<unknown>> {
+        const profileDetailPayload = await this.fetchJson('/api/config/profiles/material_catalog/detail');
+        const workflowPayload = this.extractDetailPublishedPayload(profileDetailPayload);
+        if (workflowPayload !== null) {
+            return { payload: workflowPayload, source: 'api' };
         }
 
         const staticPayload = await this.fetchJson('/data/materials-catalog.json');
@@ -48,18 +84,20 @@ export class ApiWithStaticFallbackConfigRepository implements ConfigRepository {
     }
 
     async readFormulas(): Promise<ConfigReadResult<Record<string, any>>> {
-        const { api } = await import('@/lib/api');
-        const payload = await api.get<Record<string, any>>('/config/formulas/published-map');
+        const profilePayload = await this.fetchJson('/api/config/profiles/formulas/detail');
+        const payload = profilePayload && typeof profilePayload === 'object'
+            ? (profilePayload as { detail?: { publishedPayload?: Record<string, any> } }).detail?.publishedPayload
+            : null;
         return {
             payload: payload && typeof payload === 'object' ? payload : {},
-            source: 'api',
+            source: payload && typeof payload === 'object' ? 'api' : 'empty',
         };
     }
 
     async readMapping(kind: MappingKind): Promise<ConfigReadResult<unknown>> {
         const workflowType = kind === 'lockFork' ? 'lock_fork' : kind;
-        const workflowPublishedPath = `/api/config/mappings/${workflowType}/published`;
-        const workflowPayload = await this.fetchJson(workflowPublishedPath);
+        const workflowDetailPath = `/api/config/profiles/${workflowType}/detail`;
+        const workflowPayload = this.extractDetailPublishedPayload(await this.fetchJson(workflowDetailPath));
         if (workflowPayload !== null) {
             return { payload: workflowPayload, source: 'api' };
         }

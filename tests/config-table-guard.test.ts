@@ -32,29 +32,42 @@ test('config table guard: mapping pages rely on ConfigTable add button for confi
 });
 
 test('config layout guard: supports header actions and inline workflow meta for focused pages', () => {
-  const layout = read('src/features/config-editor/components/ConfigPageLayout.vue');
+  const profileHost = read('src/features/config-editor/components/ProfileEditorHost.vue');
+  const centerShell = read('src/features/config-editor/components/ConfigCenterShell.vue');
+  const formulaHost = read('src/features/formulas/components/FormulaProfileHost.vue');
   const packagingConfig = read('src/views/PackagingConfig.vue');
   const lockConfig = read('src/views/LockConfig.vue');
   const cylinderConfig = read('src/views/CylinderConfig.vue');
   const handleConfig = read('src/views/HandleConfig.vue');
   const lockForkConfig = read('src/views/LockForkConfig.vue');
+  const colorFormula = read('src/views/ColorFormula.vue');
 
-  assert.match(layout, /workflowMetaVariant\?: 'cards' \| 'inline'/);
-  assert.match(layout, /actionsPosition\?: 'bottom' \| 'header'/);
-  assert.match(layout, /v-if="\$slots\['header-right'\] \|\| actionsPosition === 'header'"/);
-  assert.match(layout, /当前版本/);
-  assert.match(layout, /已发布版本/);
-  assert.match(layout, /v-if="actionsPosition === 'bottom'"/);
-  assert.doesNotMatch(layout, /Button :disabled="editor\.isLoading\.value \|\| editor\.isSaving\.value \|\| clientIssues\.length > 0"/);
+  assert.match(profileHost, /workflowMetaVariant\?: 'cards' \| 'inline'/);
+  assert.match(profileHost, /actionsPosition\?: 'bottom' \| 'header'/);
+  assert.match(profileHost, /v-if="\$slots\['header-right'\] \|\| actionsPosition === 'header'"/);
+  assert.match(profileHost, /当前版本/);
+  assert.match(profileHost, /已发布版本/);
+  assert.match(profileHost, /配置差异/);
+  assert.match(profileHost, /影响摘要/);
+  assert.match(profileHost, /样本回放/);
+  assert.match(profileHost, /主数据引用检查/);
+  assert.match(profileHost, /Material Ref Paths/);
+  assert.match(profileHost, /Supplier Ref Paths/);
+  assert.match(profileHost, /v-if="actionsPosition === 'bottom'"/);
+  assert.doesNotMatch(profileHost, /Button :disabled="editor\.isLoading\.value \|\| editor\.isSaving\.value \|\| clientIssues\.length > 0"/);
+  assert.match(centerShell, /<slot name="header-right"><\/slot>/);
+  assert.match(centerShell, /<slot name="footer"><\/slot>/);
 
   assert.match(packagingConfig, /workflow-meta-variant="inline"/);
   assert.match(packagingConfig, /actions-position="header"/);
+  assert.match(packagingConfig, /<ProfileEditorHost/);
   assert.match(packagingConfig, /scroll-mode="page"/);
   assert.match(packagingConfig, /<CardTitle>基础配置<\/CardTitle>/);
   assert.match(packagingConfig, /<CardTitle>映射列表<\/CardTitle>/);
 
   assert.match(lockConfig, /workflow-meta-variant="inline"/);
   assert.match(lockConfig, /actions-position="header"/);
+  assert.match(lockConfig, /<ProfileEditorHost/);
   assert.match(lockConfig, /scroll-mode="page"/);
   assert.match(lockConfig, /RuleExplainPlayground/);
   assert.match(lockConfig, /useRuleExplainPreview/);
@@ -71,14 +84,71 @@ test('config layout guard: supports header actions and inline workflow meta for 
 
   assert.match(cylinderConfig, /workflow-meta-variant="inline"/);
   assert.match(cylinderConfig, /actions-position="header"/);
+  assert.match(cylinderConfig, /<ProfileEditorHost/);
   assert.match(cylinderConfig, /未保存/);
   assert.match(cylinderConfig, /scroll-mode="page"/);
 
   assert.match(handleConfig, /workflow-meta-variant="inline"/);
   assert.match(handleConfig, /actions-position="header"/);
+  assert.match(handleConfig, /<ProfileEditorHost/);
   assert.match(handleConfig, /scroll-mode="page"/);
 
   assert.match(lockForkConfig, /workflow-meta-variant="inline"/);
   assert.match(lockForkConfig, /actions-position="header"/);
+  assert.match(lockForkConfig, /<ProfileEditorHost/);
   assert.match(lockForkConfig, /未保存/);
+
+  assert.match(formulaHost, /<ConfigCenterShell/);
+  assert.match(formulaHost, /profile: formulas/);
+  assert.match(formulaHost, /Collection Diff/);
+  assert.match(formulaHost, /Collection Impact/);
+  assert.match(formulaHost, /Collection Replay/);
+  assert.match(formulaHost, /Collection Reference Check/);
+  assert.match(formulaHost, /<FormulaListPanel/);
+  assert.match(formulaHost, /<FormulaEditorHeader/);
+  assert.match(colorFormula, /<FormulaProfileHost :manager="manager" \/>/);
+  assert.doesNotMatch(colorFormula, /<FormulaListPanel/);
+});
+
+test('config navigation guard: supplier master is exposed in config routes and navigation', () => {
+  const nav = read('src/config/nav.ts');
+  const router = read('src/router/index.ts');
+  const sidebar = read('src/layout/Sidebar.vue');
+  const supplierMaster = read('src/views/SupplierMaster.vue');
+  const materialMaster = read('src/views/MaterialManagement.vue');
+
+  assert.match(nav, /supplier-master/);
+  assert.match(nav, /\/config\/suppliers/);
+  assert.match(router, /path: '\/config\/suppliers'/);
+  assert.match(router, /name: 'config-suppliers'/);
+  assert.match(sidebar, /'supplier-master': ClipboardList/);
+  assert.match(supplierMaster, /供应商主数据/);
+  assert.match(supplierMaster, /profile: \{\{ profileDetail\.profile\.code \}\}/);
+  assert.match(supplierMaster, /workflow: \{\{ profileDetail\.profile\.workflowKind \}\}/);
+  assert.match(supplierMaster, /已链接物料/);
+  assert.match(supplierMaster, /inactive 但仍有关联物料/);
+  assert.match(supplierMaster, /关联健康总览/);
+  assert.match(supplierMaster, /最近 5 条变更/);
+  assert.match(supplierMaster, /需补充正式链接/);
+  assert.match(supplierMaster, /查看关联物料/);
+  assert.match(supplierMaster, /打开编辑/);
+  assert.match(supplierMaster, /关联物料明细/);
+  assert.match(supplierMaster, /最近审计记录/);
+  assert.match(materialMaster, /<ConfigCenterShell/);
+  assert.match(materialMaster, /profile: \{\{ profileDetail\.profile\.code \}\}/);
+  assert.match(materialMaster, /workflow: \{\{ profileDetail\.profile\.workflowKind \}\}/);
+  assert.match(materialMaster, /supplierRefs: \{\{ referenceCheck\.supplierRefs\.length \}\}/);
+  assert.match(materialMaster, /主数据引用检查/);
+  assert.match(materialMaster, /引用路径样例/);
+  assert.match(materialMaster, /关系异常分组/);
+  assert.match(materialMaster, /链接到 inactive Supplier Master/);
+  assert.match(materialMaster, /可自动修复/);
+  assert.match(materialMaster, /需人工处理/);
+  assert.match(materialMaster, /自动重连/);
+  assert.match(materialMaster, /最近审计记录/);
+  assert.match(materialMaster, /未关联 Supplier Master 的物料/);
+  assert.match(materialMaster, /已关联 #/);
+  assert.match(materialMaster, /保存后按供应商名称自动尝试关联/);
+  assert.match(materialMaster, /手动关联/);
+  assert.match(materialMaster, /自动匹配 \/ 不指定/);
 });
