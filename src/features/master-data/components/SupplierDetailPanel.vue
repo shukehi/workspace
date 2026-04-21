@@ -9,6 +9,7 @@ import type { SupplierLinkedMaterialItem } from '@/services/supplierMasterProfil
 
 defineProps<{
   supplier: SupplierMasterEntry | null
+  activeTab: string
   linkedMaterials: SupplierLinkedMaterialItem[]
   linkedMaterialsLoading?: boolean
   auditLogs: Array<{
@@ -30,6 +31,8 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'open-edit', item: SupplierMasterEntry): void
   (e: 'view-linked-materials', item: SupplierMasterEntry): void
+  (e: 'jump-to-material', item: { id: number; code: string; name: string }): void
+  (e: 'update:activeTab', value: string): void
 }>();
 </script>
 
@@ -50,7 +53,7 @@ const emit = defineEmits<{
         </div>
       </div>
 
-      <Tabs default-value="basic" class="w-full">
+      <Tabs :model-value="activeTab" class="w-full" @update:model-value="emit('update:activeTab', String($event))">
         <TabsList class="grid w-full grid-cols-4">
           <TabsTrigger value="basic">基础信息</TabsTrigger>
           <TabsTrigger value="materials">关联物料</TabsTrigger>
@@ -84,6 +87,7 @@ const emit = defineEmits<{
             :selected-supplier="supplier"
             :linked-materials="linkedMaterials"
             :loading="linkedMaterialsLoading"
+            @jump-to-material="emit('jump-to-material', $event)"
           />
         </TabsContent>
 
@@ -104,6 +108,10 @@ const emit = defineEmits<{
             <div v-if="supplier.linkedMaterialCodes?.length" class="mt-1 text-xs text-muted-foreground">
               {{ supplier.linkedMaterialCodes.join('，') }}
             </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" @click="emit('view-linked-materials', supplier)">查看关联物料</Button>
+            <Button size="sm" variant="outline" @click="emit('open-edit', supplier)">打开编辑</Button>
           </div>
         </TabsContent>
 

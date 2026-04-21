@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MaterialRecord } from '@/features/materials/composables/useMaterialManagementPageState';
 
-const props = defineProps<{
+defineProps<{
   material: MaterialRecord | null
   supplierMasterOptions: Array<{ id: number; supplierName: string }>
 }>();
@@ -11,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'auto-link', material: MaterialRecord): void
   (e: 'open-edit', material: MaterialRecord): void
+  (e: 'jump-to-supplier', supplierMasterId: number): void
 }>();
 </script>
 
@@ -44,6 +45,14 @@ const emit = defineEmits<{
       <div class="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" @click="emit('open-edit', material)">打开编辑</Button>
         <Button size="sm" variant="outline" @click="emit('auto-link', material)">自动重连</Button>
+        <Button
+          v-if="material.supplierMaster?.id"
+          size="sm"
+          variant="outline"
+          @click="emit('jump-to-supplier', material.supplierMaster.id)"
+        >
+          查看供应商详情
+        </Button>
       </div>
     </CardContent>
     <CardContent v-else class="text-sm text-muted-foreground">

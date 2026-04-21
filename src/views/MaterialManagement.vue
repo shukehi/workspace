@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,18 @@ import {
   type MaterialRecord,
   useMaterialManagementPageState,
 } from '@/features/materials/composables/useMaterialManagementPageState';
+
+const route = useRoute();
+const router = useRouter();
+
+const MATERIAL_DETAIL_TABS = ['basic', 'relationship', 'diagnostics', 'audit'] as const;
+type MaterialDetailTab = typeof MATERIAL_DETAIL_TABS[number];
+
+function normalizeMaterialTab(value: unknown): MaterialDetailTab {
+  return typeof value === 'string' && MATERIAL_DETAIL_TABS.includes(value as MaterialDetailTab)
+    ? (value as MaterialDetailTab)
+    : 'basic';
+}
 
 const {
   materials,
@@ -36,6 +49,7 @@ const {
 } = useMaterialManagementPageState();
 
 const selectedMaterialId = ref<number | null>(null);
+const activeDetailTab = ref<MaterialDetailTab>(normalizeMaterialTab(route.query.tab));
 
 const selectedMaterial = computed(() => (
   materials.value.find((item) => item.id === selectedMaterialId.value)
@@ -43,9 +57,31 @@ const selectedMaterial = computed(() => (
   ?? null
 ));
 
-watch(materials, (nextMaterials) => {
+function syncRouteSelection(materialId: number | null, tab = activeDetailTab.value) {
+  const nextQuery = {
+    ...route.query,
+    materialId: materialId ? String(materialId) : undefined,
+    tab,
+  };
+  void router.replace({
+    name: 'material-master',
+    query: nextQuery,
+  });
+}
+
+watch(() => route.query.tab, (nextTab) => {
+  activeDetailTab.value = normalizeMaterialTab(nextTab);
+}, { immediate: true });
+
+watch([materials, () => route.query.materialId], ([nextMaterials, queryMaterialId]) => {
   if (!nextMaterials.length) {
     selectedMaterialId.value = null;
+    return;
+  }
+
+  const requestedId = Number(queryMaterialId || 0);
+  if (requestedId && nextMaterials.some((item) => item.id === requestedId)) {
+    selectedMaterialId.value = requestedId;
     return;
   }
 
@@ -54,8 +90,30 @@ watch(materials, (nextMaterials) => {
   }
 }, { immediate: true });
 
+watch(selectedMaterialId, (nextId) => {
+  if (nextId && Number(route.query.materialId || 0) !== nextId) {
+    syncRouteSelection(nextId);
+  }
+});
+
 function handleMaterialSelect(material: MaterialRecord) {
   selectedMaterialId.value = material.id;
+  syncRouteSelection(material.id);
+}
+
+function handleDetailTabChange(nextTab: string) {
+  activeDetailTab.value = normalizeMaterialTab(nextTab);
+  syncRouteSelection(selectedMaterialId.value, activeDetailTab.value);
+}
+
+function jumpToSupplierDetail(supplierMasterId: number) {
+  void router.push({
+    name: 'config-suppliers',
+    query: {
+      supplierId: String(supplierMasterId),
+      tab: 'materials',
+    },
+  });
 }
 </script>
 
@@ -111,10 +169,13 @@ function handleMaterialSelect(material: MaterialRecord) {
 
       <MaterialDetailPanel
         :material="selectedMaterial"
+        :active-tab="activeDetailTab"
         :audit-logs="auditLogs"
         :supplier-master-options="supplierMasterOptions"
         @open-edit="openEditDialog"
         @auto-relink="autoRelinkMaterial"
+        @jump-to-supplier="jumpToSupplierDetail"
+        @update:active-tab="handleDetailTabChange"
       />
     </div>
 

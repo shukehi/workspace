@@ -6,8 +6,9 @@ import MaterialAuditPanel from '@/features/master-data/components/MaterialAuditP
 import MaterialRelationshipSection from '@/features/master-data/components/MaterialRelationshipSection.vue';
 import type { MaterialRecord } from '@/features/materials/composables/useMaterialManagementPageState';
 
-const props = defineProps<{
+defineProps<{
   material: MaterialRecord | null
+  activeTab: string
   auditLogs: Array<{
     id: number
     action: string
@@ -21,6 +22,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'open-edit', item: MaterialRecord): void
   (e: 'auto-relink', item: MaterialRecord): void
+  (e: 'jump-to-supplier', supplierMasterId: number): void
+  (e: 'update:activeTab', value: string): void
 }>();
 </script>
 
@@ -38,7 +41,7 @@ const emit = defineEmits<{
         <Button size="sm" variant="outline" @click="emit('open-edit', material)">编辑物料</Button>
       </div>
 
-      <Tabs default-value="basic" class="w-full">
+      <Tabs :model-value="activeTab" class="w-full" @update:model-value="emit('update:activeTab', String($event))">
         <TabsList class="grid w-full grid-cols-4">
           <TabsTrigger value="basic">基础信息</TabsTrigger>
           <TabsTrigger value="relationship">关系</TabsTrigger>
@@ -81,6 +84,7 @@ const emit = defineEmits<{
             :supplier-master-options="supplierMasterOptions"
             @auto-link="emit('auto-relink', $event)"
             @open-edit="emit('open-edit', $event)"
+            @jump-to-supplier="emit('jump-to-supplier', $event)"
           />
         </TabsContent>
 
@@ -105,6 +109,14 @@ const emit = defineEmits<{
           <div class="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" @click="emit('open-edit', material)">打开编辑</Button>
             <Button size="sm" variant="outline" @click="emit('auto-relink', material)">自动重连</Button>
+            <Button
+              v-if="material.supplierMaster?.id"
+              size="sm"
+              variant="outline"
+              @click="emit('jump-to-supplier', material.supplierMaster.id)"
+            >
+              查看供应商详情
+            </Button>
           </div>
         </TabsContent>
 

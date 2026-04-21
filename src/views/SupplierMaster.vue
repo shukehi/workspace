@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,18 @@ import SupplierListPanel from '@/features/master-data/components/SupplierListPan
 import SupplierSummaryCards from '@/features/master-data/components/SupplierSummaryCards.vue';
 import { useSupplierMaster } from '@/features/master-data/composables/useSupplierMaster';
 import type { SupplierMasterEntry } from '@/services/mappingConfigApi';
+
+const route = useRoute();
+const router = useRouter();
+
+const SUPPLIER_DETAIL_TABS = ['basic', 'materials', 'diagnostics', 'audit'] as const;
+type SupplierDetailTab = typeof SUPPLIER_DETAIL_TABS[number];
+
+function normalizeSupplierTab(value: unknown): SupplierDetailTab {
+  return typeof value === 'string' && SUPPLIER_DETAIL_TABS.includes(value as SupplierDetailTab)
+    ? (value as SupplierDetailTab)
+    : 'basic';
+}
 
 const {
   loading,
@@ -38,30 +51,80 @@ const {
   loadLinkedMaterials,
 } = useSupplierMaster();
 
+const activeDetailTab = ref<SupplierDetailTab>(normalizeSupplierTab(route.query.tab));
+
 onMounted(() => {
   load();
 });
+
+const selectedSupplierId = computed(() => Number(selectedSupplier.value?.id || 0) || null);
+
+function syncRouteSelection(supplierId: number | null, tab = activeDetailTab.value) {
+  void router.replace({
+    name: 'config-suppliers',
+    query: {
+      ...route.query,
+      supplierId: supplierId ? String(supplierId) : undefined,
+      tab,
+    },
+  });
+}
+
+watch(() => route.query.tab, (nextTab) => {
+  activeDetailTab.value = normalizeSupplierTab(nextTab);
+}, { immediate: true });
 
 watch(filteredItems, (items) => {
   if (!items.length) {
     return;
   }
+
+  const requestedId = Number(route.query.supplierId || 0);
+  if (requestedId) {
+    const requestedItem = items.find((item) => Number(item.id || 0) === requestedId);
+    if (requestedItem?.id && Number(selectedSupplier.value?.id || 0) !== requestedId) {
+      void loadLinkedMaterials(Number(requestedItem.id), requestedItem);
+      return;
+    }
+  }
+
   const currentSelectedId = Number(selectedSupplier.value?.id || 0);
   if (currentSelectedId && items.some((item) => Number(item.id || 0) === currentSelectedId)) {
     return;
   }
+
   const firstPersisted = items.find((item) => item.id);
   if (firstPersisted?.id) {
     void loadLinkedMaterials(Number(firstPersisted.id), firstPersisted);
   }
 }, { immediate: true });
 
-const selectedSupplierId = computed(() => Number(selectedSupplier.value?.id || 0) || null);
+watch(selectedSupplierId, (nextId) => {
+  if (nextId && Number(route.query.supplierId || 0) !== nextId) {
+    syncRouteSelection(nextId);
+  }
+});
 
 function handleSupplierSelect(item: SupplierMasterEntry) {
   if (item.id) {
     void loadLinkedMaterials(Number(item.id), item);
+    syncRouteSelection(Number(item.id));
   }
+}
+
+function handleDetailTabChange(nextTab: string) {
+  activeDetailTab.value = normalizeSupplierTab(nextTab);
+  syncRouteSelection(selectedSupplierId.value, activeDetailTab.value);
+}
+
+function jumpToMaterialDetail(item: { id: number }) {
+  void router.push({
+    name: 'material-master',
+    query: {
+      materialId: String(item.id),
+      tab: 'relationship',
+    },
+  });
 }
 </script>
 
@@ -116,12 +179,15 @@ function handleSupplierSelect(item: SupplierMasterEntry) {
 
       <SupplierDetailPanel
         :supplier="selectedSupplier"
+        :active-tab="activeDetailTab"
         :linked-materials="linkedMaterials"
         :linked-materials-loading="linkedMaterialsLoading"
         :audit-logs="auditLogs"
         :audit-trend-summary="auditTrendSummary"
         @open-edit="openEditDialog"
         @view-linked-materials="handleSupplierSelect"
+        @jump-to-material="jumpToMaterialDetail"
+        @update:active-tab="handleDetailTabChange"
       />
     </div>
 
