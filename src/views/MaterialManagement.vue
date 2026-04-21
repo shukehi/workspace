@@ -1,22 +1,19 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
 import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Plus, Edit2 } from 'lucide-vue-next';
-import { useMaterialManagementPageState } from '@/features/materials/composables/useMaterialManagementPageState';
-import MaterialAuditPanel from '@/features/master-data/components/MaterialAuditPanel.vue';
+import { Search, Plus } from 'lucide-vue-next';
+import MaterialDetailPanel from '@/features/master-data/components/MaterialDetailPanel.vue';
 import MaterialDiagnosticsPanel from '@/features/master-data/components/MaterialDiagnosticsPanel.vue';
+import MaterialEditDialog from '@/features/master-data/components/MaterialEditDialog.vue';
+import MaterialListPanel from '@/features/master-data/components/MaterialListPanel.vue';
 import MaterialSummaryCards from '@/features/master-data/components/MaterialSummaryCards.vue';
+import {
+  type MaterialRecord,
+  useMaterialManagementPageState,
+} from '@/features/materials/composables/useMaterialManagementPageState';
 
 const {
   materials,
@@ -37,6 +34,29 @@ const {
   saveMaterial,
   autoRelinkMaterial,
 } = useMaterialManagementPageState();
+
+const selectedMaterialId = ref<number | null>(null);
+
+const selectedMaterial = computed(() => (
+  materials.value.find((item) => item.id === selectedMaterialId.value)
+  ?? materials.value[0]
+  ?? null
+));
+
+watch(materials, (nextMaterials) => {
+  if (!nextMaterials.length) {
+    selectedMaterialId.value = null;
+    return;
+  }
+
+  if (!selectedMaterialId.value || !nextMaterials.some((item) => item.id === selectedMaterialId.value)) {
+    selectedMaterialId.value = nextMaterials[0].id;
+  }
+}, { immediate: true });
+
+function handleMaterialSelect(material: MaterialRecord) {
+  selectedMaterialId.value = material.id;
+}
 </script>
 
 <template>
@@ -80,111 +100,32 @@ const {
       @open-edit="openEditDialog"
     />
 
-    <MaterialAuditPanel :audit-logs="auditLogs" />
+    <div class="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)] items-start">
+      <MaterialListPanel
+        :materials="materials"
+        :selected-material-id="selectedMaterialId"
+        :loading="loading"
+        @select="handleMaterialSelect"
+        @edit="openEditDialog"
+      />
 
-    <Card class="flex-1 min-h-0">
-      <CardContent class="p-0 h-full overflow-auto">
-        <table class="w-full text-sm text-left">
-          <thead class="text-xs text-muted-foreground bg-muted/50 sticky top-0">
-            <tr>
-              <th class="px-6 py-3">编码</th>
-              <th class="px-6 py-3">名称</th>
-              <th class="px-6 py-3">型号</th>
-              <th class="px-6 py-3">分类</th>
-              <th class="px-6 py-3">供应商</th>
-              <th class="px-6 py-3">供应商主数据</th>
-              <th class="px-6 py-3">单价</th>
-              <th class="px-6 py-3">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="mat in materials" :key="mat.id" class="bg-background border-b hover:bg-muted/40 transition-colors">
-              <td class="px-6 py-4 font-medium">{{ mat.code }}</td>
-              <td class="px-6 py-4 text-muted-foreground">{{ mat.name }}</td>
-              <td class="px-6 py-4 text-muted-foreground">{{ mat.model }}</td>
-              <td class="px-6 py-4 text-muted-foreground">{{ mat.category }}</td>
-              <td class="px-6 py-4 text-muted-foreground">{{ mat.supplier }}</td>
-              <td class="px-6 py-4">
-                <span
-                  class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium border"
-                  :class="mat.supplier_master_id ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
-                >
-                  {{ mat.supplier_master_id ? `已关联 #${mat.supplier_master_id}` : '未关联' }}
-                </span>
-                <div v-if="mat.supplierMaster" class="mt-1 text-xs text-muted-foreground">
-                  {{ mat.supplierMaster.supplier_name }} · {{ mat.supplierMaster.status }}
-                </div>
-              </td>
-              <td class="px-6 py-4 text-emerald-600 font-semibold">¥{{ mat.price }}</td>
-              <td class="px-6 py-4">
-                <Button variant="ghost" size="sm" @click="openEditDialog(mat)">
-                  <Edit2 class="h-4 w-4" />
-                </Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="materials.length === 0 && !loading" class="p-8 text-center text-muted-foreground">
-          暂无数据
-        </div>
-      </CardContent>
-    </Card>
+      <MaterialDetailPanel
+        :material="selectedMaterial"
+        :audit-logs="auditLogs"
+        :supplier-master-options="supplierMasterOptions"
+        @open-edit="openEditDialog"
+        @auto-relink="autoRelinkMaterial"
+      />
+    </div>
 
-    <Dialog :open="isEditDialogOpen" @update:open="isEditDialogOpen = $event">
-      <DialogContent class="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{{ dialogTitle }}</DialogTitle>
-          <DialogDescription>
-            请完善物料的基础信息。
-          </DialogDescription>
-        </DialogHeader>
-        <div class="grid gap-4 py-4">
-          <div class="grid grid-cols-4 items-center gap-4">
-            <Label for="code" class="text-right">编码</Label>
-            <Input id="code" v-model="editingMaterial.code" class="col-span-3" />
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <Label for="name" class="text-right">名称</Label>
-            <Input id="name" v-model="editingMaterial.name" class="col-span-3" />
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <Label for="model" class="text-right">型号</Label>
-            <Input id="model" v-model="editingMaterial.model" class="col-span-3" />
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <Label for="supplier" class="text-right">供应商</Label>
-            <Input id="supplier" v-model="editingMaterial.supplier" class="col-span-3" />
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <Label class="text-right">主数据链接</Label>
-            <div class="col-span-3 text-sm text-muted-foreground">
-                <template v-if="editingMaterial.supplier_master_id">
-                  已关联 supplier_master #{{ editingMaterial.supplier_master_id }}
-                  <span v-if="editingMaterial.supplierMaster">（{{ editingMaterial.supplierMaster.supplier_name }}）</span>
-                </template>
-                <template v-else>
-                  保存后按供应商名称自动尝试关联
-              </template>
-            </div>
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <Label class="text-right">手动关联</Label>
-            <select v-model="editingMaterial.supplier_master_id" class="col-span-3 h-9 rounded-md border bg-background px-3 text-sm">
-              <option :value="null">自动匹配 / 不指定</option>
-              <option v-for="supplier in supplierMasterOptions" :key="supplier.id" :value="supplier.id">
-                {{ supplier.supplierName }} (#{{ supplier.id }})
-              </option>
-            </select>
-          </div>
-          <div class="grid grid-cols-4 items-center gap-4">
-            <Label for="price" class="text-right">单价</Label>
-            <Input id="price" type="number" v-model="editingMaterial.price" class="col-span-3" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit" @click="saveMaterial">保存</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <MaterialEditDialog
+      :open="isEditDialogOpen"
+      :model-value="editingMaterial"
+      :title="dialogTitle"
+      :supplier-master-options="supplierMasterOptions"
+      @update:open="isEditDialogOpen = $event"
+      @update:model-value="editingMaterial = $event"
+      @save="saveMaterial"
+    />
   </ConfigCenterShell>
 </template>
