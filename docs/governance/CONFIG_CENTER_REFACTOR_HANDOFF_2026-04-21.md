@@ -6,6 +6,7 @@
 - App runtime reads are unified around:
   - `GET /api/runtime/config-snapshot`
   - profile-detail fallback
+  - `material_catalog` still retains static JSON fallback when both runtime snapshot and profile detail are unavailable
 - Config platform protocol is established around:
   - `profiles`
   - `detail`

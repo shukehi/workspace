@@ -161,8 +161,10 @@ async function buildMaterialSupplierCounts() {
   return counts;
 }
 
-export async function listSupplierMaster(): Promise<SupplierMasterEntry[]> {
-  await seedPersistedSupplierMasterIfEmpty();
+export async function listSupplierMaster(options: { skipSeed?: boolean } = {}): Promise<SupplierMasterEntry[]> {
+  if (!options.skipSeed) {
+    await seedPersistedSupplierMasterIfEmpty();
+  }
   const [entries, materialCounts, linkedMaterials] = await Promise.all([
     SupplierMaster.findAll({ order: [['supplier_name', 'ASC']] }) as Promise<SupplierMasterInstance[]>,
     buildMaterialSupplierCounts(),
@@ -206,10 +208,8 @@ export async function listSupplierMasterLinkedMaterials(idInput: unknown): Promi
 }
 
 export async function getSupplierMasterDetail() {
-  const [items, seeded] = await Promise.all([
-    listSupplierMaster(),
-    seedPersistedSupplierMasterIfEmpty(),
-  ]);
+  const seeded = await seedPersistedSupplierMasterIfEmpty();
+  const items = await listSupplierMaster({ skipSeed: true });
   return {
     profile: {
       code: 'supplier_master',

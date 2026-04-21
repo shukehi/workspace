@@ -340,6 +340,10 @@
   — source-analysis deeper normalization 第二十五刀计划
 - [SOURCE_ORDER_INVENTORY_OPTIMIZATION_CLOSEOUT_2026-04-20.md](/Users/aries/Dve/workspace/docs/progress/SOURCE_ORDER_INVENTORY_OPTIMIZATION_CLOSEOUT_2026-04-20.md)
   — Source / Order / Inventory 本轮优化阶段总结与停手判断
+- [CONFIG_CENTER_REVIEW_FOLLOWUP_2026-04-21.md](/Users/aries/Dve/workspace/docs/roadmaps/CONFIG_CENTER_REVIEW_FOLLOWUP_2026-04-21.md)
+  — Config center review follow-up 最小修复计划
+- [BRANCH_PROGRESS_FIX_CONFIG_CENTER_REVIEW_FOLLOWUP_2026-04-21.md](/Users/aries/Dve/workspace/docs/progress/BRANCH_PROGRESS_FIX_CONFIG_CENTER_REVIEW_FOLLOWUP_2026-04-21.md)
+  — Config center review follow-up 分支进度与封板记录
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS23_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS23_2026-04-20.md)
   — source-analysis deeper normalization 第二十三刀计划
 - [SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS17_2026-04-20.md](/Users/aries/Dve/workspace/docs/roadmaps/SOURCE_ANALYSIS_DEEPER_NORMALIZATION_PASS17_2026-04-20.md)
