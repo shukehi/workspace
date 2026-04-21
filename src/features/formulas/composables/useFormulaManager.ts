@@ -1,5 +1,5 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
-import { formulaApi } from '@/services/formulaApi';
+import { formulaProfileApi, type FormulaCollectionProfileDetail } from '@/services/formulaProfileApi';
 import type {
   FormulaBOMItem,
   FormulaDetail,
@@ -36,6 +36,12 @@ export function useFormulaManager() {
   const stopHandles: Array<() => void> = [];
 
   const changeNote = ref('');
+  const collectionProfileDetail = ref<FormulaCollectionProfileDetail | null>(null);
+  const collectionProfileDiff = ref<any>(null);
+  const collectionProfileImpact = ref<any>(null);
+  const collectionProfileReplay = ref<any>(null);
+  const collectionProfileReferenceCheck = ref<any>(null);
+  const collectionSupplierMaster = ref<any[]>([]);
 
   const bomDraft = ref<FormulaBOMItem[]>([]);
   const validationErrors = ref<FormulaValidationErrors>({});
@@ -169,7 +175,7 @@ export function useFormulaManager() {
     saving.value = true;
     try {
       if (creatingLocalDraft) {
-        const created = await formulaApi.create({
+        const created = await formulaProfileApi.create({
           formulaKey: detail.value.formulaKey,
           displayName: detail.value.displayName,
           bom: meaningfulBom,
@@ -189,7 +195,7 @@ export function useFormulaManager() {
 
       if (!draftRevision.value) return;
       const oldFormulaKey = selectedKey.value || detail.value.formulaKey;
-      const result = await formulaApi.updateDraft(oldFormulaKey, {
+      const result = await formulaProfileApi.updateDraft(oldFormulaKey, {
         revision: draftRevision.value.revision,
         formulaKey: detail.value.formulaKey,
         displayName: detail.value.displayName,
@@ -227,7 +233,7 @@ export function useFormulaManager() {
 
     publishing.value = true;
     try {
-      const result = await formulaApi.publish(selectedKey.value || detail.value.formulaKey, {
+      const result = await formulaProfileApi.publish(selectedKey.value || detail.value.formulaKey, {
         fromRevision: draftRevision.value.revision,
         changeNote: changeNote.value || '发布版本'
       });
@@ -251,7 +257,7 @@ export function useFormulaManager() {
     if (!detail.value || isLocalDraftSelected.value) return;
     const reason = window.prompt('请输入归档原因（可选）：') || '';
     try {
-      await formulaApi.archive(selectedKey.value || detail.value.formulaKey, { reason });
+      await formulaProfileApi.archive(selectedKey.value || detail.value.formulaKey, { reason });
       toast({ title: '已归档', variant: 'success' });
       page.value = 1;
       await loadList();
@@ -267,7 +273,7 @@ export function useFormulaManager() {
 
     const reason = window.prompt('请输入回滚原因（可选）：') || '';
     try {
-      await formulaApi.rollback(selectedKey.value || detail.value.formulaKey, { targetRevision: revision, reason });
+      await formulaProfileApi.rollback(selectedKey.value || detail.value.formulaKey, { targetRevision: revision, reason });
       toast({ title: '回滚成功', variant: 'success' });
       await loadDetail(detail.value.formulaKey, true);
       page.value = 1;
@@ -298,7 +304,7 @@ export function useFormulaManager() {
 
     const reason = window.prompt('请输入删除原因（可选）：') || '';
     try {
-      await formulaApi.remove(selectedKey.value || detail.value.formulaKey, { reason });
+      await formulaProfileApi.remove(selectedKey.value || detail.value.formulaKey, { reason });
       toast({ title: '配方已删除', variant: 'success' });
       clearSelection();
       page.value = 1;
@@ -321,6 +327,30 @@ export function useFormulaManager() {
 
     const dirtyGuard = useDirtyBeforeUnload(isDirty);
     stopHandles.push(dirtyGuard.stop);
+
+    Promise.all([
+      formulaProfileApi.profileDetail(),
+      formulaProfileApi.profileDiff(),
+      formulaProfileApi.profileImpact(),
+      formulaProfileApi.profileReplay(),
+      formulaProfileApi.profileReferenceCheck(),
+      formulaProfileApi.supplierMaster(),
+    ]).then(([detail, diff, impact, replay, referenceCheck, supplierMaster]) => {
+      collectionProfileDetail.value = detail;
+      collectionProfileDiff.value = diff;
+      collectionProfileImpact.value = impact;
+      collectionProfileReplay.value = replay;
+      collectionProfileReferenceCheck.value = referenceCheck;
+      collectionSupplierMaster.value = supplierMaster;
+    }).catch((error) => {
+      console.warn('Failed to load formula collection profile diagnostics', error);
+      collectionProfileDetail.value = null;
+      collectionProfileDiff.value = null;
+      collectionProfileImpact.value = null;
+      collectionProfileReplay.value = null;
+      collectionProfileReferenceCheck.value = null;
+      collectionSupplierMaster.value = [];
+    });
 
     loadList();
   }
@@ -351,6 +381,12 @@ export function useFormulaManager() {
     isLocalDraftSelected,
     hasMore,
     changeNote,
+    collectionProfileDetail,
+    collectionProfileDiff,
+    collectionProfileImpact,
+    collectionProfileReplay,
+    collectionProfileReferenceCheck,
+    collectionSupplierMaster,
     bomDraft,
     validationErrors,
     bomMaterialCategories: BOM_MATERIAL_CATEGORIES,

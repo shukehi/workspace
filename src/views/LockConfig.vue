@@ -3,10 +3,10 @@ import { computed, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
+import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
 import RuleExplainPlayground from '@/features/config-editor/components/RuleExplainPlayground.vue';
-import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { useProfileEditor } from '@/features/config-editor/composables/useProfileEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
 import {
   useRuleExplainPreview,
@@ -160,9 +160,10 @@ function resetWithPayload(data: LockMappingConfig) {
   baselineSnapshot.value = JSON.stringify(payload.value);
 }
 
-const editor = useMappingConfigEditor<LockMappingConfig>({
+const editor = useProfileEditor<LockMappingConfig>({
   endpoint: CONFIG_ENDPOINTS.LOCK.path, 
   workflowProfileCode: CONFIG_ENDPOINTS.LOCK.profile,
+  workflowBasePath: CONFIG_ENDPOINTS.LOCK.basePath,
   loadErrorDescription: '无法读取锁具映射配置', saveSuccessDescription: '锁具映射已更新',
   getPayload: () => payload.value, getClientIssues: () => clientIssues.value,
   validatePayload: validateLockMapping, adaptPayload: (v) => adaptLockMapping(v),
@@ -174,7 +175,7 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout
+  <ProfileEditorHost
     title="锁具配置"
     description="维护锁具主副锁标签及型号映射。"
     :editor="editor"
@@ -258,5 +259,5 @@ onMounted(editor.load);
         </div>
       </CardContent>
     </Card>
-  </ConfigPageLayout>
+  </ProfileEditorHost>
 </template>

@@ -31,6 +31,10 @@ const Material: ModelDefined<MaterialAttributes, MaterialCreationAttributes> = s
         type: DataTypes.STRING,
         allowNull: true
     },
+    supplier_master_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
     unit: {
         type: DataTypes.STRING,
         defaultValue: 'PCS'

@@ -6,10 +6,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import apiRoutes from './api';
 import config from '../config';
-import configDataRoutes from './configData';
-import formulasConfigRoutes from './formulasConfig';
-import mappingsConfigRoutes from './mappingsConfig';
-import materialsConfigRoutes from './materialsConfig';
+import configProfilesRoutes from './configProfiles';
+import configMastersRoutes from './configMasters';
 import { apiKeyAuth } from '../app/middleware/apiKeyAuth';
 
 const router: Router = Router();
@@ -18,10 +16,8 @@ const router: Router = Router();
 router.use(config.api.prefix, apiKeyAuth);
 
 // Config Data 路由
-router.use('/api/config/formulas', formulasConfigRoutes);
-router.use('/api/config/mappings', mappingsConfigRoutes);
-router.use('/api/config/material-catalog', materialsConfigRoutes);
-router.use('/api/config', configDataRoutes);
+router.use('/api/config/profiles', configProfilesRoutes);
+router.use('/api/config/masters', configMastersRoutes);
 
 // API 路由 (包含代理，放在后面)
 router.use(config.api.prefix, apiRoutes);

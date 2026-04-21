@@ -1,4 +1,4 @@
-import type { MutationError } from '@/services/formulaApi';
+import type { MutationError } from '@/services/formulaProfileApi';
 import type { FormulaBOMItem, FormulaDetail } from '@/types/formula';
 import type { FormulaValidationErrors } from '@/features/formulas/types';
 

@@ -3,10 +3,10 @@ import { computed, nextTick, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
+import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
 import RuleExplainPlayground from '@/features/config-editor/components/RuleExplainPlayground.vue';
-import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import { useProfileEditor } from '@/features/config-editor/composables/useProfileEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
 import {
   useRuleExplainPreview,
@@ -136,9 +136,10 @@ function resetWithPayload(raw: LockForkMappingConfig) {
   baselineSnapshot.value = JSON.stringify(payload.value);
 }
 
-const editor = useMappingConfigEditor<LockForkMappingConfig>({
+const editor = useProfileEditor<LockForkMappingConfig>({
   endpoint: CONFIG_ENDPOINTS.LOCK_FORK.path, 
   workflowProfileCode: CONFIG_ENDPOINTS.LOCK_FORK.profile,
+  workflowBasePath: CONFIG_ENDPOINTS.LOCK_FORK.basePath,
   loadErrorDescription: '无法读取锁叉映射配置', saveSuccessDescription: '锁叉映射已更新',
   getPayload: () => payload.value, getClientIssues: () => clientIssues.value,
   validatePayload: validateLockForkMapping, adaptPayload: (v) => adaptLockForkMapping(v),
@@ -156,7 +157,7 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout
+  <ProfileEditorHost
     title="锁叉配置"
     description="维护锁叉拨片基础参数。"
     :editor="editor"
@@ -224,5 +225,5 @@ onMounted(editor.load);
     <div v-show="activeTab === 'suppliers'">
       <Card><CardHeader><CardTitle>供应商映射</CardTitle></CardHeader><CardContent><ConfigTable :columns="[{key:'key',label:'键名'},{key:'value',label:'供应商名称'}]" :rows="suppliers.list.value" @add="suppliers.add()" @remove="suppliers.remove"><template #cell-key="{row}"><Input v-model="row.key" /></template><template #cell-value="{row}"><Input v-model="row.value" /></template></ConfigTable></CardContent></Card>
     </div>
-  </ConfigPageLayout>
+  </ProfileEditorHost>
 </template>

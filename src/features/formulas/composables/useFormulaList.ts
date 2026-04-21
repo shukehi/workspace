@@ -1,5 +1,5 @@
 import { computed, ref, type Ref } from 'vue';
-import { formulaApi } from '@/services/formulaApi';
+import { formulaProfileApi } from '@/services/formulaProfileApi';
 import type { FormulaSummary } from '@/types/formula';
 
 interface FormulaListApi {
@@ -29,7 +29,7 @@ export function useFormulaList(options: UseFormulaListOptions) {
     loadDetail,
     clearSelection,
     onLoadError,
-    api = formulaApi,
+    api = formulaProfileApi,
   } = options;
 
   const loading = ref(false);

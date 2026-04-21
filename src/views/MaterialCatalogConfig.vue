@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import CodeMirrorEditor from '@/components/ui/CodeMirrorEditor.vue';
-import ConfigPageLayout from '@/features/config-editor/components/ConfigPageLayout.vue';
-import { useMappingConfigEditor } from '@/features/config-editor/composables/useMappingConfigEditor';
+import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
+import { useProfileEditor } from '@/features/config-editor/composables/useProfileEditor';
 import { refreshMaterialsRuntime } from '@/services/configRuntime';
 import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
@@ -18,7 +18,7 @@ const payload = computed(() => {
   return { ...parsed, _changeNote: changeNote.value };
 });
 
-const editor = useMappingConfigEditor<any>({
+const editor = useProfileEditor<any>({
   endpoint: CONFIG_ENDPOINTS.MATERIAL_CATALOG.path,
   workflowProfileCode: CONFIG_ENDPOINTS.MATERIAL_CATALOG.profile,
   workflowBasePath: CONFIG_ENDPOINTS.MATERIAL_CATALOG.basePath,
@@ -49,7 +49,7 @@ onMounted(editor.load);
 </script>
 
 <template>
-  <ConfigPageLayout
+  <ProfileEditorHost
     title="物料目录配置"
     description="管理 BOM 计算使用的材料目录发布态与审计记录。"
     :editor="editor"
@@ -77,5 +77,5 @@ onMounted(editor.load);
         <CodeMirrorEditor v-model="jsonDraft" class="h-full border rounded-md" />
       </CardContent>
     </Card>
-  </ConfigPageLayout>
+  </ProfileEditorHost>
 </template>

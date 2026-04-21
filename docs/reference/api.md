@@ -96,57 +96,47 @@ http://47.98.198.45:8802/getOutContractDetail
 
 ## 2. 配置域 API
 
-当前配置域已拆成 workflow 主接口与 legacy 兼容接口两类。
-当前 mapping 运行时真源已经收口为 workflow `published`，不再依赖 legacy `/api/config/*` 或 `/data/*.json` fallback。
+当前配置域已经收口到 unified config platform。
+运行时真源以 `/api/runtime/config-snapshot` 与 `/api/config/profiles/*` 为准，legacy `/api/config/*` 兼容接口已不再作为现行支持面。
 
-### Workflow 主接口
+### Unified config platform 主接口
 
-当前 mapping workflow `:type` 支持：
+主接口分为两类：
 
-- `packaging`
-- `cylinder`
-- `lock`
-- `lock_fork`
-- `handle`
+#### Runtime
+- `GET /api/runtime/config-snapshot`
 
-- `GET /api/config/formulas`
-- `GET /api/config/formulas/published-map`
-- `GET /api/config/mappings/:type/detail`
-- `PUT /api/config/mappings/:type/draft`
-- `POST /api/config/mappings/:type/publish`
-- `GET /api/config/mappings/:type/published`
-- `GET /api/config/mappings/:type/revisions`
-- `GET /api/config/mappings/:type/audit-logs`
-- `GET /api/config/material-catalog/published`
-- `GET /api/config/material-catalog/detail`
-- `PUT /api/config/material-catalog/draft`
-- `POST /api/config/material-catalog/publish`
-- `GET /api/config/material-catalog/revisions`
-- `GET /api/config/material-catalog/audit-logs`
-
-### Legacy 兼容接口
-
-以下接口仍保留，但新前端流程不应直接接入：
-
-- `GET /api/config/materials`
-- `POST /api/config/materials`
-- `GET /api/config/packaging`
-- `PUT /api/config/packaging`
-- `GET /api/config/cylinder`
-- `PUT /api/config/cylinder`
-- `GET /api/config/lock`
-- `PUT /api/config/lock`
-- `GET /api/config/lock-fork`
-- `PUT /api/config/lock-fork`
-- `GET /api/config/handle`
-- `PUT /api/config/handle`
-- `GET /api/config/packaging-mapping`
+#### Profiles / masters
+- `GET /api/config/profiles`
+- `GET /api/config/profiles/:code`
+- `GET /api/config/profiles/:code/detail`
+- `PUT /api/config/profiles/:code/draft`
+- `POST /api/config/profiles/:code/publish`
+- `POST /api/config/profiles/:code/rollback`
+- `GET /api/config/profiles/:code/revisions`
+- `GET /api/config/profiles/:code/audit-logs`
+- `GET /api/config/profiles/:code/diff`
+- `GET /api/config/profiles/:code/impact`
+- `GET /api/config/profiles/:code/replay`
+- `GET /api/config/profiles/:code/reference-check`
+- `GET /api/config/masters/suppliers`
+- `GET /api/config/masters/suppliers/detail`
+- `POST /api/config/masters/suppliers`
+- `PUT /api/config/masters/suppliers/:id`
+- `POST /api/config/masters/suppliers/:id/archive`
+- `GET /api/config/masters/suppliers/audit-logs`
+- `GET /api/config/masters/materials`
+- `GET /api/config/masters/materials/detail`
+- `POST /api/config/masters/materials`
+- `PUT /api/config/masters/materials/:id`
+- `GET /api/config/masters/materials/audit-logs`
 
 说明：
 
-1. 上述 mapping legacy 接口现在仅作为 workflow 兼容壳
-2. 这些接口已不再读写 `data/config/*.json`
-3. 若 workflow published 缺失，兼容接口也会显式失败，而不是再从本地 JSON 自动补种
+1. 配置运行时当前以 `runtime snapshot + profile detail fallback` 为准
+2. 主配置流程统一走 `profiles`
+3. 主数据流程统一走 `masters`
+4. 已移除的 legacy 路径不应再被视为受支持接口
 
 ## 3. 使用约束
 
@@ -154,19 +144,17 @@ http://47.98.198.45:8802/getOutContractDetail
 2. 订单查询仍依赖外部 ERP API
 3. 本地数据库已启用，默认 SQLite 路径为 `data/runtime/database.sqlite`
 4. 数据库配置入口位于 `server/config/database.ts`
-5. Mapping 与 materials 的前端主读取链路应优先使用 workflow `published` 接口
-6. Mapping 运行时当前只读 workflow `published`；published 缺失时前端启动会直接 fail closed
-7. Legacy `/api/config/*` 接口只用于兼容桥接，不应作为新功能真源
-8. 锁具配置页（`/config/lock`）保存时应走 workflow `lock` profile；`/api/config/lock` 仅作为 legacy 兼容桥接
-9. 采购管理页前端筛选按归一化类别工作，`配件 / 五金 / hardware` 会统一归类为五金配件；不要求历史订单的 `category` 存储值完全一致
-10. 采购管理页风险筛选当前已接入 `GET /api/orders?risk=`：`风险订单` 会命中待人工处理和待确认单据，`待人工处理` 只命中高风险单据
-11. 采购管理页摘要卡片里的 `待处理单` 会筛选 `draft / submitted / processing`，`今日新增` 会按 `created_at` 日期筛选
-12. `/api/materials` 对应库存/入库实际使用的 `materials` 数据库表；`/api/config/materials` / `material-catalog` 对应材料目录工作流，二者不会自动双向同步
-13. 采购入库只按 `order_items.material_id -> materials.code/id` 匹配；仅更新材料目录或 mapping 而未补齐 `materials` 表时，仍会触发 `MATERIAL_NOT_FOUND`
-14. 副锁护罩配件包规则现在要求按门厚提供显式 `materialCode`；若对应编码未落入 `materials` 表，生成出的五金/配件单仍无法完成 stock-in
-15. 当前采购入库、入库撤销、正式出库、出库冲销都会同时更新 `Material.stock_quantity` 和库位余额；手工调账请走 `/api/inventory-adjustments`
-16. 如需对历史库存做基线扫描，可运行 `npm run inventory:reconcile:dry-run` 输出 dry-run 对账报告
-17. 如需清理数据库中无引用的零库存物料，可先运行 `npm run inventory:cleanup-zero-stock:dry-run` 查看候选，再显式执行带确认 token 的清理脚本
+5. Config / master-data 前端主读取链路应优先使用 `runtime snapshot`、`profiles`、`masters`
+6. 已删除的 legacy `/api/config/*` 路径不应被任何新功能、文档或脚本继续引用
+7. 采购管理页前端筛选按归一化类别工作，`配件 / 五金 / hardware` 会统一归类为五金配件；不要求历史订单的 `category` 存储值完全一致
+8. 采购管理页风险筛选当前已接入 `GET /api/orders?risk=`：`风险订单` 会命中待人工处理和待确认单据，`待人工处理` 只命中高风险单据
+9. 采购管理页摘要卡片里的 `待处理单` 会筛选 `draft / submitted / processing`，`今日新增` 会按 `created_at` 日期筛选
+10. `/api/materials` 对应库存/入库实际使用的 `materials` 数据库表；配置主数据通过 `/api/config/masters/materials` 与 profile/material catalog 流程维护，二者不会自动双向同步
+11. 采购入库只按 `order_items.material_id -> materials.code/id` 匹配；仅更新材料目录或 mapping 而未补齐 `materials` 表时，仍会触发 `MATERIAL_NOT_FOUND`
+12. 副锁护罩配件包规则现在要求按门厚提供显式 `materialCode`；若对应编码未落入 `materials` 表，生成出的五金/配件单仍无法完成 stock-in
+13. 当前采购入库、入库撤销、正式出库、出库冲销都会同时更新 `Material.stock_quantity` 和库位余额；手工调账请走 `/api/inventory-adjustments`
+14. 如需对历史库存做基线扫描，可运行 `npm run inventory:reconcile:dry-run` 输出 dry-run 对账报告
+15. 如需清理数据库中无引用的零库存物料，可先运行 `npm run inventory:cleanup-zero-stock:dry-run` 查看候选，再显式执行带确认 token 的清理脚本
 
 ## 4. 关联文档
 

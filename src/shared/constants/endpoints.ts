@@ -5,27 +5,32 @@
 export const CONFIG_ENDPOINTS = {
   HANDLE: {
     path: '/config/handle',
-    profile: 'handle'
+    profile: 'handle',
+    basePath: '/config/profiles'
   },
   CYLINDER: {
     path: '/config/cylinder',
-    profile: 'cylinder'
+    profile: 'cylinder',
+    basePath: '/config/profiles'
   },
   LOCK_FORK: {
     path: '/config/lock-fork',
-    profile: 'lock_fork'
+    profile: 'lock_fork',
+    basePath: '/config/profiles'
   },
   LOCK: {
     path: '/config/lock',
-    profile: 'lock'
+    profile: 'lock',
+    basePath: '/config/profiles'
   },
   PACKAGING: {
     path: '/config/packaging',
-    profile: 'packaging'
+    profile: 'packaging',
+    basePath: '/config/profiles'
   },
   MATERIAL_CATALOG: {
     path: '/config/material-catalog',
-    profile: 'material-catalog',
-    basePath: '/config'
+    profile: 'material_catalog',
+    basePath: '/config/profiles'
   }
 } as const;

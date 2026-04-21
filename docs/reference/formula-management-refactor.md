@@ -15,25 +15,31 @@
 
 ## 3. API
 
-主入口：`/api/config/formulas`
+主入口：`/api/config/profiles/formulas`
 
-- `GET /api/config/formulas`
-- `GET /api/config/formulas/published-map`
-- `GET /api/config/formulas/:formulaKey`
-- `POST /api/config/formulas`
-- `PUT /api/config/formulas/:formulaKey/draft`
-- `POST /api/config/formulas/:formulaKey/publish`
-- `POST /api/config/formulas/:formulaKey/archive`
-- `POST /api/config/formulas/:formulaKey/rollback`
-- `DELETE /api/config/formulas/:formulaKey`
-- `GET /api/config/formulas/:formulaKey/revisions`
+- `GET /api/config/profiles/formulas/detail`
+- `GET /api/config/profiles/formulas/items`
+- `GET /api/config/profiles/formulas/items/:formulaKey`
+- `POST /api/config/profiles/formulas/items`
+- `PUT /api/config/profiles/formulas/items/:formulaKey/draft`
+- `POST /api/config/profiles/formulas/items/:formulaKey/publish`
+- `POST /api/config/profiles/formulas/items/:formulaKey/archive`
+- `POST /api/config/profiles/formulas/items/:formulaKey/rollback`
+- `DELETE /api/config/profiles/formulas/items/:formulaKey`
+- `GET /api/config/profiles/formulas/items/:formulaKey/revisions`
+- `GET /api/config/profiles/formulas/reference-check`
+- `GET /api/config/profiles/formulas/diff`
+- `GET /api/config/profiles/formulas/impact`
+- `GET /api/config/profiles/formulas/replay`
 
-已下线：`/api/formulas` 兼容入口。
+已下线：
+- `/api/formulas`
+- `/api/config/formulas`
 
 ## 4. 生效规则
 
 - 草稿保存不会影响物料计算。
-- 物料计算链路读取 `/api/config/formulas/published-map`，只消费已发布版本。
+- 物料计算链路读取 unified formulas published/detail 数据，只消费已发布版本。
 - BOM 行级字段 `materialCategory` 与 `supplier` 为必填业务字段，配方主记录不再承载分类/供应商语义。
 
 ## 5. 迁移与回退
