@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-vue-next';
 import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterShell.vue';
@@ -145,71 +145,96 @@ function jumpToMaterialDetail(item: { id: number }) {
       </Button>
     </template>
 
-    <Card v-if="profileDetail">
-      <CardContent class="p-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-        <div>profile: {{ profileDetail.profile.code }}</div>
-        <div>workflow: {{ profileDetail.profile.workflowKind }}</div>
-        <div>total: {{ profileDetail.collection.total }}</div>
-      </CardContent>
-    </Card>
-
-    <SupplierSummaryCards :health="relationshipHealth" />
-
-
-
-    <MasterDataLifecyclePanel
-      title="供应商主数据 Lifecycle"
-      :latest-revision="profileDetail?.latestRevision || null"
-      :draft-revision="profileDetail?.draftRevision || null"
-      :published-revision="profileDetail?.publishedRevision || null"
-      :revisions="revisions"
-      :publishing="publishing"
-      :rolling-back-revision="rollingBackRevision"
-      @publish="publishDraft()"
-      @rollback="rollbackRevision"
-    />
-
-    <SupplierDiagnosticsPanel
-      :relationship-health="relationshipHealth"
-      :actionable-groups="actionableRelationshipGroups"
-      @view-linked-materials="handleSupplierSelect"
-      @open-edit="openEditDialog"
-    />
-
     <Card>
-      <CardContent class="p-4 flex items-center gap-3">
-        <Input v-model="searchQuery" placeholder="搜索供应商或来源..." class="flex-1 min-w-0" />
+      <CardHeader class="pb-3">
+        <CardTitle class="text-base">页面上下文</CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div v-if="profileDetail" class="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          <div>profile: {{ profileDetail.profile.code }}</div>
+          <div>workflow: {{ profileDetail.profile.workflowKind }}</div>
+          <div>total: {{ profileDetail.collection.total }}</div>
+        </div>
+        <div class="flex flex-col gap-2 md:flex-row md:items-center">
+          <Input v-model="searchQuery" placeholder="搜索供应商或来源..." class="w-full max-w-sm" />
+        </div>
       </CardContent>
     </Card>
 
-    <Card v-if="loadError">
-      <CardContent class="p-4 text-sm text-destructive">{{ loadError }}</CardContent>
-    </Card>
+    <section class="space-y-3">
+      <div>
+        <h3 class="text-lg font-semibold">工作台</h3>
+        <p class="text-sm text-muted-foreground">优先在供应商列表与详情之间完成定位、关联查看与修复。</p>
+      </div>
+      <div v-if="loadError" class="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        {{ loadError }}
+      </div>
+      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)] items-start">
+        <SupplierListPanel
+          :items="filteredItems"
+          :selected-supplier-id="selectedSupplierId"
+          :loading="loading"
+          @select="handleSupplierSelect"
+          @edit="openEditDialog"
+          @view-linked-materials="handleSupplierSelect"
+          @archive="archiveItem"
+        />
 
-    <div class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)] items-start">
-      <SupplierListPanel
-        :items="filteredItems"
-        :selected-supplier-id="selectedSupplierId"
-        :loading="loading"
-        @select="handleSupplierSelect"
-        @edit="openEditDialog"
+        <SupplierDetailPanel
+          :supplier="selectedSupplier"
+          :active-tab="activeDetailTab"
+          :linked-materials="linkedMaterials"
+          :linked-materials-loading="linkedMaterialsLoading"
+          :audit-logs="auditLogs"
+          :audit-trend-summary="auditTrendSummary"
+          @open-edit="openEditDialog"
+          @view-linked-materials="handleSupplierSelect"
+          @jump-to-material="jumpToMaterialDetail"
+          @update:active-tab="handleDetailTabChange"
+        />
+      </div>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] items-start">
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-semibold">治理概览</h3>
+          <p class="text-sm text-muted-foreground">快速判断供应商主数据的整体状态与关联压力。</p>
+        </div>
+        <SupplierSummaryCards :health="relationshipHealth" />
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-semibold">Lifecycle</h3>
+          <p class="text-sm text-muted-foreground">确认供应商主数据的 draft / published 关系，再执行发布或回滚。</p>
+        </div>
+        <MasterDataLifecyclePanel
+          title="供应商主数据 Lifecycle"
+          :latest-revision="profileDetail?.latestRevision || null"
+          :draft-revision="profileDetail?.draftRevision || null"
+          :published-revision="profileDetail?.publishedRevision || null"
+          :revisions="revisions"
+          :publishing="publishing"
+          :rolling-back-revision="rollingBackRevision"
+          @publish="publishDraft()"
+          @rollback="rollbackRevision"
+        />
+      </div>
+    </section>
+
+    <section class="space-y-3">
+      <div>
+        <h3 class="text-lg font-semibold">诊断与修复建议</h3>
+        <p class="text-sm text-muted-foreground">把关系健康与需补链对象放在工作台之后，避免和主操作区抢视觉重心。</p>
+      </div>
+      <SupplierDiagnosticsPanel
+        :relationship-health="relationshipHealth"
+        :actionable-groups="actionableRelationshipGroups"
         @view-linked-materials="handleSupplierSelect"
-        @archive="archiveItem"
-      />
-
-      <SupplierDetailPanel
-        :supplier="selectedSupplier"
-        :active-tab="activeDetailTab"
-        :linked-materials="linkedMaterials"
-        :linked-materials-loading="linkedMaterialsLoading"
-        :audit-logs="auditLogs"
-        :audit-trend-summary="auditTrendSummary"
         @open-edit="openEditDialog"
-        @view-linked-materials="handleSupplierSelect"
-        @jump-to-material="jumpToMaterialDetail"
-        @update:active-tab="handleDetailTabChange"
       />
-    </div>
+    </section>
 
     <SupplierEditDialog
       :open="isEditDialogOpen"
