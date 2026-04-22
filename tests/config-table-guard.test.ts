@@ -117,6 +117,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   const supplierMaster = read('src/views/SupplierMaster.vue');
   const diagnosticsView = read('src/views/MasterDataDiagnostics.vue');
   const diagnosticsSummary = read('src/features/master-data/components/MasterDataDiagnosticsSummaryCards.vue');
+  const lifecyclePanel = read('src/features/master-data/components/MasterDataLifecyclePanel.vue');
   const supplierDetail = read('src/features/master-data/components/SupplierDetailPanel.vue');
   const supplierEditDialog = read('src/features/master-data/components/SupplierEditDialog.vue');
   const supplierList = read('src/features/master-data/components/SupplierListPanel.vue');
@@ -152,6 +153,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(supplierMaster, /tab/);
   assert.match(supplierMaster, /name: 'material-master'/);
   assert.match(supplierMaster, /<SupplierSummaryCards/);
+  assert.match(supplierMaster, /<MasterDataLifecyclePanel/);
   assert.match(supplierMaster, /<SupplierDiagnosticsPanel/);
   assert.match(supplierMaster, /<SupplierDetailPanel/);
   assert.match(supplierMaster, /<SupplierEditDialog/);
@@ -180,6 +182,9 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(diagnosticsView, /查看供应商详情/);
   assert.match(diagnosticsSummary, /总异常数/);
   assert.match(diagnosticsSummary, /可自动修复/);
+  assert.match(lifecyclePanel, /发布当前 draft/);
+  assert.match(lifecyclePanel, /修订历史/);
+  assert.match(lifecyclePanel, /回滚到此版本/);
   assert.match(supplierLinkedMaterials, /关联物料明细/);
   assert.match(supplierLinkedMaterials, /当前 supplier master 暂无已关联物料/);
   assert.match(supplierLinkedMaterials, /查看物料详情/);
@@ -193,6 +198,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(materialMaster, /tab/);
   assert.match(materialMaster, /name: 'config-suppliers'/);
   assert.match(materialMaster, /<ConfigCenterShell/);
+  assert.match(materialMaster, /<MasterDataLifecyclePanel/);
   assert.match(materialMaster, /profile: \{\{ profileDetail\.profile\.code \}\}/);
   assert.match(materialMaster, /workflow: \{\{ profileDetail\.profile\.workflowKind \}\}/);
   assert.match(materialMaster, /supplierRefs: \{\{ referenceCheck\.supplierRefs\.length \}\}/);

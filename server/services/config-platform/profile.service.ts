@@ -7,6 +7,7 @@ import { getSupplierMasterDetail } from './supplier-master';
 import { getMaterialMasterDetail } from './material-master';
 import { listSupplierMasterAuditLogs } from './supplier-master.audit';
 import { listMaterialMasterAuditLogs } from './material-master.audit';
+import { getMasterDataWorkflowDetail, listMasterDataRevisions, publishMasterDataProfile, rollbackMasterDataProfile } from './master-data.lifecycle';
 
 function unsupportedWorkflow(code: string, action: string): ConfigProfileWorkflowResult {
   return {
@@ -82,14 +83,17 @@ async function getMaterialCatalogDetail(): Promise<ConfigProfileWorkflowResult> 
 }
 
 async function getSupplierMasterProfileDetail(): Promise<ConfigProfileWorkflowResult> {
-  const detail = await getSupplierMasterDetail();
+  const [detail, workflow] = await Promise.all([
+    getSupplierMasterDetail(),
+    getMasterDataWorkflowDetail('supplier_master'),
+  ]);
   const result: ConfigProfileDetail = {
-    profile: toSummaryFromDefinition('supplier_master', 'active', null),
-    latestRevision: null,
-    draftRevision: null,
-    publishedRevision: null,
-    draftPayload: null,
-    publishedPayload: null,
+    profile: toSummaryFromDefinition('supplier_master', workflow.profile.status, workflow.profile.activeRevision),
+    latestRevision: workflow.latestRevision,
+    draftRevision: workflow.draftRevision,
+    publishedRevision: workflow.publishedRevision,
+    draftPayload: workflow.draftPayload as any,
+    publishedPayload: workflow.publishedPayload as any,
     collection: {
       total: Number(detail.total || 0),
       page: 1,
@@ -101,14 +105,17 @@ async function getSupplierMasterProfileDetail(): Promise<ConfigProfileWorkflowRe
 }
 
 async function getMaterialMasterProfileDetail(): Promise<ConfigProfileWorkflowResult> {
-  const detail = await getMaterialMasterDetail();
+  const [detail, workflow] = await Promise.all([
+    getMaterialMasterDetail(),
+    getMasterDataWorkflowDetail('material_master'),
+  ]);
   const result: ConfigProfileDetail = {
-    profile: toSummaryFromDefinition('material_master', 'active', null),
-    latestRevision: null,
-    draftRevision: null,
-    publishedRevision: null,
-    draftPayload: null,
-    publishedPayload: null,
+    profile: toSummaryFromDefinition('material_master', workflow.profile.status, workflow.profile.activeRevision),
+    latestRevision: workflow.latestRevision,
+    draftRevision: workflow.draftRevision,
+    publishedRevision: workflow.publishedRevision,
+    draftPayload: workflow.draftPayload as any,
+    publishedPayload: workflow.publishedPayload as any,
     collection: {
       total: Number(detail.total || 0),
       page: 1,
@@ -206,6 +213,24 @@ export async function publishConfigProfile(code: string, params: Record<string, 
   if (!definition) return notFound(code);
   if (!definition.capabilities.publish) return unsupportedWorkflow(code, 'publish');
 
+  if (code === 'supplier_master') {
+    const result = await publishMasterDataProfile('supplier_master', {
+      fromRevision: params.fromRevision as number | string,
+      changeNote: params.changeNote as string | undefined,
+      operator: params.operator as string | undefined,
+    });
+    return result.ok ? { ok: true, revision: result.revision || null } : normalizeWorkflowErrors(result);
+  }
+
+  if (code === 'material_master') {
+    const result = await publishMasterDataProfile('material_master', {
+      fromRevision: params.fromRevision as number | string,
+      changeNote: params.changeNote as string | undefined,
+      operator: params.operator as string | undefined,
+    });
+    return result.ok ? { ok: true, revision: result.revision || null } : normalizeWorkflowErrors(result);
+  }
+
   if (code === 'material_catalog') {
     const result = await MaterialCatalogService.publish({
       fromRevision: params.fromRevision as number | string,
@@ -228,6 +253,24 @@ export async function rollbackConfigProfile(code: string, params: Record<string,
   if (!definition) return notFound(code);
   if (!definition.capabilities.rollback) return unsupportedWorkflow(code, 'rollback');
 
+  if (code === 'supplier_master') {
+    const result = await rollbackMasterDataProfile('supplier_master', {
+      targetRevision: params.targetRevision as number | string,
+      reason: params.reason as string | undefined,
+      operator: params.operator as string | undefined,
+    });
+    return result.ok ? { ok: true, revision: result.revision || null, activeRevision: result.activeRevision ?? null } : normalizeWorkflowErrors(result);
+  }
+
+  if (code === 'material_master') {
+    const result = await rollbackMasterDataProfile('material_master', {
+      targetRevision: params.targetRevision as number | string,
+      reason: params.reason as string | undefined,
+      operator: params.operator as string | undefined,
+    });
+    return result.ok ? { ok: true, revision: result.revision || null, activeRevision: result.activeRevision ?? null } : normalizeWorkflowErrors(result);
+  }
+
   const result = await MappingService.rollback(code, {
     targetRevision: params.targetRevision as number | string,
     reason: params.reason as string | undefined,
@@ -240,6 +283,14 @@ export async function listConfigProfileRevisions(code: string): Promise<ConfigPr
   const definition = getConfigProfileDefinition(code);
   if (!definition) return notFound(code);
   if (!definition.capabilities.revisions) return unsupportedWorkflow(code, 'revisions');
+
+  if (code === 'supplier_master') {
+    return { ok: true, items: await listMasterDataRevisions('supplier_master') as any };
+  }
+
+  if (code === 'material_master') {
+    return { ok: true, items: await listMasterDataRevisions('material_master') as any };
+  }
 
   if (code === 'material_catalog') {
     const items = await MaterialCatalogService.listRevisions();

@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-vue-next';
 import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterShell.vue';
+import MasterDataLifecyclePanel from '@/features/master-data/components/MasterDataLifecyclePanel.vue';
 import SupplierDetailPanel from '@/features/master-data/components/SupplierDetailPanel.vue';
 import SupplierDiagnosticsPanel from '@/features/master-data/components/SupplierDiagnosticsPanel.vue';
 import SupplierEditDialog from '@/features/master-data/components/SupplierEditDialog.vue';
@@ -37,6 +38,9 @@ const {
   auditTrendSummary,
   profileDetail,
   auditLogs,
+  revisions,
+  publishing,
+  rollingBackRevision,
   linkedMaterials,
   selectedSupplier,
   linkedMaterialsLoading,
@@ -49,6 +53,8 @@ const {
   saveItem,
   archiveItem,
   loadLinkedMaterials,
+  publishDraft,
+  rollbackRevision,
 } = useSupplierMaster();
 
 const activeDetailTab = ref<SupplierDetailTab>(normalizeSupplierTab(route.query.tab));
@@ -148,6 +154,20 @@ function jumpToMaterialDetail(item: { id: number }) {
     </Card>
 
     <SupplierSummaryCards :health="relationshipHealth" />
+
+
+
+    <MasterDataLifecyclePanel
+      title="供应商主数据 Lifecycle"
+      :latest-revision="profileDetail?.latestRevision || null"
+      :draft-revision="profileDetail?.draftRevision || null"
+      :published-revision="profileDetail?.publishedRevision || null"
+      :revisions="revisions"
+      :publishing="publishing"
+      :rolling-back-revision="rollingBackRevision"
+      @publish="publishDraft()"
+      @rollback="rollbackRevision"
+    />
 
     <SupplierDiagnosticsPanel
       :relationship-health="relationshipHealth"

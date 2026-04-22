@@ -52,6 +52,21 @@ test('material management page state loads list, opens dialogs, and saves update
           calls.push('audit-logs');
           return [{ id: 1, action: 'update', operator: 'tester', createdAt: '2026-04-21T00:00:00.000Z', meta: {} }];
         },
+        async revisions() {
+          calls.push('revisions');
+          return [
+            { revision: 3, state: 'draft', changeNote: 'draft', createdBy: 'tester', createdAt: '2026-04-21T00:02:00.000Z' },
+            { revision: 2, state: 'published', changeNote: 'published', createdBy: 'tester', createdAt: '2026-04-21T00:01:00.000Z' },
+          ];
+        },
+        async publish(fromRevision: number) {
+          calls.push(`publish:${fromRevision}`);
+          return { revision: fromRevision + 1, state: 'published', changeNote: 'publish', createdBy: 'tester', createdAt: '2026-04-21T00:03:00.000Z' } as any;
+        },
+        async rollback(targetRevision: number) {
+          calls.push(`rollback:${targetRevision}`);
+          return { revision: { revision: targetRevision + 10 }, activeRevision: targetRevision + 10 } as any;
+        },
         async post(_url: string, payload: any) {
           calls.push(`post:${payload.code}`);
           return payload;
@@ -68,7 +83,7 @@ test('material management page state loads list, opens dialogs, and saves update
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     assert.equal(state.materials.value.length, 2);
-    assert.deepEqual(calls, ['audit-logs', 'supplier-masters', 'get:']);
+    assert.deepEqual(calls, ['audit-logs', 'revisions', 'supplier-masters', 'get:']);
     assert.equal(state.relationshipHealth.value.linkedMaterialCount, 1);
     assert.equal(state.relationshipHealth.value.inactiveSupplierLinkedMaterialCount, 1);
     assert.equal(state.actionableRelationshipGroups.value.autoFixCandidates.length, 1);
@@ -77,6 +92,13 @@ test('material management page state loads list, opens dialogs, and saves update
     state.searchQuery.value = ' lock ';
     await state.fetchMaterials();
     assert.equal(calls.at(-1), 'get:lock');
+
+    assert.equal(state.revisions.value.length, 2);
+    state.profileDetail.value = { ...(state.profileDetail.value || {}), draftRevision: { revision: 3 } };
+    await state.publishDraft();
+    assert.equal(calls.includes('publish:3'), true);
+    await state.rollbackRevision(2);
+    assert.equal(calls.includes('rollback:2'), true);
 
     await state.autoRelinkMaterial(state.materials.value[1]);
     assert.equal(calls.includes('put:/materials/2::unset'), true);

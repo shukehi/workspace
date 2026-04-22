@@ -5,6 +5,7 @@ import {
   supplierMasterProfileApi,
   type SupplierLinkedMaterialItem,
   type SupplierMasterProfileDetail,
+  type WorkflowRevisionMeta,
 } from '@/services/supplierMasterProfileApi';
 
 interface SupplierMasterPageApi {
@@ -14,6 +15,9 @@ interface SupplierMasterPageApi {
   update?: (id: number, payload: { supplierName?: string; sourceNote?: string; status?: 'active' | 'inactive' }) => Promise<any>;
   archive?: (id: number) => Promise<any>;
   auditLogs?: () => Promise<Array<{ id: number; action: string; operator: string; createdAt: string; meta: Record<string, unknown> }>>;
+  revisions?: () => Promise<WorkflowRevisionMeta[]>;
+  publish?: (fromRevision: number, changeNote?: string) => Promise<WorkflowRevisionMeta>;
+  rollback?: (targetRevision: number, reason?: string) => Promise<{ revision: WorkflowRevisionMeta; activeRevision?: number | null }>;
   linkedMaterials?: (id: number) => Promise<SupplierLinkedMaterialItem[]>;
 }
 
@@ -26,6 +30,9 @@ export function useSupplierMaster(options: { api?: SupplierMasterPageApi } = {})
   const items = ref<SupplierMasterEntry[]>([]);
   const profileDetail = ref<SupplierMasterProfileDetail | null>(null);
   const auditLogs = ref<Array<{ id: number; action: string; operator: string; createdAt: string; meta: Record<string, unknown> }>>([]);
+  const revisions = ref<WorkflowRevisionMeta[]>([]);
+  const publishing = ref(false);
+  const rollingBackRevision = ref<number | null>(null);
   const linkedMaterials = ref<SupplierLinkedMaterialItem[]>([]);
   const selectedSupplier = ref<SupplierMasterEntry | null>(null);
   const linkedMaterialsLoading = ref(false);
@@ -98,6 +105,11 @@ export function useSupplierMaster(options: { api?: SupplierMasterPageApi } = {})
       auditLogs.value = api.auditLogs
         ? await api.auditLogs()
         : await supplierMasterProfileApi.auditLogs();
+      revisions.value = api.revisions
+        ? await api.revisions()
+        : options.api
+          ? []
+          : await supplierMasterProfileApi.revisions();
       if (selectedSupplier.value?.id) {
         await loadLinkedMaterials(Number(selectedSupplier.value.id));
       } else {
@@ -116,6 +128,33 @@ export function useSupplierMaster(options: { api?: SupplierMasterPageApi } = {})
   }
 
   const dialogTitle = computed(() => editingItem.value.id ? '编辑供应商主数据' : '新增供应商主数据');
+
+
+  async function publishDraft(changeNote = 'publish supplier master draft') {
+    if (!api.publish || !profileDetail.value?.draftRevision?.revision) return;
+    publishing.value = true;
+    try {
+      await api.publish(Number(profileDetail.value.draftRevision.revision), changeNote);
+      await load();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      publishing.value = false;
+    }
+  }
+
+  async function rollbackRevision(targetRevision: number, reason = 'rollback supplier master revision') {
+    if (!api.rollback) return;
+    rollingBackRevision.value = targetRevision;
+    try {
+      await api.rollback(targetRevision, reason);
+      await load();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      rollingBackRevision.value = null;
+    }
+  }
 
   function openCreateDialog() {
     editingItem.value = { supplierName: '', sourceNote: '', status: 'active' };
@@ -194,6 +233,9 @@ export function useSupplierMaster(options: { api?: SupplierMasterPageApi } = {})
     items,
     profileDetail,
     auditLogs,
+    revisions,
+    publishing,
+    rollingBackRevision,
     linkedMaterials,
     selectedSupplier,
     linkedMaterialsLoading,
@@ -210,5 +252,7 @@ export function useSupplierMaster(options: { api?: SupplierMasterPageApi } = {})
     saveItem,
     archiveItem,
     loadLinkedMaterials,
+    publishDraft,
+    rollbackRevision,
   };
 }

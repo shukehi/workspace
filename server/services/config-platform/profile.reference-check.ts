@@ -139,7 +139,9 @@ export async function getConfigProfileReferenceCheck(code: string): Promise<{ ok
     return { ok: false, status: detail.status, errors: detail.errors };
   }
 
-  const payload = detail.detail.draftPayload || detail.detail.publishedPayload || detail.detail.collection?.previewItems || {};
+  const payload = code === 'supplier_master' || code === 'material_master'
+    ? (detail.detail.collection?.previewItems || [])
+    : (detail.detail.draftPayload || detail.detail.publishedPayload || detail.detail.collection?.previewItems || {});
   const refs = extractRefsForProfile(code, payload);
 
   const [materials, supplierMaster] = await Promise.all([

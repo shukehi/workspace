@@ -1,6 +1,6 @@
 import { computed, getCurrentInstance, onMounted, ref } from 'vue';
 import { api as defaultApi } from '@/lib/api';
-import { materialMasterProfileApi, type MaterialMasterReferenceCheck } from '@/services/materialMasterProfileApi';
+import { materialMasterProfileApi, type MaterialMasterReferenceCheck, type WorkflowRevisionMeta } from '@/services/materialMasterProfileApi';
 import { supplierMasterProfileApi } from '@/services/supplierMasterProfileApi';
 
 export interface MaterialRecord {
@@ -27,6 +27,9 @@ interface MaterialManagementApi {
   detail?: () => Promise<any>;
   referenceCheck?: () => Promise<MaterialMasterReferenceCheck | null>;
   auditLogs?: () => Promise<Array<{ id: number; action: string; operator: string; createdAt: string; meta: Record<string, unknown> }>>;
+  revisions?: () => Promise<WorkflowRevisionMeta[]>;
+  publish?: (fromRevision: number, changeNote?: string) => Promise<WorkflowRevisionMeta>;
+  rollback?: (targetRevision: number, reason?: string) => Promise<{ revision: WorkflowRevisionMeta; activeRevision?: number | null }>;
   listSupplierMasters?: () => Promise<Array<{ id: number; supplierName: string }>>;
   list?: (query?: string) => Promise<MaterialRecord[]>;
   create?: (payload: Partial<MaterialRecord>) => Promise<MaterialRecord>;
@@ -109,6 +112,9 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
   const profileDetail = ref<any>(null);
   const referenceCheck = ref<MaterialMasterReferenceCheck | null>(null);
   const auditLogs = ref<Array<{ id: number; action: string; operator: string; createdAt: string; meta: Record<string, unknown> }>>([]);
+  const revisions = ref<WorkflowRevisionMeta[]>([]);
+  const publishing = ref(false);
+  const rollingBackRevision = ref<number | null>(null);
   const supplierMasterOptions = ref<Array<{ id: number; supplierName: string }>>([]);
   const isEditDialogOpen = ref(false);
   const editingMaterial = ref<EditableMaterial>(createEmptyDraft());
@@ -173,6 +179,11 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
       auditLogs.value = api.auditLogs
         ? await api.auditLogs()
         : await materialMasterProfileApi.auditLogs();
+      revisions.value = api.revisions
+        ? await api.revisions()
+        : options.api
+          ? []
+          : await materialMasterProfileApi.revisions();
       supplierMasterOptions.value = hasSupplierMasterListApi(api)
         ? await api.listSupplierMasters()
         : (await supplierMasterProfileApi.list())
@@ -230,6 +241,34 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
     }
   }
 
+
+
+  async function publishDraft(changeNote = 'publish material master draft') {
+    if (!api.publish || !profileDetail.value?.draftRevision?.revision) return;
+    publishing.value = true;
+    try {
+      await api.publish(Number(profileDetail.value.draftRevision.revision), changeNote);
+      await fetchMaterials();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      publishing.value = false;
+    }
+  }
+
+  async function rollbackRevision(targetRevision: number, reason = 'rollback material master revision') {
+    if (!api.rollback) return;
+    rollingBackRevision.value = targetRevision;
+    try {
+      await api.rollback(targetRevision, reason);
+      await fetchMaterials();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      rollingBackRevision.value = null;
+    }
+  }
+
   if (getCurrentInstance()) {
     onMounted(() => {
       void fetchMaterials();
@@ -245,6 +284,9 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
     profileDetail,
     referenceCheck,
     auditLogs,
+    revisions,
+    publishing,
+    rollingBackRevision,
     supplierMasterOptions,
     relationshipHealth,
     actionableRelationshipGroups,
@@ -256,5 +298,7 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
     openEditDialog,
     saveMaterial,
     autoRelinkMaterial,
+    publishDraft,
+    rollbackRevision,
   };
 }

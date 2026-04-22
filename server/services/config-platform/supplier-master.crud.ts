@@ -2,6 +2,7 @@ import { Op } from 'sequelize';
 import { SupplierMaster } from '../../models';
 import type { SupplierMasterInstance } from '../../models';
 import { createSupplierMasterAuditLog } from './supplier-master.audit';
+import { syncMasterDataDraft } from './master-data.lifecycle';
 
 function normalize(value: unknown) {
   return String(value || '').trim();
@@ -57,6 +58,7 @@ export async function createSupplierMasterItem(payload: Record<string, unknown>)
       status: normalizeStatus(payload.status),
     },
   });
+  await syncMasterDataDraft('supplier_master', 'supplier master item create');
 
   return { ok: true, item: toItem(created) };
 }
@@ -104,6 +106,7 @@ export async function updateSupplierMasterItem(idInput: unknown, payload: Record
       status: payload.status === undefined ? (existing as any).status : normalizeStatus(payload.status),
     },
   });
+  await syncMasterDataDraft('supplier_master', 'supplier master item update');
 
   return { ok: true, item: toItem(existing) };
 }

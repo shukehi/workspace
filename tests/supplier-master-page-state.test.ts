@@ -37,6 +37,20 @@ test('supplier master page state loads entries and supports create/edit/archive 
             { id: 2, action: 'archive', operator: 'tester', createdAt: '2026-04-21T00:01:00.000Z', meta: {} },
           ];
         },
+        async revisions() {
+          calls.push('revisions');
+          return [
+            { revision: 4, state: 'draft', changeNote: 'draft', createdBy: 'tester', createdAt: '2026-04-21T00:02:00.000Z' },
+          ] as any;
+        },
+        async publish(fromRevision: number) {
+          calls.push(`publish:${fromRevision}`);
+          return { revision: fromRevision + 1 } as any;
+        },
+        async rollback(targetRevision: number) {
+          calls.push(`rollback:${targetRevision}`);
+          return { revision: { revision: targetRevision + 10 }, activeRevision: targetRevision + 10 } as any;
+        },
         async linkedMaterials(id: number) {
           calls.push(`linked-materials:${id}`);
           return [{ id: 11, code: 'M001', name: '材料A', category: 'Raw', supplier: '供应商A', supplierMasterId: id, updatedAt: null }];
@@ -61,6 +75,13 @@ test('supplier master page state loads entries and supports create/edit/archive 
     assert.equal(state.actionableRelationshipGroups.value.inactiveLinkedSuppliers.length, 1);
     assert.equal(state.auditTrendSummary.value.createCount, 1);
     assert.equal(state.auditTrendSummary.value.archiveCount, 1);
+    assert.equal(state.revisions.value.length, 1);
+
+    state.profileDetail.value = { ...(state.profileDetail.value || {}), draftRevision: { revision: 4 } } as any;
+    await state.publishDraft();
+    assert.equal(calls.includes('publish:4'), true);
+    await state.rollbackRevision(3);
+    assert.equal(calls.includes('rollback:3'), true);
 
     state.openCreateDialog();
     state.editingItem.value.supplierName = '供应商B';

@@ -9,6 +9,7 @@ import { Search, Plus } from 'lucide-vue-next';
 import MaterialDetailPanel from '@/features/master-data/components/MaterialDetailPanel.vue';
 import MaterialDiagnosticsPanel from '@/features/master-data/components/MaterialDiagnosticsPanel.vue';
 import MaterialEditDialog from '@/features/master-data/components/MaterialEditDialog.vue';
+import MasterDataLifecyclePanel from '@/features/master-data/components/MasterDataLifecyclePanel.vue';
 import MaterialListPanel from '@/features/master-data/components/MaterialListPanel.vue';
 import MaterialSummaryCards from '@/features/master-data/components/MaterialSummaryCards.vue';
 import {
@@ -35,6 +36,9 @@ const {
   profileDetail,
   referenceCheck,
   auditLogs,
+  revisions,
+  publishing,
+  rollingBackRevision,
   supplierMasterOptions,
   relationshipHealth,
   actionableRelationshipGroups,
@@ -46,6 +50,8 @@ const {
   openEditDialog,
   saveMaterial,
   autoRelinkMaterial,
+  publishDraft,
+  rollbackRevision,
 } = useMaterialManagementPageState();
 
 const selectedMaterialId = ref<number | null>(null);
@@ -149,6 +155,20 @@ function jumpToSupplierDetail(supplierMasterId: number) {
     </Card>
 
     <MaterialSummaryCards :health="relationshipHealth" />
+
+
+
+    <MasterDataLifecyclePanel
+      title="物料主数据 Lifecycle"
+      :latest-revision="profileDetail?.latestRevision || null"
+      :draft-revision="profileDetail?.draftRevision || null"
+      :published-revision="profileDetail?.publishedRevision || null"
+      :revisions="revisions"
+      :publishing="publishing"
+      :rolling-back-revision="rollingBackRevision"
+      @publish="publishDraft()"
+      @rollback="rollbackRevision"
+    />
 
     <MaterialDiagnosticsPanel
       :reference-check="referenceCheck"

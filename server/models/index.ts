@@ -12,6 +12,8 @@ import InventoryOutboundItem from './InventoryOutboundItem';
 import Material from './Material';
 import MaterialMasterAuditLog from './MaterialMasterAuditLog';
 import MaterialCatalogProfile from './MaterialCatalogProfile';
+import MasterDataProfile from './MasterDataProfile';
+import MasterDataRevision from './MasterDataRevision';
 import MaterialCatalogRevision from './MaterialCatalogRevision';
 import MaterialCatalogAuditLog from './MaterialCatalogAuditLog';
 import SupplierMaster from './SupplierMaster';
@@ -110,6 +112,8 @@ export type MappingRevisionInstance = ModelInstance<MappingRevisionAttributes, M
 export type MappingAuditLogInstance = ModelInstance<MappingAuditLogAttributes, MappingAuditLogCreationAttributes>;
 export type MappingUnmatchedEventInstance = ModelInstance<MappingUnmatchedEventAttributes, MappingUnmatchedEventCreationAttributes>;
 export type MaterialCatalogProfileInstance = ModelInstance<MaterialCatalogProfileAttributes, MaterialCatalogProfileCreationAttributes>;
+export type MasterDataProfileInstance = ModelInstance<import('./MasterDataProfile').MasterDataProfileAttributes, import('./MasterDataProfile').MasterDataProfileCreationAttributes>;
+export type MasterDataRevisionInstance = ModelInstance<import('./MasterDataRevision').MasterDataRevisionAttributes, import('./MasterDataRevision').MasterDataRevisionCreationAttributes>;
 export type MaterialCatalogRevisionInstance = ModelInstance<MaterialCatalogRevisionAttributes, MaterialCatalogRevisionCreationAttributes>;
 export type MaterialCatalogAuditLogInstance = ModelInstance<MaterialCatalogAuditLogAttributes, MaterialCatalogAuditLogCreationAttributes>;
 export type SupplierMasterInstance = ModelInstance<import('./SupplierMaster').SupplierMasterAttributes, import('./SupplierMaster').SupplierMasterCreationAttributes> & { auditLogs?: SupplierMasterAuditLogInstance[] };
@@ -165,6 +169,8 @@ MappingProfile.hasMany(MappingAuditLog, { foreignKey: 'profile_id', as: 'auditLo
 MappingAuditLog.belongsTo(MappingProfile, { foreignKey: 'profile_id' });
 MaterialCatalogProfile.hasMany(MaterialCatalogRevision, { foreignKey: 'profile_id', as: 'revisions', onDelete: 'CASCADE' });
 MaterialCatalogRevision.belongsTo(MaterialCatalogProfile, { foreignKey: 'profile_id' });
+MasterDataProfile.hasMany(MasterDataRevision, { foreignKey: 'profile_id', as: 'revisions', onDelete: 'CASCADE' });
+MasterDataRevision.belongsTo(MasterDataProfile, { foreignKey: 'profile_id' });
 MaterialCatalogProfile.hasMany(MaterialCatalogAuditLog, { foreignKey: 'profile_id', as: 'auditLogs', onDelete: 'CASCADE' });
 MaterialCatalogAuditLog.belongsTo(MaterialCatalogProfile, { foreignKey: 'profile_id' });
 
@@ -205,6 +211,8 @@ export {
     MaterialCatalogProfile,
     MaterialCatalogRevision,
     MaterialCatalogAuditLog,
+    MasterDataProfile,
+    MasterDataRevision,
     SupplierMaster,
     SupplierMasterAuditLog,
     ErpContract,

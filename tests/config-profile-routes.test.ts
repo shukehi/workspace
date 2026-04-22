@@ -1023,3 +1023,77 @@ test('formula profile item bridge canonicalizes supplier + model split to materi
   assert.equal(detail.success, true);
   assert.equal(detail.formula.bom[0].materialId, '华荣8181');
 });
+
+test('supplier master profile lifecycle seeds, publishes, and rolls back revisions', async () => {
+  const initialDetailRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/detail`);
+  assert.equal(initialDetailRes.status, 200);
+  const initialDetailBody = await initialDetailRes.json();
+  assert.equal(initialDetailBody.detail.profile.code, 'supplier_master');
+  assert.equal(typeof initialDetailBody.detail.publishedRevision.revision, 'number');
+
+  const createRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({ supplierName: '生命周期供应商', status: 'active' }),
+  });
+  assert.equal(createRes.status, 201);
+
+  const detailAfterCreateRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/detail`);
+  const detailAfterCreateBody = await detailAfterCreateRes.json();
+  const supplierDraftRevision = detailAfterCreateBody.detail.draftRevision.revision;
+  assert.ok(Number(supplierDraftRevision) > Number(detailAfterCreateBody.detail.publishedRevision.revision));
+
+  const publishRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({ fromRevision: supplierDraftRevision, changeNote: 'publish supplier lifecycle' }),
+  });
+  assert.equal(publishRes.status, 200);
+
+  const revisionsRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/revisions`);
+  assert.equal(revisionsRes.status, 200);
+  const revisionsBody = await revisionsRes.json();
+  assert.ok(Array.isArray(revisionsBody.items));
+  assert.ok(revisionsBody.items.some((item: any) => item.state === 'published'));
+
+  const publishedRevision = revisionsBody.items.find((item: any) => item.state === 'published');
+  const rollbackRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/rollback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({ targetRevision: publishedRevision.revision, reason: 'supplier rollback test' }),
+  });
+  assert.equal(rollbackRes.status, 200);
+});
+
+test('material master profile lifecycle publishes current draft snapshot and lists revisions', async () => {
+  const initialDetailRes = await fetch(`${baseUrl}/api/config/profiles/material_master/detail`);
+  assert.equal(initialDetailRes.status, 200);
+  const initialDetailBody = await initialDetailRes.json();
+  assert.equal(initialDetailBody.detail.profile.code, 'material_master');
+  assert.equal(typeof initialDetailBody.detail.publishedRevision.revision, 'number');
+
+  const updateRes = await fetch(`${baseUrl}/api/config/profiles/material_master/items/1`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({ name: '材料A-修订版' }),
+  });
+  assert.equal(updateRes.status, 200);
+
+  const detailAfterUpdateRes = await fetch(`${baseUrl}/api/config/profiles/material_master/detail`);
+  const detailAfterUpdateBody = await detailAfterUpdateRes.json();
+  const materialDraftRevision = detailAfterUpdateBody.detail.draftRevision.revision;
+  assert.ok(Number(materialDraftRevision) > Number(detailAfterUpdateBody.detail.publishedRevision.revision));
+
+  const publishRes = await fetch(`${baseUrl}/api/config/profiles/material_master/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({ fromRevision: materialDraftRevision, changeNote: 'publish material lifecycle' }),
+  });
+  assert.equal(publishRes.status, 200);
+
+  const revisionsRes = await fetch(`${baseUrl}/api/config/profiles/material_master/revisions`);
+  assert.equal(revisionsRes.status, 200);
+  const revisionsBody = await revisionsRes.json();
+  assert.ok(Array.isArray(revisionsBody.items));
+  assert.ok(revisionsBody.items.some((item: any) => item.state === 'published'));
+});

@@ -1,5 +1,14 @@
 import { api } from '@/lib/api';
+
 import type { SupplierMasterEntry } from '@/services/mappingConfigApi';
+
+export interface WorkflowRevisionMeta {
+  revision: number;
+  state: string;
+  changeNote: string;
+  createdBy: string;
+  createdAt: string | null;
+}
 
 export interface SupplierLinkedMaterialItem {
   id: number;
@@ -12,6 +21,11 @@ export interface SupplierLinkedMaterialItem {
 }
 
 export interface SupplierMasterProfileDetail {
+  latestRevision?: WorkflowRevisionMeta | null;
+  draftRevision?: WorkflowRevisionMeta | null;
+  publishedRevision?: WorkflowRevisionMeta | null;
+  draftPayload?: Record<string, unknown>[] | null;
+  publishedPayload?: Record<string, unknown>[] | null;
   profile: {
     code: string;
     displayName: string;
@@ -57,5 +71,18 @@ export const supplierMasterProfileApi = {
   async linkedMaterials(id: number): Promise<SupplierLinkedMaterialItem[]> {
     const res = await api.get<{ success: boolean; items: SupplierLinkedMaterialItem[] }>(`/config/profiles/supplier_master/items/${id}/materials`);
     return Array.isArray(res.items) ? res.items : [];
+  },
+
+  async revisions() {
+    const res = await api.get<{ success: boolean; items: WorkflowRevisionMeta[] }>('/config/profiles/supplier_master/revisions');
+    return Array.isArray(res.items) ? res.items : [];
+  },
+  async publish(fromRevision: number, changeNote?: string) {
+    const res = await api.post<{ success: boolean; revision: WorkflowRevisionMeta }>('/config/profiles/supplier_master/publish', { fromRevision, changeNote });
+    return res.revision;
+  },
+  async rollback(targetRevision: number, reason?: string) {
+    const res = await api.post<{ success: boolean; revision: WorkflowRevisionMeta; activeRevision?: number | null }>('/config/profiles/supplier_master/rollback', { targetRevision, reason });
+    return res;
   },
 };

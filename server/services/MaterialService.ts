@@ -3,6 +3,7 @@ import type { MaterialAttributes, MaterialCreationAttributes } from '../models/t
 import MaterialRepository from './materials/material.repository';
 import { SupplierMaster } from '../models';
 import { createMaterialMasterAuditLog } from './config-platform/material-master.audit';
+import { syncMasterDataDraft } from './config-platform/master-data.lifecycle';
 
 // 解决循环依赖或 JS/TS 混合环境下使用的延迟引用
 const getErrorInfrastructures = () => {
@@ -107,6 +108,7 @@ export class MaterialService {
                 supplier_master_id: result.supplier_master_id ?? null,
             },
         });
+        await syncMasterDataDraft('material_master', 'material master item create');
         return result;
     }
 
@@ -157,6 +159,7 @@ export class MaterialService {
                 supplier_master_id: result.supplier_master_id ?? null,
             },
         });
+        await syncMasterDataDraft('material_master', 'material master item update');
         return result;
     }
 

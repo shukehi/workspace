@@ -6,14 +6,14 @@ export const CONFIG_PROFILE_DEFINITIONS: ConfigProfileDefinition[] = [
     displayName: '供应商主数据',
     domain: 'catalog',
     workflowKind: 'collection',
-    capabilities: { detail: true, draft: false, publish: false, rollback: false, revisions: false, auditLogs: true },
+    capabilities: { detail: true, draft: false, publish: true, rollback: true, revisions: true, auditLogs: true },
   },
   {
     code: 'material_master',
     displayName: '物料主数据',
     domain: 'catalog',
     workflowKind: 'collection',
-    capabilities: { detail: true, draft: false, publish: false, rollback: false, revisions: false, auditLogs: true },
+    capabilities: { detail: true, draft: false, publish: true, rollback: true, revisions: true, auditLogs: true },
   },
   {
     code: 'material_catalog',

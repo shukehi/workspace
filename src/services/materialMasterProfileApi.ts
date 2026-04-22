@@ -1,5 +1,13 @@
 import { api } from '@/lib/api';
 
+export interface WorkflowRevisionMeta {
+  revision: number;
+  state: string;
+  changeNote: string;
+  createdBy: string;
+  createdAt: string | null;
+}
+
 export interface MaterialMasterItem {
   id: number;
   code: string;
@@ -19,6 +27,11 @@ export interface MaterialMasterItem {
 }
 
 export interface MaterialMasterProfileDetail {
+  latestRevision?: WorkflowRevisionMeta | null;
+  draftRevision?: WorkflowRevisionMeta | null;
+  publishedRevision?: WorkflowRevisionMeta | null;
+  draftPayload?: Record<string, unknown>[] | null;
+  publishedPayload?: Record<string, unknown>[] | null;
   profile: {
     code: string;
     displayName: string;
@@ -76,5 +89,17 @@ export const materialMasterProfileApi = {
   async update(id: number, payload: Partial<MaterialMasterItem>): Promise<MaterialMasterItem> {
     const res = await api.put<{ success: boolean; item: MaterialMasterItem }>(`/config/profiles/material_master/items/${id}`, payload);
     return res.item;
+  },
+  async revisions() {
+    const res = await api.get<{ success: boolean; items: WorkflowRevisionMeta[] }>('/config/profiles/material_master/revisions');
+    return Array.isArray(res.items) ? res.items : [];
+  },
+  async publish(fromRevision: number, changeNote?: string) {
+    const res = await api.post<{ success: boolean; revision: WorkflowRevisionMeta }>('/config/profiles/material_master/publish', { fromRevision, changeNote });
+    return res.revision;
+  },
+  async rollback(targetRevision: number, reason?: string) {
+    const res = await api.post<{ success: boolean; revision: WorkflowRevisionMeta; activeRevision?: number | null }>('/config/profiles/material_master/rollback', { targetRevision, reason });
+    return res;
   },
 };
