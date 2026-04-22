@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { effectScope } from 'vue';
 import { useMasterDataGovernance } from '../src/features/master-data/composables/useMasterDataGovernance';
 
-test('master data governance state aggregates profile status, activity, and governance focus', async () => {
+test('master data governance state aggregates profile status, activity, governance focus, trends, and hotspots', async () => {
   const scope = effectScope();
   const calls: string[] = [];
 
@@ -53,13 +53,14 @@ test('master data governance state aggregates profile status, activity, and gove
         async materialAuditLogs() {
           calls.push('material-logs');
           return [
-            { id: 2, action: 'publish', operator: 'alice', createdAt: '2026-04-22T09:00:00.000Z', meta: {} },
+            { id: 2, action: 'publish', operator: 'alice', createdAt: '2026-04-22T09:00:00.000Z', meta: { code: 'M001' } },
+            { id: 3, action: 'update', operator: 'alice', createdAt: '2026-04-22T08:30:00.000Z', meta: { code: 'M001' } },
           ];
         },
         async supplierAuditLogs() {
           calls.push('supplier-logs');
           return [
-            { id: 1, action: 'archive', operator: 'bob', createdAt: '2026-04-22T10:00:00.000Z', meta: {} },
+            { id: 1, action: 'archive', operator: 'bob', createdAt: '2026-04-22T10:00:00.000Z', meta: { supplierName: '供应商B' } },
           ];
         },
       },
@@ -76,6 +77,11 @@ test('master data governance state aggregates profile status, activity, and gove
     assert.equal(state.recentActivity.value[0].source, 'supplier_master');
     assert.equal(state.recentActivity.value[0].action, 'archive');
     assert.equal(state.governanceFocus.value[0].key, 'pending-publish');
+    assert.equal(state.trendSummary.value.publishCount, 1);
+    assert.equal(state.trendSummary.value.archiveCount, 1);
+    assert.equal(state.hotspotObjects.value[0].label, 'M001');
+    assert.equal(state.hotspotObjects.value[0].count, 2);
+    assert.equal(state.riskSignals.value[0].key, 'pending-publish');
   } finally {
     scope.stop();
   }

@@ -15,6 +15,12 @@ interface MasterDataGovernanceApi {
   supplierAuditLogs?: () => Promise<Array<{ id: number; action: string; operator: string; createdAt: string; meta: Record<string, unknown> }>>;
 }
 
+function toTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : 0;
+}
+
 export function useMasterDataGovernance(options: { api?: MasterDataGovernanceApi } = {}) {
   const api = options.api || {
     detailMaterialProfile: () => materialMasterProfileApi.detail(),
@@ -101,6 +107,114 @@ export function useMasterDataGovernance(options: { api?: MasterDataGovernanceApi
     .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
     .slice(0, 10));
 
+  const trendSummary = computed(() => {
+    const activity = recentActivity.value;
+    const actionCounts = activity.reduce((acc, item) => {
+      acc[item.action] = (acc[item.action] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const autoFixShare = issueSummary.value.materialIssueCount > 0
+      ? Math.round((issueSummary.value.autoFixCount / issueSummary.value.materialIssueCount) * 100)
+      : 0;
+    const manualReviewShare = issueSummary.value.totalIssueCount > 0
+      ? Math.round((issueSummary.value.manualReviewCount / issueSummary.value.totalIssueCount) * 100)
+      : 0;
+
+    return {
+      publishCount: actionCounts.publish || 0,
+      rollbackCount: actionCounts.rollback || 0,
+      updateCount: actionCounts.update || 0,
+      archiveCount: actionCounts.archive || 0,
+      autoFixShare,
+      manualReviewShare,
+      recentActivityCount: activity.length,
+    };
+  });
+
+  const hotspotObjects = computed(() => {
+    const grouped = new Map<string, {
+      key: string;
+      label: string;
+      source: 'material_master' | 'supplier_master';
+      count: number;
+      latestAt: string | null;
+      lastAction: string;
+    }>();
+
+    for (const item of recentActivity.value) {
+      const label = item.source === 'material_master'
+        ? String(item.meta?.code || `material#${item.id}`)
+        : String(item.meta?.supplierName || `supplier#${item.id}`);
+      const key = `${item.source}:${label}`;
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.count += 1;
+        if (toTimestamp(item.createdAt) > toTimestamp(existing.latestAt)) {
+          existing.latestAt = item.createdAt;
+          existing.lastAction = item.action;
+        }
+      } else {
+        grouped.set(key, {
+          key,
+          label,
+          source: item.source,
+          count: 1,
+          latestAt: item.createdAt,
+          lastAction: item.action,
+        });
+      }
+    }
+
+    return [...grouped.values()]
+      .sort((a, b) => (b.count - a.count) || (toTimestamp(b.latestAt) - toTimestamp(a.latestAt)))
+      .slice(0, 6);
+  });
+
+  const riskSignals = computed(() => {
+    const items: Array<{
+      key: string;
+      title: string;
+      count: number;
+      severity: 'info' | 'warning' | 'critical';
+      description: string;
+      routeName: 'config-master-data-diagnostics' | 'material-master' | 'config-suppliers';
+    }> = [];
+
+    if (issueSummary.value.pendingPublishCount > 0) {
+      items.push({
+        key: 'pending-publish',
+        title: '存在待发布主数据',
+        count: issueSummary.value.pendingPublishCount,
+        severity: 'warning',
+        description: 'profile 已产生 draft，但仍未 publish。',
+        routeName: 'config-master-data-diagnostics',
+      });
+    }
+    if (issueSummary.value.autoFixCount > 0) {
+      items.push({
+        key: 'auto-fix-backlog',
+        title: '自动修复积压',
+        count: issueSummary.value.autoFixCount,
+        severity: 'info',
+        description: '建议优先处理可自动重连项，快速降低异常基数。',
+        routeName: 'config-master-data-diagnostics',
+      });
+    }
+    if (issueSummary.value.manualReviewCount > 0) {
+      items.push({
+        key: 'manual-review',
+        title: '人工处理积压',
+        count: issueSummary.value.manualReviewCount,
+        severity: 'critical',
+        description: '仍有需要进入对象工作台逐条修复的问题。',
+        routeName: 'config-master-data-diagnostics',
+      });
+    }
+
+    return items;
+  });
+
   const governanceFocus = computed(() => ([
     {
       key: 'pending-publish',
@@ -168,6 +282,9 @@ export function useMasterDataGovernance(options: { api?: MasterDataGovernanceApi
     issueSummary,
     profileGovernance,
     recentActivity,
+    trendSummary,
+    hotspotObjects,
+    riskSignals,
     governanceFocus,
     load,
   };

@@ -14,6 +14,9 @@ const {
   issueSummary,
   profileGovernance,
   recentActivity,
+  trendSummary,
+  hotspotObjects,
+  riskSignals,
   governanceFocus,
   load,
 } = useMasterDataGovernance();
@@ -121,11 +124,86 @@ function openDiagnostics() {
     <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)] items-start">
       <div class="space-y-4">
         <div>
-          <h3 class="text-lg font-semibold">近期活动</h3>
-          <p class="text-sm text-muted-foreground">通过近期活动判断当前治理的活跃区与高频改动点。</p>
+          <h3 class="text-lg font-semibold">治理趋势与热点</h3>
+          <p class="text-sm text-muted-foreground">帮助判断近期是 publish / rollback 波动，还是对象级反复修改在增加。</p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardContent class="p-4 space-y-1">
+              <div class="text-sm text-muted-foreground">最近 publish</div>
+              <div class="text-2xl font-semibold">{{ trendSummary.publishCount }}</div>
+              <div class="text-xs text-muted-foreground">最近活动窗口内的 publish 次数</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent class="p-4 space-y-1">
+              <div class="text-sm text-muted-foreground">最近 rollback</div>
+              <div class="text-2xl font-semibold">{{ trendSummary.rollbackCount }}</div>
+              <div class="text-xs text-muted-foreground">最近活动窗口内的 rollback 次数</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent class="p-4 space-y-1">
+              <div class="text-sm text-muted-foreground">自动修复占比</div>
+              <div class="text-2xl font-semibold text-emerald-700">{{ trendSummary.autoFixShare }}%</div>
+              <div class="text-xs text-muted-foreground">物料异常中可自动修复的比例</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>热点对象</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-2 text-sm">
+            <div v-if="hotspotObjects.length === 0" class="text-muted-foreground">暂无热点对象</div>
+            <div
+              v-for="item in hotspotObjects"
+              :key="item.key"
+              class="rounded-md border bg-background px-3 py-2"
+            >
+              <div class="font-medium">{{ item.label }}</div>
+              <div class="text-muted-foreground">{{ item.source }} · 最近动作 {{ item.lastAction }} · 近窗口出现 {{ item.count }} 次</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-semibold">风险提示与建议</h3>
+          <p class="text-sm text-muted-foreground">把风险、活动和建议留在次级区，避免与主分析区争抢视觉重心。</p>
         </div>
         <Card>
-          <CardContent class="space-y-2 p-4 text-sm">
+          <CardHeader>
+            <CardTitle>风险提示</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-3 text-sm">
+            <div v-if="riskSignals.length === 0" class="text-muted-foreground">暂无高优先级风险提示</div>
+            <div
+              v-for="item in riskSignals"
+              :key="item.key"
+              class="rounded-md border bg-background px-3 py-3"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="font-medium">{{ item.title }}</div>
+                  <div class="text-muted-foreground">{{ item.description }}</div>
+                </div>
+                <div class="text-lg font-semibold">{{ item.count }}</div>
+              </div>
+              <div class="mt-2">
+                <Button size="sm" variant="outline" @click="openDiagnostics">打开统一诊断</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>近期活动</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-2 text-sm">
             <div v-if="loading" class="text-muted-foreground">加载活动中...</div>
             <div v-if="recentActivity.length === 0 && !loading" class="text-muted-foreground">暂无近期活动</div>
             <div
@@ -138,15 +216,12 @@ function openDiagnostics() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      <div class="space-y-4">
-        <div>
-          <h3 class="text-lg font-semibold">治理建议</h3>
-          <p class="text-sm text-muted-foreground">保留轻量建议，避免和主分析区抢视觉重心。</p>
-        </div>
         <Card>
-          <CardContent class="space-y-3 p-4 text-sm">
+          <CardHeader>
+            <CardTitle>治理建议</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-3 text-sm">
             <div class="rounded-md border bg-background px-3 py-3">
               <div class="font-medium">优先处理 pending draft</div>
               <div class="text-muted-foreground">先清理待发布主数据，再推进结构异常修复，能减少 live 数据与 revision 状态的偏差。</div>
@@ -156,8 +231,8 @@ function openDiagnostics() {
               <div class="text-muted-foreground">先处理批量自动重连项，再进入人工处理任务流，修复效率更高。</div>
             </div>
             <div class="rounded-md border bg-background px-3 py-3">
-              <div class="font-medium">定期回看近期活动</div>
-              <div class="text-muted-foreground">通过最近活动识别高频变更区，帮助发现反复修复的热点对象。</div>
+              <div class="font-medium">关注高频热点对象</div>
+              <div class="text-muted-foreground">如果同一对象在近期活动中反复出现，优先检查其上游配置或使用方式是否存在系统性问题。</div>
             </div>
           </CardContent>
         </Card>
