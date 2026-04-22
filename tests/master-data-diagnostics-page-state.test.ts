@@ -112,7 +112,73 @@ test('master data diagnostics state aggregates material/supplier issues and reli
 
     await state.autoRelinkMaterial(state.materialIssues.value.autoFixCandidates[0] as any);
     assert.equal(calls.includes('update:1:null'), true);
+    assert.equal(state.lastBatchRelinkResult.value, null);
   } finally {
+    scope.stop();
+  }
+});
+
+test('master data diagnostics state supports batch auto relink and reports results', async () => {
+  const calls: string[] = [];
+  const scope = effectScope();
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    const state = scope.run(() => useMasterDataDiagnostics({
+      api: {
+        async listMaterials() {
+          calls.push('materials');
+          return [
+            { id: 1, code: 'M001', name: '物料A', model: 'A', supplier: '供应商A', supplier_master_id: null, supplierMaster: null, unit: 'pcs', price: 1, category: 'raw' },
+            { id: 2, code: 'M002', name: '物料B', model: 'B', supplier: '供应商A', supplier_master_id: null, supplierMaster: null, unit: 'pcs', price: 2, category: 'raw' },
+          ] as any;
+        },
+        async referenceCheck() {
+          calls.push('reference-check');
+          return {
+            profileCode: 'material_master',
+            supplierRefs: ['供应商A'],
+            materialCodeRefs: ['M001', 'M002'],
+            missingMaterialCodes: [],
+            suppliersMissingInMaterialMaster: [],
+            suppliersMissingInSupplierMaster: [],
+            unlinkedMaterialCount: 2,
+            unlinkedMaterialItems: [],
+            hasIssues: true,
+          } as any;
+        },
+        async listSuppliers() {
+          calls.push('suppliers');
+          return [
+            { id: 3, supplierName: '供应商A', normalizedName: '供应商a', status: 'active', sourceNote: '', sources: ['manual'], materialCount: 2, linkedMaterialCount: 0, linkedMaterialCodes: [], hasLinkedMaterialsWhileInactive: false, persisted: true },
+          ] as any;
+        },
+        async updateMaterial(id: number, payload: any) {
+          calls.push(`update:${id}:${payload.supplier_master_id}`);
+          if (id === 2) throw new Error('boom');
+          return payload;
+        },
+      },
+    }));
+
+    if (!state) throw new Error('state not created');
+    await state.load();
+
+    const result = await state.autoRelinkMaterials(state.materialIssues.value.autoFixCandidates as any);
+    assert.deepEqual(result, {
+      processed: 2,
+      succeeded: 1,
+      failed: 1,
+      failedIds: [2],
+    });
+    assert.equal(state.lastBatchRelinkResult.value?.failed, 1);
+    assert.equal(state.batchRelinking.value, false);
+    assert.equal(state.relinkingMaterialIds.value.length, 0);
+    assert.equal(calls.includes('update:1:null'), true);
+    assert.equal(calls.includes('update:2:null'), true);
+  } finally {
+    console.error = originalConsoleError;
     scope.stop();
   }
 });

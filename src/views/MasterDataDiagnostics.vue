@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,13 +13,82 @@ const router = useRouter();
 const {
   loading,
   loadError,
-  relinkingMaterialId,
+  relinkingMaterialIds,
+  batchRelinking,
+  lastBatchRelinkResult,
   materialIssues,
   supplierIssues,
   summary,
   load,
   autoRelinkMaterial,
+  autoRelinkMaterials,
 } = useMasterDataDiagnostics();
+
+const selectedAutoFixIds = ref<number[]>([]);
+const manualTaskIndex = ref(0);
+
+const visibleAutoFixCandidates = computed(() => materialIssues.value.autoFixCandidates.slice(0, 8));
+
+const manualRepairTasks = computed(() => {
+  const materialTasks = materialIssues.value.manualReviewCandidates.slice(0, 8).map((item) => {
+    const supplierMasterId = item.supplierMaster?.id ?? null;
+    return {
+      key: `material-${item.id}`,
+      type: 'material' as const,
+      id: item.id,
+      label: `${item.code} · ${item.name}`,
+      description: item.supplierMaster?.status === 'inactive'
+        ? '当前链接的 Supplier Master 已 inactive'
+        : '未找到可自动匹配的 Supplier Master',
+      open: () => openMaterial(item, 'diagnostics'),
+      openRelated: supplierMasterId
+        ? () => openSupplier({ id: supplierMasterId } as SupplierMasterEntry, 'diagnostics')
+        : null,
+      relatedLabel: supplierMasterId ? '查看关联供应商' : null,
+    };
+  });
+
+  const inactiveSupplierTasks = supplierIssues.value.inactiveLinkedSuppliers.slice(0, 8).map((item) => ({
+    key: `supplier-inactive-${item.normalizedName}`,
+    type: 'supplier' as const,
+    id: Number(item.id || 0),
+    label: `${item.supplierName}`,
+    description: 'inactive 但仍有关联物料',
+    open: () => openSupplier(item, 'materials'),
+    openRelated: null,
+    relatedLabel: null,
+  }));
+
+  const supplierUnlinkedTasks = supplierIssues.value.suppliersWithUnlinkedMaterials.slice(0, 8).map((item) => ({
+    key: `supplier-unlinked-${item.normalizedName}`,
+    type: 'supplier' as const,
+    id: Number(item.id || 0),
+    label: `${item.supplierName}`,
+    description: `待补充正式链接：${item.materialCount} 个物料`,
+    open: () => openSupplier(item, 'diagnostics'),
+    openRelated: null,
+    relatedLabel: null,
+  }));
+
+    return [...materialTasks, ...inactiveSupplierTasks, ...supplierUnlinkedTasks];
+});
+
+const currentManualTask = computed(() => manualRepairTasks.value[manualTaskIndex.value] || null);
+
+watch(visibleAutoFixCandidates, (candidates) => {
+  const candidateIds = new Set(candidates.map((item) => item.id));
+  selectedAutoFixIds.value = selectedAutoFixIds.value.filter((id) => candidateIds.has(id));
+}, { immediate: true });
+
+watch(manualRepairTasks, (tasks) => {
+  if (!tasks.length) {
+    manualTaskIndex.value = 0;
+    return;
+  }
+  if (manualTaskIndex.value >= tasks.length) {
+    manualTaskIndex.value = tasks.length - 1;
+  }
+}, { immediate: true });
 
 onMounted(() => {
   void load();
@@ -57,6 +126,40 @@ function jumpToSuggestedSupplier(item: MaterialMasterItem & { suggestedSupplierM
     },
   });
 }
+
+function toggleAutoFixSelection(materialId: number) {
+  selectedAutoFixIds.value = selectedAutoFixIds.value.includes(materialId)
+    ? selectedAutoFixIds.value.filter((id) => id !== materialId)
+    : [...selectedAutoFixIds.value, materialId];
+}
+
+function selectAllVisibleAutoFix() {
+  selectedAutoFixIds.value = visibleAutoFixCandidates.value.map((item) => item.id);
+}
+
+function clearAutoFixSelection() {
+  selectedAutoFixIds.value = [];
+}
+
+async function runBatchAutoRelink() {
+  const selectedItems = visibleAutoFixCandidates.value.filter((item) => selectedAutoFixIds.value.includes(item.id));
+  await autoRelinkMaterials(selectedItems);
+  clearAutoFixSelection();
+}
+
+function moveManualTask(offset: number) {
+  if (!manualRepairTasks.value.length) return;
+  const nextIndex = manualTaskIndex.value + offset;
+  manualTaskIndex.value = Math.min(Math.max(nextIndex, 0), manualRepairTasks.value.length - 1);
+}
+
+function openCurrentManualTask() {
+  currentManualTask.value?.open();
+}
+
+function openCurrentRelatedTask() {
+  currentManualTask.value?.openRelated?.();
+}
 </script>
 
 <template>
@@ -69,6 +172,36 @@ function jumpToSuggestedSupplier(item: MaterialMasterItem & { suggestedSupplierM
     </template>
 
     <MasterDataDiagnosticsSummaryCards :summary="summary" />
+
+    <Card v-if="currentManualTask">
+      <CardHeader>
+        <CardTitle>人工处理任务流</CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-3 text-sm">
+        <div class="rounded-md border bg-background px-3 py-2">
+          <div class="text-muted-foreground">当前任务 {{ manualTaskIndex + 1 }} / {{ manualRepairTasks.length }}</div>
+          <div class="font-medium">{{ currentManualTask.label }}</div>
+          <div class="text-muted-foreground">{{ currentManualTask.description }}</div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" :disabled="manualTaskIndex === 0" @click="moveManualTask(-1)">上一条</Button>
+          <Button size="sm" variant="outline" :disabled="manualTaskIndex >= manualRepairTasks.length - 1" @click="moveManualTask(1)">下一条</Button>
+          <Button size="sm" variant="outline" @click="openCurrentManualTask">处理当前对象</Button>
+          <Button v-if="currentManualTask.relatedLabel" size="sm" variant="outline" @click="openCurrentRelatedTask">
+            {{ currentManualTask.relatedLabel }}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card v-if="lastBatchRelinkResult && lastBatchRelinkResult.processed > 0">
+      <CardContent class="p-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+        <div>批量自动重连完成</div>
+        <div>processed: {{ lastBatchRelinkResult.processed }}</div>
+        <div>succeeded: {{ lastBatchRelinkResult.succeeded }}</div>
+        <div v-if="lastBatchRelinkResult.failed > 0" class="text-destructive">failed: {{ lastBatchRelinkResult.failed }}</div>
+      </CardContent>
+    </Card>
 
     <Card v-if="loadError">
       <CardContent class="p-4 text-sm text-destructive">{{ loadError }}</CardContent>
@@ -83,17 +216,38 @@ function jumpToSuggestedSupplier(item: MaterialMasterItem & { suggestedSupplierM
           <div v-if="loading" class="text-muted-foreground">加载诊断中...</div>
 
           <div>
-            <div class="font-medium mb-2">可自动修复</div>
-            <div v-if="materialIssues.autoFixCandidates.length === 0" class="text-muted-foreground">暂无可自动修复的物料</div>
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div class="font-medium">可自动修复</div>
+              <div class="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" @click="selectAllVisibleAutoFix">全选可见项</Button>
+                <Button size="sm" variant="outline" @click="clearAutoFixSelection">清空选择</Button>
+                <Button size="sm" variant="outline" :disabled="batchRelinking || selectedAutoFixIds.length === 0" @click="runBatchAutoRelink">
+                  批量自动重连
+                </Button>
+              </div>
+            </div>
+            <div v-if="visibleAutoFixCandidates.length === 0" class="text-muted-foreground">暂无可自动修复的物料</div>
             <div
-              v-for="item in materialIssues.autoFixCandidates.slice(0, 8)"
+              v-for="item in visibleAutoFixCandidates"
               :key="`auto-fix-${item.id}`"
               class="rounded-md border bg-background px-3 py-2 mb-2"
             >
-              <div class="font-medium">{{ item.code }} · {{ item.name }}</div>
-              <div class="text-muted-foreground">{{ item.supplier }} → {{ item.suggestedSupplierMaster?.supplierName }}</div>
+              <div class="flex items-start justify-between gap-3">
+                <label class="flex items-start gap-3 flex-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="mt-1"
+                    :checked="selectedAutoFixIds.includes(item.id)"
+                    @change="toggleAutoFixSelection(item.id)"
+                  >
+                  <div>
+                    <div class="font-medium">{{ item.code }} · {{ item.name }}</div>
+                    <div class="text-muted-foreground">{{ item.supplier }} → {{ item.suggestedSupplierMaster?.supplierName }}</div>
+                  </div>
+                </label>
+              </div>
               <div class="mt-2 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" :disabled="relinkingMaterialId === item.id" @click="autoRelinkMaterial(item)">
+                <Button size="sm" variant="outline" :disabled="relinkingMaterialIds.includes(item.id) || batchRelinking" @click="autoRelinkMaterial(item)">
                   自动重连
                 </Button>
                 <Button size="sm" variant="outline" @click="openMaterial(item, 'relationship')">查看物料详情</Button>

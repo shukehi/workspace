@@ -4,10 +4,7 @@ import {
   type MaterialMasterItem,
   type MaterialMasterReferenceCheck,
 } from '@/services/materialMasterProfileApi';
-import {
-  supplierMasterProfileApi,
-  type SupplierLinkedMaterialItem,
-} from '@/services/supplierMasterProfileApi';
+import { supplierMasterProfileApi } from '@/services/supplierMasterProfileApi';
 import type { SupplierMasterEntry } from '@/services/mappingConfigApi';
 
 interface MasterDataDiagnosticsApi {
@@ -15,6 +12,13 @@ interface MasterDataDiagnosticsApi {
   referenceCheck?: () => Promise<MaterialMasterReferenceCheck | null>;
   listSuppliers?: () => Promise<SupplierMasterEntry[]>;
   updateMaterial?: (id: number, payload: Partial<MaterialMasterItem>) => Promise<MaterialMasterItem>;
+}
+
+interface BatchRelinkResult {
+  processed: number;
+  succeeded: number;
+  failed: number;
+  failedIds: number[];
 }
 
 export function useMasterDataDiagnostics(options: { api?: MasterDataDiagnosticsApi } = {}) {
@@ -27,7 +31,9 @@ export function useMasterDataDiagnostics(options: { api?: MasterDataDiagnosticsA
 
   const loading = ref(false);
   const loadError = ref<string | null>(null);
-  const relinkingMaterialId = ref<number | null>(null);
+  const relinkingMaterialIds = ref<number[]>([]);
+  const batchRelinking = ref(false);
+  const lastBatchRelinkResult = ref<BatchRelinkResult | null>(null);
   const materials = ref<MaterialMasterItem[]>([]);
   const referenceCheck = ref<MaterialMasterReferenceCheck | null>(null);
   const suppliers = ref<SupplierMasterEntry[]>([]);
@@ -120,26 +126,76 @@ export function useMasterDataDiagnostics(options: { api?: MasterDataDiagnosticsA
     }
   }
 
-  async function autoRelinkMaterial(item: MaterialMasterItem) {
-    if (!item.id || !api.updateMaterial) return;
-    relinkingMaterialId.value = item.id;
+  async function relinkOne(item: MaterialMasterItem) {
+    if (!item.id || !api.updateMaterial) {
+      return false;
+    }
+
+    relinkingMaterialIds.value = [...new Set([...relinkingMaterialIds.value, item.id])];
     try {
       await api.updateMaterial(item.id, {
         supplier: item.supplier,
         supplier_master_id: null,
       });
-      await load();
+      return true;
     } catch (error) {
       console.error(error);
+      return false;
     } finally {
-      relinkingMaterialId.value = null;
+      relinkingMaterialIds.value = relinkingMaterialIds.value.filter((id) => id !== item.id);
     }
+  }
+
+  async function autoRelinkMaterial(item: MaterialMasterItem) {
+    const succeeded = await relinkOne(item);
+    if (succeeded) {
+      await load();
+    }
+  }
+
+  async function autoRelinkMaterials(items: MaterialMasterItem[]) {
+    const uniqueItems = items.filter((item, index, source) => item.id && source.findIndex((candidate) => candidate.id === item.id) === index);
+    if (!uniqueItems.length) {
+      lastBatchRelinkResult.value = {
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        failedIds: [],
+      };
+      return lastBatchRelinkResult.value;
+    }
+
+    batchRelinking.value = true;
+    const failedIds: number[] = [];
+    let succeeded = 0;
+
+    for (const item of uniqueItems) {
+      const ok = await relinkOne(item);
+      if (ok) {
+        succeeded += 1;
+      } else if (item.id) {
+        failedIds.push(item.id);
+      }
+    }
+
+    lastBatchRelinkResult.value = {
+      processed: uniqueItems.length,
+      succeeded,
+      failed: failedIds.length,
+      failedIds,
+    };
+
+    batchRelinking.value = false;
+    await load();
+    return lastBatchRelinkResult.value;
   }
 
   return {
     loading,
     loadError,
-    relinkingMaterialId,
+    relinkingMaterialIds,
+    batchRelinking,
+    lastBatchRelinkResult,
     materials,
     suppliers,
     referenceCheck,
@@ -148,5 +204,6 @@ export function useMasterDataDiagnostics(options: { api?: MasterDataDiagnosticsA
     summary,
     load,
     autoRelinkMaterial,
+    autoRelinkMaterials,
   };
 }
