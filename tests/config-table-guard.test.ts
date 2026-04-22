@@ -116,6 +116,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   const sidebar = read('src/layout/Sidebar.vue');
   const supplierMaster = read('src/views/SupplierMaster.vue');
   const diagnosticsView = read('src/views/MasterDataDiagnostics.vue');
+  const governanceView = read('src/views/MasterDataGovernance.vue');
   const diagnosticsSummary = read('src/features/master-data/components/MasterDataDiagnosticsSummaryCards.vue');
   const lifecyclePanel = read('src/features/master-data/components/MasterDataLifecyclePanel.vue');
   const supplierDetail = read('src/features/master-data/components/SupplierDetailPanel.vue');
@@ -136,14 +137,19 @@ test('config navigation guard: supplier master is exposed in config routes and n
 
   assert.match(nav, /supplier-master/);
   assert.match(nav, /master-data-diagnostics/);
+  assert.match(nav, /master-data-governance/);
+  assert.match(nav, /\/config\/master-data-governance/);
   assert.match(nav, /\/config\/master-data-diagnostics/);
   assert.match(nav, /\/config\/suppliers/);
   assert.match(router, /path: '\/config\/suppliers'/);
   assert.match(router, /path: '\/config\/master-data-diagnostics'/);
+  assert.match(router, /path: '\/config\/master-data-governance'/);
+  assert.match(router, /name: 'config-master-data-governance'/);
   assert.match(router, /name: 'config-master-data-diagnostics'/);
   assert.match(router, /name: 'config-suppliers'/);
   assert.match(sidebar, /'supplier-master': ClipboardList/);
   assert.match(sidebar, /'master-data-diagnostics': ClipboardList/);
+  assert.match(sidebar, /'master-data-governance': BarChart3/);
   assert.match(supplierMaster, /供应商主数据/);
   assert.match(supplierMaster, /profile: \{\{ profileDetail\.profile\.code \}\}/);
   assert.match(supplierMaster, /workflow: \{\{ profileDetail\.profile\.workflowKind \}\}/);
@@ -172,6 +178,11 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(supplierEditDialog, /备注/);
   assert.match(supplierList, /供应商列表/);
   assert.match(supplierList, /已链接物料/);
+  assert.match(governanceView, /主数据治理看板/);
+  assert.match(governanceView, /治理状态总览/);
+  assert.match(governanceView, /近期活动/);
+  assert.match(governanceView, /治理焦点/);
+  assert.match(governanceView, /打开统一诊断/);
   assert.match(diagnosticsView, /主数据统一诊断/);
   assert.match(diagnosticsView, /物料异常/);
   assert.match(diagnosticsView, /供应商异常/);

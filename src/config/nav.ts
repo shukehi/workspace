@@ -7,6 +7,7 @@ export type NavIconKey =
     | 'material-master'
     | 'supplier-master'
     | 'master-data-diagnostics'
+    | 'master-data-governance'
     | 'material-catalog'
     | 'formula'
     | 'packaging-config'
@@ -48,6 +49,7 @@ export const mainNavGroups: NavGroup[] = [
             { title: '物料数据', href: '/material-master', icon: 'material-master' },
             { title: '供应商主数据', href: '/config/suppliers', icon: 'supplier-master' },
             { title: '主数据诊断', href: '/config/master-data-diagnostics', icon: 'master-data-diagnostics' },
+            { title: '主数据治理', href: '/config/master-data-governance', icon: 'master-data-governance' },
             { title: '物料目录配置', href: '/config/material-catalog', icon: 'material-catalog' },
             { title: '配方配置', href: '/formula', icon: 'formula' },
             { title: '包装配置', href: '/config/packaging', icon: 'packaging-config' },

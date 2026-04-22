@@ -34,6 +34,7 @@ const iconMap: Record<NavIconKey, Component> = {
   'material-master': ClipboardList,
   'supplier-master': ClipboardList,
   'master-data-diagnostics': ClipboardList,
+  'master-data-governance': BarChart3,
   'material-catalog': Boxes,
   formula: FlaskConical,
   'packaging-config': Package,
