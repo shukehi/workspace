@@ -175,6 +175,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(diagnosticsView, /主数据统一诊断/);
   assert.match(diagnosticsView, /物料异常/);
   assert.match(diagnosticsView, /供应商异常/);
+  assert.match(diagnosticsView, /Lifecycle 待处理/);
   assert.match(diagnosticsView, /人工处理任务流/);
   assert.match(diagnosticsView, /批量自动重连/);
   assert.match(diagnosticsView, /处理当前对象/);
@@ -182,6 +183,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(diagnosticsView, /查看供应商详情/);
   assert.match(diagnosticsSummary, /总异常数/);
   assert.match(diagnosticsSummary, /可自动修复/);
+  assert.match(diagnosticsSummary, /待发布主数据/);
   assert.match(lifecyclePanel, /发布当前 draft/);
   assert.match(lifecyclePanel, /修订历史/);
   assert.match(lifecyclePanel, /回滚到此版本/);

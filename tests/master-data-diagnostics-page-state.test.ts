@@ -91,6 +91,26 @@ test('master data diagnostics state aggregates material/supplier issues and reli
             },
           ] as any;
         },
+        async detailMaterialProfile() {
+          calls.push('material-detail');
+          return {
+            latestRevision: { revision: 5, state: 'draft', changeNote: 'draft', createdBy: 'tester', createdAt: null },
+            draftRevision: { revision: 5, state: 'draft', changeNote: 'draft', createdBy: 'tester', createdAt: null },
+            publishedRevision: { revision: 4, state: 'published', changeNote: 'published', createdBy: 'tester', createdAt: null },
+            profile: { code: 'material_master', workflowKind: 'collection', activeRevision: 4, capabilities: {} },
+            collection: { total: 2, page: 1, pageSize: 2, previewItems: [] },
+          } as any;
+        },
+        async detailSupplierProfile() {
+          calls.push('supplier-detail');
+          return {
+            latestRevision: { revision: 3, state: 'published', changeNote: 'published', createdBy: 'tester', createdAt: null },
+            draftRevision: null,
+            publishedRevision: { revision: 3, state: 'published', changeNote: 'published', createdBy: 'tester', createdAt: null },
+            profile: { code: 'supplier_master', workflowKind: 'collection', activeRevision: 3, capabilities: {} },
+            collection: { total: 2, page: 1, pageSize: 2, previewItems: [] },
+          } as any;
+        },
         async updateMaterial(id: number, payload: any) {
           calls.push(`update:${id}:${payload.supplier_master_id}`);
           return payload;
@@ -102,8 +122,10 @@ test('master data diagnostics state aggregates material/supplier issues and reli
 
     await state.load();
 
-    assert.deepEqual(calls.slice(0, 3), ['materials', 'reference-check', 'suppliers']);
-    assert.equal(state.summary.value.totalIssueCount, 4);
+    assert.deepEqual(calls.slice(0, 5), ['materials', 'reference-check', 'suppliers', 'material-detail', 'supplier-detail']);
+    assert.equal(state.summary.value.totalIssueCount, 5);
+    assert.equal(state.summary.value.pendingPublishCount, 1);
+    assert.equal(state.lifecycleIssues.value.items.length, 1);
     assert.equal(state.summary.value.autoFixCount, 1);
     assert.equal(state.materialIssues.value.autoFixCandidates.length, 1);
     assert.equal(state.materialIssues.value.manualReviewCandidates.length, 1);
@@ -153,6 +175,12 @@ test('master data diagnostics state supports batch auto relink and reports resul
           return [
             { id: 3, supplierName: '供应商A', normalizedName: '供应商a', status: 'active', sourceNote: '', sources: ['manual'], materialCount: 2, linkedMaterialCount: 0, linkedMaterialCodes: [], hasLinkedMaterialsWhileInactive: false, persisted: true },
           ] as any;
+        },
+        async detailMaterialProfile() {
+          return { latestRevision: null, draftRevision: null, publishedRevision: null, profile: { code: 'material_master', workflowKind: 'collection', activeRevision: null, capabilities: {} }, collection: { total: 2, page: 1, pageSize: 2, previewItems: [] } } as any;
+        },
+        async detailSupplierProfile() {
+          return { latestRevision: null, draftRevision: null, publishedRevision: null, profile: { code: 'supplier_master', workflowKind: 'collection', activeRevision: null, capabilities: {} }, collection: { total: 1, page: 1, pageSize: 1, previewItems: [] } } as any;
         },
         async updateMaterial(id: number, payload: any) {
           calls.push(`update:${id}:${payload.supplier_master_id}`);

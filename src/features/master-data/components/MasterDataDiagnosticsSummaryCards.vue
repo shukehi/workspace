@@ -8,12 +8,13 @@ defineProps<{
     supplierIssueCount: number
     autoFixCount: number
     manualReviewCount: number
+    pendingPublishCount: number
   }
 }>();
 </script>
 
 <template>
-  <div class="grid gap-4 md:grid-cols-4">
+  <div class="grid gap-4 md:grid-cols-5">
     <Card>
       <CardContent class="p-4 space-y-1">
         <div class="text-sm text-muted-foreground">总异常数</div>
@@ -40,6 +41,13 @@ defineProps<{
         <div class="text-sm text-muted-foreground">需人工处理</div>
         <div class="text-2xl font-semibold text-destructive">{{ summary.manualReviewCount }}</div>
         <div class="text-xs text-muted-foreground">需进入对象详情继续修复</div>
+      </CardContent>
+    </Card>
+    <Card>
+      <CardContent class="p-4 space-y-1">
+        <div class="text-sm text-muted-foreground">待发布主数据</div>
+        <div class="text-2xl font-semibold text-primary">{{ summary.pendingPublishCount }}</div>
+        <div class="text-xs text-muted-foreground">存在 draft 但尚未 publish 的主数据 profile</div>
       </CardContent>
     </Card>
   </div>

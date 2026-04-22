@@ -16,6 +16,7 @@ const {
   relinkingMaterialIds,
   batchRelinking,
   lastBatchRelinkResult,
+  lifecycleIssues,
   materialIssues,
   supplierIssues,
   summary,
@@ -70,7 +71,7 @@ const manualRepairTasks = computed(() => {
     relatedLabel: null,
   }));
 
-    return [...materialTasks, ...inactiveSupplierTasks, ...supplierUnlinkedTasks];
+  return [...materialTasks, ...inactiveSupplierTasks, ...supplierUnlinkedTasks];
 });
 
 const currentManualTask = computed(() => manualRepairTasks.value[manualTaskIndex.value] || null);
@@ -160,6 +161,14 @@ function openCurrentManualTask() {
 function openCurrentRelatedTask() {
   currentManualTask.value?.openRelated?.();
 }
+
+function openLifecycleIssue(profileCode: 'material_master' | 'supplier_master') {
+  if (profileCode === 'material_master') {
+    void router.push({ name: 'material-master', query: { tab: 'audit' } });
+    return;
+  }
+  void router.push({ name: 'config-suppliers', query: { tab: 'audit' } });
+}
 </script>
 
 <template>
@@ -172,6 +181,25 @@ function openCurrentRelatedTask() {
     </template>
 
     <MasterDataDiagnosticsSummaryCards :summary="summary" />
+
+    <Card v-if="lifecycleIssues.items.length > 0">
+      <CardHeader>
+        <CardTitle>Lifecycle 待处理</CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-2 text-sm">
+        <div
+          v-for="issue in lifecycleIssues.items"
+          :key="issue.key"
+          class="rounded-md border bg-background px-3 py-2"
+        >
+          <div class="font-medium">{{ issue.title }}</div>
+          <div class="text-muted-foreground">draft revision #{{ issue.draftRevision }} · published revision #{{ issue.publishedRevision ?? '-' }}</div>
+          <div class="mt-2">
+            <Button size="sm" variant="outline" @click="openLifecycleIssue(issue.profileCode)">打开 lifecycle 面板</Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
     <Card v-if="currentManualTask">
       <CardHeader>
