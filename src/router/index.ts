@@ -59,6 +59,11 @@ const router = createRouter({
                     component: () => import('@/views/SupplierMaster.vue')
                 },
                 {
+                    path: '/config/master-data-diagnostics',
+                    name: 'config-master-data-diagnostics',
+                    component: () => import('@/views/MasterDataDiagnostics.vue')
+                },
+                {
                     path: '/config/material-catalog',
                     name: 'config-material-catalog',
                     component: () => import('@/views/MaterialCatalogConfig.vue')

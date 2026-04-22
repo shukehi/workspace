@@ -115,6 +115,8 @@ test('config navigation guard: supplier master is exposed in config routes and n
   const router = read('src/router/index.ts');
   const sidebar = read('src/layout/Sidebar.vue');
   const supplierMaster = read('src/views/SupplierMaster.vue');
+  const diagnosticsView = read('src/views/MasterDataDiagnostics.vue');
+  const diagnosticsSummary = read('src/features/master-data/components/MasterDataDiagnosticsSummaryCards.vue');
   const supplierDetail = read('src/features/master-data/components/SupplierDetailPanel.vue');
   const supplierEditDialog = read('src/features/master-data/components/SupplierEditDialog.vue');
   const supplierList = read('src/features/master-data/components/SupplierListPanel.vue');
@@ -132,10 +134,15 @@ test('config navigation guard: supplier master is exposed in config routes and n
   const materialSummary = read('src/features/master-data/components/MaterialSummaryCards.vue');
 
   assert.match(nav, /supplier-master/);
+  assert.match(nav, /master-data-diagnostics/);
+  assert.match(nav, /\/config\/master-data-diagnostics/);
   assert.match(nav, /\/config\/suppliers/);
   assert.match(router, /path: '\/config\/suppliers'/);
+  assert.match(router, /path: '\/config\/master-data-diagnostics'/);
+  assert.match(router, /name: 'config-master-data-diagnostics'/);
   assert.match(router, /name: 'config-suppliers'/);
   assert.match(sidebar, /'supplier-master': ClipboardList/);
+  assert.match(sidebar, /'master-data-diagnostics': ClipboardList/);
   assert.match(supplierMaster, /供应商主数据/);
   assert.match(supplierMaster, /profile: \{\{ profileDetail\.profile\.code \}\}/);
   assert.match(supplierMaster, /workflow: \{\{ profileDetail\.profile\.workflowKind \}\}/);
@@ -163,6 +170,13 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(supplierEditDialog, /备注/);
   assert.match(supplierList, /供应商列表/);
   assert.match(supplierList, /已链接物料/);
+  assert.match(diagnosticsView, /主数据统一诊断/);
+  assert.match(diagnosticsView, /物料异常/);
+  assert.match(diagnosticsView, /供应商异常/);
+  assert.match(diagnosticsView, /查看物料详情/);
+  assert.match(diagnosticsView, /查看供应商详情/);
+  assert.match(diagnosticsSummary, /总异常数/);
+  assert.match(diagnosticsSummary, /可自动修复/);
   assert.match(supplierLinkedMaterials, /关联物料明细/);
   assert.match(supplierLinkedMaterials, /当前 supplier master 暂无已关联物料/);
   assert.match(supplierLinkedMaterials, /查看物料详情/);
