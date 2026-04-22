@@ -1,4 +1,4 @@
-import type { Transaction } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 import { Material, SupplierMaster } from '../../models';
 import type { MaterialInstance, SupplierMasterInstance } from '../../models';
 import MasterDataLifecycleRepository from './master-data.lifecycle.repository';
@@ -31,6 +31,8 @@ const PROFILE_META: Record<MasterDataProfileCode, { displayName: string }> = {
   supplier_master: { displayName: '供应商主数据' },
   material_master: { displayName: '物料主数据' },
 };
+
+const bootstrapPromises = new Map<MasterDataProfileCode, Promise<void>>();
 
 function parsePayload(payloadJson: unknown): Record<string, unknown>[] {
   if (!payloadJson) return [];
@@ -119,18 +121,14 @@ async function applySupplierPayload(payload: Record<string, unknown>[], transact
     await SupplierMaster.update(
       { status: 'inactive' },
       {
-        where: {
-          id: { [require('sequelize').Op.notIn]: targetIds },
-        },
+        where: { id: { [Op.notIn]: targetIds } },
         transaction,
       },
     );
     await Material.update(
       { supplier_master_id: null },
       {
-        where: {
-          supplier_master_id: { [require('sequelize').Op.notIn]: targetIds },
-        },
+        where: { supplier_master_id: { [Op.notIn]: targetIds } },
         transaction,
       },
     );
@@ -174,41 +172,59 @@ async function applyPayload(profileCode: MasterDataProfileCode, payload: Record<
   await applyMaterialPayload(payload, transaction);
 }
 
-async function ensureSeededProfile(profileCode: MasterDataProfileCode, transaction?: Transaction) {
-  let profile = await MasterDataLifecycleRepository.findProfileByCode(profileCode, transaction);
+async function ensureSeededProfileInTransaction(profileCode: MasterDataProfileCode, transaction: Transaction) {
+  let profile = await MasterDataLifecycleRepository.findProfileByCode(profileCode, transaction) as any;
   if (!profile) {
     profile = await MasterDataLifecycleRepository.createProfile({
       profile_code: profileCode,
       display_name: PROFILE_META[profileCode].displayName,
       status: 'active',
       active_revision: null,
-    }, transaction);
+    }, transaction) as any;
   }
 
-  const latest = await MasterDataLifecycleRepository.findLatestRevision((profile as any).id, transaction);
+  const latest = await MasterDataLifecycleRepository.findLatestRevision(profile.id, transaction);
   if (latest) return profile;
 
   const initialPayload = await snapshotPayload(profileCode, transaction);
   const initialRevision = await MasterDataLifecycleRepository.createRevision({
-    profile_id: (profile as any).id,
+    profile_id: profile.id,
     revision: 1,
     state: 'published',
     payload_json: serializePayload(initialPayload),
     change_note: 'seed current live state',
     created_by: 'system-admin',
-  }, transaction);
+  }, transaction) as any;
 
-  await MasterDataLifecycleRepository.updateProfile((profile as any).id, {
+  await MasterDataLifecycleRepository.updateProfile(profile.id, {
     status: 'active',
-    active_revision: (initialRevision as any).revision,
+    active_revision: initialRevision.revision,
   }, transaction);
 
   return profile;
 }
 
+async function bootstrapProfile(profileCode: MasterDataProfileCode): Promise<void> {
+  const existing = bootstrapPromises.get(profileCode);
+  if (existing) {
+    await existing;
+    return;
+  }
+
+  const promise = MasterDataLifecycleRepository.withTransaction(async (transaction) => {
+    await ensureSeededProfileInTransaction(profileCode, transaction);
+  }).finally(() => {
+    bootstrapPromises.delete(profileCode);
+  });
+
+  bootstrapPromises.set(profileCode, promise);
+  await promise;
+}
+
 export async function getMasterDataWorkflowDetail(profileCode: MasterDataProfileCode): Promise<MasterDataWorkflowDetail> {
+  await bootstrapProfile(profileCode);
   return MasterDataLifecycleRepository.withTransaction(async (transaction) => {
-    const profile = await ensureSeededProfile(profileCode, transaction) as any;
+    const profile = await MasterDataLifecycleRepository.findProfileByCode(profileCode, transaction) as any;
     const [latestRevision, draftRevision, publishedRevision] = await Promise.all([
       MasterDataLifecycleRepository.findLatestRevision(profile.id, transaction),
       MasterDataLifecycleRepository.findDraftRevision(profile.id, transaction),
@@ -231,8 +247,9 @@ export async function getMasterDataWorkflowDetail(profileCode: MasterDataProfile
 }
 
 export async function syncMasterDataDraft(profileCode: MasterDataProfileCode, changeNote: string, operator = 'system-admin') {
+  await bootstrapProfile(profileCode);
   return MasterDataLifecycleRepository.withTransaction(async (transaction) => {
-    const profile = await ensureSeededProfile(profileCode, transaction) as any;
+    const profile = await MasterDataLifecycleRepository.findProfileByCode(profileCode, transaction) as any;
     const latest = await MasterDataLifecycleRepository.findLatestRevision(profile.id, transaction) as any;
     const nextRevision = Number(latest?.revision || 0) + 1;
     const payload = await snapshotPayload(profileCode, transaction);
@@ -251,8 +268,9 @@ export async function syncMasterDataDraft(profileCode: MasterDataProfileCode, ch
 }
 
 export async function publishMasterDataProfile(profileCode: MasterDataProfileCode, params: { fromRevision: number | string; changeNote?: string; operator?: string }) {
+  await bootstrapProfile(profileCode);
   return MasterDataLifecycleRepository.withTransaction(async (transaction) => {
-    const profile = await ensureSeededProfile(profileCode, transaction) as any;
+    const profile = await MasterDataLifecycleRepository.findProfileByCode(profileCode, transaction) as any;
     const draft = await MasterDataLifecycleRepository.findDraftRevision(profile.id, transaction) as any;
     if (!draft) {
       return { ok: false, status: 409, errors: [{ field: 'fromRevision', message: '当前没有可发布的 draft' }] };
@@ -278,8 +296,9 @@ export async function publishMasterDataProfile(profileCode: MasterDataProfileCod
 }
 
 export async function rollbackMasterDataProfile(profileCode: MasterDataProfileCode, params: { targetRevision: number | string; reason?: string; operator?: string }) {
+  await bootstrapProfile(profileCode);
   return MasterDataLifecycleRepository.withTransaction(async (transaction) => {
-    const profile = await ensureSeededProfile(profileCode, transaction) as any;
+    const profile = await MasterDataLifecycleRepository.findProfileByCode(profileCode, transaction) as any;
     const target = await MasterDataLifecycleRepository.findRevisionByNumber(profile.id, params.targetRevision, transaction) as any;
     if (!target) {
       return { ok: false, status: 404, errors: [{ field: 'targetRevision', message: '目标 revision 不存在' }] };
@@ -304,8 +323,9 @@ export async function rollbackMasterDataProfile(profileCode: MasterDataProfileCo
 }
 
 export async function listMasterDataRevisions(profileCode: MasterDataProfileCode) {
+  await bootstrapProfile(profileCode);
   return MasterDataLifecycleRepository.withTransaction(async (transaction) => {
-    const profile = await ensureSeededProfile(profileCode, transaction) as any;
+    const profile = await MasterDataLifecycleRepository.findProfileByCode(profileCode, transaction) as any;
     const rows = await MasterDataLifecycleRepository.listRevisions(profile.id, transaction) as any[];
     return rows.map((row) => toRevisionMeta(row)).filter(Boolean);
   });
