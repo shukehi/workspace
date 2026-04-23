@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
@@ -17,15 +18,19 @@ import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 type MappingRow = { id: string; key: string; value: string; };
 
 const supplierName = ref(DEFAULT_PACKAGING_SUPPLIER);
+const useSystemDefaultSupplier = ref(true);
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
 
 const mappings = useEditableList<MappingRow>(() => ({ id: '', key: '', value: '' }));
 
-const payload = computed<PackagingMappingConfig>(() => ({
-  supplierName: supplierName.value,
-  mappings: rowsToMap(mappings.list.value, 'key', (row) => row.value)
-}));
+const payload = computed<PackagingMappingConfig>(() => {
+  const mappingPayload = rowsToMap(mappings.list.value, 'key', (row) => row.value);
+  return {
+    supplierName: useSystemDefaultSupplier.value ? DEFAULT_PACKAGING_SUPPLIER : supplierName.value.trim(),
+    mappings: mappingPayload,
+  };
+});
 
 const clientIssues = computed(() => {
   const issues = [...validatePackagingMapping(payload.value)];
@@ -46,25 +51,45 @@ const clientIssues = computed(() => {
   return issues;
 });
 
+const totalMappings = computed(() => Object.keys(payload.value.mappings).length);
+const normalizedConflictCount = computed(() => clientIssues.value.filter((issue) => issue.code === 'normalized-conflict').length);
+const filteredCount = computed(() => filteredRows.value.length);
+
 const filteredRows = computed(() => {
   const kw = searchQuery.value.trim().toLowerCase();
   if (!kw) return mappings.list.value;
   return mappings.list.value.filter(r => r.key.toLowerCase().includes(kw) || r.value.toLowerCase().includes(kw));
 });
 
+function serializeDraft(data: PackagingMappingConfig) {
+  const sorted: PackagingMappingConfig = {
+    supplierName: data.supplierName.trim() || DEFAULT_PACKAGING_SUPPLIER,
+    mappings: {},
+  };
+  Object.keys(data.mappings).sort().forEach((key) => {
+    sorted.mappings[key] = data.mappings[key];
+  });
+  return JSON.stringify(sorted);
+}
+
 const hasUnsavedChanges = computed(() => {
-  const data = payload.value;
-  const sorted: any = { supplierName: data.supplierName, mappings: {} };
-  Object.keys(data.mappings).sort().forEach(k => sorted.mappings[k] = data.mappings[k]);
-  return JSON.stringify(sorted) !== baselineSnapshot.value;
+  return serializeDraft(payload.value) !== baselineSnapshot.value;
 });
+
+function useSystemDefaultMode() {
+  supplierName.value = DEFAULT_PACKAGING_SUPPLIER;
+  useSystemDefaultSupplier.value = true;
+}
+
+function useCustomSupplierMode() {
+  useSystemDefaultSupplier.value = false;
+}
 
 function resetWithPayload(data: PackagingMappingConfig) {
   supplierName.value = data.supplierName || DEFAULT_PACKAGING_SUPPLIER;
+  useSystemDefaultSupplier.value = !data.supplierName || data.supplierName === DEFAULT_PACKAGING_SUPPLIER;
   mappings.reset(mapToRows(data.mappings, 'key', (k, v) => ({ key: k, value: v } as any)));
-  const sorted: any = { supplierName: data.supplierName, mappings: {} };
-  Object.keys(data.mappings || {}).sort().forEach(k => sorted.mappings[k] = data.mappings?.[k]);
-  baselineSnapshot.value = JSON.stringify(sorted);
+  baselineSnapshot.value = serializeDraft(data);
 }
 
 const editor = useProfileEditor<PackagingMappingConfig>({
@@ -90,7 +115,7 @@ onMounted(editor.load);
 <template>
   <ProfileEditorHost
     title="包装配置"
-    description="管理包装名称映射。"
+    description="优先依赖系统默认供应商与标准字典，仅维护需要人工覆盖的包装例外映射。"
     :editor="editor"
     :clientIssues="clientIssues"
     workflow-meta-variant="inline"
@@ -100,16 +125,67 @@ onMounted(editor.load);
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
 
+    <div class="grid gap-4 md:grid-cols-3">
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">已维护映射</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ totalMappings }}</div>
+          <div class="text-xs text-muted-foreground mt-1">当前会随 profile 保存的包装名称覆盖项</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">规范化冲突</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ normalizedConflictCount }}</div>
+          <div class="text-xs text-muted-foreground mt-1">建议先清零，再继续扩充例外字典</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">当前筛选结果</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ filteredCount }}</div>
+          <div class="text-xs text-muted-foreground mt-1">用于快速定位已有例外项</div>
+        </CardContent>
+      </Card>
+    </div>
+
     <Card>
-      <CardHeader><CardTitle>基础配置</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>基础配置</CardTitle>
+        <CardDescription>默认情况下直接使用系统标准供应商；只有需要覆盖时才展示自定义入口，但保存时仍保持现有 profile 数据结构。</CardDescription>
+      </CardHeader>
       <CardContent>
-        <div class="space-y-2"><label class="text-sm font-medium">默认供应商</label><Input v-model="supplierName" :placeholder="`例如：${DEFAULT_PACKAGING_SUPPLIER}`" /></div>
+        <div v-if="useSystemDefaultSupplier" class="flex flex-col gap-3 rounded-md border bg-muted/20 p-4 md:flex-row md:items-center md:justify-between">
+          <div class="space-y-1">
+            <div class="text-sm font-medium">当前使用系统默认供应商</div>
+            <div class="text-sm text-muted-foreground">{{ DEFAULT_PACKAGING_SUPPLIER }}</div>
+          </div>
+          <Button variant="outline" size="sm" @click="useCustomSupplierMode">改为自定义供应商</Button>
+        </div>
+        <div v-else class="space-y-3">
+          <div class="space-y-2">
+            <label class="text-sm font-medium">自定义默认供应商</label>
+            <Input v-model="supplierName" :placeholder="`例如：${DEFAULT_PACKAGING_SUPPLIER}`" />
+          </div>
+          <div class="flex justify-end">
+            <Button variant="outline" size="sm" @click="useSystemDefaultMode">恢复系统默认</Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
 
     <Card>
       <CardHeader class="flex-row items-center justify-between gap-4">
-        <CardTitle>映射列表</CardTitle>
+        <div class="space-y-1">
+          <CardTitle>映射列表</CardTitle>
+          <CardDescription>这里应只保留标准字典未覆盖、且确实需要人工指定采购名称的包装项。</CardDescription>
+        </div>
         <Input v-model="searchQuery" class="w-full max-w-sm" placeholder="搜索内容..." />
       </CardHeader>
       <CardContent>
