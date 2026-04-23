@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import ProfileEditorHost from '@/features/config-editor/components/ProfileEditorHost.vue';
 import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
@@ -14,6 +14,12 @@ import {
 } from '@/features/config-editor/composables/useRuleExplainPreview';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
+import {
+  getLockFilteredRows,
+  getLockRowsForValidation,
+  isMeaningfulLockRow,
+  shouldReuseEmptyLockDraft,
+} from '@/features/config-editor/utils/lockEditorState';
 import { refreshLockRuntime } from '@/services/configRuntime';
 import {
   adaptLockMapping,
@@ -42,6 +48,8 @@ const secondaryLabel = ref(DEFAULT_LOCK_SECONDARY_LABEL);
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
 const showRulePlayground = ref(false);
+const useSystemDefaultStrategy = ref(true);
+const showDraftRows = ref(false);
 
 const mappings = useEditableList<MappingRow>(() => ({
   id: '', model: '', supplier: '', vendorName: '', primarySpec: '', secondarySpec: '', remark: ''
@@ -63,7 +71,7 @@ const payload = computed<LockMappingConfig>(() => ({
 const clientIssues = computed(() => {
   const issues = [...validateLockMapping(payload.value)];
   const normalizedSeen = new Set<string>();
-  mappings.list.value.forEach((row, index) => {
+  getLockRowsForValidation(mappings.list.value, showDraftRows.value).forEach((row, index) => {
     if (!row.model.trim()) {
       issues.push({ path: `rows[${index}].model`, code: 'required', message: '型号不能为空' });
     } else {
@@ -78,14 +86,14 @@ const clientIssues = computed(() => {
   return issues;
 });
 
+const totalMappings = computed(() => Object.keys(payload.value.mappings).length);
+const normalizedConflictCount = computed(() => clientIssues.value.filter((issue) => issue.code === 'duplicate').length);
+const meaningfulRows = computed(() => mappings.list.value.filter(isMeaningfulLockRow));
+const hasMeaningfulRows = computed(() => meaningfulRows.value.length > 0);
+const filteredCount = computed(() => filteredRows.value.length);
+
 const filteredRows = computed(() => {
-  const kw = searchQuery.value.trim().toLowerCase();
-  if (!kw) return mappings.list.value;
-  return mappings.list.value.filter(r => (
-    r.model.toLowerCase().includes(kw) || r.supplier.toLowerCase().includes(kw) ||
-    r.vendorName.toLowerCase().includes(kw) || r.primarySpec.toLowerCase().includes(kw) ||
-    r.secondarySpec.toLowerCase().includes(kw)
-  ));
+  return getLockFilteredRows(mappings.list.value, showDraftRows.value, searchQuery.value);
 });
 
 const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
@@ -153,11 +161,45 @@ function resetWithPayload(data: LockMappingConfig) {
   defaultUnit.value = data.defaultUnit || DEFAULT_LOCK_UNIT;
   primaryLabel.value = data.primaryLabel || DEFAULT_LOCK_PRIMARY_LABEL;
   secondaryLabel.value = data.secondaryLabel || DEFAULT_LOCK_SECONDARY_LABEL;
+  useSystemDefaultStrategy.value = (
+    defaultUnit.value === DEFAULT_LOCK_UNIT
+    && primaryLabel.value === DEFAULT_LOCK_PRIMARY_LABEL
+    && secondaryLabel.value === DEFAULT_LOCK_SECONDARY_LABEL
+  );
   mappings.reset(mapToRows(data.mappings, 'model', (model, conf) => ({
     model, supplier: conf.supplier, vendorName: conf.vendorName,
     primarySpec: conf.primarySpec || '', secondarySpec: conf.secondarySpec || '', remark: conf.remark || ''
   } as any)));
+  showDraftRows.value = false;
   baselineSnapshot.value = JSON.stringify(payload.value);
+}
+
+function useSystemDefaults() {
+  defaultUnit.value = DEFAULT_LOCK_UNIT;
+  primaryLabel.value = DEFAULT_LOCK_PRIMARY_LABEL;
+  secondaryLabel.value = DEFAULT_LOCK_SECONDARY_LABEL;
+  useSystemDefaultStrategy.value = true;
+}
+
+function useCustomDefaults() {
+  useSystemDefaultStrategy.value = false;
+}
+
+function addMappingRow() {
+  searchQuery.value = '';
+  if (shouldReuseEmptyLockDraft(mappings.list.value)) {
+    showDraftRows.value = true;
+    return;
+  }
+  showDraftRows.value = true;
+  mappings.add();
+}
+
+function removeMappingRow(id: string) {
+  mappings.remove(id);
+  if (!mappings.list.value.some(isMeaningfulLockRow)) {
+    showDraftRows.value = false;
+  }
 }
 
 const editor = useProfileEditor<LockMappingConfig>({
@@ -187,14 +229,59 @@ onMounted(editor.load);
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
 
+    <div class="grid gap-4 md:grid-cols-3">
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">已维护映射</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ totalMappings }}</div>
+          <div class="text-xs text-muted-foreground mt-1">当前随 profile 保存的锁具例外映射项</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">规范化冲突</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ normalizedConflictCount }}</div>
+          <div class="text-xs text-muted-foreground mt-1">建议先消除重复型号，再继续扩充例外映射</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">当前筛选结果</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ filteredCount }}</div>
+          <div class="text-xs text-muted-foreground mt-1">用于快速定位已有型号例外项</div>
+        </CardContent>
+      </Card>
+    </div>
+
     <Card>
-      <CardHeader class="pb-3">
+      <CardHeader>
         <CardTitle>基础策略</CardTitle>
+        <CardDescription>默认情况下直接使用系统标准单位与主副锁标签；只有需要覆盖时才展开自定义策略，但保存结构保持不变。</CardDescription>
       </CardHeader>
-      <CardContent class="grid gap-4 xl:grid-cols-3">
-        <label class="grid gap-2 text-sm"><span class="font-medium">默认单位</span><Input v-model="defaultUnit" /></label>
-        <label class="grid gap-2 text-sm"><span class="font-medium">主锁标签</span><Input v-model="primaryLabel" /></label>
-        <label class="grid gap-2 text-sm"><span class="font-medium">副锁标签</span><Input v-model="secondaryLabel" /></label>
+      <CardContent>
+        <div v-if="useSystemDefaultStrategy" class="flex flex-col gap-3 rounded-md border bg-muted/20 p-4 md:flex-row md:items-center md:justify-between">
+          <div class="space-y-1">
+            <div class="text-sm font-medium">当前使用系统标准基础策略</div>
+            <div class="text-sm text-muted-foreground">默认单位：{{ DEFAULT_LOCK_UNIT }} · 主锁标签：{{ DEFAULT_LOCK_PRIMARY_LABEL }} · 副锁标签：{{ DEFAULT_LOCK_SECONDARY_LABEL }}</div>
+          </div>
+          <Button variant="outline" size="sm" @click="useCustomDefaults">改为自定义基础策略</Button>
+        </div>
+        <div v-else class="space-y-4">
+          <div class="grid gap-4 xl:grid-cols-3">
+            <label class="grid gap-2 text-sm"><span class="font-medium">默认单位</span><Input v-model="defaultUnit" /></label>
+            <label class="grid gap-2 text-sm"><span class="font-medium">主锁标签</span><Input v-model="primaryLabel" /></label>
+            <label class="grid gap-2 text-sm"><span class="font-medium">副锁标签</span><Input v-model="secondaryLabel" /></label>
+          </div>
+          <div class="flex justify-end">
+            <Button variant="outline" size="sm" @click="useSystemDefaults">恢复系统默认</Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
 
@@ -204,18 +291,29 @@ onMounted(editor.load);
 
     <Card class="flex-1">
       <CardHeader class="flex-row items-center justify-between gap-4">
-        <CardTitle>型号映射</CardTitle>
+        <div class="space-y-1">
+          <CardTitle>型号映射</CardTitle>
+          <CardDescription>这里应只保留标准规则未覆盖、且确实需要人工指定供应商或规格的锁具例外项。</CardDescription>
+        </div>
         <Input v-model="searchQuery" class="w-full max-w-xs" placeholder="搜索型号..." />
       </CardHeader>
       <CardContent>
-        <ConfigTable 
+        <div v-if="!hasMeaningfulRows && !showDraftRows" class="rounded-md border border-dashed bg-muted/10 px-6 py-8 text-center">
+          <div class="text-sm font-medium">当前没有需要人工维护的锁具例外项</div>
+          <div class="mt-2 text-sm text-muted-foreground">当系统 normalize 与规则试跑无法覆盖某个锁具型号时，再新增一条例外映射。</div>
+          <div class="mt-4">
+            <Button variant="outline" size="sm" @click="addMappingRow">新增例外映射</Button>
+          </div>
+        </div>
+        <ConfigTable
+          v-else
           :columns="[
             {key:'model',label:'ERP 型号'},{key:'supplier',label:'供应商'},{key:'vendorName',label:'采购名称'},
             {key:'primarySpec',label:'主锁规格'},{key:'secondarySpec',label:'副锁规格'},{key:'remark',label:'备注'}
-          ]" 
+          ]"
           :rows="filteredRows"
           scroll-mode="page"
-          @add="mappings.add()" @remove="mappings.remove"
+          @add="addMappingRow" @remove="removeMappingRow"
         >
           <template #cell-model="{row}"><Input v-model="row.model" /></template>
           <template #cell-supplier="{row}"><Input v-model="row.supplier" /></template>
