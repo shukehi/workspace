@@ -9,6 +9,12 @@ import { useProfileEditor } from '@/features/config-editor/composables/useProfil
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
+import {
+  getPackagingFilteredRows,
+  getPackagingRowsForValidation,
+  isMeaningfulPackagingRow,
+  shouldReuseEmptyPackagingDraft,
+} from '@/features/config-editor/utils/packagingEditorState';
 import { refreshPackagingRuntime } from '@/services/configRuntime';
 import { adaptPackagingMapping, normalizePackagingMappingKey, validatePackagingMapping } from '@/services/mappings';
 import type { PackagingMappingConfig } from '@/types/mapping';
@@ -21,6 +27,7 @@ const supplierName = ref(DEFAULT_PACKAGING_SUPPLIER);
 const useSystemDefaultSupplier = ref(true);
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
+const showDraftRows = ref(false);
 
 const mappings = useEditableList<MappingRow>(() => ({ id: '', key: '', value: '' }));
 
@@ -35,7 +42,7 @@ const payload = computed<PackagingMappingConfig>(() => {
 const clientIssues = computed(() => {
   const issues = [...validatePackagingMapping(payload.value)];
   const normalizedSeen = new Map<string, string>();
-  mappings.list.value.forEach((row, index) => {
+  getPackagingRowsForValidation(mappings.list.value, showDraftRows.value).forEach((row, index) => {
     if (!row.key.trim()) {
       issues.push({ path: `rows[${index}].key`, code: 'required', message: '包装映射 key 不能为空' });
     } else if (!mappings.isUnique('key', row.key, row.id)) {
@@ -53,12 +60,12 @@ const clientIssues = computed(() => {
 
 const totalMappings = computed(() => Object.keys(payload.value.mappings).length);
 const normalizedConflictCount = computed(() => clientIssues.value.filter((issue) => issue.code === 'normalized-conflict').length);
+const meaningfulRows = computed(() => mappings.list.value.filter(isMeaningfulPackagingRow));
 const filteredCount = computed(() => filteredRows.value.length);
+const hasMeaningfulRows = computed(() => meaningfulRows.value.length > 0);
 
 const filteredRows = computed(() => {
-  const kw = searchQuery.value.trim().toLowerCase();
-  if (!kw) return mappings.list.value;
-  return mappings.list.value.filter(r => r.key.toLowerCase().includes(kw) || r.value.toLowerCase().includes(kw));
+  return getPackagingFilteredRows(mappings.list.value, showDraftRows.value, searchQuery.value);
 });
 
 function serializeDraft(data: PackagingMappingConfig) {
@@ -89,7 +96,24 @@ function resetWithPayload(data: PackagingMappingConfig) {
   supplierName.value = data.supplierName || DEFAULT_PACKAGING_SUPPLIER;
   useSystemDefaultSupplier.value = !data.supplierName || data.supplierName === DEFAULT_PACKAGING_SUPPLIER;
   mappings.reset(mapToRows(data.mappings, 'key', (k, v) => ({ key: k, value: v } as any)));
+  showDraftRows.value = false;
   baselineSnapshot.value = serializeDraft(data);
+}
+
+function addMappingRow() {
+  if (shouldReuseEmptyPackagingDraft(mappings.list.value)) {
+    showDraftRows.value = true;
+    return;
+  }
+  showDraftRows.value = true;
+  mappings.add();
+}
+
+function removeMappingRow(id: string) {
+  mappings.remove(id);
+  if (!mappings.list.value.some(isMeaningfulPackagingRow)) {
+    showDraftRows.value = false;
+  }
 }
 
 const editor = useProfileEditor<PackagingMappingConfig>({
@@ -189,12 +213,20 @@ onMounted(editor.load);
         <Input v-model="searchQuery" class="w-full max-w-sm" placeholder="搜索内容..." />
       </CardHeader>
       <CardContent>
-        <ConfigTable 
-          :columns="[{key:'key',label:'包装名称',width:'46%'},{key:'value',label:'采购名称',width:'44%'}]" 
-          :rows="filteredRows" 
+        <div v-if="!hasMeaningfulRows && !showDraftRows" class="rounded-md border border-dashed bg-muted/10 px-6 py-8 text-center">
+          <div class="text-sm font-medium">当前没有需要人工维护的包装例外项</div>
+          <div class="mt-2 text-sm text-muted-foreground">当系统标准字典无法覆盖某个包装名称时，再新增一条例外映射。</div>
+          <div class="mt-4">
+            <Button variant="outline" size="sm" @click="addMappingRow">新增例外映射</Button>
+          </div>
+        </div>
+        <ConfigTable
+          v-else
+          :columns="[{key:'key',label:'包装名称',width:'46%'},{key:'value',label:'采购名称',width:'44%'}]"
+          :rows="filteredRows"
           scroll-mode="page"
-          @add="mappings.add()" 
-          @remove="mappings.remove"
+          @add="addMappingRow"
+          @remove="removeMappingRow"
         >
           <template #cell-key="{row}">
             <Input v-model="row.key" />
