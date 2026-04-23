@@ -27,7 +27,7 @@ test('config table guard: mapping pages rely on ConfigTable add button for confi
   assert.match(packagingConfig, /<ConfigTable[\s\S]*@add="addMappingRow"/);
   assert.match(handleConfig, /<ConfigTable[\s\S]*@add="addMappingRow"/);
   assert.match(lockConfig, /<ConfigTable[\s\S]*@add="addMappingRow"/);
-  assert.match(cylinderConfig, /<ConfigTable[\s\S]*@add="mappings\.add\(\)"/);
+  assert.match(cylinderConfig, /<ConfigTable[\s\S]*@add="addMappingRow"/);
   assert.match(lockForkConfig, /<ConfigTable[\s\S]*@add="lockTypes\.add\(\)"/);
 });
 
@@ -91,6 +91,8 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(cylinderConfig, /<ProfileEditorHost/);
   assert.match(cylinderConfig, /未保存/);
   assert.match(cylinderConfig, /scroll-mode="page"/);
+  assert.match(cylinderConfig, /当前没有需要人工维护的锁芯型号例外项/);
+  assert.match(cylinderConfig, /新增例外映射/);
 
   assert.match(handleConfig, /workflow-meta-variant="inline"/);
   assert.match(handleConfig, /actions-position="header"/);
