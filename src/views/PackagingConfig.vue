@@ -101,6 +101,7 @@ function resetWithPayload(data: PackagingMappingConfig) {
 }
 
 function addMappingRow() {
+  searchQuery.value = '';
   if (shouldReuseEmptyPackagingDraft(mappings.list.value)) {
     showDraftRows.value = true;
     return;

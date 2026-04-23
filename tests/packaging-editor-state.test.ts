@@ -36,3 +36,11 @@ test('packaging editor state: meaningful rows stay visible without exposing hidd
   assert.equal(filteredRows[0].id, 'real');
   assert.equal(isMeaningfulPackagingRow(filteredRows[0]), true);
 });
+
+test('packaging editor state: active search can hide a blank draft row before the UI clears the query', () => {
+  const rows = [{ id: 'placeholder', key: '', value: '' }];
+
+  const filteredRows = getPackagingFilteredRows(rows, true, '纸箱');
+
+  assert.deepEqual(filteredRows, []);
+});
