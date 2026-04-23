@@ -8,6 +8,12 @@ import ConfigTable from '@/features/config-editor/components/ConfigTable.vue';
 import { useProfileEditor } from '@/features/config-editor/composables/useProfileEditor';
 import { useEditableList } from '@/features/config-editor/composables/useEditableList';
 import { mapToRows, rowsToMap } from '@/features/config-editor/utils/configMapper';
+import {
+  getHandleFilteredRows,
+  getHandleRowsForValidation,
+  isMeaningfulHandleRow,
+  shouldReuseEmptyHandleDraft,
+} from '@/features/config-editor/utils/handleEditorState';
 import { scrollToFirstIssueElement } from '@/features/config-editor/utils/mappingIssueUtils';
 import { refreshHandleRuntime } from '@/services/configRuntime';
 import { adaptHandleMapping, validateHandleMapping } from '@/services/mappings';
@@ -24,14 +30,18 @@ type MappingRow = {
   materialCode: string;
 };
 
-const defaultSupplier = ref('');
-const unmatchedSupplier = ref('');
-const manualReviewLabel = ref('');
+const HANDLE_DEFAULTS = adaptHandleMapping({});
+
+const defaultSupplier = ref(HANDLE_DEFAULTS.defaultSupplier);
+const unmatchedSupplier = ref(HANDLE_DEFAULTS.unmatchedSupplier);
+const manualReviewLabel = ref(HANDLE_DEFAULTS.manualReviewLabel);
 const fallbackModelSources = ref<Array<'remark' | 'xsbz'>>(['remark', 'xsbz']);
 const defaultActivityForExport = ref<'single' | 'double'>('double');
 const thicknessPacks = ref<Record<string, string>>({ '5': '', '7': '', '9': '', '10': '' });
 const searchQuery = ref('');
 const baselineSnapshot = ref('');
+const useSystemDefaultStrategy = ref(true);
+const showDraftRows = ref(false);
 
 // 使用通用的 useEditableList 管理行数组
 const singleKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: '' }));
@@ -66,7 +76,7 @@ const payload = computed<HandleMappingConfig>(() => ({
 
 const clientIssues = computed(() => {
   const issues = [...validateHandleMapping(payload.value)];
-  mappings.list.value.forEach((row, index) => {
+  getHandleRowsForValidation(mappings.list.value, showDraftRows.value).forEach((row, index) => {
     if (!row.model.trim()) {
       issues.push({ path: `rows[${index}].model`, code: 'required', message: '型号不能为空' });
     } else if (!mappings.isUnique('model', row.model, row.id)) {
@@ -101,15 +111,13 @@ const hasMappingsIssues = computed(() =>
   )
 );
 
+const totalMappings = computed(() => Object.keys(payload.value.mappings).length);
+const meaningfulRows = computed(() => mappings.list.value.filter(isMeaningfulHandleRow));
+const hasMeaningfulRows = computed(() => meaningfulRows.value.length > 0);
+const filteredCount = computed(() => filteredRows.value.length);
+
 const filteredRows = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase();
-  if (!keyword) return mappings.list.value;
-  return mappings.list.value.filter((row) => (
-    row.model.toLowerCase().includes(keyword) ||
-    row.supplier.toLowerCase().includes(keyword) ||
-    row.vendorName.toLowerCase().includes(keyword) ||
-    row.materialCode.toLowerCase().includes(keyword)
-  ));
+  return getHandleFilteredRows(mappings.list.value, showDraftRows.value, searchQuery.value);
 });
 
 const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
@@ -118,6 +126,11 @@ function resetWithPayload(data: HandleMappingConfig) {
   defaultSupplier.value = data.defaultSupplier || '';
   unmatchedSupplier.value = data.unmatchedSupplier || '';
   manualReviewLabel.value = data.manualReviewLabel || '';
+  useSystemDefaultStrategy.value = (
+    defaultSupplier.value === HANDLE_DEFAULTS.defaultSupplier
+    && unmatchedSupplier.value === HANDLE_DEFAULTS.unmatchedSupplier
+    && manualReviewLabel.value === HANDLE_DEFAULTS.manualReviewLabel
+  );
   
   singleKeywords.reset(mapToRows(data.singleKeywords?.reduce((acc, v) => ({ ...acc, [v]: v }), {}), 'value', (v) => ({ value: v } as any)));
   doubleKeywords.reset(mapToRows(data.doubleKeywords?.reduce((acc, v) => ({ ...acc, [v]: v }), {}), 'value', (v) => ({ value: v } as any)));
@@ -142,8 +155,37 @@ function resetWithPayload(data: HandleMappingConfig) {
     vendorName: conf.vendorName,
     materialCode: conf.materialCode || ''
   } as any)));
+  showDraftRows.value = false;
 
   baselineSnapshot.value = JSON.stringify(payload.value);
+}
+
+function useSystemDefaults() {
+  defaultSupplier.value = HANDLE_DEFAULTS.defaultSupplier;
+  unmatchedSupplier.value = HANDLE_DEFAULTS.unmatchedSupplier;
+  manualReviewLabel.value = HANDLE_DEFAULTS.manualReviewLabel;
+  useSystemDefaultStrategy.value = true;
+}
+
+function useCustomDefaults() {
+  useSystemDefaultStrategy.value = false;
+}
+
+function addMappingRow() {
+  searchQuery.value = '';
+  if (shouldReuseEmptyHandleDraft(mappings.list.value)) {
+    showDraftRows.value = true;
+    return;
+  }
+  showDraftRows.value = true;
+  mappings.add();
+}
+
+function removeMappingRow(id: string) {
+  mappings.remove(id);
+  if (!mappings.list.value.some(isMeaningfulHandleRow)) {
+    showDraftRows.value = false;
+  }
 }
 
 async function scrollToFirstIssue() {
@@ -187,6 +229,36 @@ onMounted(editor.load);
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
 
+    <div class="grid gap-4 md:grid-cols-3">
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">已维护映射</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ totalMappings }}</div>
+          <div class="text-xs text-muted-foreground mt-1">当前随 profile 保存的拉手例外映射项</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">默认策略模式</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ useSystemDefaultStrategy ? '系统默认' : '自定义' }}</div>
+          <div class="text-xs text-muted-foreground mt-1">控制默认供应商、未匹配供应商与人工处理标签的首屏展示</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader class="pb-2">
+          <CardTitle class="text-xs text-muted-foreground">当前筛选结果</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-semibold">{{ filteredCount }}</div>
+          <div class="text-xs text-muted-foreground mt-1">用于快速定位已有拉手例外项</div>
+        </CardContent>
+      </Card>
+    </div>
+
     <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
       <button v-for="tab in [{id:'basic',label:'基础策略',hasIssue:hasBasicIssues},{id:'keywords',label:'识别规则',hasIssue:hasKeywordsIssues},{id:'mappings',label:'型号映射',hasIssue:hasMappingsIssues}]" :key="tab.id"
         @click="activeTab = tab.id as any"
@@ -200,11 +272,28 @@ onMounted(editor.load);
 
     <div v-show="activeTab === 'basic'" class="flex flex-col gap-6">
       <Card>
-        <CardHeader><CardTitle>基础策略</CardTitle><CardDescription>配置默认供应商、未匹配供应商和人工处理标签。</CardDescription></CardHeader>
-        <CardContent class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="space-y-1"><label class="text-sm font-medium">默认供应商</label><Input v-model="defaultSupplier" placeholder="例如：拉手供应商" /></div>
-          <div class="space-y-1"><label class="text-sm font-medium">未匹配供应商</label><Input v-model="unmatchedSupplier" placeholder="例如：待人工处理" /></div>
-          <div class="space-y-1"><label class="text-sm font-medium">人工处理标签</label><Input v-model="manualReviewLabel" placeholder="例如：未匹配拉手(待人工处理)" /></div>
+        <CardHeader>
+          <CardTitle>基础策略</CardTitle>
+          <CardDescription>默认情况下直接使用系统标准基础策略；只有需要覆盖时才展示自定义入口，但保存结构保持不变。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div v-if="useSystemDefaultStrategy" class="flex flex-col gap-3 rounded-md border bg-muted/20 p-4 md:flex-row md:items-center md:justify-between">
+            <div class="space-y-1">
+              <div class="text-sm font-medium">当前使用系统标准基础策略</div>
+              <div class="text-sm text-muted-foreground">默认供应商：{{ HANDLE_DEFAULTS.defaultSupplier }} · 未匹配供应商：{{ HANDLE_DEFAULTS.unmatchedSupplier }} · 人工处理标签：{{ HANDLE_DEFAULTS.manualReviewLabel }}</div>
+            </div>
+            <Button variant="outline" size="sm" @click="useCustomDefaults">改为自定义基础策略</Button>
+          </div>
+          <div v-else class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="space-y-1"><label class="text-sm font-medium">默认供应商</label><Input v-model="defaultSupplier" placeholder="例如：拉手供应商" /></div>
+              <div class="space-y-1"><label class="text-sm font-medium">未匹配供应商</label><Input v-model="unmatchedSupplier" placeholder="例如：待人工处理" /></div>
+              <div class="space-y-1"><label class="text-sm font-medium">人工处理标签</label><Input v-model="manualReviewLabel" placeholder="例如：未匹配拉手(待人工处理)" /></div>
+            </div>
+            <div class="flex justify-end">
+              <Button variant="outline" size="sm" @click="useSystemDefaults">恢复系统默认</Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
       
@@ -253,22 +342,30 @@ onMounted(editor.load);
         <CardHeader class="flex-row items-start justify-between gap-4">
           <div>
             <CardTitle>型号映射</CardTitle>
-            <CardDescription>内部拉手名称映射到供应商名称。</CardDescription>
+            <CardDescription>这里应只保留标准识别规则未覆盖、且确实需要人工指定供应商名称的拉手例外项。</CardDescription>
           </div>
           <Input v-model="searchQuery" class="w-full max-w-sm" placeholder="搜索型号、供应商或名称" />
         </CardHeader>
         <CardContent class="min-h-0">
-          <ConfigTable 
+          <div v-if="!hasMeaningfulRows && !showDraftRows" class="rounded-md border border-dashed bg-muted/10 px-6 py-8 text-center">
+            <div class="text-sm font-medium">当前没有需要人工维护的拉手例外项</div>
+            <div class="mt-2 text-sm text-muted-foreground">当系统识别规则无法覆盖某个拉手型号时，再新增一条例外映射。</div>
+            <div class="mt-4">
+              <Button variant="outline" size="sm" @click="addMappingRow">新增例外映射</Button>
+            </div>
+          </div>
+          <ConfigTable
+            v-else
             :columns="[
               {key:'model',label:'内部型号',width:'20%'},
               {key:'supplier',label:'供应商',width:'18%'},
               {key:'vendorName',label:'供应商名称',width:'24%'},
               {key:'materialCode',label:'物料编码',width:'28%'}
-            ]" 
-            :rows="filteredRows" 
+            ]"
+            :rows="filteredRows"
             scroll-mode="page"
-            @add="mappings.add()" 
-            @remove="mappings.remove"
+            @add="addMappingRow"
+            @remove="removeMappingRow"
           >
             <template #cell-model="{ row }"><Input v-model="row.model" placeholder="Dj-6847双活" /></template>
             <template #cell-supplier="{ row }"><Input v-model="row.supplier" /></template>

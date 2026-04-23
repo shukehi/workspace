@@ -25,7 +25,7 @@ test('config table guard: mapping pages rely on ConfigTable add button for confi
   const lockForkConfig = read('src/views/LockForkConfig.vue');
 
   assert.match(packagingConfig, /<ConfigTable[\s\S]*@add="addMappingRow"/);
-  assert.match(handleConfig, /<ConfigTable[\s\S]*@add="mappings\.add\(\)"/);
+  assert.match(handleConfig, /<ConfigTable[\s\S]*@add="addMappingRow"/);
   assert.match(lockConfig, /<ConfigTable[\s\S]*@add="addMappingRow"/);
   assert.match(cylinderConfig, /<ConfigTable[\s\S]*@add="mappings\.add\(\)"/);
   assert.match(lockForkConfig, /<ConfigTable[\s\S]*@add="lockTypes\.add\(\)"/);
@@ -96,6 +96,8 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(handleConfig, /actions-position="header"/);
   assert.match(handleConfig, /<ProfileEditorHost/);
   assert.match(handleConfig, /scroll-mode="page"/);
+  assert.match(handleConfig, /当前没有需要人工维护的拉手例外项/);
+  assert.match(handleConfig, /新增例外映射/);
 
   assert.match(lockForkConfig, /workflow-meta-variant="inline"/);
   assert.match(lockForkConfig, /actions-position="header"/);
