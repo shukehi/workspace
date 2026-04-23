@@ -105,6 +105,9 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(lockForkConfig, /actions-position="header"/);
   assert.match(lockForkConfig, /<ProfileEditorHost/);
   assert.match(lockForkConfig, /未保存/);
+  assert.match(lockForkConfig, /当前 lock-fork 配置契约仅消费 `suppliers\.default`/);
+  assert.match(lockForkConfig, /键名/);
+  assert.match(lockForkConfig, /model-value=\"default\"/);
 
   assert.match(formulaHost, /<ConfigCenterShell/);
   assert.match(formulaHost, /profile: formulas/);

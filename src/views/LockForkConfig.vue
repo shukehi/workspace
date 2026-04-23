@@ -37,7 +37,6 @@ type BaseDimensionRow = {
 };
 type LockTypeRow = { id: string; name: string; category: string; nameModifier: string; upper: string; lower: string; };
 type EdgeTypeRow = { id: string; name: string; nameModifier: string; };
-type SupplierRow = { id: string; key: string; value: string; };
 type KeywordRow = { id: string; value: string; };
 
 const hangingFeetStandard = ref(DEFAULT_HANGING_FEET_STANDARD);
@@ -45,6 +44,7 @@ const heightReference = ref(DEFAULT_HEIGHT_REFERENCE);
 const highHeightRules = ref<LockForkMappingConfig['highHeightRules']>({});
 const activeTab = ref<'base' | 'lockType' | 'edges' | 'suppliers'>('base');
 const baselineSnapshot = ref('');
+const defaultSupplier = ref('');
 
 // --- 数据列表管理 ---
 const baseDimensions = useEditableList<BaseDimensionRow>(() => ({
@@ -54,7 +54,6 @@ const baseDimensions = useEditableList<BaseDimensionRow>(() => ({
 }));
 const lockTypes = useEditableList<LockTypeRow>(() => ({ id: '', name: '', category: '', nameModifier: '', upper: '', lower: '' }));
 const edgeTypes = useEditableList<EdgeTypeRow>(() => ({ id: '', name: '', nameModifier: '' }));
-const suppliers = useEditableList<SupplierRow>(() => ({ id: '', key: '', value: '' }));
 const hangingFeetKeywords = useEditableList<KeywordRow>(() => ({ id: '', value: '' }));
 
 // --- 辅助转换 ---
@@ -84,7 +83,9 @@ const payload = computed<LockForkMappingConfig>(() => ({
   edgeTypes: rowsToMap(edgeTypes.list.value, 'name', (row) => ({ nameModifier: row.nameModifier })),
   hangingFeet: { standard: parseNumeric(hangingFeetStandard.value), keywords: hangingFeetKeywords.list.value.map(k => k.value) },
   heightReference: parseNumeric(heightReference.value),
-  suppliers: rowsToMap(suppliers.list.value, 'key', (row) => row.value)
+  suppliers: {
+    default: defaultSupplier.value.trim(),
+  }
 }));
 
 // --- 校验与 Issues ---
@@ -103,6 +104,7 @@ const hasLockTypeIssues = computed(() => [...clientIssues.value, ...editor.serve
 const hasEdgesIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('edgeTypes[') || i.path.startsWith('hangingFeet.')));
 const hasSuppliersIssues = computed(() => [...clientIssues.value, ...editor.serverIssues.value].some(i => i.path.startsWith('suppliers[')));
 const hasUnsavedChanges = computed(() => JSON.stringify(payload.value) !== baselineSnapshot.value);
+const hasDefaultSupplier = computed(() => Boolean(defaultSupplier.value.trim()));
 const lockTypeRuleSet = computed(() => adaptLockForkTypeRulesToRuleSet(payload.value));
 const lockTypeExplain = useRuleExplainPreview(
   () => lockTypeRuleSet.value,
@@ -129,7 +131,7 @@ function resetWithPayload(raw: LockForkMappingConfig) {
   } as any)));
   lockTypes.reset(mapToRows(data.lockTypes, 'name', (n, v) => ({ name: n, category: v.category || '', nameModifier: v.nameModifier || '', upper: v.upper || '', lower: v.lower || '' } as any)));
   edgeTypes.reset(mapToRows(data.edgeTypes, 'name', (n, v) => ({ name: n, nameModifier: v.nameModifier || '' } as any)));
-  suppliers.reset(mapToRows(data.suppliers, 'key', (k, v) => ({ key: k, value: v } as any)));
+  defaultSupplier.value = data.suppliers.default || '';
   hangingFeetStandard.value = String(data.hangingFeet.standard);
   hangingFeetKeywords.reset(data.hangingFeet.keywords.map(v => ({ id: '', value: v } as any)));
   heightReference.value = String(data.heightReference);
@@ -223,7 +225,34 @@ onMounted(editor.load);
     </div>
 
     <div v-show="activeTab === 'suppliers'">
-      <Card><CardHeader><CardTitle>供应商映射</CardTitle></CardHeader><CardContent><ConfigTable :columns="[{key:'key',label:'键名'},{key:'value',label:'供应商名称'}]" :rows="suppliers.list.value" @add="suppliers.add()" @remove="suppliers.remove"><template #cell-key="{row}"><Input v-model="row.key" /></template><template #cell-value="{row}"><Input v-model="row.value" /></template></ConfigTable></CardContent></Card>
+      <div class="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader class="pb-2"><CardTitle class="text-xs text-muted-foreground">默认供应商状态</CardTitle></CardHeader>
+          <CardContent><div class="text-2xl font-semibold">{{ hasDefaultSupplier ? '已配置' : '待配置' }}</div><div class="text-xs text-muted-foreground mt-1">锁叉运行时当前只消费 suppliers.default 作为统一供应商来源</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2"><CardTitle class="text-xs text-muted-foreground">当前默认供应商</CardTitle></CardHeader>
+          <CardContent><div class="text-2xl font-semibold">{{ defaultSupplier || '—' }}</div><div class="text-xs text-muted-foreground mt-1">未配置时无法通过前端校验并保存</div></CardContent>
+        </Card>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>默认供应商</CardTitle>
+          <CardDescription>当前 lock-fork 配置契约仅消费 `suppliers.default`。这里编辑的是统一默认供应商，不是多键例外映射表。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+            <div class="space-y-1">
+              <label class="text-sm font-medium">键名</label>
+              <Input model-value="default" readonly disabled />
+            </div>
+            <div class="space-y-1">
+              <label class="text-sm font-medium">供应商名称</label>
+              <Input v-model="defaultSupplier" placeholder="例如：应志友" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   </ProfileEditorHost>
 </template>
