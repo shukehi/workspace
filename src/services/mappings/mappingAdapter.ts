@@ -136,7 +136,9 @@ export const EMPTY_LOCK_FORK_MAPPING: LockForkMappingConfig = {
     keywords: ['吊脚', 'diaojiao'],
   },
   heightReference: defaults.DEFAULT_LOCK_FORK_HEIGHT_REFERENCE,
-  suppliers: {},
+  suppliers: {
+    default: '',
+  },
 };
 
 export const EMPTY_HANDLE_MAPPING: HandleMappingConfig = {

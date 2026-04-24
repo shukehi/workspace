@@ -380,16 +380,9 @@ function adaptLockForkHangingFeetConfig(value) {
 
 function adaptSuppliers(value) {
   const record = asRecord(value);
-  const suppliers = {};
-
-  Object.entries(record).forEach(([rawKey, rawValue]) => {
-    const key = toTrimmedString(rawKey);
-    const supplier = toTrimmedString(rawValue);
-    if (!key || !supplier) return;
-    suppliers[key] = supplier;
-  });
-
-  return suppliers;
+  return {
+    default: toTrimmedString(record.default),
+  };
 }
 
 function adaptPackagingMapping(value) {

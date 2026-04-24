@@ -182,7 +182,7 @@ test('mapping rules adapter builds lock fork type preview rules', () => {
       keywords: ['吊脚'],
     },
     heightReference: 2050,
-    suppliers: {},
+    suppliers: { default: '' },
   });
 
   assert.equal(ruleSet.metadata.profileCode, 'lock_fork');
@@ -214,7 +214,7 @@ test('mapping rules adapter builds lock fork edge preview rules', () => {
       keywords: ['吊脚'],
     },
     heightReference: 2050,
-    suppliers: {},
+    suppliers: { default: '' },
   });
 
   assert.equal(ruleSet.metadata.profileCode, 'lock_fork');
@@ -237,7 +237,7 @@ test('mapping rules adapter builds lock fork hanging-feet preview rules', () => 
       keywords: ['吊脚', 'diaojiao'],
     },
     heightReference: 2050,
-    suppliers: {},
+    suppliers: { default: '' },
   });
 
   assert.equal(ruleSet.metadata.profileCode, 'lock_fork');

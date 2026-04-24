@@ -117,7 +117,7 @@ const lockForkSamples: unknown[] = [
       keywords: []
     },
     heightReference: 'oops',
-    suppliers: {}
+    suppliers: { default: '' }
   }
 ];
 

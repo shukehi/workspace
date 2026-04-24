@@ -99,7 +99,9 @@ export interface LockForkMappingConfig {
   edgeTypes: Record<string, LockForkEdgeTypeConfig>;
   hangingFeet: LockForkHangingFeetConfig;
   heightReference: number;
-  suppliers: Record<string, string>;
+  suppliers: {
+    default: string;
+  };
 }
 
 export interface HandleMappingEntry {
