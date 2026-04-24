@@ -32,6 +32,12 @@ function resolveLockForkDoorHeight(remark: string) {
   return Number.POSITIVE_INFINITY;
 }
 
+function resolveLockForkDoorThickness(remark: string) {
+  const match = remark.match(/(\d{1,2})\s*CM/i);
+  if (match) return Number(match[1]);
+  return Number.POSITIVE_INFINITY;
+}
+
 function resolveLockForkRemarkTail(remark: string) {
   const parts = remark.split(',').map((part) => part.trim()).filter(Boolean);
   return parts.slice(1).join(', ');
@@ -62,6 +68,9 @@ function compareLockForkItems<T extends LockForkLikeItem>(a: T, b: T) {
 
   const remarkA = String(a.remark || '').trim();
   const remarkB = String(b.remark || '').trim();
+  const thicknessCompare = resolveLockForkDoorThickness(remarkA) - resolveLockForkDoorThickness(remarkB);
+  if (thicknessCompare !== 0) return thicknessCompare;
+
   const heightCompare = resolveLockForkDoorHeight(remarkA) - resolveLockForkDoorHeight(remarkB);
   if (heightCompare !== 0) return heightCompare;
 

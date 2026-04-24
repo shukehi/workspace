@@ -71,3 +71,32 @@ test('lock-fork rule: sorts same-door-height rows as upper then lower', () => {
     ]
   );
 });
+
+test('lock-fork rule: keeps upper and lower paired within each thickness group at the same door height', () => {
+  const ctx: RuleContext = {
+    ...baseCtx,
+    sourceStore: {
+      ...baseCtx.sourceStore,
+      hardwareRequirements: {
+        lockForks: [
+          { supplier: '应志友', type: '单头锁叉 - 上头', spec: '570*301 + 25 = 896', quantity: 290, remark: '5CM 2100' },
+          { supplier: '应志友', type: '单头锁叉 - 上头', spec: '570*301 + 25 = 896', quantity: 70, remark: '7CM 2100' },
+          { supplier: '应志友', type: '单头锁叉 - 下头', spec: '570*301 + 25 = 896', quantity: 290, remark: '5CM 2100' },
+          { supplier: '应志友', type: '单头锁叉 - 下头', spec: '570*301 + 25 = 896', quantity: 70, remark: '7CM 2100' },
+        ],
+      },
+    },
+  };
+
+  const groups = buildLockForkGroups(ctx);
+  assert.equal(groups.length, 1);
+  assert.deepEqual(
+    groups[0].items.map((item) => `${item.type}|${item.remark}`),
+    [
+      '单头锁叉 - 上头|5CM 2100',
+      '单头锁叉 - 下头|5CM 2100',
+      '单头锁叉 - 上头|7CM 2100',
+      '单头锁叉 - 下头|7CM 2100',
+    ]
+  );
+});
