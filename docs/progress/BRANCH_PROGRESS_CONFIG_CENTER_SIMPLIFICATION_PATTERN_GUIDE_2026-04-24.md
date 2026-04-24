@@ -150,7 +150,7 @@ Related trial branches:
 - `excludedCylinders` 的“空状态”不是持久化零状态；系统默认排除项仍然存在
 - 已通过 copy 明确化处理
 
-### LockFork — `bf4acdc`
+### LockFork — `c2e5c36` + `91d3ad1`
 改动文件：
 - `src/views/LockForkConfig.vue`
 - `tests/config-table-guard.test.ts`
@@ -163,9 +163,9 @@ Related trial branches:
 - 在真实 contract 只支持 `default` 时，前端必须停止假装支持“例外映射表”
 - “先和真实契约对齐”优先于“让界面看起来更强”
 
-已知非阻断关注点：
-- `LockForkMappingConfig.suppliers` 的 TS 类型仍比真实 contract 更宽
-- 建议后续收窄类型，避免再次诱导前端做超前 UI
+已完成的后续收口：
+- `LockForkMappingConfig.suppliers` 已收窄到真实支持的 `default` 形态
+- shared JS / MJS adapter、前端默认值与 runtime 消费方向已对齐到同一个 `default-only` 契约
 
 ---
 
