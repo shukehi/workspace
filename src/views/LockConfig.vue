@@ -20,6 +20,7 @@ import {
   isMeaningfulLockRow,
   shouldReuseEmptyLockDraft,
 } from '@/features/config-editor/utils/lockEditorState';
+import { collectLockMappingPayloadIssues, collectLockMappingRowIssues } from '@/features/config-editor/utils/lockEditorValidation';
 import { refreshLockRuntime } from '@/services/configRuntime';
 import {
   adaptLockMapping,
@@ -70,19 +71,7 @@ const payload = computed<LockMappingConfig>(() => ({
 
 const clientIssues = computed(() => {
   const issues = [...validateLockMapping(payload.value)];
-  const normalizedSeen = new Set<string>();
-  getLockRowsForValidation(mappings.list.value, showDraftRows.value).forEach((row, index) => {
-    if (!row.model.trim()) {
-      issues.push({ path: `rows[${index}].model`, code: 'required', message: '型号不能为空' });
-    } else {
-      const normalized = normalizeLockMappingKey(row.model);
-      if (normalizedSeen.has(normalized)) {
-        issues.push({ path: `rows[${index}].model`, code: 'duplicate', message: '型号 normalize 后重复' });
-      } else {
-        normalizedSeen.add(normalized);
-      }
-    }
-  });
+  issues.push(...collectLockMappingRowIssues(getLockRowsForValidation(mappings.list.value, showDraftRows.value)));
   return issues;
 });
 
@@ -208,7 +197,18 @@ const editor = useProfileEditor<LockMappingConfig>({
   workflowBasePath: CONFIG_ENDPOINTS.LOCK.basePath,
   loadErrorDescription: '无法读取锁具映射配置', saveSuccessDescription: '锁具映射已更新',
   getPayload: () => payload.value, getClientIssues: () => clientIssues.value,
-  validatePayload: validateLockMapping, adaptPayload: (v) => adaptLockMapping(v),
+  validatePayload: (value) => {
+    const issues = [
+      ...validateLockMapping(value),
+      ...collectLockMappingPayloadIssues(value),
+    ];
+    const deduped = new Map<string, typeof issues[number]>();
+    issues.forEach((issue) => {
+      deduped.set(`${issue.path}:${issue.code}`, issue);
+    });
+    return Array.from(deduped.values());
+  },
+  adaptPayload: (v) => adaptLockMapping(v),
   resetWithPayload, refreshRuntime: refreshLockRuntime,
   scrollToFirstIssue: () => scrollToFirstIssueElement('[data-issue-item="true"]', '[data-issue-anchor="true"]')
 });
