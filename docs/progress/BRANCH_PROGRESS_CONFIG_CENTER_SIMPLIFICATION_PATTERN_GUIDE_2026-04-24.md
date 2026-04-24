@@ -209,11 +209,11 @@ Related trial branches:
 
 #### P0.2 修正最明显的契约/类型不一致
 优先对象：
-- `LockForkMappingConfig.suppliers` 类型宽于真实契约
+- shared `.js` / `.mjs` mapping adapter 双入口的行为漂移风险
 
 #### P0.3 处理试点里发现的“旧问题但非阻断”项
 例如：
-- lock page 中只填 `model` 会被 adapter 丢弃
+- lock page 中只填 `model` 会被 adapter 丢弃（表格与 JSON 路径已补洞，可继续考虑是否下沉为共享校验）
 - handle page 的 `useSystemDefaultStrategy` 只是 UI 状态，不是实时派生
 
 ### 优先级 P1
