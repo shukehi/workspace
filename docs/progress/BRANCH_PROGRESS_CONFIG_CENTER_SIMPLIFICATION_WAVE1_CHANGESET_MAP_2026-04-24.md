@@ -115,6 +115,7 @@ Branch: `integration/config-center-simplification-wave1`
 - `9067a40` — wave1 changeset map
 - `4229756` — print-style governance command alignment
 - `fada06d` — reviewer packet sync after governance-check fix
+- `ccf98be` — reviewer packet final sync for current tip
 
 ### Main files
 - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_PATTERN_GUIDE_2026-04-24.md`
@@ -143,14 +144,16 @@ Branch: `integration/config-center-simplification-wave1`
 ## 7. Recommended review order
 1. `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_READY_2026-04-24.md`
 2. `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_REVIEW_CHECKLIST_2026-04-24.md`
-3. `src/views/PackagingConfig.vue`
-4. `src/views/LockConfig.vue`
-5. `src/views/HandleConfig.vue`
-6. `src/views/CylinderConfig.vue`
-7. `src/views/LockForkConfig.vue`
-8. `src/features/config-editor/utils/*EditorState.ts`
-9. `src/features/config-editor/utils/lockEditorValidation.ts`
-10. `src/types/mapping.ts` + `src/services/mappings/mappingAdapter.ts` + `shared/mappings/mapping-adapter-core.js`
+3. `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_CHANGESET_MAP_2026-04-24.md`
+4. `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_PR_NOTE_2026-04-24.md`
+5. `src/views/PackagingConfig.vue`
+6. `src/views/LockConfig.vue`
+7. `src/views/HandleConfig.vue`
+8. `src/views/CylinderConfig.vue`
+9. `src/views/LockForkConfig.vue`
+10. `src/features/config-editor/utils/*EditorState.ts`
+11. `src/features/config-editor/utils/lockEditorValidation.ts`
+12. `src/types/mapping.ts` + `src/services/mappings/mappingAdapter.ts` + `shared/mappings/mapping-adapter-core.js`
 
 ---
 

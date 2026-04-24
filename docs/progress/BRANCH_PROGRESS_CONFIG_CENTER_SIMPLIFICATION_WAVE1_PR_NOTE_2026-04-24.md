@@ -80,7 +80,7 @@ This PR integrates the first wave of config-center simplification work into one 
 ## Rollback Plan
 
 - Revert commit(s):
-  - if rolling back the whole wave, revert the integrated wave1 commits from `513fdcc` through `4229756` as needed
+  - if rolling back the whole wave, revert the integrated wave1 commits from `513fdcc` through the current integration tip as needed
   - if rolling back by slice, revert the relevant module-specific commits independently
 - Data rollback required: `No`
 - Operational notes:
