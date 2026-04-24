@@ -91,7 +91,6 @@ defineProps<{
 
             <FormulaBomTable
               :bom-draft="manager.bomDraft"
-              :published-bom="manager.publishedRevision?.bom"
               :validation-errors="manager.validationErrors"
               :material-categories="manager.bomMaterialCategories"
               @dirty="manager.markDirty"

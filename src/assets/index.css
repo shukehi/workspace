@@ -34,16 +34,6 @@
 
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-
-  /* Semantic Status Colors */
-  --color-success: hsl(var(--success));
-  --color-success-foreground: hsl(var(--success-foreground));
-  --color-warning: hsl(var(--warning));
-  --color-warning-foreground: hsl(var(--warning-foreground));
-  --color-info: hsl(var(--info));
-  --color-info-foreground: hsl(var(--info-foreground));
-  --color-danger: hsl(var(--danger));
-  --color-danger-foreground: hsl(var(--danger-foreground));
 }
 
 /* 
@@ -54,21 +44,30 @@
   --background: 0 0% 100%;
   --foreground: 240 10% 3.9%;
 
-  /* ... (rest of standard variables) */
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+
+  --destructive: 0 72.2% 50.6%;
+  --destructive-foreground: 0 0% 98%;
 
   --border: 240 5.9% 90%;
   --input: 240 5.9% 90%;
   --ring: 240 5.9% 10%;
-
-  /* Status Colors (HSL) */
-  --success: 142.1 76.2% 36.3%; /* Emerald 600 */
-  --success-foreground: 0 0% 98%;
-  --warning: 37.9 92.1% 50.2%; /* Amber 500 */
-  --warning-foreground: 0 0% 98%;
-  --info: 198.6 88.7% 48.4%; /* Sky 500 */
-  --info-foreground: 0 0% 98%;
-  --danger: 0 84.2% 60.2%; /* Rose 500 */
-  --danger-foreground: 0 0% 98%;
 
   --radius: 0.5rem;
 }
