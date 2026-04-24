@@ -108,6 +108,8 @@ Reviewer should confirm:
 
 最小审阅验证：
 ```bash
+npm run lint:css
+node --require tsx/cjs --test tests/print-style-guard.test.ts
 npm run type-check
 npm run build
 ```
@@ -143,6 +145,8 @@ Wave1 can be considered review-approved when:
 - [ ] lock-fork supplier contract 已经端到端对齐到 `default-only`
 - [ ] 没有为了 UI 简化而引入新的 runtime / adapter contract 漂移
 - [ ] 页面级 helper 没有越权变成共享基础设施重构
+- [ ] PR/CI required print-style governance command 已经指向真实存在的 `.ts` 测试文件
+- [ ] `npm run lint:css` 和 print-style guard 通过
 - [ ] type-check 和 build 通过
 - [ ] 定向回归测试通过
 

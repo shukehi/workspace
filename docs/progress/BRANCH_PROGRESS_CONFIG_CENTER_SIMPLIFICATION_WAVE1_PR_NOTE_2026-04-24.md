@@ -27,6 +27,7 @@ Target branch suggestion: `integration/config-center-simplification-wave1`
   - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_MERGE_RUNBOOK_2026-04-24.md`
   - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_READY_2026-04-24.md`
   - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_REVIEW_CHECKLIST_2026-04-24.md`
+  - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_CHANGESET_MAP_2026-04-24.md`
 
 ### One-paragraph summary
 This PR integrates the first wave of config-center simplification work into one reviewable branch. The wave applies a consistent “system defaults + explicit exceptions” editing pattern to packaging, lock, handle, and the mappings/exclusions slice of cylinder, while aligning lock-fork supplier editing and contract semantics to the real `suppliers.default` runtime boundary. It also closes a real lock JSON-apply silent-drop bug, adds/updates the relevant guard and editor-state regressions, and carries forward the pattern/merge/review documentation needed to review and integrate the wave cleanly.
@@ -50,7 +51,8 @@ This PR integrates the first wave of config-center simplification work into one 
 
 ## Validation
 
-- [ ] `npm run lint:css`
+- [x] `npm run lint:css`
+- [x] `node --require tsx/cjs --test tests/print-style-guard.test.ts`
 - [x] `npm run type-check`
 - [x] Targeted wave1 regression set:
   - `tests/config-table-guard.test.ts`
@@ -78,7 +80,7 @@ This PR integrates the first wave of config-center simplification work into one 
 ## Rollback Plan
 
 - Revert commit(s):
-  - if rolling back the whole wave, revert the integrated wave1 commits from `513fdcc` through `36ed489` / `e442599` as needed
+  - if rolling back the whole wave, revert the integrated wave1 commits from `513fdcc` through `4229756` as needed
   - if rolling back by slice, revert the relevant module-specific commits independently
 - Data rollback required: `No`
 - Operational notes:
@@ -86,6 +88,8 @@ This PR integrates the first wave of config-center simplification work into one 
   - lock-fork contract alignment revert should restore both TS/defaults and shared JS adapter together
 - Rollback verification steps:
   - rerun `npm run type-check`
+  - rerun `npm run lint:css`
+  - rerun `node --require tsx/cjs --test tests/print-style-guard.test.ts`
   - rerun the targeted wave1 regression set
   - rerun `npm run build`
 
@@ -100,12 +104,13 @@ This PR integrates the first wave of config-center simplification work into one 
 ### Reviewer reading order
 1. `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_READY_2026-04-24.md`
 2. `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_REVIEW_CHECKLIST_2026-04-24.md`
-3. `src/views/PackagingConfig.vue`
-4. `src/views/LockConfig.vue`
-5. `src/views/HandleConfig.vue`
-6. `src/views/CylinderConfig.vue`
-7. `src/views/LockForkConfig.vue`
-8. contract alignment files:
+3. `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_CHANGESET_MAP_2026-04-24.md`
+4. `src/views/PackagingConfig.vue`
+5. `src/views/LockConfig.vue`
+6. `src/views/HandleConfig.vue`
+7. `src/views/CylinderConfig.vue`
+8. `src/views/LockForkConfig.vue`
+9. contract alignment files:
    - `src/types/mapping.ts`
    - `src/services/mappings/mappingAdapter.ts`
    - `shared/mappings/mapping-adapter-core.js`

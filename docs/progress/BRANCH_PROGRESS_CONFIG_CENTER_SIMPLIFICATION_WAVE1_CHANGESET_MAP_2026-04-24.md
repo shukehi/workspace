@@ -112,20 +112,29 @@ Branch: `integration/config-center-simplification-wave1`
 - `36ed489` — wave1 review-ready handoff
 - `e442599` — wave1 reviewer checklist
 - `35808d9` — wave1 PR note
+- `9067a40` — wave1 changeset map
+- `4229756` — print-style governance command alignment
 
 ### Main files
 - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_PATTERN_GUIDE_2026-04-24.md`
 - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_READY_2026-04-24.md`
 - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_REVIEW_CHECKLIST_2026-04-24.md`
 - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_PR_NOTE_2026-04-24.md`
+- `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_CHANGESET_MAP_2026-04-24.md`
+- `.github/pull_request_template.md`
+- `.github/workflows/css-governance.yml`
+- `docs/governance/ENGINEERING_CONVENTIONS.md`
+- `docs/governance/CSS_GOVERNANCE_CHECKLIST.md`
 
 ### Reviewer focus
 - 这些文档应该和当前集成分支状态一致，不再保留已完成事项的 stale note
+- review/PR 所依赖的 print-style governance 命令也应该与真实 `.ts` 测试路径一致
 - reviewer 可以按：
   1. ready handoff
   2. checklist
-  3. PR note
-  4. pattern guide
+  3. changeset map
+  4. PR note
+  5. pattern guide
   的顺序阅读
 
 ---

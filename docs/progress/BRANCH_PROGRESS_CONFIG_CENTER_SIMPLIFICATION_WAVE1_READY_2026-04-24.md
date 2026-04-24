@@ -20,6 +20,10 @@ Integrated slices:
   - `9f93256`
   - `d180552`
   - `e41f223`
+  - `e442599`
+  - `35808d9`
+  - `9067a40`
+  - `4229756`
 
 ## What was intentionally *not* done in wave1
 - No broad shared-composable rewrite of `useEditableList`
@@ -71,6 +75,8 @@ Watch but do not block wave1 on:
 
 ## Verification evidence on wave1 branch
 Latest successful checks run on this branch:
+- `npm run lint:css`
+- `node --require tsx/cjs --test tests/print-style-guard.test.ts`
 - `npm run type-check`
 - `node --require tsx/cjs --test --test-concurrency=1 tests/config-table-guard.test.ts tests/packaging-editor-state.test.ts tests/lock-config-playground-guard.test.ts tests/lock-editor-state.test.ts tests/lock-editor-validation.test.ts tests/handle-editor-state.test.ts tests/cylinder-config-playground-guard.test.ts tests/cylinder-editor-state.test.ts tests/cylinder-excluded-validator.test.ts tests/lock-fork-config-playground-guard.test.ts tests/mapping-validator.test.ts tests/mapping-server-validator.test.ts tests/mapping-rules-adapter.test.ts tests/shared-mapping-core.test.ts tests/mappings/mapping-parity.test.ts tests/config-loader-mapping.test.ts`
 - `npm run build`
