@@ -26,6 +26,7 @@ import { useStockInQueue } from '@/features/procurement/composables/useStockInQu
 import { useProcurementBulkActions } from '@/features/procurement/composables/useProcurementBulkActions';
 import { PROCUREMENT_TEMPLATE_OPTIONS } from '@/features/procurement/templateType';
 import { SIGNALS } from '@/shared/constants/storage';
+import ResponsiveLayoutPage from '@/components/shared/ResponsiveLayoutPage.vue';
 
 const PROCUREMENT_REFRESH_SIGNAL_KEY = SIGNALS.PROCUREMENT_REFRESH;
 
@@ -141,64 +142,65 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-4 md:p-6 gap-4 bg-muted/20 relative overflow-hidden">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div>
-        <h2 class="text-2xl font-bold tracking-tight">采购管理</h2>
-        <p class="text-muted-foreground mt-0.5 text-[11px] uppercase tracking-wider font-medium opacity-70">Procurement Operations Hub</p>
-      </div>
-      <div class="flex items-center gap-1.5 shrink-0">
-        <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="loadProcurementOrders()" :disabled="store.loading">
-          <RefreshCcw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': store.loading }" />
-          刷新
+  <ResponsiveLayoutPage
+    title="采购管理"
+    subtitle="Procurement Operations Hub"
+  >
+    <template #actions>
+      <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="loadProcurementOrders()" :disabled="store.loading">
+        <RefreshCcw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': store.loading }" />
+        刷新
+      </Button>
+      <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="handleExport">
+        <Download class="w-3.5 h-3.5 mr-1.5" />
+        导出
+      </Button>
+      <div class="flex items-center gap-1 rounded-md border bg-background/80 p-1">
+        <Plus class="ml-1 w-3.5 h-3.5 text-muted-foreground" />
+        <Button
+          v-for="option in PROCUREMENT_TEMPLATE_OPTIONS"
+          :key="option.value"
+          size="sm"
+          variant="ghost"
+          class="h-8 text-xs px-2.5"
+          @click="openManualEntry({ templateType: option.value })"
+        >
+          {{ option.label }}
         </Button>
-        <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="handleExport">
-          <Download class="w-3.5 h-3.5 mr-1.5" />
-          导出
-        </Button>
-        <div class="flex items-center gap-1 rounded-md border bg-background/80 p-1">
-          <Plus class="ml-1 w-3.5 h-3.5 text-muted-foreground" />
-          <Button
-            v-for="option in PROCUREMENT_TEMPLATE_OPTIONS"
-            :key="option.value"
-            size="sm"
-            variant="ghost"
-            class="h-8 text-xs px-2.5"
-            @click="openManualEntry({ templateType: option.value })"
-          >
-            {{ option.label }}
-          </Button>
-        </div>
       </div>
-    </div>
+    </template>
 
-    <ProcurementSummaryCards
-      :total-amount="summaryStats.totalAmount"
-      :pending-count="summaryStats.pendingCount"
-      :today-count="summaryStats.todayCount"
-      :completed-count="summaryStats.completedCount"
-      @filter="handleSummaryFilter"
-    />
+    <template #summary>
+      <ProcurementSummaryCards
+        :total-amount="summaryStats.totalAmount"
+        :pending-count="summaryStats.pendingCount"
+        :today-count="summaryStats.todayCount"
+        :completed-count="summaryStats.completedCount"
+        @filter="handleSummaryFilter"
+      />
+    </template>
 
-    <ProcurementFilterBar
-      v-model:active-status="activeStatus"
-      v-model:active-category="activeCategory"
-      v-model:active-risk-filter="activeRiskFilter"
-      v-model:search-query="searchQuery"
-      :status-options="statusOptions"
-      :category-options="categoryOptions"
-      :risk-options="riskOptions"
-      :visible-order-count="visibleOrderCount"
-      :total-order-count="store.ordersTotal || store.sortedOrders.length"
-      :has-active-filters="hasActiveFilters"
-      @reset="resetFilters"
-    />
+    <template #filters>
+      <ProcurementFilterBar
+        v-model:active-status="activeStatus"
+        v-model:active-category="activeCategory"
+        v-model:active-risk-filter="activeRiskFilter"
+        v-model:search-query="searchQuery"
+        :status-options="statusOptions"
+        :category-options="categoryOptions"
+        :risk-options="riskOptions"
+        :visible-order-count="visibleOrderCount"
+        :total-order-count="store.ordersTotal || store.sortedOrders.length"
+        :has-active-filters="hasActiveFilters"
+        @reset="resetFilters"
+      />
 
-    <p v-if="route.query.orderNo" class="text-xs text-cyan-700 bg-cyan-50 border border-cyan-200 rounded px-3 py-2">
-      当前按订单号 <span class="font-semibold">{{ route.query.orderNo }}</span> 定位采购单
-    </p>
+      <p v-if="route.query.orderNo" class="mt-2 text-xs text-cyan-700 bg-cyan-50 border border-cyan-200 rounded px-3 py-2">
+        当前按订单号 <span class="font-semibold">{{ route.query.orderNo }}</span> 定位采购单
+      </p>
+    </template>
 
-    <Card class="flex-1 min-h-0">
+    <Card class="h-full min-h-0">
       <CardContent class="p-2 sm:p-4 h-full overflow-hidden">
         <DataTable
           :columns="columns" :data="filteredOrders" :loading="store.loading" :enable-selection="true"
@@ -211,12 +213,15 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
       </CardContent>
     </Card>
 
-    <ProcurementBulkActionBar
-      :selected-count="selectedRows.length"
-      :can-submit="canBulkSubmit" :can-process="canBulkProcess" :can-arrive="canBulkArrive" :can-stock-in="canBulkStockIn" :can-restore-draft="canBulkRestoreDraft"
-      @status="handleBulkStatusUpdate" @arrive="handleBulkArrive" @stock-in="openStockInQueue(selectedRows)" @export="handleExport" @delete="handleBulkDelete" @clear="clearSelection"
-    />
+    <template #footer>
+      <ProcurementBulkActionBar
+        :selected-count="selectedRows.length"
+        :can-submit="canBulkSubmit" :can-process="canBulkProcess" :can-arrive="canBulkArrive" :can-stock-in="canBulkStockIn" :can-restore-draft="canBulkRestoreDraft"
+        @status="handleBulkStatusUpdate" @arrive="handleBulkArrive" @stock-in="openStockInQueue(selectedRows)" @export="handleExport" @delete="handleBulkDelete" @clear="clearSelection"
+      />
+    </template>
 
+    <!-- Dialogs remain outside the main flow but inside ResponsiveLayoutPage's context if needed -->
     <EditOrderDialog
       v-model:open="isEditDialogOpen"
       :order="selectedOrder"
@@ -243,5 +248,5 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
     <ConfirmDialog v-model:open="confirmState.show" :title="confirmState.title" :variant="confirmState.variant" :confirm-text="confirmState.confirmText" @confirm="confirmState.onConfirm">
       <div v-html="confirmState.message"></div>
     </ConfirmDialog>
-  </div>
+  </ResponsiveLayoutPage>
 </template>

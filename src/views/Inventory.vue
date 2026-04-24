@@ -22,6 +22,7 @@ import InventoryStockTab from '@/features/inventory/components/InventoryStockTab
 import InventoryReceiptsTab from '@/features/inventory/components/InventoryReceiptsTab.vue';
 import InventoryOutboundsTab from '@/features/inventory/components/InventoryOutboundsTab.vue';
 import InventoryLocationsTab from '@/features/inventory/components/InventoryLocationsTab.vue';
+import ResponsiveLayoutPage from '@/components/shared/ResponsiveLayoutPage.vue';
 import DataTable from '@/components/data-table/DataTable.vue';
 import { createInventoryColumns } from '@/components/inventory/InventoryColumns';
 import { createInventoryReceiptColumns } from '@/components/inventory/InventoryReceiptColumns';
@@ -406,31 +407,30 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-6 md:p-8 gap-6 bg-muted/20">
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-      <div>
-        <h2 class="text-3xl font-semibold tracking-tight">库存管理</h2>
-        <p class="text-muted-foreground mt-1">围绕库位、入库、出库和库存余额统一管理仓储动作。</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <Button v-if="currentExportLabel" variant="outline" size="sm" @click="handleContextExport">
-          <Download class="w-4 h-4 mr-2" />
-          {{ currentExportLabel }}
-        </Button>
-        <Button variant="outline" size="sm" @click="loadInventoryData" :disabled="store.loading || store.receiptsLoading || store.outboundsLoading || store.locationsLoading">
-          <RefreshCcw class="w-4 h-4 mr-2" :class="{ 'animate-spin': store.loading || store.receiptsLoading || store.outboundsLoading || store.locationsLoading }" />
-          同步数据
-        </Button>
-      </div>
-    </div>
+  <ResponsiveLayoutPage
+    title="库存管理"
+    subtitle="Inventory & Warehouse Operations"
+  >
+    <template #actions>
+      <Button v-if="currentExportLabel" variant="outline" size="sm" class="h-8 text-xs" @click="handleContextExport">
+        <Download class="w-3.5 h-3.5 mr-1.5" />
+        {{ currentExportLabel }}
+      </Button>
+      <Button variant="outline" size="sm" class="h-8 text-xs" @click="loadInventoryData" :disabled="store.loading || store.receiptsLoading || store.outboundsLoading || store.locationsLoading">
+        <RefreshCcw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': store.loading || store.receiptsLoading || store.outboundsLoading || store.locationsLoading }" />
+        同步数据
+      </Button>
+    </template>
 
     <Tabs v-model="activeTab" class="w-full flex-1 flex flex-col min-h-0">
-      <TabsList class="grid w-full grid-cols-4 max-w-[720px]">
-        <TabsTrigger value="inventory">物料库存</TabsTrigger>
-        <TabsTrigger value="receipts">采购入库记录</TabsTrigger>
-        <TabsTrigger value="outbounds">正式出库记录</TabsTrigger>
-        <TabsTrigger value="locations">库位管理</TabsTrigger>
+      <TabsList class="grid w-full grid-cols-4 max-w-[640px] h-9 p-1 bg-muted/50">
+        <TabsTrigger value="inventory" class="text-xs">物料库存</TabsTrigger>
+        <TabsTrigger value="receipts" class="text-xs">入库记录</TabsTrigger>
+        <TabsTrigger value="outbounds" class="text-xs">出库记录</TabsTrigger>
+        <TabsTrigger value="locations" class="text-xs">库位管理</TabsTrigger>
       </TabsList>
+      
+      <!-- Tab Contents follow... -->
 
       <TabsContent value="inventory" class="flex-1 min-h-0 flex flex-col gap-4 mt-4 data-[state=active]:flex">
         <InventoryStockTab
@@ -460,6 +460,7 @@ onMounted(() => {
           @selection-change="selectedInventoryRows = $event"
           @export-reconciliation="handleExportReconciliation"
           @open-outbound-dialog="openOutboundDialog"
+          @row-click="openMovementSheet"
         />
       </TabsContent>
 
@@ -861,5 +862,5 @@ onMounted(() => {
         </div>
       </div>
     </ConfirmDialog>
-  </div>
+  </ResponsiveLayoutPage>
 </template>

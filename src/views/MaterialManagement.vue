@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Plus } from 'lucide-vue-next';
+import { Card, CardContent } from '@/components/ui/card';
+import { Search, Plus, LayoutGrid, Info, Activity, History } from 'lucide-vue-next';
+import ResponsiveLayoutPage from '@/components/shared/ResponsiveLayoutPage.vue';
 import MaterialDetailPanel from '@/features/master-data/components/MaterialDetailPanel.vue';
 import MaterialDiagnosticsPanel from '@/features/master-data/components/MaterialDiagnosticsPanel.vue';
 import MaterialEditDialog from '@/features/master-data/components/MaterialEditDialog.vue';
 import MasterDataLifecyclePanel from '@/features/master-data/components/MasterDataLifecyclePanel.vue';
 import MaterialListPanel from '@/features/master-data/components/MaterialListPanel.vue';
 import MaterialSummaryCards from '@/features/master-data/components/MaterialSummaryCards.vue';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   type MaterialRecord,
   useMaterialManagementPageState,
@@ -56,6 +58,7 @@ const {
 
 const selectedMaterialId = ref<number | null>(null);
 const activeDetailTab = ref<MaterialDetailTab>(normalizeMaterialTab(route.query.tab));
+const mainTab = ref('workbench');
 
 const selectedMaterial = computed(() => (
   materials.value.find((item) => item.id === selectedMaterialId.value)
@@ -124,109 +127,149 @@ function jumpToSupplierDetail(supplierMasterId: number) {
 </script>
 
 <template>
-  <ConfigCenterShell
-    title="物料管理"
-    description="维护系统基础物料信息、价格与供应商。"
+  <ResponsiveLayoutPage
+    title="物料主数据管理"
+    subtitle="Centralized Material Catalog & Sourcing"
   >
-    <template #header-right>
-      <Button @click="openCreateDialog">
-        <Plus class="mr-2 h-4 w-4" /> 新增物料
+    <template #actions>
+      <div v-if="referenceCheck?.hasIssues" class="hidden md:flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-[10px] text-amber-700 font-bold uppercase tracking-wider">
+        <Activity class="w-3 h-3" />
+        检测到引用异常
+      </div>
+      <Button variant="outline" size="sm" class="h-8 text-xs" @click="fetchMaterials" :disabled="loading">
+        <RefreshCcw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': loading }" />
+        刷新
+      </Button>
+      <Button size="sm" class="h-8 text-xs gap-1.5" @click="openCreateDialog">
+        <Plus class="w-3.5 h-3.5" />
+        新增物料
       </Button>
     </template>
 
-    <Card>
-      <CardHeader class="pb-3">
-        <CardTitle class="text-base">页面上下文</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div v-if="profileDetail" class="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          <div>profile: {{ profileDetail.profile.code }}</div>
-          <div>workflow: {{ profileDetail.profile.workflowKind }}</div>
-          <div>total: {{ profileDetail.collection.total }}</div>
+    <template #filters>
+      <div class="flex flex-col md:flex-row items-center gap-3">
+        <div class="relative flex-1 w-full max-w-md">
+          <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+          <Input 
+            v-model="searchQuery" 
+            placeholder="搜索编码、名称、型号..." 
+            class="pl-8 h-9 text-xs bg-background/50" 
+            @keyup.enter="fetchMaterials" 
+          />
         </div>
-        <div v-if="referenceCheck" class="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          <div>supplierRefs: {{ referenceCheck.supplierRefs.length }}</div>
-          <div>materialRefs: {{ referenceCheck.materialCodeRefs.length }}</div>
-          <div v-if="referenceCheck.hasIssues" class="text-amber-700">存在主数据引用问题</div>
+        <div v-if="profileDetail" class="hidden lg:flex items-center gap-4 px-4 py-1.5 rounded-lg border bg-muted/20 text-[10px] font-mono text-muted-foreground">
+          <span>Profile: {{ profileDetail.profile.code }}</span>
+          <span class="w-px h-3 bg-border" />
+          <span>Workflow: {{ profileDetail.profile.workflowKind }}</span>
+          <span class="w-px h-3 bg-border" />
+          <span>Total: {{ profileDetail.collection.total }}</span>
         </div>
-        <div class="flex flex-col gap-2 md:flex-row md:items-center">
-          <div class="relative w-full max-w-sm">
-            <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input v-model="searchQuery" placeholder="搜索物料编码、名称..." class="pl-8" @keyup.enter="fetchMaterials" />
+      </div>
+    </template>
+
+    <Tabs v-model="mainTab" class="w-full flex-1 flex flex-col min-h-0">
+      <TabsList class="w-fit h-9 p-1 bg-muted/50 mb-4">
+        <TabsTrigger value="workbench" class="text-xs gap-1.5">
+          <LayoutGrid class="w-3.5 h-3.5" />
+          数据工作台
+        </TabsTrigger>
+        <TabsTrigger value="governance" class="text-xs gap-1.5">
+          <Activity class="w-3.5 h-3.5" />
+          治理与 Lifecycle
+        </TabsTrigger>
+        <TabsTrigger value="diagnostics" class="text-xs gap-1.5">
+          <Info class="w-3.5 h-3.5" />
+          深度诊断
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="workbench" class="flex-1 min-h-0 data-[state=active]:flex flex-col gap-8 mt-0 overflow-auto custom-scrollbar pr-2">
+        <!-- Top Section: Material Detail (Primary Focus) -->
+        <div class="flex flex-col min-h-0">
+          <div class="flex items-center gap-2 mb-3">
+            <LayoutGrid class="w-4 h-4 text-primary" />
+            <h3 class="text-sm font-bold uppercase tracking-widest">物料详情工作台</h3>
           </div>
-          <Button variant="outline" @click="fetchMaterials">搜索</Button>
+          <MaterialDetailPanel
+            :material="selectedMaterial"
+            :active-tab="activeDetailTab"
+            :audit-logs="auditLogs"
+            :supplier-master-options="supplierMasterOptions"
+            class="shadow-md border-primary/10"
+            @open-edit="openEditDialog"
+            @auto-relink="autoRelinkMaterial"
+            @jump-to-supplier="jumpToSupplierDetail"
+            @update:active-tab="handleDetailTabChange"
+          />
         </div>
-      </CardContent>
-    </Card>
 
-    <section class="space-y-3">
-      <div>
-        <h3 class="text-lg font-semibold">工作台</h3>
-        <p class="text-sm text-muted-foreground">优先在列表与详情之间完成定位、修复与检查。</p>
-      </div>
-      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)] items-start">
-        <MaterialListPanel
-          :materials="materials"
-          :selected-material-id="selectedMaterialId"
-          :loading="loading"
-          @select="handleMaterialSelect"
-          @edit="openEditDialog"
-        />
+        <!-- Bottom Section: Material List (Selector) -->
+        <div class="flex flex-col min-h-[400px] border rounded-xl bg-background shadow-sm overflow-hidden mb-6">
+          <div class="p-3 border-b bg-muted/10 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">物料名录库</span>
+              <Badge variant="secondary" class="text-[10px] h-4">{{ materials.length }} Items</Badge>
+            </div>
+            <div class="text-[10px] text-muted-foreground italic">点击下方条目以更新上方详情</div>
+          </div>
+          <div class="flex-1 overflow-auto custom-scrollbar bg-muted/5">
+            <MaterialListPanel
+              :materials="materials"
+              :selected-material-id="selectedMaterialId"
+              :loading="loading"
+              class="!border-0 !shadow-none"
+              @select="handleMaterialSelect"
+              @edit="openEditDialog"
+            />
+          </div>
+        </div>
+      </TabsContent>
 
-        <MaterialDetailPanel
-          :material="selectedMaterial"
-          :active-tab="activeDetailTab"
-          :audit-logs="auditLogs"
-          :supplier-master-options="supplierMasterOptions"
-          @open-edit="openEditDialog"
+      <TabsContent value="governance" class="flex-1 min-h-0 space-y-6 mt-0 data-[state=active]:block overflow-auto custom-scrollbar pr-2">
+        <div class="grid gap-6 xl:grid-cols-2 items-start">
+          <Card class="shadow-sm">
+            <CardContent class="p-6">
+              <div class="flex items-center gap-2 mb-6">
+                <Activity class="w-5 h-5 text-primary" />
+                <h3 class="text-lg font-bold">健康摘要</h3>
+              </div>
+              <MaterialSummaryCards :health="relationshipHealth" class="!shadow-none !border-0 !p-0" />
+            </CardContent>
+          </Card>
+
+          <Card class="shadow-sm">
+            <CardContent class="p-6">
+              <div class="flex items-center gap-2 mb-6">
+                <History class="w-5 h-5 text-primary" />
+                <h3 class="text-lg font-bold">版本与 Lifecycle</h3>
+              </div>
+              <MasterDataLifecyclePanel
+                title="物料主数据 Lifecycle"
+                :latest-revision="profileDetail?.latestRevision || null"
+                :draft-revision="profileDetail?.draftRevision || null"
+                :published-revision="profileDetail?.publishedRevision || null"
+                :revisions="revisions"
+                :publishing="publishing"
+                :rolling-back-revision="rollingBackRevision"
+                class="!shadow-none !border-0 !p-0"
+                @publish="publishDraft()"
+                @rollback="rollbackRevision"
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="diagnostics" class="flex-1 min-h-0 mt-0 data-[state=active]:block overflow-auto custom-scrollbar pr-2">
+        <MaterialDiagnosticsPanel
+          :reference-check="referenceCheck"
+          :relationship-health="relationshipHealth"
+          :actionable-groups="actionableRelationshipGroups"
           @auto-relink="autoRelinkMaterial"
-          @jump-to-supplier="jumpToSupplierDetail"
-          @update:active-tab="handleDetailTabChange"
+          @open-edit="openEditDialog"
         />
-      </div>
-    </section>
-
-    <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] items-start">
-      <div class="space-y-4">
-        <div>
-          <h3 class="text-lg font-semibold">治理概览</h3>
-          <p class="text-sm text-muted-foreground">用摘要快速判断当前物料主数据的治理压力与规模。</p>
-        </div>
-        <MaterialSummaryCards :health="relationshipHealth" />
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <h3 class="text-lg font-semibold">Lifecycle</h3>
-          <p class="text-sm text-muted-foreground">在进入发布或回滚前，先确认 draft / published 版本关系。</p>
-        </div>
-        <MasterDataLifecyclePanel
-          title="物料主数据 Lifecycle"
-          :latest-revision="profileDetail?.latestRevision || null"
-          :draft-revision="profileDetail?.draftRevision || null"
-          :published-revision="profileDetail?.publishedRevision || null"
-          :revisions="revisions"
-          :publishing="publishing"
-          :rolling-back-revision="rollingBackRevision"
-          @publish="publishDraft()"
-          @rollback="rollbackRevision"
-        />
-      </div>
-    </section>
-
-    <section class="space-y-3">
-      <div>
-        <h3 class="text-lg font-semibold">诊断与修复建议</h3>
-        <p class="text-sm text-muted-foreground">当工作台已定位对象后，再利用下方诊断区聚焦处理批量异常与引用问题。</p>
-      </div>
-      <MaterialDiagnosticsPanel
-        :reference-check="referenceCheck"
-        :relationship-health="relationshipHealth"
-        :actionable-groups="actionableRelationshipGroups"
-        @auto-relink="autoRelinkMaterial"
-        @open-edit="openEditDialog"
-      />
-    </section>
+      </TabsContent>
+    </Tabs>
 
     <MaterialEditDialog
       :open="isEditDialogOpen"
@@ -237,5 +280,21 @@ function jumpToSupplierDetail(supplierMasterId: number) {
       @update:model-value="editingMaterial = $event"
       @save="saveMaterial"
     />
-  </ConfigCenterShell>
+  </ResponsiveLayoutPage>
 </template>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.15);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+</style>

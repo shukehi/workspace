@@ -39,6 +39,7 @@ const emit = defineEmits<{
   (e: 'selection-change', value: InventoryItem[]): void;
   (e: 'export-reconciliation'): void;
   (e: 'open-outbound-dialog'): void;
+  (e: 'row-click', value: InventoryItem): void;
 }>();
 
 function asInputValue(value: unknown): string {
@@ -192,6 +193,7 @@ function asInputValue(value: unknown): string {
         :toolbar="false"
         density="compact"
         @selection-change="emit('selection-change', $event)"
+        @row-click="emit('row-click', $event)"
       />
     </CardContent>
   </Card>

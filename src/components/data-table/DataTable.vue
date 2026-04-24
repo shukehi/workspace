@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Search } from 'lucide-vue-next'
+import Skeleton from '@/components/ui/Skeleton.vue'
 
 const props = withDefaults(defineProps<{
   columns: ColumnDef<TData, TValue>[]
@@ -67,6 +68,7 @@ const emit = defineEmits<{
   (e: 'selection-change', rows: TData[]): void
   (e: 'page-change', page: number): void
   (e: 'page-size-change', pageSize: number): void
+  (e: 'row-click', row: TData): void
 }>()
 
 const sorting = ref<SortingState>([])
@@ -222,12 +224,6 @@ function goToNextPage() {
     </div>
 
     <div class="flex-1 overflow-auto rounded-lg border bg-card relative min-h-[120px]">
-      <div v-if="loading" class="absolute inset-0 z-20 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
-        <div class="flex flex-col items-center gap-2">
-          <div class="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span class="text-xs text-muted-foreground animate-pulse">正在加载数据...</span>
-        </div>
-      </div>
       <Table :style="props.tableMinWidth > 0 ? { minWidth: `${props.tableMinWidth}px` } : undefined">
         <TableHeader class="sticky top-0 z-10 bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/20">
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
@@ -254,14 +250,24 @@ function goToNextPage() {
         </TableHeader>
 
         <TableBody>
-          <template v-if="table.getRowModel().rows?.length">
+          <template v-if="loading">
+            <TableRow v-for="n in 5" :key="n">
+              <TableCell v-if="enableSelection" class="w-12"><Skeleton class="h-4 w-4 mx-auto" /></TableCell>
+              <TableCell v-for="m in columns.length" :key="m" class="p-4">
+                <Skeleton class="h-4 w-full" />
+              </TableCell>
+            </TableRow>
+          </template>
+
+          <template v-else-if="table.getRowModel().rows?.length">
             <TableRow
               v-for="row in table.getRowModel().rows"
               :key="row.id"
               :data-state="row.getIsSelected() ? 'selected' : undefined"
-              class="transition-colors hover:bg-muted/30 data-[state=selected]:bg-primary/5 data-[state=selected]:hover:bg-primary/10"
+              class="transition-colors hover:bg-muted/30 data-[state=selected]:bg-primary/5 data-[state=selected]:hover:bg-primary/10 cursor-pointer"
+              @click="emit('row-click', row.original)"
             >
-              <TableCell v-if="enableSelection" class="w-12 text-center">
+              <TableCell v-if="enableSelection" class="w-12 text-center" @click.stop>
                 <Checkbox
                   :model-value="row.getIsSelected()"
                   @update:model-value="(value: any) => row.toggleSelected(!!value)"

@@ -140,15 +140,29 @@ function handleSubmitAllRemaining() {
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-[920px]">
         <DialogHeader>
-          <DialogTitle>执行入库</DialogTitle>
-          <DialogDescription>
-            <span v-if="(queueTotal || 0) > 1" class="mr-2">批量入库第 {{ queueIndex || 1 }} / {{ queueTotal }} 单</span>
-            <span v-if="order">订单 {{ order.order_no }}</span>
+          <div class="flex items-center justify-between mb-2">
+            <div v-if="(queueTotal || 0) > 1" class="flex flex-col gap-1.5 flex-1 max-w-[300px]">
+              <div class="flex items-center justify-between text-[10px] uppercase font-bold text-primary tracking-wider">
+                <span>批量处理进度</span>
+                <span>{{ queueIndex || 1 }} / {{ queueTotal }}</span>
+              </div>
+              <div class="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div 
+                  class="h-full bg-primary transition-all duration-500 ease-out" 
+                  :style="{ width: `${((queueIndex || 1) / (queueTotal || 1)) * 100}%` }"
+                />
+              </div>
+            </div>
+            <div v-else class="h-1.5" />
+          </div>
+          <DialogTitle class="text-xl">执行入库</DialogTitle>
+          <DialogDescription class="flex items-center gap-2 mt-1">
+            <span v-if="order" class="px-2 py-0.5 rounded bg-muted font-mono text-foreground">{{ order.order_no }}</span>
             <span v-else>按明细填写本次入库数量</span>
           </DialogDescription>
         </DialogHeader>
 
-      <div class="space-y-4">
+      <div class="space-y-4 py-2">
         <div class="grid gap-3 md:grid-cols-[180px_1fr]">
           <label class="space-y-1 text-sm">
             <span class="text-muted-foreground">仓库</span>
@@ -240,18 +254,41 @@ function handleSubmitAllRemaining() {
             订单级“入库日期”只会在全部明细完成入库后写入；部分入库明细请从入库记录查看。
           </p>
           <div class="flex items-center gap-2">
-            <Button variant="outline" :disabled="saving" @click="$emit('update:open', false)">取消</Button>
-            <Button
-              v-if="hasNextQueueOrder"
-              variant="secondary"
-              :disabled="saving || fullRemainingItems.length === 0"
-              @click="handleSubmitAllRemaining"
-            >
-              {{ saving ? '入库中...' : '全入当前单并下一单' }}
-            </Button>
-            <Button :disabled="submitDisabled" @click="handleSubmit">
-              {{ saving ? '入库中...' : '确认入库' }}
-            </Button>
+            <Button variant="ghost" :disabled="saving" @click="$emit('update:open', false)">取消</Button>
+            
+            <div v-if="hasNextQueueOrder" class="flex items-center gap-2 p-1 rounded-lg bg-primary/5 border border-primary/10">
+              <span class="text-[10px] uppercase font-bold text-primary/60 px-2 hidden sm:inline">队列操作</span>
+              <Button
+                variant="secondary"
+                size="sm"
+                :disabled="saving || fullRemainingItems.length === 0"
+                class="h-8 bg-background shadow-sm hover:bg-primary/5 text-xs"
+                @click="handleSubmitAllRemaining"
+              >
+                {{ saving ? '处理中...' : '全入并继续' }}
+              </Button>
+              <Button 
+                size="sm"
+                class="h-8 text-xs"
+                :disabled="submitDisabled"
+                @click="handleSubmit"
+              >
+                {{ saving ? '处理中...' : '确认并下一单' }}
+              </Button>
+            </div>
+
+            <template v-else>
+              <Button
+                variant="outline"
+                :disabled="saving || fullRemainingItems.length === 0"
+                @click="handleSubmitAllRemaining"
+              >
+                全部全入
+              </Button>
+              <Button :disabled="submitDisabled" size="default" class="px-8" @click="handleSubmit">
+                {{ saving ? '入库中...' : '确认入库' }}
+              </Button>
+            </template>
           </div>
         </div>
       </div>
