@@ -19,7 +19,7 @@
 ## Validation
 
 - [ ] `npm run lint:css`
-- [ ] `node --test tests/print-style-guard.test.js`
+- [ ] `node --require tsx/cjs --test tests/print-style-guard.test.ts`
 - [ ] `npm run type-check`
 - [ ] `npm test` (required when API/DB/core logic changed)
 - [ ] Manual verification completed for affected pages

@@ -28,7 +28,7 @@ jobs:
         run: npm run lint:css
 
       - name: Print style guard
-        run: node --test tests/print-style-guard.test.js
+        run: node --require tsx/cjs --test tests/print-style-guard.test.ts
 
       - name: Type check
         run: npm run type-check
