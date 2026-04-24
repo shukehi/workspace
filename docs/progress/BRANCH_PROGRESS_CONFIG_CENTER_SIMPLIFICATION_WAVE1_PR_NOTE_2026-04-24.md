@@ -146,6 +146,7 @@ This PR integrates the first wave of config-center simplification work into one 
   - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_MERGE_RUNBOOK_2026-04-24.md`
   - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_READY_2026-04-24.md`
   - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_REVIEW_CHECKLIST_2026-04-24.md`
+  - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_WAVE1_CHANGESET_MAP_2026-04-24.md`
 
 ## Risk & Impact
 
@@ -163,10 +164,11 @@ This PR integrates the first wave of config-center simplification work into one 
 
 ## Validation
 
-- [ ] `npm run lint:css`
-- [x] `npm run type-check`
-- [x] Targeted wave1 regression set completed
-- [x] `npm run build`
+ - [x] `npm run lint:css`
+ - [x] `node --require tsx/cjs --test tests/print-style-guard.test.ts`
+ - [x] `npm run type-check`
+ - [x] Targeted wave1 regression set completed
+ - [x] `npm run build`
 - [ ] `npm test` (not run; repository-wide unrelated historical failures remain outside wave1 scope)
 - [ ] Manual verification completed for affected pages
 - [ ] Request validation / error response shape verified for affected write APIs
@@ -174,12 +176,14 @@ This PR integrates the first wave of config-center simplification work into one 
 
 ## Rollback Plan
 
-- Revert commit(s): revert the integrated wave1 commits as a set or per-slice as needed
+- Revert commit(s): revert the integrated wave1 commits as a set (from `513fdcc` through the current integration tip) or per-slice as needed
 - Data rollback required: `No`
 - Operational notes:
   - no DB migration rollback required
   - lock-fork contract alignment should be reverted as a coordinated unit if rolled back
 - Rollback verification steps:
+  - rerun `npm run lint:css`
+  - rerun `node --require tsx/cjs --test tests/print-style-guard.test.ts`
   - rerun `npm run type-check`
   - rerun targeted wave1 regression set
   - rerun `npm run build`

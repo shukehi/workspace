@@ -114,6 +114,7 @@ Branch: `integration/config-center-simplification-wave1`
 - `35808d9` — wave1 PR note
 - `9067a40` — wave1 changeset map
 - `4229756` — print-style governance command alignment
+- `fada06d` — reviewer packet sync after governance-check fix
 
 ### Main files
 - `docs/progress/BRANCH_PROGRESS_CONFIG_CENTER_SIMPLIFICATION_PATTERN_GUIDE_2026-04-24.md`

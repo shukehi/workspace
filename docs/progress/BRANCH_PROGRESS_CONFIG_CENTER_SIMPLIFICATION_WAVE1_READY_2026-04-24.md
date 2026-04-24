@@ -24,6 +24,7 @@ Integrated slices:
   - `35808d9`
   - `9067a40`
   - `4229756`
+  - `fada06d`
 
 ## What was intentionally *not* done in wave1
 - No broad shared-composable rewrite of `useEditableList`
