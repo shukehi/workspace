@@ -406,11 +406,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-6 md:p-8 gap-6 bg-muted/20">
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+  <div class="workspace-page">
+    <div class="workspace-header">
       <div>
-        <h2 class="text-3xl font-semibold tracking-tight">库存管理</h2>
-        <p class="text-muted-foreground mt-1">围绕库位、入库、出库和库存余额统一管理仓储动作。</p>
+        <div class="workspace-kicker">Inventory Workspace</div>
+        <h2 class="workspace-title">库存管理</h2>
+        <p class="workspace-subtitle">围绕库位、入库、出库和库存余额统一管理仓储动作。</p>
       </div>
       <div class="flex items-center gap-2">
         <Button v-if="currentExportLabel" variant="outline" size="sm" @click="handleContextExport">
@@ -424,8 +425,8 @@ onMounted(() => {
       </div>
     </div>
 
-    <Tabs v-model="activeTab" class="w-full flex-1 flex flex-col min-h-0">
-      <TabsList class="grid w-full grid-cols-4 max-w-[720px]">
+    <Tabs v-model="activeTab" class="flex min-h-0 w-full flex-1 flex-col">
+      <TabsList class="grid w-full max-w-[760px] grid-cols-4 rounded-xl border border-border/70 bg-background p-1 shadow-xs">
         <TabsTrigger value="inventory">物料库存</TabsTrigger>
         <TabsTrigger value="receipts">采购入库记录</TabsTrigger>
         <TabsTrigger value="outbounds">正式出库记录</TabsTrigger>

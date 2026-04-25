@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import puppeteer from 'puppeteer'
+import puppeteer, { type Browser, type Dialog, type HTTPRequest, type Page } from 'puppeteer'
 
 const ROOT = process.cwd()
 const PORT = 4176
@@ -56,7 +56,7 @@ async function waitForHttp(url: string, timeoutMs = 60000) {
   throw new Error(`Timed out waiting for URL: ${url}`)
 }
 
-async function clickButtonByText(page: puppeteer.Page, text: string) {
+async function clickButtonByText(page: Page, text: string) {
   const clicked = await page.evaluate((targetText: string) => {
     const buttons = Array.from(document.querySelectorAll('button'))
     const target = buttons.find((btn) => (btn.textContent || '').includes(targetText))
@@ -68,7 +68,7 @@ async function clickButtonByText(page: puppeteer.Page, text: string) {
   assert.ok(clicked, `button not found: ${text}`)
 }
 
-async function readCreateDialogState(page: puppeteer.Page) {
+async function readCreateDialogState(page: Page) {
   return await page.evaluate(() => {
     const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
     const dialog = dialogs.find((node) => (node.textContent || '').includes('采购订单'))
@@ -89,7 +89,7 @@ async function readCreateDialogState(page: puppeteer.Page) {
   })
 }
 
-async function changeTemplate(page: puppeteer.Page, templateType: string) {
+async function changeTemplate(page: Page, templateType: string) {
   const changed = await page.evaluate((nextTemplateType: string) => {
     const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
     const dialog = dialogs.find((node) => (node.textContent || '').includes('采购订单'))
@@ -113,7 +113,7 @@ test('procurement template entry e2e: merged templates require business category
     env: { ...process.env, BROWSER: 'none' },
   })
 
-  let browser: puppeteer.Browser | undefined
+  let browser: Browser | undefined
 
   try {
     await waitForDevServer(devServer)
@@ -122,13 +122,13 @@ test('procurement template entry e2e: merged templates require business category
     browser = await puppeteer.launch({ headless: 'new' as unknown as boolean })
     const page = await browser.newPage()
     await page.setViewport({ width: 1440, height: 960, deviceScaleFactor: 1 })
-    page.on('dialog', async (dialog) => {
+    page.on('dialog', async (dialog: Dialog) => {
       await dialog.accept()
     })
 
     let createRequests = 0
     await page.setRequestInterception(true)
-    page.on('request', (req) => {
+    page.on('request', (req: HTTPRequest) => {
       const url = req.url()
       const method = req.method()
 

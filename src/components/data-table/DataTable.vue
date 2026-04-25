@@ -205,12 +205,12 @@ function goToNextPage() {
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col gap-4">
-    <div v-if="toolbar" class="flex items-center gap-3 shrink-0">
+  <div class="w-full h-full flex flex-col gap-3">
+    <div v-if="toolbar" class="flex shrink-0 items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-2 shadow-xs">
       <div class="relative w-full max-w-sm">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          class="pl-9"
+          class="h-9 rounded-lg border-border/70 bg-muted/50 pl-9 shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0"
           :placeholder="searchPlaceholder"
           :model-value="(activeSearchColumn?.getFilterValue() as string) ?? ''"
           @update:model-value="activeSearchColumn?.setFilterValue($event)"
@@ -221,7 +221,7 @@ function goToNextPage() {
       </div>
     </div>
 
-    <div class="flex-1 overflow-auto rounded-lg border bg-card relative min-h-[120px]">
+    <div class="relative min-h-[120px] flex-1 overflow-auto rounded-xl border border-border/80 bg-card shadow-xs">
       <div v-if="loading" class="absolute inset-0 z-20 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
         <div class="flex flex-col items-center gap-2">
           <div class="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -229,7 +229,7 @@ function goToNextPage() {
         </div>
       </div>
       <Table :style="props.tableMinWidth > 0 ? { minWidth: `${props.tableMinWidth}px` } : undefined">
-        <TableHeader class="sticky top-0 z-10 bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/20">
+        <TableHeader class="sticky top-0 z-10 border-b bg-muted/70 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
             <TableHead v-if="enableSelection" class="w-12 text-center">
               <Checkbox
@@ -241,7 +241,7 @@ function goToNextPage() {
             <TableHead
               v-for="header in headerGroup.headers"
               :key="header.id"
-              class="text-foreground/80"
+              class="h-10 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
               :style="props.useColumnSize ? { width: `${header.getSize()}px`, minWidth: `${header.getSize()}px` } : undefined"
             >
               <FlexRender
@@ -259,7 +259,7 @@ function goToNextPage() {
               v-for="row in table.getRowModel().rows"
               :key="row.id"
               :data-state="row.getIsSelected() ? 'selected' : undefined"
-              class="transition-colors hover:bg-muted/30 data-[state=selected]:bg-primary/5 data-[state=selected]:hover:bg-primary/10"
+              class="transition-colors hover:bg-muted/40 data-[state=selected]:bg-accent/60 data-[state=selected]:hover:bg-accent/70"
             >
               <TableCell v-if="enableSelection" class="w-12 text-center">
                 <Checkbox
@@ -271,7 +271,7 @@ function goToNextPage() {
               <TableCell
                 v-for="cell in row.getVisibleCells()"
                 :key="cell.id"
-                class="text-sm"
+                class="text-[13px] text-foreground/90"
                 :class="cellPaddingClass"
                 :style="props.useColumnSize ? { width: `${cell.column.getSize()}px`, minWidth: `${cell.column.getSize()}px` } : undefined"
               >
@@ -294,7 +294,7 @@ function goToNextPage() {
       </Table>
     </div>
 
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shrink-0">
+    <div class="flex shrink-0 flex-col gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-2 shadow-xs sm:flex-row sm:items-center sm:justify-between">
       <div class="text-xs text-muted-foreground">
         {{ pageLabelPrefix }} {{ displayPageIndex }} {{ pageLabelConnector }} {{ displayPageCount }}
       </div>
@@ -302,7 +302,7 @@ function goToNextPage() {
         <div v-if="props.pageSizeOptions.length > 0" class="flex items-center gap-2 text-xs text-muted-foreground">
           <span>每页</span>
           <select
-            class="h-8 rounded-md border bg-background px-2 text-sm text-foreground"
+            class="h-8 rounded-lg border border-border/80 bg-background px-2 text-sm text-foreground"
             :value="String(props.pageSize)"
             @change="emit('page-size-change', Number(($event.target as HTMLSelectElement).value))"
           >

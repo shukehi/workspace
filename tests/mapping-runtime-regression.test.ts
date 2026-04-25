@@ -102,8 +102,8 @@ test('mapping runtime regression: real order sample 202408120023 keeps current e
     const lockForkMapping = adaptLockForkMapping(readJson('data/config/lock-fork-mapping.json'));
 
     const hardwareRequirements = {
-      cylinders: extractCylinderData(sample.list, sample, cylinderMapping),
-      lockForks: extractLockForkData(sample.list, sample, lockForkMapping),
+      cylinders: extractCylinderData(sample.list, sample, cylinderMapping as any),
+      lockForks: extractLockForkData(sample.list, sample, lockForkMapping as any),
       packaging: extractPackagingData(sample.list, packagingMapping),
     };
 

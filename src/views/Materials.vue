@@ -16,10 +16,14 @@ const { activeTab, tabs, hasOrder, flatMaterials, flatCylinders, flatLocks, flat
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-6 md:p-8 gap-6 bg-muted/20">
-    <div>
-      <h2 class="text-3xl font-semibold tracking-tight">物料分析</h2>
-      <p class="text-muted-foreground mt-1">根据订单计算出的详细物料清单 (BOM)。</p>
+  <div class="workspace-page">
+    <div class="workspace-header">
+      <div>
+        <div class="workspace-kicker">BOM Workspace</div>
+        <h2 class="workspace-title">物料分析</h2>
+        <p class="workspace-subtitle">根据订单计算出的详细物料清单 (BOM)。</p>
+      </div>
+      <span class="desk-pill">Material Planner</span>
     </div>
 
     <Card v-if="!hasOrder" class="flex-1">

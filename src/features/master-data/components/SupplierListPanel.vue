@@ -19,14 +19,14 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <Card>
+  <Card class="min-w-0">
     <CardHeader>
       <CardTitle>供应商列表（{{ items.length }}）</CardTitle>
     </CardHeader>
-    <CardContent class="overflow-auto">
+    <CardContent class="overflow-x-auto">
       <div v-if="loading" class="text-sm text-muted-foreground">加载中...</div>
       <div v-else-if="items.length === 0" class="text-sm text-muted-foreground">暂无供应商主数据</div>
-      <table v-else class="w-full text-sm">
+      <table v-else class="min-w-[560px] w-full text-sm">
         <thead>
           <tr class="text-left border-b">
             <th class="py-2 pr-4">供应商</th>

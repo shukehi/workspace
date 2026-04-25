@@ -19,10 +19,11 @@ function purgeDatabaseCache() {
 purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models') as typeof import('../server/models');
-const orderService = (require('../server/services/orders') as typeof import('../server/services/orders')).default;
+// Runtime CJS bridge: these cache-purging tests must require models after DB_STORAGE is set.
+const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models') as any;
+const orderService = (require('../server/services/orders') as any).default;
 const orderRepository = require('../server/services/orders/order.repository') as typeof import('../server/services/orders/order.repository');
-import type { MaterialInstance, InventoryReceiptInstance, OrderInstance } from '../server/models';
+import type { MaterialInstance, InventoryReceiptInstance, OrderInstance, OrderItemInstance } from '../server/models';
 import type { OrderCreateInput, OrderUpdateInput } from '../server/models/types';
 
 const createdOrderIds: number[] = [];
@@ -535,7 +536,7 @@ test('OrderService updateOrder persists manual item deletion and custom row orde
     order: [['id', 'ASC']],
   });
   assert.deepEqual(
-    persistedRows.map((item) => `${item.get('type')}|${item.get('spec')}|${item.get('remark') || ''}`),
+    persistedRows.map((item: OrderItemInstance) => `${item.get('type')}|${item.get('spec')}|${item.get('remark') || ''}`),
     [
       '双头锁叉 - 上头 直杆|570*301 = 871|7CM 2050',
       '双头锁叉 - 上头 直杆|570*301 - 25 = 846|7CM 2000',

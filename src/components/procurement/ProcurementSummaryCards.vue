@@ -12,63 +12,37 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'filter', type: 'pending' | 'today' | 'completed' | 'total'): void;
 }>();
+
+const cards = [
+  { key: 'total', label: '待付总额', helper: '点击查看详情', icon: TrendingUp },
+  { key: 'pending', label: '待处理单', helper: '草稿、已提交、采购中、待入库', icon: Clock },
+  { key: 'today', label: '今日新增', helper: '今日新建单据', icon: Activity },
+  { key: 'completed', label: '已入库', helper: '已入库订单统计', icon: CheckCircle },
+] as const;
 </script>
 
 <template>
   <div class="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-    <Card 
-      class="cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] transition-colors"
-      @click="emit('filter', 'total')"
+    <Card
+      v-for="card in cards"
+      :key="card.key"
+      class="cursor-pointer overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-sm"
+      @click="emit('filter', card.key)"
     >
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 pt-2.5 px-3">
-        <CardTitle class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">待付总额</CardTitle>
-        <TrendingUp class="h-3.5 w-3.5 text-emerald-500" />
+      <CardHeader class="flex flex-row items-center justify-between gap-3 p-3 pb-1.5">
+        <CardTitle class="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{{ card.label }}</CardTitle>
+        <div class="flex size-8 items-center justify-center rounded-xl bg-muted text-foreground/70">
+          <component :is="card.icon" class="size-3.5" />
+        </div>
       </CardHeader>
-      <CardContent class="pb-2.5 pt-0 px-3">
-        <div class="text-xl font-bold tracking-tight">¥{{ totalAmount.toLocaleString() }}</div>
-        <p class="text-[10px] text-muted-foreground mt-0.5 opacity-70">点击查看详情</p>
-      </CardContent>
-    </Card>
-
-    <Card 
-      class="cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/[0.02] transition-colors"
-      @click="emit('filter', 'pending')"
-    >
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 pt-2.5 px-3">
-        <CardTitle class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">待处理单</CardTitle>
-        <Clock class="h-3.5 w-3.5 text-amber-500" />
-      </CardHeader>
-      <CardContent class="pb-2.5 pt-0 px-3">
-        <div class="text-xl font-bold tracking-tight">{{ pendingCount }}</div>
-        <p class="text-[10px] text-amber-600/70 mt-0.5">草稿、已提交、采购中、待入库</p>
-      </CardContent>
-    </Card>
-
-    <Card 
-      class="cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/[0.02] transition-colors"
-      @click="emit('filter', 'today')"
-    >
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 pt-2.5 px-3">
-        <CardTitle class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">今日新增</CardTitle>
-        <Activity class="h-3.5 w-3.5 text-blue-500" />
-      </CardHeader>
-      <CardContent class="pb-2.5 pt-0 px-3">
-        <div class="text-xl font-bold tracking-tight">{{ todayCount }}</div>
-        <p class="text-[10px] text-muted-foreground mt-0.5 opacity-70">今日新建单据</p>
-      </CardContent>
-    </Card>
-
-    <Card 
-      class="cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] transition-colors"
-      @click="emit('filter', 'completed')"
-    >
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 pt-2.5 px-3">
-        <CardTitle class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">已入库</CardTitle>
-        <CheckCircle class="h-3.5 w-3.5 text-emerald-500" />
-      </CardHeader>
-      <CardContent class="pb-2.5 pt-0 px-3">
-        <div class="text-xl font-bold tracking-tight">{{ completedCount }}</div>
-        <p class="text-[10px] text-muted-foreground mt-0.5 opacity-70">已入库订单统计</p>
+      <CardContent class="px-3 pb-3 pt-0">
+        <div class="text-xl font-semibold tracking-tight">
+          <template v-if="card.key === 'total'">¥{{ totalAmount.toLocaleString() }}</template>
+          <template v-else-if="card.key === 'pending'">{{ pendingCount }}</template>
+          <template v-else-if="card.key === 'today'">{{ todayCount }}</template>
+          <template v-else>{{ completedCount }}</template>
+        </div>
+        <p class="mt-1 truncate text-[10px] text-muted-foreground">{{ card.helper }}</p>
       </CardContent>
     </Card>
   </div>

@@ -109,8 +109,8 @@ test('mapping runtime regression: derived edge cases from real order keep curren
 
     try {
       const hardwareRequirements = {
-        cylinders: extractCylinderData(testCase.sample.list, testCase.sample, cylinderMapping),
-        lockForks: extractLockForkData(testCase.sample.list, testCase.sample, lockForkMapping),
+        cylinders: extractCylinderData(testCase.sample.list, testCase.sample, cylinderMapping as any),
+        lockForks: extractLockForkData(testCase.sample.list, testCase.sample, lockForkMapping as any),
         packaging: extractPackagingData(testCase.sample.list, packagingMapping),
       };
 

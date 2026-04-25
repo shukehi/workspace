@@ -141,11 +141,12 @@ function handleProcurementRefreshSignal(e: StorageEvent) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-4 md:p-6 gap-4 bg-muted/20 relative overflow-hidden">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  <div class="workspace-page relative">
+    <div class="workspace-header">
       <div>
-        <h2 class="text-2xl font-bold tracking-tight">采购管理</h2>
-        <p class="text-muted-foreground mt-0.5 text-[11px] uppercase tracking-wider font-medium opacity-70">Procurement Operations Hub</p>
+        <div class="workspace-kicker">Procurement Operations Hub</div>
+        <h2 class="workspace-title">采购管理</h2>
+        <p class="workspace-subtitle">集中处理采购单创建、状态推进、到货和入库。</p>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
         <Button variant="outline" size="sm" class="h-8 text-xs px-3" @click="loadProcurementOrders()" :disabled="store.loading">

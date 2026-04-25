@@ -1,30 +1,82 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { Bell, CircleHelp, Search } from 'lucide-vue-next';
 import Sidebar from './Sidebar.vue';
 import MobileNav from './MobileNav.vue';
 import Toaster from '@/components/ui/Toaster.vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { flatMainNav, mainNavGroups } from '@/config/nav';
+
+const route = useRoute();
+
+function isRouteMatch(targetHref: string, currentPath: string): boolean {
+  if (targetHref === '/') return currentPath === '/';
+  return currentPath === targetHref || currentPath.startsWith(`${targetHref}/`);
+}
+
+const currentNavItem = computed(() => flatMainNav.find((item) => isRouteMatch(item.href, route.path)));
+const currentGroup = computed(() => mainNavGroups.find((group) => group.items.some((item) => isRouteMatch(item.href, route.path))));
+const pageTitle = computed(() => currentNavItem.value?.title || '工作台');
+const pageSection = computed(() => currentGroup.value?.title || 'ERP Workspace');
 </script>
 
 <template>
-  <div class="min-h-screen bg-muted/20 flex flex-col md:flex-row">
-    <!-- Toasts -->
+  <div class="min-h-screen bg-muted text-foreground md:flex">
     <Toaster />
 
-    <!-- Desktop Sidebar -->
-    <Sidebar class="hidden md:block w-36 flex-shrink-0 border-r border-border bg-background z-10" />
+    <Sidebar class="hidden md:block w-64 flex-shrink-0 border-r border-border/80 bg-sidebar z-20" />
 
-    <!-- Mobile Header -->
-    <div class="md:hidden h-14 border-b border-border flex items-center px-4 justify-between bg-background/95 text-foreground z-20 sticky top-0 backdrop-blur-sm">
-        <span class="text-sm font-semibold tracking-wide">Order System</span>
-        <MobileNav />
+    <div class="flex min-h-screen min-w-0 flex-1 flex-col">
+      <header class="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div class="flex h-14 items-center gap-3 px-4 md:px-6">
+          <div class="md:hidden flex items-center gap-2">
+            <MobileNav />
+            <div class="leading-tight">
+              <div class="text-sm font-semibold">{{ pageTitle }}</div>
+              <div class="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Desk</div>
+            </div>
+          </div>
+
+          <div class="hidden min-w-0 md:block">
+            <div class="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{{ pageSection }}</div>
+            <div class="truncate text-base font-semibold leading-tight">{{ pageTitle }}</div>
+          </div>
+
+          <div class="mx-auto hidden w-full max-w-xl md:block">
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="搜索页面、合同、采购单或物料…"
+                class="h-9 rounded-full border-border/70 bg-muted/70 pl-9 shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0"
+              />
+            </div>
+          </div>
+
+          <div class="ml-auto flex items-center gap-1.5">
+            <Button variant="ghost" size="icon-sm" class="rounded-full text-muted-foreground">
+              <CircleHelp class="size-4" />
+              <span class="sr-only">帮助</span>
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="rounded-full text-muted-foreground">
+              <Bell class="size-4" />
+              <span class="sr-only">通知</span>
+            </Button>
+            <div class="hidden size-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground md:flex">
+              OS
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
     </div>
-
-    <!-- Main Content -->
-    <main class="flex-1 w-full p-0 overflow-y-auto overflow-x-hidden relative">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </main>
   </div>
 </template>

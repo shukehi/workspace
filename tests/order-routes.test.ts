@@ -6,6 +6,7 @@ import path from 'node:path'
 import os from 'node:os'
 import type { Router } from 'express'
 import { createRequire } from 'node:module';
+import type { MaterialInstance } from '../server/models';
 
 const _require = createRequire(import.meta.url);
 const tempDbPath = path.join(os.tmpdir(), `order-routes-${Date.now()}.sqlite`);
@@ -22,7 +23,8 @@ function purgeDatabaseCache() {
 purgeDatabaseCache();
 process.env.DB_STORAGE = tempDbPath;
 
-const { initDB, sequelize, Material, Order, OrderItem } = require('../server/models') as typeof import('../server/models');
+// Runtime CJS bridge: this cache-purging test must require models after DB_STORAGE is set.
+const { initDB, sequelize, Material, Order, OrderItem } = require('../server/models') as any;
 const orderRoutes = (require('../server/routes/order') as { default: Router }).default;
 
 let server: ReturnType<ReturnType<typeof express>['listen']>

@@ -20,9 +20,10 @@ const purgeDatabaseCache = () => {
 purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material, InventoryMovement, InventoryReceipt } = _require('../server/models') as typeof import('../server/models');
-const orderService = (_require('../server/services/orders') as typeof import('../server/services/orders')).default;
-const { inventoryReceiptService } = _require('../server/services/inventory') as typeof import('../server/services/inventory');
+// Runtime CJS bridge: these cache-purging tests must require models after DB_STORAGE is set.
+const { sequelize, Material, InventoryMovement, InventoryReceipt } = _require('../server/models') as any;
+const orderService = (_require('../server/services/orders') as any).default;
+const { inventoryReceiptService } = _require('../server/services/inventory') as any;
 import type { MaterialInstance } from '../server/models';
 
 async function createOriginalReceipt() {
@@ -60,7 +61,7 @@ async function createOriginalReceipt() {
   });
 
   const list = await inventoryReceiptService.list({ orderId: order.id });
-  const receipt = list.rows.find((item) => item.direction !== 'reversal');
+  const receipt = list.rows.find((item: { direction?: string }) => item.direction !== 'reversal');
   assert.ok(receipt);
   return receipt;
 }
