@@ -435,12 +435,6 @@ const removeItemRow = (itemKey: string) => {
   form.value.items = removeOrderItemByKey(form.value.items, itemKey) as Order['items'];
 };
 
-const removeLastItemRow = () => {
-  if (!form.value || !Array.isArray(form.value.items)) return;
-  if (form.value.items.length <= 1) return;
-  form.value.items.pop();
-};
-
 const reorderItemRow = (payload: { sourceItemKey: string; targetItemKey: string; placement: OrderItemDropPlacement }) => {
   if (!form.value || !Array.isArray(form.value.items)) return;
   form.value.items = reorderOrderItemsByKey(form.value.items, payload) as Order['items'];
@@ -523,7 +517,6 @@ const handleBusinessCategoryChange = (event: Event) => {
           </div>
           <Button v-if="!isCreateMode" variant="outline" size="sm" :disabled="saving" @click="handlePreview">预览</Button>
           <Button variant="outline" size="sm" :disabled="saving || isRestrictedDetailEdit" @click="addItemRow">新增明细</Button>
-          <Button variant="outline" size="sm" :disabled="saving || isRestrictedDetailEdit || !form.items || form.items.length <= 1" @click="removeLastItemRow">删除末行</Button>
           <Button variant="outline" size="sm" :disabled="saving" @click="resetColumnWidths">重置列宽</Button>
           <Button variant="outline" size="sm" :disabled="saving" @click="requestClose">取消</Button>
           <Button size="sm" :disabled="saving" @click="handleSave">{{ saving ? '保存中...' : (isCreateMode ? '创建采购单' : '保存修改') }}</Button>
