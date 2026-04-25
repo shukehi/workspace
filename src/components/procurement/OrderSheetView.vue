@@ -129,6 +129,11 @@ function getActionColumnWidth() {
   return 76;
 }
 
+function getTableMinWidth() {
+  const detailWidth = schema.value.columns.reduce((total, column) => total + getColumnWidth(column.key), 0);
+  return detailWidth + (showsRowActions.value ? getActionColumnWidth() : 0);
+}
+
 function getAlignClass(align: 'left' | 'center' | 'right') {
   if (align === 'center') return 'text-center';
   if (align === 'right') return 'text-right';
@@ -427,8 +432,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="border rounded-lg overflow-hidden">
-      <table class="w-full text-xs table-fixed">
+    <div class="border rounded-lg overflow-x-auto">
+      <table class="w-full text-xs table-fixed" :style="{ minWidth: `${getTableMinWidth()}px` }">
         <colgroup>
           <col
             v-for="column in schema.columns"
@@ -453,7 +458,7 @@ onBeforeUnmount(() => {
                 @dblclick.stop.prevent="resetSingleColumnWidth(column.key)"
               />
             </th>
-            <th v-if="showsRowActions" class="p-2 text-center">操作</th>
+            <th v-if="showsRowActions" class="sticky right-0 z-20 border-l bg-muted/95 p-2 text-center">操作</th>
           </tr>
         </thead>
         <tbody class="divide-y">
@@ -508,7 +513,7 @@ onBeforeUnmount(() => {
                 </div>
               </template>
             </td>
-            <td v-if="showsRowActions" class="p-1">
+            <td v-if="showsRowActions" class="sticky right-0 z-10 border-l bg-card p-1">
               <div class="grid grid-cols-2 gap-1 place-items-center">
                 <button
                   type="button"
@@ -558,7 +563,7 @@ onBeforeUnmount(() => {
           </template>
           <tr v-if="isPackaging && items.length < 5" v-for="i in (5 - items.length)" :key="`empty-${i}`">
             <td v-for="column in schema.columns" :key="`empty-cell-${i}-${column.key}`" class="border-r last:border-r-0 p-2">&nbsp;</td>
-            <td v-if="showsRowActions" class="p-2">&nbsp;</td>
+            <td v-if="showsRowActions" class="sticky right-0 z-10 border-l bg-card p-2">&nbsp;</td>
           </tr>
         </tbody>
       </table>
