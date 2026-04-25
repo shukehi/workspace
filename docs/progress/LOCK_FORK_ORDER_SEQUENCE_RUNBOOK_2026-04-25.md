@@ -27,6 +27,12 @@ Primary fix commits:
 npx tsx server/scripts/audit_lock_fork_order_sequence.ts
 ```
 
+如果要给脚本或其他自动化消费，使用干净 JSON：
+
+```bash
+npx tsx server/scripts/audit_lock_fork_order_sequence.ts --json-clean
+```
+
 输出会标出：
 - 哪些单错序
 - 当前状态

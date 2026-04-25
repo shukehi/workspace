@@ -1,10 +1,10 @@
 import { initDB, Order, OrderItem, sequelize } from '../models';
+import {
+  readLockForkAuditOptions,
+  shouldMuteLockForkAuditBootstrapLogs,
+  type LockForkAuditOptions,
+} from '../services/orders/lock-fork-order-audit';
 import { sortProcurementItems } from '../../src/features/procurement/itemSort';
-
-type ScriptOptions = {
-  json: boolean;
-  includeAligned: boolean;
-};
 
 type PlainItem = Record<string, any>;
 
@@ -19,25 +19,6 @@ type PlainOrder = {
 
 function readText(value: unknown) {
   return value == null ? '' : String(value).trim();
-}
-
-function readOptions(argv: string[]): ScriptOptions {
-  const options: ScriptOptions = {
-    json: false,
-    includeAligned: false,
-  };
-
-  for (const token of argv) {
-    if (token === '--json') {
-      options.json = true;
-      continue;
-    }
-    if (token === '--include-aligned') {
-      options.includeAligned = true;
-    }
-  }
-
-  return options;
 }
 
 function toPlain<T>(value: T): T {
@@ -61,9 +42,24 @@ function isEditableStatus(status: string) {
   return status === 'draft' || status === 'submitted' || status === 'processing';
 }
 
+async function initAuditDatabase(options: LockForkAuditOptions) {
+  if (!shouldMuteLockForkAuditBootstrapLogs(options)) {
+    await initDB();
+    return;
+  }
+
+  const originalLog = console.log;
+  console.log = () => undefined;
+  try {
+    await initDB();
+  } finally {
+    console.log = originalLog;
+  }
+}
+
 async function main() {
-  const options = readOptions(process.argv.slice(2));
-  await initDB();
+  const options = readLockForkAuditOptions(process.argv.slice(2));
+  await initAuditDatabase(options);
 
   try {
     const records = await Order.findAll({
