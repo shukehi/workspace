@@ -17,6 +17,7 @@ import {
   Warehouse
 } from 'lucide-vue-next';
 import { mainNavGroups, type NavGroup, type NavIconKey } from '@/config/nav';
+import { Separator } from '@/components/ui/separator';
 
 const route = useRoute();
 const emit = defineEmits<{
@@ -46,6 +47,12 @@ const iconMap: Record<NavIconKey, Component> = {
   'contracts-history': Archive
 };
 
+const groupEyebrow: Record<GroupId, string> = {
+  workflow: 'MY WORKSPACES',
+  config: 'PUBLIC',
+  reports: 'REPORTS'
+};
+
 function resolveIcon(icon: NavIconKey): Component {
   return iconMap[icon] || LayoutDashboard;
 }
@@ -64,7 +71,7 @@ function findGroupByPath(path: string): GroupId | null {
   return null;
 }
 
-function setDefaultOpenState(_activeGroupId: GroupId | null) {
+function setDefaultOpenState() {
   const next: Partial<Record<GroupId, boolean>> = {};
   for (const group of mainNavGroups) {
     next[group.id] = true;
@@ -98,7 +105,7 @@ watch(
   activeGroupId,
   (groupId) => {
     if (Object.keys(openGroups.value).length === 0) {
-      setDefaultOpenState(groupId);
+      setDefaultOpenState();
       return;
     }
 
@@ -114,16 +121,28 @@ watch(
 </script>
 
 <template>
-  <div class="h-full bg-background flex flex-col">
-    <div class="h-16 flex items-center px-5 border-b border-border bg-background/95">
-      <div class="leading-tight">
-        <div class="text-sm font-semibold tracking-wide">Order System</div>
-        <div class="text-[11px] text-muted-foreground">Operations Console</div>
+  <aside class="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+    <div class="flex h-14 items-center gap-3 px-4">
+      <div class="flex size-9 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm">
+        OS
+      </div>
+      <div class="min-w-0 leading-tight">
+        <div class="truncate text-sm font-semibold">Order System</div>
+        <div class="truncate text-[11px] text-muted-foreground">Frappe-style operations desk</div>
       </div>
     </div>
 
-    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-3">
-      <section v-for="group in mainNavGroups" :key="group.id" class="space-y-1">
+    <div class="px-3">
+      <div class="rounded-xl border border-border/70 bg-background/70 px-3 py-2 shadow-xs">
+        <div class="text-[11px] font-medium text-muted-foreground">当前站点</div>
+        <div class="mt-0.5 truncate text-sm font-semibold">采购与库存控制台</div>
+      </div>
+    </div>
+
+    <Separator class="my-3 bg-border/70" />
+
+    <nav class="flex flex-1 flex-col gap-4 overflow-y-auto px-3 pb-4">
+      <section v-for="group in mainNavGroups" :key="group.id" class="flex flex-col gap-1.5">
         <button
           type="button"
           class="menu-group-trigger"
@@ -131,8 +150,11 @@ watch(
           :aria-controls="`menu-group-${group.id}`"
           @click="toggleGroup(group.id)"
         >
-          <span class="menu-group-title">{{ group.title }}</span>
-          <ChevronDown class="h-4 w-4 transition-transform duration-150" :class="isGroupOpen(group.id) ? 'rotate-180' : ''" />
+          <span class="flex min-w-0 flex-col items-start leading-tight">
+            <span class="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">{{ groupEyebrow[group.id] }}</span>
+            <span class="menu-group-title">{{ group.title }}</span>
+          </span>
+          <ChevronDown class="size-4 shrink-0 transition-transform duration-150" :class="isGroupOpen(group.id) ? 'rotate-180' : ''" />
         </button>
 
         <transition name="menu-collapse">
@@ -167,8 +189,11 @@ watch(
       </section>
     </nav>
 
-    <div class="px-4 py-3 border-t border-border text-[11px] text-muted-foreground/80">
-      Ver 2.0.0
+    <div class="border-t border-border/70 px-4 py-3">
+      <div class="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>Order Desk</span>
+        <span>v2.0.0</span>
+      </div>
     </div>
-  </div>
+  </aside>
 </template>

@@ -34,13 +34,17 @@ const {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-6 md:p-8 gap-6 bg-muted/20">
-    <div>
-      <h2 class="text-3xl font-semibold tracking-tight">订单数据源</h2>
-      <p class="text-muted-foreground mt-1 text-sm">Step 1: Select items from ERP contract to generate POs.</p>
+  <div class="workspace-page">
+    <div class="workspace-header">
+      <div>
+        <div class="workspace-kicker">Order Source</div>
+        <h2 class="workspace-title">订单数据源</h2>
+        <p class="workspace-subtitle">Step 1: Select items from ERP contract to generate POs.</p>
+      </div>
+      <span class="desk-pill">Contract Workspace</span>
     </div>
 
-    <Card>
+    <Card class="overflow-hidden">
       <CardHeader class="pb-4">
         <CardTitle class="text-base">合同查询</CardTitle>
         <CardDescription>输入 ERP 合同编号并拉取明细。</CardDescription>
@@ -100,7 +104,7 @@ const {
       </CardContent>
     </Card>
 
-    <Card class="flex-1 min-h-0">
+    <Card class="min-h-[420px] flex-1">
       <CardContent class="h-full p-4">
         <p v-if="hasOrder" class="px-1 pb-2 text-[11px] text-muted-foreground md:hidden">表格可左右滑动查看更多列</p>
         <DataTable

@@ -57,11 +57,12 @@ const getStatusColor = (status: string) => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-6 md:p-8 gap-6 bg-muted/20">
-    <div class="flex items-center justify-between">
+  <div class="workspace-page">
+    <div class="workspace-header">
       <div>
-        <h2 class="text-3xl font-semibold tracking-tight">数据概览</h2>
-        <p class="text-muted-foreground mt-1">全局采购运营状态、支出分布及库存健康监控。</p>
+        <div class="workspace-kicker">Reports</div>
+        <h2 class="workspace-title">数据概览</h2>
+        <p class="workspace-subtitle">全局采购运营状态、支出分布及库存健康监控。</p>
       </div>
       <Button variant="outline" size="sm" @click="refreshAll" :disabled="orderStore.loading || inventoryStore.loading">
         <RefreshCcw class="w-4 h-4 mr-2" :class="{ 'animate-spin': orderStore.loading || inventoryStore.loading }" />
@@ -110,7 +111,7 @@ const getStatusColor = (status: string) => {
       </Card>
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-7 flex-1 overflow-hidden">
+    <div class="grid flex-1 gap-4 overflow-hidden md:grid-cols-2 lg:grid-cols-7">
       <Card class="lg:col-span-4 flex flex-col">
         <CardHeader>
           <CardTitle class="text-sm font-semibold flex items-center gap-2">
@@ -134,7 +135,7 @@ const getStatusColor = (status: string) => {
         </CardContent>
       </Card>
 
-      <div class="lg:col-span-3 flex flex-col gap-6 h-full overflow-auto pr-1">
+      <div class="flex h-full flex-col gap-4 overflow-auto pr-1 lg:col-span-3">
         <Card>
           <CardHeader>
             <CardTitle class="text-sm font-semibold flex items-center gap-2">
