@@ -1,5 +1,10 @@
 import { initDB, InventoryReceipt, Order, OrderItem, sequelize } from '../models';
 import orderService from '../services/orders/order.service';
+import {
+  assertCanRepairArrivedWithoutReceipts,
+  isEditableLockForkRepairStatus,
+  resolveLockForkRepairPreviewMode,
+} from '../services/orders/lock-fork-order-repair';
 import { sortProcurementItems } from '../../src/features/procurement/itemSort';
 
 type ScriptOptions = {
@@ -82,36 +87,21 @@ function summarize(items: PlainItem[]) {
   }));
 }
 
-function isEditableStatus(status: string) {
-  return status === 'draft' || status === 'submitted' || status === 'processing';
-}
-
-async function canRepairLockedArrivedOrder(order: PlainOrder, options: ScriptOptions) {
-  const status = readText(order.status).toLowerCase();
-  if (status !== 'arrived' || !options.allowArrivedWithoutReceipts) return false;
-  if (readText(order.stocked_in_at)) {
-    throw new Error(`Order ${order.order_no} already has stocked_in_at and cannot use arrived-without-receipts repair`);
-  }
-
-  const receiptCount = await InventoryReceipt.count({ where: { order_id: order.id } });
-  if (receiptCount > 0) {
-    throw new Error(`Order ${order.order_no} has ${receiptCount} inventory receipts and cannot use arrived-without-receipts repair`);
-  }
-
-  return true;
-}
-
 async function applyRepair(order: PlainOrder, sorted: PlainItem[], options: ScriptOptions) {
   const status = readText(order.status).toLowerCase();
-  if (isEditableStatus(status)) {
+  if (isEditableLockForkRepairStatus(status)) {
     await orderService.updateOrder(order.id, { items: sorted });
     return 'editable';
   }
 
-  const allowLockedRepair = await canRepairLockedArrivedOrder(order, options);
-  if (!allowLockedRepair) {
-    throw new Error(`Order ${order.order_no} is not editable (status=${status || 'empty'})`);
-  }
+  const receiptCount = await InventoryReceipt.count({ where: { order_id: order.id } });
+  assertCanRepairArrivedWithoutReceipts({
+    orderNo: order.order_no,
+    status,
+    stockedInAt: order.stocked_in_at,
+    receiptCount,
+    allowArrivedWithoutReceipts: options.allowArrivedWithoutReceipts,
+  });
 
   await orderService.updateOrder(order.id, { status: 'cancelled' });
   await orderService.updateOrder(order.id, { items: sorted });
@@ -170,11 +160,10 @@ async function main() {
       changed,
       before,
       after,
-      applyMode: isEditableStatus(status)
-        ? 'editable'
-        : options.allowArrivedWithoutReceipts && status === 'arrived'
-          ? 'arrived_without_receipts_if_safe'
-          : 'blocked',
+      applyMode: resolveLockForkRepairPreviewMode({
+        status,
+        allowArrivedWithoutReceipts: options.allowArrivedWithoutReceipts,
+      }),
       applied: false,
     }, null, 2));
 
