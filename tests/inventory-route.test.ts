@@ -22,7 +22,8 @@ const purgeDatabaseCache = () => {
 purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
-const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, InventoryMovement, Warehouse } = _require('../server/models') as typeof import('../server/models');
+// Runtime CJS bridge: these cache-purging tests must require models after DB_STORAGE is set.
+const { sequelize, Material, Order, OrderItem, InventoryLocationBalance, InventoryMovement, Warehouse } = _require('../server/models') as any;
 import type { MaterialInstance } from '../server/models';
 const inventoryRoutes = (_require('../server/routes/inventory') as { default: Router }).default;
 const inventoryAdjustmentRoutes = (_require('../server/routes/inventoryAdjustments') as { default: Router }).default;
@@ -30,7 +31,7 @@ const inventoryMovementRoutes = (_require('../server/routes/inventoryMovements')
 const inventoryReceiptRoutes = (_require('../server/routes/inventoryReceipts') as { default: Router }).default;
 const inventoryLocationRoutes = (_require('../server/routes/inventoryLocations') as { default: Router }).default;
 const inventoryOutboundRoutes = (_require('../server/routes/inventoryOutbounds') as { default: Router }).default;
-const orderService = (_require('../server/services/orders') as typeof import('../server/services/orders')).default;
+const orderService = (_require('../server/services/orders') as any).default;
 
 function getBody(raw: Record<string, unknown>) {
   return raw?.data !== undefined ? raw.data : raw;

@@ -29,7 +29,8 @@ test('source order request error applier normalizes history load failures', () =
   const calls: string[] = [];
 
   const message404 = failSourceOrderHistoryLoad(state, { response: { status: 404 } }, (message, error) => {
-    calls.push(`${message}:${String(error?.response?.status || '')}`);
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    calls.push(`${message}:${String(status || '')}`);
   });
   assert.equal(message404, '未找到历史合同');
   assert.equal(state.error.value, '未找到历史合同');

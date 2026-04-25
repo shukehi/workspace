@@ -4,7 +4,7 @@ import { reactive, ref } from 'vue';
 import { useProcurementRouteQuery } from '../src/features/procurement/composables/useProcurementRouteQuery';
 
 test('useProcurementRouteQuery drops orderNo anchor when search is changed or cleared', async () => {
-  const route = reactive({
+  const route = reactive<{ query: Record<string, any> }>({
     query: {
       status: 'arrived',
       orderNo: 'PO-100',

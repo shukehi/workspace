@@ -20,15 +20,16 @@ const purgeDatabaseCache = () => {
 purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
+// Runtime CJS bridge: these cache-purging tests must require models after DB_STORAGE is set.
 const {
   sequelize,
   Material,
   InventoryLocationBalance,
   InventoryMovement,
-} = _require('../server/models') as typeof import('../server/models');
-const orderService = (_require('../server/services/orders') as typeof import('../server/services/orders')).default;
-const { inventoryOutboundService } = _require('../server/services/inventory') as typeof import('../server/services/inventory');
-const { ensureDefaultWarehouseAndLocation } = _require('../server/services/inventory/inventory-defaults') as typeof import('../server/services/inventory/inventory-defaults');
+} = _require('../server/models') as any;
+const orderService = (_require('../server/services/orders') as any).default;
+const { inventoryOutboundService } = _require('../server/services/inventory') as any;
+const { ensureDefaultWarehouseAndLocation } = _require('../server/services/inventory/inventory-defaults') as any;
 import type { MaterialInstance } from '../server/models';
 
 async function createStockedMaterial(quantity: number) {

@@ -113,7 +113,8 @@ test('mapping rules adapter returns hybrid payload with legacy payload preserved
   const hybrid = adaptCylinderToHybridRulePayload(legacy);
   assert.deepEqual(hybrid.legacy, legacy);
   assert.equal(hybrid.ruleSet?.rules.length, 1);
-  assert.equal(hybrid.ruleSet?.rules[0].when.items[0].field, 'sxhz');
+  const firstCondition = hybrid.ruleSet?.rules[0].when.items[0] as { field: string };
+  assert.equal(firstCondition.field, 'sxhz');
   assert.equal(hybrid.ruleSet?.rules[0].scope, 'primary');
   assert.equal(hybrid.ruleSet?.rules[0].then.code, 'ACC-FSHZ-YHLXMB-7');
 });
