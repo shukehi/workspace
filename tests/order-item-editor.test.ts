@@ -47,6 +47,28 @@ test('order item editor: reorders rows after the target row', () => {
   );
 });
 
+test('order item editor: supports single-step moves through adjacent before/after placements', () => {
+  const movedUp = reorderOrderItemsByKey(sampleItems, {
+    sourceItemKey: 'row-3',
+    targetItemKey: 'row-2',
+    placement: 'before',
+  });
+  assert.deepEqual(
+    movedUp.map((item) => item.item_key),
+    ['row-1', 'row-3', 'row-2', 'row-4'],
+  );
+
+  const movedDown = reorderOrderItemsByKey(sampleItems, {
+    sourceItemKey: 'row-2',
+    targetItemKey: 'row-3',
+    placement: 'after',
+  });
+  assert.deepEqual(
+    movedDown.map((item) => item.item_key),
+    ['row-1', 'row-3', 'row-2', 'row-4'],
+  );
+});
+
 test('order item editor: no-ops when keys are missing or identical', () => {
   assert.deepEqual(
     reorderOrderItemsByKey(sampleItems, {

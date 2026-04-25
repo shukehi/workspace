@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
-import { GripVertical, Minus } from 'lucide-vue-next';
+import { ChevronDown, ChevronUp, GripVertical, Minus } from 'lucide-vue-next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -224,6 +224,19 @@ function getRowKey(item: Partial<OrderItem>, idx: number) {
 function removeItem(item: Partial<OrderItem>, idx: number) {
   if (!showsRowActions.value) return;
   emit('remove:item', getRowKey(item, idx));
+}
+
+function moveItemByStep(item: Partial<OrderItem>, idx: number, step: -1 | 1) {
+  if (!showsRowActions.value) return;
+  const targetIndex = idx + step;
+  const targetItem = items.value[targetIndex];
+  if (!targetItem) return;
+
+  emit('reorder:item', {
+    sourceItemKey: getRowKey(item, idx),
+    targetItemKey: getRowKey(targetItem, targetIndex),
+    placement: step < 0 ? 'before' : 'after',
+  });
 }
 
 function resolveDropPlacement(event: DragEvent) {
@@ -497,6 +510,24 @@ onBeforeUnmount(() => {
             </td>
             <td v-if="showsRowActions" class="p-1">
               <div class="flex items-center justify-center gap-1">
+                <button
+                  type="button"
+                  class="inline-flex h-7 w-7 items-center justify-center rounded border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  title="上移"
+                  :disabled="idx === 0"
+                  @click="moveItemByStep(item, idx, -1)"
+                >
+                  <ChevronUp class="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-7 w-7 items-center justify-center rounded border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  title="下移"
+                  :disabled="idx === items.length - 1"
+                  @click="moveItemByStep(item, idx, 1)"
+                >
+                  <ChevronDown class="h-3.5 w-3.5" />
+                </button>
                 <button
                   type="button"
                   class="inline-flex h-7 w-7 items-center justify-center rounded border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"

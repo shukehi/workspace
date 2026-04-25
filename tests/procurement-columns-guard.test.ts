@@ -136,6 +136,10 @@ test('procurement preview guard: arrived and completed orders cannot edit from p
   assert.match(orderSheet, /emit\('remove:item'/)
   assert.match(orderSheet, /emit\('reorder:item'/)
   assert.match(orderSheet, /GripVertical/)
+  assert.match(orderSheet, /ChevronUp/)
+  assert.match(orderSheet, /ChevronDown/)
+  assert.match(orderSheet, /title="上移"/)
+  assert.match(orderSheet, /title="下移"/)
 })
 
 test('procurement stock-in guard: arrived orders use detail stock-in dialog', () => {
