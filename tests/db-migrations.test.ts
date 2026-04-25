@@ -198,19 +198,11 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
     assert.equal((duplicateCounts as Array<{ order_no: string; count: number }>).length, 0);
 
     const [rows] = await sequelize.query(`SELECT id FROM ${MIGRATIONS_TABLE} ORDER BY id`);
-    assert.deepEqual((rows as { id: string }[]).map((row) => row.id), [
-      '20260313-001-add-order-columns',
-      '20260313-002-add-order-item-columns',
-      '20260313-003-add-inventory-receipt-columns',
-      '20260313-004-add-material-columns',
-      '20260313-005-add-order-idempotency-columns-and-index',
-      '20260318-006-add-query-indexes',
-      '20260320-007-add-inventory-location-and-outbound',
-      '20260320-008-add-inventory-reversal-guards',
-      '20260329-009-add-inventory-movements',
-      '20260329-010-add-order-no-unique-index',
-      '20260410-011-seed-secondary-shield-accessory-materials',
-    ]);
+    const expectedMigrationIds = fs.readdirSync(path.join(__dirname, '../server/db/migrations'))
+      .filter((file) => file.endsWith('.ts') || file.endsWith('.js'))
+      .map((file) => file.replace(/\.[jt]s$/, ''))
+      .sort();
+    assert.deepEqual((rows as { id: string }[]).map((row) => row.id), expectedMigrationIds);
 
     const [accessoryMaterials] = await sequelize.query(`
       SELECT code, supplier, category, unit
