@@ -456,6 +456,93 @@ test('OrderService updateOrder preserves non-manual order items instead of sanit
   assert.equal(updated.remark, '只更新备注');
 });
 
+test('OrderService updateOrder persists manual item deletion and custom row order', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('MANUAL-ROW-ORDER'),
+    supplier: '应志友',
+    category: '锁叉',
+    status: 'draft',
+    metadata: {
+      order_source: 'manual',
+      customer_name: '客户A',
+      template_type: 'general-accessory',
+    },
+    created_at: '2026-04-25T08:00:00.000Z',
+    delivery_date: '2026-04-26T08:00:00.000Z',
+    items: [
+      {
+        supplier: '应志友',
+        type: '双头锁叉 - 上头 直杆',
+        name: '双头锁叉 - 上头 直杆',
+        spec: '570*301 - 25 = 846',
+        quantity: 42,
+        unit: '个',
+        remark: '7CM 2000',
+      },
+      {
+        supplier: '应志友',
+        type: '双头锁叉 - 下头 弯杆',
+        name: '双头锁叉 - 下头 弯杆',
+        spec: '570*301 - 25 = 846',
+        quantity: 42,
+        unit: '个',
+        remark: '7CM 2000',
+      },
+      {
+        supplier: '应志友',
+        type: '双头锁叉 - 上头 直杆',
+        name: '双头锁叉 - 上头 直杆',
+        spec: '570*301 = 871',
+        quantity: 252,
+        unit: '个',
+        remark: '7CM 2050',
+      }
+    ],
+  } as OrderCreateInput);
+
+  const reorderedItems = [
+    created.items[2],
+    created.items[0],
+  ];
+
+  const updated = await orderService.updateOrder(created.id, {
+    items: reorderedItems,
+  });
+
+  assert.deepEqual(
+    updated.items.map((item: { type: string | null; spec: string | null; remark?: string | null }) => `${item.type}|${item.spec}|${item.remark || ''}`),
+    [
+      '双头锁叉 - 上头 直杆|570*301 = 871|7CM 2050',
+      '双头锁叉 - 上头 直杆|570*301 - 25 = 846|7CM 2000',
+    ],
+  );
+
+  const persisted = await orderService.getOrderById(created.id);
+  assert.ok(persisted);
+  assert.deepEqual(
+    persisted!.items.map((item: { type: string | null; spec: string | null; remark?: string | null }) => `${item.type}|${item.spec}|${item.remark || ''}`),
+    [
+      '双头锁叉 - 上头 直杆|570*301 = 871|7CM 2050',
+      '双头锁叉 - 上头 直杆|570*301 - 25 = 846|7CM 2000',
+    ],
+  );
+
+  const persistedRows = await OrderItem.findAll({
+    where: { order_id: created.id },
+    order: [['id', 'ASC']],
+  });
+  assert.deepEqual(
+    persistedRows.map((item) => `${item.get('type')}|${item.get('spec')}|${item.get('remark') || ''}`),
+    [
+      '双头锁叉 - 上头 直杆|570*301 = 871|7CM 2050',
+      '双头锁叉 - 上头 直杆|570*301 - 25 = 846|7CM 2000',
+    ],
+  );
+});
+
 test('OrderService supports processing to arrived transition and restores cancelled auto orders to arrived', async () => {
   await sequelize.authenticate();
   await sequelize.sync({ force: true });
