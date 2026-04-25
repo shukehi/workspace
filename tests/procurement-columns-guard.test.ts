@@ -142,6 +142,18 @@ test('procurement preview guard: arrived and completed orders cannot edit from p
   assert.match(orderSheet, /title="下移"/)
 })
 
+test('procurement edit sheet guard: row actions remain reachable when detail columns exceed sheet width', () => {
+  const orderSheet = read('src/components/procurement/OrderSheetView.vue')
+
+  assert.match(orderSheet, /getTableMinWidth/)
+  assert.match(orderSheet, /overflow-x-auto/)
+  assert.doesNotMatch(orderSheet, /<div class="border rounded-lg overflow-hidden">/)
+  assert.match(orderSheet, /:style="\{ minWidth: `\$\{getTableMinWidth\(\)\}px` \}"/)
+  assert.match(orderSheet, /sticky right-0/)
+  assert.match(orderSheet, /操作/)
+  assert.match(orderSheet, /title="删除当前行"/)
+})
+
 test('procurement stock-in guard: arrived orders use detail stock-in dialog', () => {
   const page = read('src/views/Procurement.vue')
   const dialog = read('src/components/procurement/ProcurementStockInDialog.vue')
