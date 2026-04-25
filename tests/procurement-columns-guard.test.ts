@@ -129,8 +129,13 @@ test('procurement preview guard: arrived and completed orders cannot edit from p
   assert.match(editDialog, /已到货订单仅允许修改交货日期和整单备注/)
   assert.match(editDialog, /remark: draft\.remark/)
   assert.match(editDialog, /delivery_date: draft\.delivery_date/)
+  assert.match(editDialog, /@remove:item="removeItemRow"/)
+  assert.match(editDialog, /@reorder:item="reorderItemRow"/)
   assert.match(orderSheet, /restrictDetailEditing\?: boolean/)
   assert.match(orderSheet, /isRestrictedEditMode/)
+  assert.match(orderSheet, /emit\('remove:item'/)
+  assert.match(orderSheet, /emit\('reorder:item'/)
+  assert.match(orderSheet, /GripVertical/)
 })
 
 test('procurement stock-in guard: arrived orders use detail stock-in dialog', () => {

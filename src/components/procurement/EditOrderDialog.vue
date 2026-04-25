@@ -41,6 +41,7 @@ import {
   nowStamp,
 } from '@/features/procurement/editOrderDraft';
 import { collectManualOrderValidationIssues, stripBlankManualItems, validateManualOrderDraft } from '@/features/procurement/manualOrderValidation';
+import { removeOrderItemByKey, reorderOrderItemsByKey, type OrderItemDropPlacement } from '@/features/procurement/orderItemEditor';
 import { isOrderRiskDismissed, resolveOrderRisk } from '@/features/procurement/orderRisk';
 
 type DialogMode = 'edit' | 'create';
@@ -429,10 +430,20 @@ const addItemRow = () => {
   form.value.items.push(createEmptyItem(category));
 };
 
+const removeItemRow = (itemKey: string) => {
+  if (!form.value || !Array.isArray(form.value.items)) return;
+  form.value.items = removeOrderItemByKey(form.value.items, itemKey) as Order['items'];
+};
+
 const removeLastItemRow = () => {
   if (!form.value || !Array.isArray(form.value.items)) return;
   if (form.value.items.length <= 1) return;
   form.value.items.pop();
+};
+
+const reorderItemRow = (payload: { sourceItemKey: string; targetItemKey: string; placement: OrderItemDropPlacement }) => {
+  if (!form.value || !Array.isArray(form.value.items)) return;
+  form.value.items = reorderOrderItemsByKey(form.value.items, payload) as Order['items'];
 };
 
 const handleTemplateChange = (event: Event) => {
@@ -543,6 +554,8 @@ const handleBusinessCategoryChange = (event: Event) => {
           :validation-errors="orderSheetValidationState"
           :hidden-columns="isCreateMode ? ['mb'] : []"
           @update:column-widths="handleColumnWidthsChange"
+          @remove:item="removeItemRow"
+          @reorder:item="reorderItemRow"
         />
       </div>
     </DialogContent>

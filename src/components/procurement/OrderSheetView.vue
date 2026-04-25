@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
+import { GripVertical, Minus } from 'lucide-vue-next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +31,11 @@ type ValidationState = {
   rows?: Record<number, string[]>;
   cells?: Record<string, string>;
 };
+type OrderSheetReorderPayload = {
+  sourceItemKey: string;
+  targetItemKey: string;
+  placement: 'before' | 'after';
+};
 
 const props = withDefaults(defineProps<{
   order: Partial<Order>;
@@ -52,10 +58,13 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:columnWidths', value: Record<string, number>): void;
+  (e: 'remove:item', itemKey: string): void;
+  (e: 'reorder:item', payload: OrderSheetReorderPayload): void;
 }>();
 
 const isEditMode = computed(() => props.mode === 'edit');
 const isRestrictedEditMode = computed(() => isEditMode.value && props.restrictDetailEditing);
+const showsRowActions = computed(() => isEditMode.value && !isRestrictedEditMode.value);
 const category = computed<PrintCategory>(() => resolveOrderSchemaPrintCategory(props.order));
 const isPackaging = computed(() => category.value === 'packaging');
 const usesSplitQuantityColumns = computed(() => supportsSplitQuantityColumns(category.value));
@@ -95,6 +104,8 @@ const formattedDeliveryDate = computed({
 });
 
 const resizing = ref<{ key: string; startX: number; startWidth: number } | null>(null);
+const draggingItemKey = ref('');
+const dropTarget = ref<OrderSheetReorderPayload | null>(null);
 
 function getColumnWidth(key: string) {
   if (key === 'quantity' && showsAggregatedQuantity.value) {
@@ -112,6 +123,10 @@ function getColumnMinWidth(key: string) {
   if (key === 'unit') return 50;
   if (key === 'remark') return 160;
   return 90;
+}
+
+function getActionColumnWidth() {
+  return 76;
 }
 
 function getAlignClass(align: 'left' | 'center' | 'right') {
@@ -206,6 +221,77 @@ function getRowKey(item: Partial<OrderItem>, idx: number) {
   return `draft-row-${idx}`;
 }
 
+function removeItem(item: Partial<OrderItem>, idx: number) {
+  if (!showsRowActions.value) return;
+  emit('remove:item', getRowKey(item, idx));
+}
+
+function resolveDropPlacement(event: DragEvent) {
+  const currentTarget = event.currentTarget as HTMLElement | null;
+  if (!currentTarget) return 'after' as const;
+  const rect = currentTarget.getBoundingClientRect();
+  return event.clientY - rect.top < rect.height / 2 ? 'before' as const : 'after' as const;
+}
+
+function handleItemDragStart(item: Partial<OrderItem>, idx: number, event: DragEvent) {
+  if (!showsRowActions.value) return;
+  draggingItemKey.value = getRowKey(item, idx);
+  dropTarget.value = null;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', draggingItemKey.value);
+  }
+}
+
+function handleItemDragOver(item: Partial<OrderItem>, idx: number, event: DragEvent) {
+  if (!showsRowActions.value || !draggingItemKey.value) return;
+  const targetItemKey = getRowKey(item, idx);
+  if (draggingItemKey.value === targetItemKey) {
+    dropTarget.value = null;
+    return;
+  }
+  event.preventDefault();
+  dropTarget.value = {
+    sourceItemKey: draggingItemKey.value,
+    targetItemKey,
+    placement: resolveDropPlacement(event),
+  };
+}
+
+function handleItemDrop(item: Partial<OrderItem>, idx: number, event: DragEvent) {
+  if (!showsRowActions.value || !draggingItemKey.value) return;
+  const targetItemKey = getRowKey(item, idx);
+  if (draggingItemKey.value === targetItemKey) {
+    draggingItemKey.value = '';
+    dropTarget.value = null;
+    return;
+  }
+  event.preventDefault();
+  emit('reorder:item', {
+    sourceItemKey: draggingItemKey.value,
+    targetItemKey,
+    placement: resolveDropPlacement(event),
+  });
+  draggingItemKey.value = '';
+  dropTarget.value = null;
+}
+
+function clearDragState() {
+  draggingItemKey.value = '';
+  dropTarget.value = null;
+}
+
+function getRowActionState(item: Partial<OrderItem>, idx: number) {
+  const rowKey = getRowKey(item, idx);
+  const isDragging = draggingItemKey.value === rowKey;
+  const isDropTarget = dropTarget.value?.targetItemKey === rowKey;
+  return {
+    isDragging,
+    isDropTarget,
+    placement: isDropTarget ? dropTarget.value?.placement || 'after' : '',
+  };
+}
+
 function getFieldError(path: string) {
   return props.validationErrors?.fields?.[path] || '';
 }
@@ -220,6 +306,7 @@ function getRowErrors(rowIndex: number) {
 
 onBeforeUnmount(() => {
   stopResizing();
+  clearDragState();
 });
 </script>
 
@@ -335,6 +422,7 @@ onBeforeUnmount(() => {
             :key="`col-${column.key}`"
             :style="{ width: `${getColumnWidth(column.key)}px` }"
           />
+          <col v-if="showsRowActions" :style="{ width: `${getActionColumnWidth()}px` }" />
         </colgroup>
         <thead class="bg-muted/40 border-b">
           <tr>
@@ -352,11 +440,22 @@ onBeforeUnmount(() => {
                 @dblclick.stop.prevent="resetSingleColumnWidth(column.key)"
               />
             </th>
+            <th v-if="showsRowActions" class="p-2 text-center">操作</th>
           </tr>
         </thead>
         <tbody class="divide-y">
           <template v-for="(item, idx) in items" :key="getRowKey(item, idx)">
-          <tr class="hover:bg-muted/30">
+          <tr
+            class="hover:bg-muted/30"
+            :class="[
+              getRowActionState(item, idx).isDragging ? 'opacity-60' : '',
+              getRowActionState(item, idx).isDropTarget ? 'bg-primary/5' : '',
+              getRowActionState(item, idx).placement === 'before' ? 'border-t-2 border-primary' : '',
+              getRowActionState(item, idx).placement === 'after' ? 'border-b-2 border-primary' : '',
+            ]"
+            @dragover="handleItemDragOver(item, idx, $event)"
+            @drop="handleItemDrop(item, idx, $event)"
+          >
             <td
               v-for="column in schema.columns"
               :key="`cell-${idx}-${column.key}`"
@@ -396,15 +495,39 @@ onBeforeUnmount(() => {
                 </div>
               </template>
             </td>
+            <td v-if="showsRowActions" class="p-1">
+              <div class="flex items-center justify-center gap-1">
+                <button
+                  type="button"
+                  class="inline-flex h-7 w-7 items-center justify-center rounded border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  title="拖动排序"
+                  draggable="true"
+                  @dragstart.stop="handleItemDragStart(item, idx, $event)"
+                  @dragend="clearDragState"
+                >
+                  <GripVertical class="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-7 w-7 items-center justify-center rounded border bg-background text-muted-foreground transition hover:bg-muted hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+                  title="删除当前行"
+                  :disabled="items.length <= 1"
+                  @click="removeItem(item, idx)"
+                >
+                  <Minus class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </td>
           </tr>
           <tr v-if="getRowErrors(idx).length > 0" class="bg-red-50/80">
-            <td :colspan="schema.columns.length" class="px-3 py-2 text-[11px] text-red-700">
+            <td :colspan="schema.columns.length + (showsRowActions ? 1 : 0)" class="px-3 py-2 text-[11px] text-red-700">
               {{ getRowErrors(idx).join('；') }}
             </td>
           </tr>
           </template>
           <tr v-if="isPackaging && items.length < 5" v-for="i in (5 - items.length)" :key="`empty-${i}`">
             <td v-for="column in schema.columns" :key="`empty-cell-${i}-${column.key}`" class="border-r last:border-r-0 p-2">&nbsp;</td>
+            <td v-if="showsRowActions" class="p-2">&nbsp;</td>
           </tr>
         </tbody>
       </table>
