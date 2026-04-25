@@ -509,7 +509,7 @@ onBeforeUnmount(() => {
               </template>
             </td>
             <td v-if="showsRowActions" class="p-1">
-              <div class="flex items-center justify-center gap-1">
+              <div class="grid grid-cols-2 gap-1 place-items-center">
                 <button
                   type="button"
                   class="inline-flex h-7 w-7 items-center justify-center rounded border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
