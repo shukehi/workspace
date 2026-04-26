@@ -4,9 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import {
+  createMaterialForMappingTest,
+  createSupplierMasterForMappingTest,
+} from './helpers/material-mapping-test-helpers';
 
 const requireForTest = createRequire(import.meta.url);
 const TEST_DB = path.join(os.tmpdir(), `material-scripts-${crypto.randomBytes(8).toString('hex')}.sqlite`);
@@ -14,6 +18,8 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const TSX_BIN = path.join(REPO_ROOT, 'node_modules/.bin/tsx');
 
 const purgeServerCache = () => {
+  // Keep this before server imports so child scripts and this process share the
+  // same isolated sqlite file via DB_STORAGE instead of the default dev DB.
   Object.keys(requireForTest.cache).forEach((key) => {
     if (key.includes('/server/config/database') || key.includes('/server/models/') || key.includes('/server/services/materials/')) {
       delete requireForTest.cache[key];
@@ -38,29 +44,63 @@ const { createCodeMapping } = requireForTest('../server/services/materials/mater
 type JsonObject = Record<string, any>;
 
 function parseJsonFromOutput(output: string): JsonObject {
-  const start = output.indexOf('{');
-  const end = output.lastIndexOf('}');
-  assert.ok(start >= 0 && end > start, `Expected JSON object in output: ${output}`);
-  return JSON.parse(output.slice(start, end + 1));
+  const trimmed = output.trim();
+  for (let start = trimmed.lastIndexOf('{'); start >= 0; start = trimmed.lastIndexOf('{', start - 1)) {
+    try {
+      return JSON.parse(trimmed.slice(start));
+    } catch {
+      // Keep scanning backwards: bootstrap logs or nested JSON objects can also contain "{".
+    }
+  }
+  throw new Error(`Expected JSON object in script stdout, received:\n${output}`);
 }
 
 function runScript(script: string, args: string[] = []): JsonObject {
-  const output = execFileSync(TSX_BIN, [script, ...args], {
+  const result = spawnSync(TSX_BIN, [script, ...args], {
     cwd: REPO_ROOT,
     env: { ...process.env, DB_STORAGE: TEST_DB },
     encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
-  return parseJsonFromOutput(output);
+
+  if (result.error || result.status !== 0) {
+    throw new Error([
+      `Script failed: ${script} ${args.join(' ')}`,
+      `status=${result.status}`,
+      result.error ? `error=${result.error.message}` : '',
+      `stdout:\n${result.stdout}`,
+      `stderr:\n${result.stderr}`,
+    ].filter(Boolean).join('\n'));
+  }
+
+  return parseJsonFromOutput(result.stdout);
 }
 
 async function createMaterial(code: string, overrides: Record<string, unknown> = {}) {
-  return Material.create({
-    code,
-    name: `${code} name`,
-    unit: 'PCS',
-    category: 'test',
-    ...overrides,
-  } as any) as any;
+  return createMaterialForMappingTest(Material, code, overrides);
+}
+
+async function createSupplierMaster(supplierName: string, overrides: Record<string, unknown> = {}) {
+  return createSupplierMasterForMappingTest(SupplierMaster, supplierName, overrides);
+}
+
+async function countMappingRows() {
+  return {
+    code: await MaterialCodeMapping.count(),
+    supplier: await MaterialSupplierMapping.count(),
+    uom: await MaterialUomConversion.count(),
+  };
+}
+
+async function seedScriptMaterial(seed: string) {
+  const supplier = await createSupplierMaster(`Script Supplier ${seed}`);
+  return createMaterial(`SCRIPT-MAT-${seed}`, {
+    model: `script-model-${seed}`,
+    aliases: [`script-alias-${seed}`],
+    supplier: `Script Supplier ${seed}`,
+    supplier_master_id: supplier.id,
+    unit: 'pcs',
+  });
 }
 
 test.before(async () => {
@@ -68,18 +108,8 @@ test.before(async () => {
 });
 
 test('backfill dry-run plans code and UOM mappings without writing rows or default supplier mappings', async () => {
-  const supplier = await SupplierMaster.create({
-    supplier_name: 'Script Supplier',
-    normalized_name: 'script supplier',
-    status: 'active',
-  } as any) as any;
-  await createMaterial('SCRIPT-MAT-001', {
-    model: 'script-model-001',
-    aliases: ['script-alias-001'],
-    supplier: 'Script Supplier',
-    supplier_master_id: supplier.id,
-    unit: 'pcs',
-  });
+  await seedScriptMaterial('DRY-RUN');
+  const before = await countMappingRows();
 
   const summary = runScript('server/scripts/backfill_material_mappings.ts', ['--dry-run', '--json']);
 
@@ -94,12 +124,13 @@ test('backfill dry-run plans code and UOM mappings without writing rows or defau
     summary.supplierLinkCandidatePreview.some((item: any) => /--include-supplier-code-fallback/.test(item.note)),
   );
 
-  assert.equal(await MaterialCodeMapping.count(), 0);
-  assert.equal(await MaterialSupplierMapping.count(), 0);
-  assert.equal(await MaterialUomConversion.count(), 0);
+  assert.deepEqual(await countMappingRows(), before);
 });
 
 test('backfill apply writes supplier mappings only when fallback flag is explicit', async () => {
+  await seedScriptMaterial('APPLY');
+  const before = await countMappingRows();
+
   const summary = runScript('server/scripts/backfill_material_mappings.ts', [
     '--apply',
     '--include-supplier-code-fallback',
@@ -109,9 +140,46 @@ test('backfill apply writes supplier mappings only when fallback flag is explici
   assert.equal(summary.mode, 'apply');
   assert.equal(summary.conflictCount, 0);
   assert.ok(summary.plannedByTable.material_supplier_mappings >= 1);
-  assert.equal(await MaterialCodeMapping.count(), summary.plannedByTable.material_code_mappings);
-  assert.equal(await MaterialSupplierMapping.count(), summary.plannedByTable.material_supplier_mappings);
-  assert.equal(await MaterialUomConversion.count(), summary.plannedByTable.material_uom_conversions);
+  assert.equal(await MaterialCodeMapping.count() - before.code, summary.plannedByTable.material_code_mappings);
+  assert.equal(await MaterialSupplierMapping.count() - before.supplier, summary.plannedByTable.material_supplier_mappings);
+  assert.equal(await MaterialUomConversion.count() - before.uom, summary.plannedByTable.material_uom_conversions);
+});
+
+test('backfill apply is idempotent when all planned mappings already exist', async () => {
+  const summary = runScript('server/scripts/backfill_material_mappings.ts', [
+    '--apply',
+    '--include-supplier-code-fallback',
+    '--json',
+  ]);
+
+  assert.equal(summary.mode, 'apply');
+  assert.equal(summary.plannedInsertCount, 0);
+  assert.deepEqual(summary.plannedByTable, {});
+});
+
+test('audit script reports zero duplicates for clean active mappings', async () => {
+  const audit = runScript('server/scripts/audit_material_mapping_conflicts.ts', ['--json']);
+
+  assert.equal(audit.codeDuplicateCount, 0);
+  assert.equal(audit.supplierDuplicateCount, 0);
+});
+
+test('backfill dry-run reports code conflicts before writing new mappings', async () => {
+  const existingMaterial = await createMaterial('SCRIPT-CONFLICT-EXISTING');
+  await createCodeMapping({
+    material_id: existingMaterial.id,
+    mapping_type: 'legacy_code',
+    external_code: 'script-conflict-model',
+    is_active: true,
+  } as any);
+  await createMaterial('SCRIPT-CONFLICT-NEW', { model: 'script-conflict-model' });
+
+  const summary = runScript('server/scripts/backfill_material_mappings.ts', ['--dry-run', '--json']);
+
+  assert.ok(summary.conflictCount > 0);
+  assert.ok(
+    summary.conflicts.some((conflict: any) => conflict.payload?.normalized_code === 'script-conflict-model'),
+  );
 });
 
 test('audit script reports duplicate active code mappings across different materials', async () => {

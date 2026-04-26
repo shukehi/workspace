@@ -5,11 +5,17 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
+import {
+  createMaterialForMappingTest,
+  createSupplierMasterForMappingTest,
+} from './helpers/material-mapping-test-helpers';
 
 const requireForTest = createRequire(import.meta.url);
 const TEST_DB = path.join(os.tmpdir(), `material-resolver-${crypto.randomBytes(8).toString('hex')}.sqlite`);
 
 const purgeServerCache = () => {
+  // Keep this before server imports so the DB_STORAGE override below always reaches
+  // a fresh sequelize instance, even when this test file is run after other model tests.
   Object.keys(requireForTest.cache).forEach((key) => {
     if (key.includes('/server/config/database') || key.includes('/server/models/') || key.includes('/server/services/materials/')) {
       delete requireForTest.cache[key];
@@ -36,31 +42,42 @@ const {
 } = requireForTest('../server/services/materials/material-mapping.repository') as typeof import('../server/services/materials/material-mapping.repository');
 
 async function createMaterial(code: string, overrides: Record<string, unknown> = {}) {
-  return Material.create({
-    code,
-    name: `${code} name`,
-    unit: 'PCS',
-    category: 'test',
-    ...overrides,
-  } as any) as any;
+  return createMaterialForMappingTest(Material, code, overrides);
+}
+
+async function createSupplierMaster(supplierName: string, overrides: Record<string, unknown> = {}) {
+  return createSupplierMasterForMappingTest(SupplierMaster, supplierName, overrides);
 }
 
 test.before(async () => {
   await initDB();
 });
 
-test('material resolver uses internal, supplier, code and legacy fallback priority in order', async () => {
-  const supplier = await SupplierMaster.create({
-    supplier_name: 'Resolver Supplier',
-    normalized_name: 'resolver supplier',
-    status: 'active',
-  } as any) as any;
-
+test('material resolver prefers exact internal material code', async () => {
+  const supplier = await createSupplierMaster('Resolver Supplier Internal');
   const internal = await createMaterial('INT-001');
+  const supplierMaterial = await createMaterial('INT-SUP-MAT');
+
+  await createSupplierMapping({
+    material_id: supplierMaterial.id,
+    supplier_master_id: supplier.id,
+    supplier_code: 'INT-001',
+    purchase_unit: 'box',
+    stock_unit: 'pcs',
+    conversion_factor: 12,
+    is_active: true,
+    is_default: true,
+  } as any);
+
+  const resolved = await materialResolverService.resolve({ code: 'INT-001', supplierMasterId: supplier.id });
+  assert.equal(resolved.source, 'internal_code');
+  assert.equal(resolved.materialId, internal.id);
+});
+
+test('material resolver prefers supplier mapping before generic code mapping', async () => {
+  const supplier = await createSupplierMaster('Resolver Supplier Priority');
   const supplierMaterial = await createMaterial('SUP-MAT');
   const codeMaterial = await createMaterial('CODE-MAT');
-  const aliasMaterial = await createMaterial('ALIAS-MAT', { aliases: ['legacy-alias-001'] });
-  const legacyExactMaterial = await createMaterial('LEGACY-MAT', { model: 'legacy-model-001' });
 
   await createSupplierMapping({
     material_id: supplierMaterial.id,
@@ -80,28 +97,71 @@ test('material resolver uses internal, supplier, code and legacy fallback priori
     is_active: true,
   } as any);
 
-  const exact = await materialResolverService.resolve({ code: 'INT-001', supplierMasterId: supplier.id });
-  assert.equal(exact.source, 'internal_code');
-  assert.equal(exact.materialId, internal.id);
+  const resolved = await materialResolverService.resolve({ code: ' shared   external code ', supplierMasterId: supplier.id });
+  assert.equal(resolved.source, 'supplier_mapping');
+  assert.equal(resolved.materialId, supplierMaterial.id);
+  assert.equal(resolved.transactionUnit, 'BOX');
+  assert.equal(resolved.stockUnit, 'PCS');
+  assert.equal(resolved.conversionFactor, 12);
+});
 
-  const supplierResolved = await materialResolverService.resolve({ code: ' shared   external code ', supplierMasterId: supplier.id });
-  assert.equal(supplierResolved.source, 'supplier_mapping');
-  assert.equal(supplierResolved.materialId, supplierMaterial.id);
-  assert.equal(supplierResolved.transactionUnit, 'BOX');
-  assert.equal(supplierResolved.stockUnit, 'PCS');
-  assert.equal(supplierResolved.conversionFactor, 12);
+test('material resolver uses generic code mapping when no supplier mapping matches', async () => {
+  const codeMaterial = await createMaterial('CODE-ONLY-MAT');
+  await createCodeMapping({
+    material_id: codeMaterial.id,
+    mapping_type: 'alias',
+    external_code: 'Code Only External',
+    priority: 1,
+    is_active: true,
+  } as any);
 
-  const codeResolved = await materialResolverService.resolve({ code: 'SHARED EXTERNAL CODE' });
-  assert.equal(codeResolved.source, 'code_mapping');
-  assert.equal(codeResolved.materialId, codeMaterial.id);
+  const resolved = await materialResolverService.resolve({ code: 'CODE ONLY EXTERNAL' });
+  assert.equal(resolved.source, 'code_mapping');
+  assert.equal(resolved.materialId, codeMaterial.id);
+});
 
-  const aliasResolved = await materialResolverService.resolve({ code: 'legacy-alias-001' });
-  assert.equal(aliasResolved.source, 'legacy_alias');
-  assert.equal(aliasResolved.materialId, aliasMaterial.id);
+test('material resolver falls back to legacy aliases when mapping tables do not match', async () => {
+  const aliasMaterial = await createMaterial('ALIAS-MAT', { aliases: ['legacy-alias-001'] });
 
-  const legacyExactResolved = await materialResolverService.resolve({ code: 'legacy-model-001' });
-  assert.equal(legacyExactResolved.source, 'legacy_exact');
-  assert.equal(legacyExactResolved.materialId, legacyExactMaterial.id);
+  const resolved = await materialResolverService.resolve({ code: 'legacy-alias-001' });
+  assert.equal(resolved.source, 'legacy_alias');
+  assert.equal(resolved.materialId, aliasMaterial.id);
+});
+
+test('material resolver falls back to legacy exact model/name matching after aliases', async () => {
+  const legacyExactMaterial = await createMaterial('LEGACY-MAT', { model: 'legacy-model-001' });
+
+  const resolved = await materialResolverService.resolve({ code: 'legacy-model-001' });
+  assert.equal(resolved.source, 'legacy_exact');
+  assert.equal(resolved.materialId, legacyExactMaterial.id);
+});
+
+test('material resolver respects allowLegacyFallback=false for otherwise valid legacy aliases', async () => {
+  await createMaterial('NO-LEGACY-FALLBACK-MAT', { aliases: ['no-legacy-fallback-alias'] });
+
+  await assert.rejects(
+    () => materialResolverService.resolve({ code: 'no-legacy-fallback-alias', allowLegacyFallback: false }),
+    (error: any) => error?.code === 'MATERIAL_NOT_RESOLVED',
+  );
+});
+
+test('material resolver rejects empty and blank material codes', async () => {
+  await assert.rejects(
+    () => materialResolverService.resolve({ code: '' }),
+    (error: any) => error?.code === 'MATERIAL_NOT_RESOLVED',
+  );
+  await assert.rejects(
+    () => materialResolverService.resolve({ code: '   ' }),
+    (error: any) => error?.code === 'MATERIAL_NOT_RESOLVED',
+  );
+});
+
+test('material resolver treats SQL-like input as unresolved data, not a SQL failure', async () => {
+  await assert.rejects(
+    () => materialResolverService.resolve({ code: "'; DROP TABLE materials; --" }),
+    (error: any) => error?.code === 'MATERIAL_NOT_RESOLVED',
+  );
+  assert.ok(await Material.count() >= 0);
 });
 
 test('material resolver ignores inactive mappings and reports ambiguous active code mappings', async () => {
@@ -142,11 +202,7 @@ test('material resolver ignores inactive mappings and reports ambiguous active c
 });
 
 test('material resolver validates UOM conversion factors and requires conversion for mismatched units', async () => {
-  const supplier = await SupplierMaster.create({
-    supplier_name: 'UOM Supplier',
-    normalized_name: 'uom supplier',
-    status: 'active',
-  } as any) as any;
+  const supplier = await createSupplierMaster('UOM Supplier');
   const material = await createMaterial('UOM-MAT', { unit: 'PCS' });
 
   await assert.rejects(
@@ -188,11 +244,7 @@ test('material resolver validates UOM conversion factors and requires conversion
 });
 
 test('material supplier mapping repository rejects non-positive conversion factors', async () => {
-  const supplier = await SupplierMaster.create({
-    supplier_name: 'Repository Supplier',
-    normalized_name: 'repository supplier',
-    status: 'active',
-  } as any) as any;
+  const supplier = await createSupplierMaster('Repository Supplier');
   const material = await createMaterial('REPO-UOM-MAT');
 
   await assert.rejects(
