@@ -13,6 +13,7 @@ test('calculates inventory value from real stock quantity and material price', (
     { stock_quantity: 3, price: 12.5 },
     { stock_quantity: '2', price: '8' },
     { stock_quantity: 5, price: null },
+    { stock_quantity: 3, price: 'N/A' },
   ]), 53.5);
 });
 
@@ -33,6 +34,7 @@ test('builds dashboard stats without placeholder inventory multipliers', () => {
     currencyFormatter: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }),
   });
 
+  assert.deepEqual(stats.map((item) => item.label), ['待处理订单', '库存总值', '活跃配方']);
   assert.deepEqual(stats.map((item) => item.value), ['1', '$28.00', '9']);
   assert.match(stats[1].desc, /真实估值/);
 });

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import axios from 'axios';
 import { isCanceledRequestError, normalizeApiEnvelope, resolveApiErrorMessage } from '../src/lib/api';
 
 test('normalizeApiEnvelope unwraps success envelopes and keeps raw payloads intact', () => {
@@ -54,6 +55,7 @@ test('resolveApiErrorMessage falls back through message, code, error and native 
 
 
 test('isCanceledRequestError recognizes axios cancellation without treating it as a server error', () => {
+  assert.equal(isCanceledRequestError(new axios.CanceledError('request canceled')), true);
   assert.equal(isCanceledRequestError({ code: 'ERR_CANCELED' }), true);
   assert.equal(isCanceledRequestError({ name: 'CanceledError' }), true);
   assert.equal(isCanceledRequestError({ response: { status: 500 }, message: 'server failed' }), false);

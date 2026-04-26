@@ -22,6 +22,12 @@ export interface DashboardActivityItem {
   desc: string;
 }
 
+const DEFAULT_CURRENCY_FORMATTER = new Intl.NumberFormat('zh-CN', {
+  style: 'currency',
+  currency: 'CNY',
+  maximumFractionDigits: 2,
+});
+
 function toFiniteNumber(value: unknown): number {
   const numberValue = Number(value ?? 0);
   return Number.isFinite(numberValue) ? numberValue : 0;
@@ -45,31 +51,27 @@ export function buildDashboardStats(params: {
   formulasCount: number;
   currencyFormatter?: Intl.NumberFormat;
 }): DashboardStat[] {
-  const currencyFormatter = params.currencyFormatter || new Intl.NumberFormat('zh-CN', {
-    style: 'currency',
-    currency: 'CNY',
-    maximumFractionDigits: 2,
-  });
+  const currencyFormatter = params.currencyFormatter || DEFAULT_CURRENCY_FORMATTER;
   const activeOrders = countActiveOrders(params.orders);
   const inventoryValue = calculateInventoryValue(params.inventory);
 
   return [
     {
-      label: 'Active Orders',
+      label: '待处理订单',
       value: activeOrders.toString(),
-      desc: 'Pending processing',
+      desc: '等待处理',
       tone: 'bg-accent',
     },
     {
-      label: 'Inventory Value',
+      label: '库存总值',
       value: currencyFormatter.format(inventoryValue),
       desc: '基于物料单价和当前库存的真实估值',
       tone: 'bg-secondary',
     },
     {
-      label: 'Formulas',
+      label: '活跃配方',
       value: params.formulasCount.toString(),
-      desc: 'Active color recipes',
+      desc: '可用颜色配方数',
       tone: 'bg-muted',
     },
   ];
@@ -105,5 +107,7 @@ export function buildDashboardActivityItems(params: {
     desc: '配方数量来自当前配置中心数据。',
   });
 
+  // Activity feed intentionally shows the top three actionable items; formulas
+  // can be truncated when low-stock and active-order alerts already fill the feed.
   return items.slice(0, 3);
 }

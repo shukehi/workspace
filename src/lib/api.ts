@@ -45,10 +45,16 @@ export function resolveApiErrorMessage(error: unknown): string {
     return firstServerError || fallbackMessage;
 }
 
+function getErrorField(error: unknown, field: 'code' | 'name'): unknown {
+    return error && typeof error === 'object'
+        ? (error as Record<string, unknown>)[field]
+        : undefined;
+}
+
 export function isCanceledRequestError(error: unknown): boolean {
     return axios.isCancel(error)
-        || (error as any)?.code === 'ERR_CANCELED'
-        || (error as any)?.name === 'CanceledError';
+        || getErrorField(error, 'code') === 'ERR_CANCELED'
+        || getErrorField(error, 'name') === 'CanceledError';
 }
 
 function isDuplicateOrderConflict(error: unknown): boolean {
