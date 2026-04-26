@@ -166,6 +166,7 @@ test('material resolver treats SQL-like input as unresolved data, not a SQL fail
 
 test('material resolver treats zero material ids as real candidates during ambiguity checks', async () => {
   const zeroIdMaterial = await createMaterial('ZERO-ID-MAT', { id: 0 });
+  assert.equal(zeroIdMaterial.id, 0, 'Precondition: material ID must be 0 for this test');
   const normalMaterial = await createMaterial('ZERO-ID-OTHER-MAT');
 
   await createCodeMapping({
