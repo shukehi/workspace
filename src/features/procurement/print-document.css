@@ -160,8 +160,8 @@
     min-width: 4.5rem !important;
   }
 
-  .order-sheet .border.rounded-lg.overflow-hidden {
-    overflow: hidden !important;
+  .order-sheet .order-sheet-table-wrapper {
+    overflow: visible !important;
   }
 
   @page {

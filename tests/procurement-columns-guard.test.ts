@@ -145,11 +145,14 @@ test('procurement preview guard: arrived and completed orders cannot edit from p
 test('procurement edit sheet guard: row actions remain reachable when detail columns exceed sheet width', () => {
   const orderSheet = read('src/components/procurement/OrderSheetView.vue')
 
-  assert.match(orderSheet, /getTableMinWidth/)
+  assert.match(orderSheet, /tableMinWidth/)
+  assert.match(orderSheet, /calculateOrderSheetTableMinWidth/)
   assert.match(orderSheet, /overflow-x-auto/)
-  assert.doesNotMatch(orderSheet, /<div class="border rounded-lg overflow-hidden">/)
-  assert.match(orderSheet, /:style="\{ minWidth: `\$\{getTableMinWidth\(\)\}px` \}"/)
+  assert.match(orderSheet, /order-sheet-table-wrapper/)
+  assert.doesNotMatch(orderSheet, /<div class="(?:order-sheet-table-wrapper )?border rounded-lg overflow-hidden">/)
+  assert.match(orderSheet, /:style="\{ minWidth: `\$\{tableMinWidth\}px` \}"/)
   assert.match(orderSheet, /sticky right-0/)
+  assert.match(orderSheet, /ORDER_SHEET_ACTION_COLUMN_WIDTH/)
   assert.match(orderSheet, /操作/)
   assert.match(orderSheet, /title="删除当前行"/)
 })
