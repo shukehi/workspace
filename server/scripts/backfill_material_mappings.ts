@@ -1,3 +1,4 @@
+import type { Transaction } from 'sequelize';
 import {
   Material,
   MaterialCodeMapping,
@@ -6,6 +7,11 @@ import {
   initDB,
   sequelize,
 } from '../models';
+import type {
+  MaterialCodeMappingCreationAttributes,
+  MaterialSupplierMappingCreationAttributes,
+  MaterialUomConversionCreationAttributes,
+} from '../models/types';
 import {
   createCodeMapping,
   createSupplierMapping,
@@ -21,12 +27,28 @@ type Options = {
   includeSupplierCodeFallback: boolean;
 };
 
-type PlannedInsert = {
-  table: 'material_code_mappings' | 'material_supplier_mappings' | 'material_uom_conversions';
+type PlannedCodeMappingInsert = {
+  table: 'material_code_mappings';
   material_id: number;
   reason: string;
-  payload: Record<string, unknown>;
+  payload: MaterialCodeMappingCreationAttributes;
 };
+
+type PlannedSupplierMappingInsert = {
+  table: 'material_supplier_mappings';
+  material_id: number;
+  reason: string;
+  payload: MaterialSupplierMappingCreationAttributes;
+};
+
+type PlannedUomConversionInsert = {
+  table: 'material_uom_conversions';
+  material_id: number;
+  reason: string;
+  payload: MaterialUomConversionCreationAttributes;
+};
+
+type PlannedInsert = PlannedCodeMappingInsert | PlannedSupplierMappingInsert | PlannedUomConversionInsert;
 
 type Conflict = {
   material_id: number;
@@ -196,6 +218,8 @@ async function planSupplierMapping(
 }
 
 async function planUomConversion(planned: PlannedInsert[], material: Record<string, any>) {
+  // Phase 1 seeds only identity conversions from legacy material units. Non-identity
+  // purchase/stock conversions are added later when supplier part data is verified.
   const unit = normalizeMaterialUnit(material.unit || 'PCS') || 'PCS';
   const exists = await mappingExists('uom', {
     material_id: material.id,
@@ -220,13 +244,13 @@ async function planUomConversion(planned: PlannedInsert[], material: Record<stri
   });
 }
 
-async function applyInsert(insert: PlannedInsert) {
+async function applyInsert(insert: PlannedInsert, transaction: Transaction) {
   if (insert.table === 'material_code_mappings') {
-    await createCodeMapping(insert.payload as any);
+    await createCodeMapping(insert.payload, transaction);
   } else if (insert.table === 'material_supplier_mappings') {
-    await createSupplierMapping(insert.payload as any);
+    await createSupplierMapping(insert.payload, transaction);
   } else {
-    await createUomConversion(insert.payload as any);
+    await createUomConversion(insert.payload, transaction);
   }
 }
 
@@ -255,9 +279,11 @@ async function main() {
     }
 
     if (options.apply) {
-      for (const insert of planned) {
-        await applyInsert(insert);
-      }
+      await sequelize.transaction(async (transaction) => {
+        for (const insert of planned) {
+          await applyInsert(insert, transaction);
+        }
+      });
     }
 
     const summary = {

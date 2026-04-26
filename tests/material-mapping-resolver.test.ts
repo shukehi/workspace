@@ -164,6 +164,32 @@ test('material resolver treats SQL-like input as unresolved data, not a SQL fail
   assert.ok(await Material.count() >= 0);
 });
 
+test('material resolver treats zero material ids as real candidates during ambiguity checks', async () => {
+  const zeroIdMaterial = await createMaterial('ZERO-ID-MAT', { id: 0 });
+  assert.equal(zeroIdMaterial.id, 0, 'Precondition: material ID must be 0 for this test');
+  const normalMaterial = await createMaterial('ZERO-ID-OTHER-MAT');
+
+  await createCodeMapping({
+    material_id: zeroIdMaterial.id,
+    mapping_type: 'alias',
+    external_code: 'zero-id-ambiguous-code',
+    priority: 10,
+    is_active: true,
+  } as any);
+  await createCodeMapping({
+    material_id: normalMaterial.id,
+    mapping_type: 'legacy_code',
+    external_code: 'zero-id-ambiguous-code',
+    priority: 20,
+    is_active: true,
+  } as any);
+
+  await assert.rejects(
+    () => materialResolverService.resolve({ code: 'zero-id-ambiguous-code', allowLegacyFallback: false }),
+    (error: any) => error?.code === 'MATERIAL_RESOLUTION_AMBIGUOUS' && error?.details?.materialIds?.includes(0),
+  );
+});
+
 test('material resolver ignores inactive mappings and reports ambiguous active code mappings', async () => {
   const inactiveMaterial = await createMaterial('INACTIVE-MAT');
   await createCodeMapping({
@@ -224,6 +250,24 @@ test('material resolver validates UOM conversion factors and requires conversion
   assert.equal(converted.transactionUnit, 'BOX');
   assert.equal(converted.stockUnit, 'PCS');
 
+  const zeroFactorMaterial = await createMaterial('ZERO-UOM-MAT');
+  await MaterialSupplierMapping.create({
+    material_id: zeroFactorMaterial.id,
+    supplier_master_id: supplier.id,
+    supplier_code: 'zero-factor',
+    normalized_supplier_code: normalizeMaterialExternalCode('zero-factor'),
+    purchase_unit: 'box',
+    stock_unit: 'pcs',
+    conversion_factor: 0,
+    is_active: true,
+    is_default: true,
+  } as any);
+
+  await assert.rejects(
+    () => materialResolverService.resolve({ code: 'zero-factor', supplierMasterId: supplier.id }),
+    (error: any) => error?.code === 'MATERIAL_UOM_INVALID',
+  );
+
   const negativeMaterial = await createMaterial('NEGATIVE-UOM-MAT');
   await MaterialSupplierMapping.create({
     material_id: negativeMaterial.id,
@@ -253,6 +297,16 @@ test('material supplier mapping repository rejects non-positive conversion facto
       supplier_master_id: supplier.id,
       supplier_code: 'repo-zero-factor',
       conversion_factor: 0,
+    } as any),
+    (error: any) => error?.code === 'MATERIAL_UOM_INVALID',
+  );
+
+  await assert.rejects(
+    () => createSupplierMapping({
+      material_id: material.id,
+      supplier_master_id: supplier.id,
+      supplier_code: 'repo-nan-factor',
+      conversion_factor: Number.NaN,
     } as any),
     (error: any) => error?.code === 'MATERIAL_UOM_INVALID',
   );
