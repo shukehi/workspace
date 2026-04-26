@@ -33,7 +33,9 @@
         "db:migrate:formula-keys": "node server/scripts/migrate_formula_keys_to_generated_format.js",
         "db:export:formulas": "node server/scripts/export_formulas_to_json.js",
         "audit:po-quantity-history": "tsx server/scripts/audit_po_quantity_history.ts",
-        "start": "npm run server:prod"
+        "start": "npm run server:prod",
+        "material:mappings:backfill:dry-run": "tsx server/scripts/backfill_material_mappings.ts --dry-run --json",
+        "material:mappings:audit": "tsx server/scripts/audit_material_mapping_conflicts.ts --json"
     },
     "dependencies": {
         "@codemirror/lang-json": "^6.0.2",
