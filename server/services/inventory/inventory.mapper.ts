@@ -1,3 +1,8 @@
+function toFiniteNumber(value: unknown): number {
+  const numberValue = Number(value ?? 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
 export function toInventoryItem(material: Record<string, any>) {
   const balances = Array.isArray(material.locationBalances) ? material.locationBalances : [];
   const locations = balances
@@ -10,7 +15,7 @@ export function toInventoryItem(material: Record<string, any>) {
         locationId: Number(balance.location_id || location.id || 0),
         locationCode: location.code || '',
         locationName: location.name || '',
-        quantity: Number(balance.quantity || 0),
+        quantity: toFiniteNumber(balance.quantity),
       };
     })
     .filter((entry) => entry.locationId > 0);
@@ -21,8 +26,9 @@ export function toInventoryItem(material: Record<string, any>) {
     category: material.category || 'Uncategorized',
     model: material.model || '',
     name: material.name,
-    stock_quantity: Number(material.stock_quantity || 0),
-    min_stock: Number(material.min_stock || 0),
+    stock_quantity: toFiniteNumber(material.stock_quantity),
+    price: toFiniteNumber(material.price),
+    min_stock: toFiniteNumber(material.min_stock),
     unit: material.unit || 'PCS',
     supplier: material.supplier || '',
     last_updated: material.updatedAt ? material.updatedAt.toISOString() : new Date().toISOString(),

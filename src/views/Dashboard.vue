@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onBeforeUnmount, onMounted } from 'vue'
 import {
   Activity,
   ArrowRight,
@@ -13,15 +13,16 @@ import {
 } from 'lucide-vue-next'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { api } from '@/lib/api'
-import { formulaProfileApi } from '@/services/formulaProfileApi'
-
-interface DashboardStat {
-  label: string;
-  value: string;
-  desc: string;
-  tone: string;
-}
+import { api, isCanceledRequestError } from '@/lib/api'
+import type { FormulaListResponse } from '@/types/formula'
+import {
+  buildDashboardActivityItems,
+  buildDashboardStats,
+  type DashboardActivityItem,
+  type DashboardInventorySummary,
+  type DashboardOrderSummary,
+  type DashboardStat
+} from '@/features/dashboard/dashboardMetrics'
 
 const stats = ref<DashboardStat[]>([
   { label: '待处理订单', value: '-', desc: '等待处理中', tone: 'bg-secondary' },
@@ -30,10 +31,10 @@ const stats = ref<DashboardStat[]>([
 ])
 
 const shortcuts = [
-  { title: '合同查询', desc: '导入 ERP 合同明细', href: '/source', icon: Database },
+  { title: '合同查询', desc: '导入业务系统合同明细', href: '/source', icon: Database },
   { title: '采购工作台', desc: '创建、审批与跟踪采购单', href: '/procurement', icon: ShoppingCart },
   { title: '库存台账', desc: '库存、入库与出库流水', href: '/inventory', icon: Warehouse },
-  { title: '物料分析', desc: '按订单生成 BOM 清单', href: '/materials', icon: ClipboardList },
+  { title: '物料分析', desc: '按订单生成物料清单', href: '/materials', icon: ClipboardList },
 ]
 
 const masterCards = [
@@ -42,52 +43,55 @@ const masterCards = [
   { title: '报表中心', items: ['数据统计', '历史合同', '主数据诊断'] },
 ]
 
-const activityItems = [
-  { title: 'Low Stock: Item INV_004', desc: '库存数量为 0，请检查采购和入库计划。' },
-  { title: 'System Backup completed', desc: '02:00 已完成自动备份。' },
-  { title: 'Material rules ready', desc: '配方和物料映射规则可用于新合同。' },
-]
+const activityItems = ref<DashboardActivityItem[]>([
+  { title: '正在加载活动流', desc: '从订单、库存和配置中心读取最新状态。' },
+])
+const statsError = ref('')
+let statsAbortController: AbortController | null = null
+let statsRequestId = 0
+
+function extractFormulasCount(formulasRes: unknown): number {
+  const response = formulasRes as Partial<FormulaListResponse>
+  if (typeof response?.total === 'number') {
+    return response.total
+  }
+  if (Array.isArray(response?.items)) {
+    return response.items.length
+  }
+  return Array.isArray(formulasRes) ? formulasRes.length : 0
+}
 
 async function fetchStats() {
+  const requestId = statsRequestId + 1
+  statsRequestId = requestId
+  statsAbortController?.abort()
+  statsAbortController = new AbortController()
+  statsError.value = ''
+
   try {
+    const requestConfig = { signal: statsAbortController.signal }
     const [ordersRes, inventoryRes, formulasRes] = await Promise.all([
-      api.get<any[]>('/orders'),
-      api.get<any[]>('/inventory'),
-      formulaProfileApi.list({ page: 1, pageSize: 1 })
-    ]);
+      api.get<DashboardOrderSummary[]>('/orders', requestConfig),
+      api.get<DashboardInventorySummary[]>('/inventory', requestConfig),
+      api.get<FormulaListResponse>('/config/profiles/formulas/items', {
+        ...requestConfig,
+        params: { page: 1, pageSize: 1 }
+      })
+    ])
 
-    const orders = Array.isArray(ordersRes) ? ordersRes : [];
-    const inventory = Array.isArray(inventoryRes) ? inventoryRes : [];
-    const formulasCount = typeof formulasRes?.total === 'number'
-      ? formulasRes.total
-      : (Array.isArray(formulasRes?.items)
-        ? formulasRes.items.length
-        : (Array.isArray(formulasRes) ? formulasRes.length : 0));
+    if (requestId !== statsRequestId) return
 
-    const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
-    const inventoryValue = inventory.reduce((acc, curr) => acc + ((curr.stock_quantity || 0) * 10), 0);
+    const orders = Array.isArray(ordersRes) ? ordersRes : []
+    const inventory = Array.isArray(inventoryRes) ? inventoryRes : []
+    const formulasCount = extractFormulasCount(formulasRes)
 
-    stats.value = [
-      {
-        label: 'Active Orders',
-        value: activeOrders.toString(),
-        desc: 'Pending processing',
-        tone: 'bg-accent'
-      },
-      {
-        label: 'Inventory Value',
-        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(inventoryValue),
-        desc: 'Total stock valuation',
-        tone: 'bg-secondary'
-      },
-      {
-        label: 'Formulas',
-        value: formulasCount.toString(),
-        desc: 'Active color recipes',
-        tone: 'bg-muted'
-      },
-    ]
+    stats.value = buildDashboardStats({ orders, inventory, formulasCount })
+    activityItems.value = buildDashboardActivityItems({ orders, inventory, formulasCount })
   } catch (e) {
+    if (isCanceledRequestError(e)) return
+    if (requestId !== statsRequestId) return
+    statsError.value = '仪表盘数据加载失败，请稍后重试。'
+    activityItems.value = [{ title: '数据加载失败', desc: '无法读取最新活动，请检查网络或后端服务。' }]
     console.error('Failed to load dashboard stats', e)
   }
 }
@@ -95,15 +99,20 @@ async function fetchStats() {
 onMounted(() => {
   fetchStats()
 })
+
+onBeforeUnmount(() => {
+  statsAbortController?.abort()
+  statsAbortController = null
+})
 </script>
 
 <template>
   <div class="workspace-page">
     <div class="workspace-header">
       <div>
-        <div class="workspace-kicker">ERP Workspace</div>
+        <div class="workspace-kicker">运营工作台</div>
         <h1 class="workspace-title">仪表盘</h1>
-        <p class="workspace-subtitle">借鉴 ERPNext Desk 的工作区结构：顶部指标、快捷入口、主数据分组和活动流，帮助用户更快进入日常流程。</p>
+        <p class="workspace-subtitle">借鉴企业工作台结构：顶部指标、快捷入口、主数据分组和活动流，帮助用户更快进入日常流程。</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <span class="desk-pill">站点：采购与库存控制台</span>
@@ -114,6 +123,10 @@ onMounted(() => {
           </RouterLink>
         </Button>
       </div>
+    </div>
+
+    <div v-if="statsError" class="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {{ statsError }}
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
@@ -147,7 +160,7 @@ onMounted(() => {
                 </CardTitle>
                 <CardDescription class="text-xs">常用工作区和单据入口</CardDescription>
               </div>
-              <span class="desk-pill">Shortcuts</span>
+              <span class="desk-pill">快捷入口</span>
             </div>
           </CardHeader>
           <CardContent class="grid gap-3 p-4 pt-0 sm:grid-cols-2 xl:grid-cols-4">
@@ -175,7 +188,7 @@ onMounted(() => {
               <FileText class="size-4" />
               模块与主数据
             </CardTitle>
-            <CardDescription class="text-xs">按 ERPNext Workspace 的 Link Cards 方式组织后台入口</CardDescription>
+            <CardDescription class="text-xs">按企业工作区的入口卡片方式组织后台入口</CardDescription>
           </CardHeader>
           <CardContent class="grid gap-3 p-4 pt-0 md:grid-cols-3">
             <div v-for="card in masterCards" :key="card.title" class="rounded-xl border border-border/70 bg-muted/35 p-4">

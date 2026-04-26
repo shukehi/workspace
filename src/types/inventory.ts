@@ -14,6 +14,7 @@ export interface InventoryItem {
     model: string;
     name: string;
     stock_quantity: number;
+    price?: number;
     unit: string;
     supplier: string;
     last_updated: string;

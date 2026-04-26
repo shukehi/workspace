@@ -24,8 +24,8 @@ const levelWeight: Record<LogLevel, number> = {
 const configuredLevel = normalizeLogLevel(process.env.LOG_LEVEL);
 const isProduction = process.env.NODE_ENV === 'production';
 
-function normalizeLogLevel(value: string | undefined): LogLevel {
-    return value === 'debug' || value === 'warn' || value === 'error' ? value : 'info';
+export function normalizeLogLevel(value: string | undefined): LogLevel {
+    return value === 'debug' || value === 'info' || value === 'warn' || value === 'error' ? value : 'info';
 }
 
 function serializeError(value: unknown): unknown {

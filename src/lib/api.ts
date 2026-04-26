@@ -45,6 +45,18 @@ export function resolveApiErrorMessage(error: unknown): string {
     return firstServerError || fallbackMessage;
 }
 
+function getErrorField(error: unknown, field: 'code' | 'name'): unknown {
+    return error && typeof error === 'object'
+        ? (error as Record<string, unknown>)[field]
+        : undefined;
+}
+
+export function isCanceledRequestError(error: unknown): boolean {
+    return axios.isCancel(error)
+        || getErrorField(error, 'code') === 'ERR_CANCELED'
+        || getErrorField(error, 'name') === 'CanceledError';
+}
+
 function isDuplicateOrderConflict(error: unknown): boolean {
     const responseData = (((error as any)?.response?.data) || {}) as ApiErrorResponse;
     const status = (error as any)?.response?.status;
@@ -57,6 +69,10 @@ axiosInstance.interceptors.response.use(
         return normalizeApiEnvelope(response.data);
     },
     (error) => {
+        if (isCanceledRequestError(error)) {
+            return Promise.reject(error);
+        }
+
         const responseData = (error?.response?.data || {}) as ApiErrorResponse;
         const serverErrors = Array.isArray(responseData?.errors) ? responseData.errors : [];
         const message = resolveApiErrorMessage(error);
