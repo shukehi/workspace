@@ -23,3 +23,10 @@ test('print style guard: print document stylesheet keeps print media rules', () 
   assert.match(printDocCss, /\.controls-bar\s*\{\s*display:\s*none !important;/)
   assert.match(printDocCss, /@page\s*\{\s*size:\s*A4 portrait;/)
 })
+
+test('print style guard: order sheet scroll wrapper does not clip printed tables', () => {
+  const printDocCss = read('src/features/procurement/print-document.css')
+
+  assert.match(printDocCss, /\.order-sheet \.order-sheet-table-wrapper\s*\{\s*overflow:\s*visible !important;/)
+  assert.doesNotMatch(printDocCss, /\.order-sheet \.border\.rounded-lg\.overflow-hidden\s*\{/)
+})

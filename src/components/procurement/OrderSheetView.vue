@@ -22,6 +22,10 @@ import {
   resolveAggregateRemarkColumnWidth,
 } from '@/features/procurement/order-sheet.schema';
 import { computeItemQuantitySummary } from '@/features/procurement/quantitySummary';
+import {
+  calculateOrderSheetTableMinWidth,
+  ORDER_SHEET_ACTION_COLUMN_WIDTH,
+} from '@/features/procurement/orderSheetTableLayout';
 import { resolveOrderSchemaPrintCategory } from '@/features/procurement/templateType';
 
 type Mode = 'edit' | 'preview';
@@ -125,14 +129,11 @@ function getColumnMinWidth(key: string) {
   return 90;
 }
 
-function getActionColumnWidth() {
-  return 76;
-}
-
-function getTableMinWidth() {
-  const detailWidth = schema.value.columns.reduce((total, column) => total + getColumnWidth(column.key), 0);
-  return detailWidth + (showsRowActions.value ? getActionColumnWidth() : 0);
-}
+const tableMinWidth = computed(() => calculateOrderSheetTableMinWidth(
+  schema.value.columns,
+  getColumnWidth,
+  showsRowActions.value,
+));
 
 function getAlignClass(align: 'left' | 'center' | 'right') {
   if (align === 'center') return 'text-center';
@@ -432,15 +433,15 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="border rounded-lg overflow-x-auto">
-      <table class="w-full text-xs table-fixed" :style="{ minWidth: `${getTableMinWidth()}px` }">
+    <div class="order-sheet-table-wrapper border rounded-lg overflow-x-auto">
+      <table class="w-full text-xs table-fixed" :style="{ minWidth: `${tableMinWidth}px` }">
         <colgroup>
           <col
             v-for="column in schema.columns"
             :key="`col-${column.key}`"
             :style="{ width: `${getColumnWidth(column.key)}px` }"
           />
-          <col v-if="showsRowActions" :style="{ width: `${getActionColumnWidth()}px` }" />
+          <col v-if="showsRowActions" :style="{ width: `${ORDER_SHEET_ACTION_COLUMN_WIDTH}px` }" />
         </colgroup>
         <thead class="bg-muted/40 border-b">
           <tr>
@@ -458,7 +459,7 @@ onBeforeUnmount(() => {
                 @dblclick.stop.prevent="resetSingleColumnWidth(column.key)"
               />
             </th>
-            <th v-if="showsRowActions" class="sticky right-0 z-20 border-l bg-muted/95 p-2 text-center">操作</th>
+            <th v-if="showsRowActions" class="sticky right-0 z-20 border-l bg-muted p-2 text-center">操作</th>
           </tr>
         </thead>
         <tbody class="divide-y">
