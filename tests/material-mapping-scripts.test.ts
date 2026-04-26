@@ -55,13 +55,17 @@ function parseJsonFromOutput(output: string): JsonObject {
   throw new Error(`Expected JSON object in script stdout, received:\n${output}`);
 }
 
-function runScript(script: string, args: string[] = []): JsonObject {
-  const result = spawnSync(TSX_BIN, [script, ...args], {
+function runRawScript(script: string, args: string[] = []) {
+  return spawnSync(TSX_BIN, [script, ...args], {
     cwd: REPO_ROOT,
     env: { ...process.env, DB_STORAGE: TEST_DB },
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+}
+
+function runScript(script: string, args: string[] = []): JsonObject {
+  const result = runRawScript(script, args);
 
   if (result.error || result.status !== 0) {
     throw new Error([
@@ -155,6 +159,31 @@ test('backfill apply is idempotent when all planned mappings already exist', asy
   assert.equal(summary.mode, 'apply');
   assert.equal(summary.plannedInsertCount, 0);
   assert.deepEqual(summary.plannedByTable, {});
+});
+
+test('backfill apply rolls back all planned inserts when one insert fails', async () => {
+  const supplier = await createSupplierMaster('Script Supplier Transaction Rollback');
+  await createMaterial('SCRIPT-TX-DUP CODE', {
+    supplier: supplier.supplier_name,
+    supplier_master_id: supplier.id,
+    unit: 'pcs',
+  });
+  await createMaterial('SCRIPT-TX-DUP   CODE', {
+    supplier: supplier.supplier_name,
+    supplier_master_id: supplier.id,
+    unit: 'pcs',
+  });
+  const before = await countMappingRows();
+
+  const result = runRawScript('server/scripts/backfill_material_mappings.ts', [
+    '--apply',
+    '--include-supplier-code-fallback',
+    '--json',
+  ]);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /backfill_material_mappings.*failed|Validation error|SQLITE_CONSTRAINT/i);
+  assert.deepEqual(await countMappingRows(), before);
 });
 
 test('audit script reports zero duplicates for clean active mappings', async () => {

@@ -51,9 +51,20 @@ function plainMaterial(instance: any): MaterialAttributes {
   return typeof instance?.get === 'function' ? instance.get({ plain: true }) : instance;
 }
 
+function getCandidateMaterialId(candidate: any): number | null {
+  const rawId = candidate.material_id ?? candidate.material?.id;
+  if (rawId == null) return null;
+  const id = Number(rawId);
+  return Number.isFinite(id) ? id : null;
+}
+
 function assertSingleCandidate<T>(candidates: T[], code: string, source: MaterialResolveSource): T | null {
   if (candidates.length === 0) return null;
-  const materialIds = new Set(candidates.map((candidate: any) => Number(candidate.material_id || candidate.material?.id || 0)).filter(Boolean));
+  const materialIds = new Set(
+    candidates
+      .map(getCandidateMaterialId)
+      .filter((id): id is number => id !== null),
+  );
   if (materialIds.size > 1) {
     throw new MaterialResolutionError('MATERIAL_RESOLUTION_AMBIGUOUS', 'Material code resolves to multiple materials', 409, {
       code,
@@ -101,10 +112,10 @@ export class MaterialResolverService {
           source: 'supplier_mapping',
           input,
           supplierCode: supplierMatch.supplier_code,
-          supplierMasterId: Number(supplierMatch.supplier_master_id || input.supplierMasterId),
+          supplierMasterId: Number(supplierMatch.supplier_master_id ?? input.supplierMasterId),
           transactionUnit: supplierMatch.purchase_unit || input.transactionUnit,
           stockUnit: supplierMatch.stock_unit || input.stockUnit,
-          conversionFactor: Number(supplierMatch.conversion_factor || 1),
+          conversionFactor: supplierMatch.conversion_factor == null ? null : Number(supplierMatch.conversion_factor),
         });
       }
     }
@@ -153,8 +164,8 @@ export class MaterialResolverService {
   }): Promise<ResolvedMaterial> {
     const stockUnit = normalizeMaterialUnit(options.stockUnit || options.input.stockUnit || material.unit || 'PCS') || 'PCS';
     const transactionUnit = normalizeMaterialUnit(options.transactionUnit || options.input.transactionUnit || stockUnit) || stockUnit;
-    let conversionFactor = options.conversionFactor == null ? 0 : Number(options.conversionFactor);
-    if (conversionFactor < 0) {
+    let conversionFactor = options.conversionFactor == null ? null : Number(options.conversionFactor);
+    if (conversionFactor != null && (!Number.isFinite(conversionFactor) || conversionFactor <= 0)) {
       throw new MaterialResolutionError('MATERIAL_UOM_INVALID', 'Material unit conversion factor must be greater than zero', 400, {
         materialId: material.id,
         transactionUnit,
@@ -163,19 +174,20 @@ export class MaterialResolverService {
       });
     }
 
-    if (!conversionFactor) {
+    if (conversionFactor == null) {
       if (transactionUnit === stockUnit) {
         conversionFactor = 1;
       } else {
         const conversion = await findUomConversion(material.id, transactionUnit, stockUnit, options.input.transaction ?? null) as any;
-        conversionFactor = Number(conversion?.factor || 0);
-        if (!conversionFactor) {
+        const mappedFactor = Number(conversion?.factor);
+        if (!Number.isFinite(mappedFactor) || mappedFactor <= 0) {
           throw new MaterialResolutionError('MATERIAL_UOM_INVALID', 'No active material unit conversion exists for the requested transaction unit', 400, {
             materialId: material.id,
             transactionUnit,
             stockUnit,
           });
         }
+        conversionFactor = mappedFactor;
       }
     }
 

@@ -68,17 +68,10 @@ export async function findActiveCodeMappings(lookup: CodeMappingLookup) {
   const where: WhereOptions = {
     normalized_code: normalized,
     is_active: true,
+    ...(lookup.mappingType ? { mapping_type: lookup.mappingType } : {}),
+    ...(lookup.partyType !== undefined ? { party_type: lookup.partyType } : {}),
+    ...(lookup.partyId !== undefined ? { party_id: lookup.partyId } : {}),
   };
-
-  if (lookup.mappingType) {
-    Object.assign(where, { mapping_type: lookup.mappingType });
-  }
-  if (lookup.partyType !== undefined) {
-    Object.assign(where, { party_type: lookup.partyType });
-  }
-  if (lookup.partyId !== undefined) {
-    Object.assign(where, { party_id: lookup.partyId });
-  }
 
   return MaterialCodeMapping.findAll({
     where,
