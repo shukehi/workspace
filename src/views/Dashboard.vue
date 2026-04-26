@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onBeforeUnmount, onMounted } from 'vue'
 import {
   Activity,
   ArrowRight,
@@ -14,14 +14,15 @@ import {
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
-import { formulaProfileApi } from '@/services/formulaProfileApi'
-
-interface DashboardStat {
-  label: string;
-  value: string;
-  desc: string;
-  tone: string;
-}
+import type { FormulaListResponse } from '@/types/formula'
+import {
+  buildDashboardActivityItems,
+  buildDashboardStats,
+  type DashboardActivityItem,
+  type DashboardInventorySummary,
+  type DashboardOrderSummary,
+  type DashboardStat
+} from '@/features/dashboard/dashboardMetrics'
 
 const stats = ref<DashboardStat[]>([
   { label: '待处理订单', value: '-', desc: '等待处理中', tone: 'bg-secondary' },
@@ -42,58 +43,66 @@ const masterCards = [
   { title: '报表中心', items: ['数据统计', '历史合同', '主数据诊断'] },
 ]
 
-const activityItems = [
-  { title: 'Low Stock: Item INV_004', desc: '库存数量为 0，请检查采购和入库计划。' },
-  { title: 'System Backup completed', desc: '02:00 已完成自动备份。' },
-  { title: 'Material rules ready', desc: '配方和物料映射规则可用于新合同。' },
-]
+const activityItems = ref<DashboardActivityItem[]>([
+  { title: '正在加载活动流', desc: '从订单、库存和配置中心读取最新状态。' },
+])
+const statsError = ref('')
+let statsAbortController: AbortController | null = null
+let statsRequestId = 0
+
+function extractFormulasCount(formulasRes: unknown): number {
+  const response = formulasRes as Partial<FormulaListResponse>
+  if (typeof response?.total === 'number') {
+    return response.total
+  }
+  if (Array.isArray(response?.items)) {
+    return response.items.length
+  }
+  return Array.isArray(formulasRes) ? formulasRes.length : 0
+}
 
 async function fetchStats() {
+  const requestId = statsRequestId + 1
+  statsRequestId = requestId
+  statsAbortController?.abort()
+  statsAbortController = new AbortController()
+  statsError.value = ''
+
   try {
+    const requestConfig = { signal: statsAbortController.signal }
     const [ordersRes, inventoryRes, formulasRes] = await Promise.all([
-      api.get<any[]>('/orders'),
-      api.get<any[]>('/inventory'),
-      formulaProfileApi.list({ page: 1, pageSize: 1 })
-    ]);
+      api.get<DashboardOrderSummary[]>('/orders', requestConfig),
+      api.get<DashboardInventorySummary[]>('/inventory', requestConfig),
+      api.get<FormulaListResponse>('/config/profiles/formulas/items', {
+        ...requestConfig,
+        params: { page: 1, pageSize: 1 }
+      })
+    ])
 
-    const orders = Array.isArray(ordersRes) ? ordersRes : [];
-    const inventory = Array.isArray(inventoryRes) ? inventoryRes : [];
-    const formulasCount = typeof formulasRes?.total === 'number'
-      ? formulasRes.total
-      : (Array.isArray(formulasRes?.items)
-        ? formulasRes.items.length
-        : (Array.isArray(formulasRes) ? formulasRes.length : 0));
+    if (requestId !== statsRequestId) return
 
-    const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
-    const inventoryValue = inventory.reduce((acc, curr) => acc + ((curr.stock_quantity || 0) * 10), 0);
+    const orders = Array.isArray(ordersRes) ? ordersRes : []
+    const inventory = Array.isArray(inventoryRes) ? inventoryRes : []
+    const formulasCount = extractFormulasCount(formulasRes)
 
-    stats.value = [
-      {
-        label: 'Active Orders',
-        value: activeOrders.toString(),
-        desc: 'Pending processing',
-        tone: 'bg-accent'
-      },
-      {
-        label: 'Inventory Value',
-        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(inventoryValue),
-        desc: 'Total stock valuation',
-        tone: 'bg-secondary'
-      },
-      {
-        label: 'Formulas',
-        value: formulasCount.toString(),
-        desc: 'Active color recipes',
-        tone: 'bg-muted'
-      },
-    ]
+    stats.value = buildDashboardStats({ orders, inventory, formulasCount })
+    activityItems.value = buildDashboardActivityItems({ orders, inventory, formulasCount })
   } catch (e) {
+    if ((e as any)?.name === 'CanceledError' || (e as any)?.code === 'ERR_CANCELED') return
+    if (requestId !== statsRequestId) return
+    statsError.value = '仪表盘数据加载失败，请稍后重试。'
+    activityItems.value = [{ title: '数据加载失败', desc: '无法读取最新活动，请检查网络或后端服务。' }]
     console.error('Failed to load dashboard stats', e)
   }
 }
 
 onMounted(() => {
   fetchStats()
+})
+
+onBeforeUnmount(() => {
+  statsRequestId += 1
+  statsAbortController?.abort()
 })
 </script>
 
@@ -114,6 +123,10 @@ onMounted(() => {
           </RouterLink>
         </Button>
       </div>
+    </div>
+
+    <div v-if="statsError" class="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {{ statsError }}
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">

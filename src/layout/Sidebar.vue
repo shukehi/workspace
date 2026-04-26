@@ -18,8 +18,10 @@ import {
 } from 'lucide-vue-next';
 import { mainNavGroups, type NavGroup, type NavIconKey } from '@/config/nav';
 import { Separator } from '@/components/ui/separator';
+import packageJson from '../../package.json';
 
 const route = useRoute();
+const appVersion = packageJson.version;
 const emit = defineEmits<{
   navigate: [];
 }>();
@@ -192,7 +194,7 @@ watch(
     <div class="border-t border-border/70 px-4 py-3">
       <div class="flex items-center justify-between text-[11px] text-muted-foreground">
         <span>Order Desk</span>
-        <span>v2.0.0</span>
+        <span>v{{ appVersion }}</span>
       </div>
     </div>
   </aside>

@@ -78,6 +78,7 @@ test('GET /api/inventory and PUT /api/inventory/:id updates min stock only', asy
     category: '测试',
     supplier: 'Inventory Supplier',
     unit: 'pcs',
+    price: 12.5,
     stock_quantity: 12,
     min_stock: 5
   }) as MaterialInstance;
@@ -86,12 +87,13 @@ test('GET /api/inventory and PUT /api/inventory/:id updates min stock only', asy
 
   const listRes = await fetch(`${baseUrl}/api/inventory`);
   assert.equal(listRes.status, 200);
-  const list = getBody(await listRes.json()) as { id: number; stock_quantity: number }[];
+  const list = getBody(await listRes.json()) as { id: number; stock_quantity: number; price: number }[];
 
   const found = list.find((x) => x.id === material.id);
   assert.ok(found);
   assert.equal(typeof found.id, 'number');
   assert.equal(found.stock_quantity, 12);
+  assert.equal(found.price, 12.5);
 
   const updateRes = await fetch(`${baseUrl}/api/inventory/${material.id}`, {
     method: 'PUT',

@@ -7,6 +7,27 @@ import { Sequelize } from 'sequelize'
 import { createRequire } from 'node:module'
 
 const _require = createRequire(import.meta.url)
+// Guard against accidentally deleting historical migration files while still
+// allowing future migrations to be added without editing this test.
+const PROTECTED_MIGRATION_IDS = [
+  '20260313-001-add-order-columns',
+  '20260313-002-add-order-item-columns',
+  '20260313-003-add-inventory-receipt-columns',
+  '20260313-004-add-material-columns',
+  '20260313-005-add-order-idempotency-columns-and-index',
+  '20260318-006-add-query-indexes',
+  '20260320-007-add-inventory-location-and-outbound',
+  '20260320-008-add-inventory-reversal-guards',
+  '20260329-009-add-inventory-movements',
+  '20260329-010-add-order-no-unique-index',
+  '20260410-011-seed-secondary-shield-accessory-materials',
+  '20260421-012-add-supplier-master',
+  '20260421-013-link-materials-to-supplier-master',
+  '20260421-014-add-supplier-master-audit-log',
+  '20260421-015-add-material-master-audit-log',
+  '20260422-016-add-master-data-workflow',
+  '20260426-017-add-material-mapping-tables',
+] as const;
 
 function purgeServerModules() {
   Object.keys(_require.cache).forEach((key) => {
@@ -202,6 +223,8 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
       .filter((file) => file.endsWith('.ts') || file.endsWith('.js'))
       .map((file) => file.replace(/\.[jt]s$/, ''))
       .sort();
+    const missingProtectedMigrations = PROTECTED_MIGRATION_IDS.filter((id) => !expectedMigrationIds.includes(id));
+    assert.deepEqual(missingProtectedMigrations, []);
     assert.deepEqual((rows as { id: string }[]).map((row) => row.id), expectedMigrationIds);
 
     const [accessoryMaterials] = await sequelize.query(`

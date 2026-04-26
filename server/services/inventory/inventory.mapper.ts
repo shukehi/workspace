@@ -22,6 +22,7 @@ export function toInventoryItem(material: Record<string, any>) {
     model: material.model || '',
     name: material.name,
     stock_quantity: Number(material.stock_quantity || 0),
+    price: Number(material.price || 0),
     min_stock: Number(material.min_stock || 0),
     unit: material.unit || 'PCS',
     supplier: material.supplier || '',

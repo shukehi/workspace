@@ -7,19 +7,11 @@ import MobileNav from './MobileNav.vue';
 import Toaster from '@/components/ui/Toaster.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { flatMainNav, mainNavGroups } from '@/config/nav';
 
 const route = useRoute();
 
-function isRouteMatch(targetHref: string, currentPath: string): boolean {
-  if (targetHref === '/') return currentPath === '/';
-  return currentPath === targetHref || currentPath.startsWith(`${targetHref}/`);
-}
-
-const currentNavItem = computed(() => flatMainNav.find((item) => isRouteMatch(item.href, route.path)));
-const currentGroup = computed(() => mainNavGroups.find((group) => group.items.some((item) => isRouteMatch(item.href, route.path))));
-const pageTitle = computed(() => currentNavItem.value?.title || '工作台');
-const pageSection = computed(() => currentGroup.value?.title || 'ERP Workspace');
+const pageTitle = computed(() => String(route.meta.title || '工作台'));
+const pageSection = computed(() => String(route.meta.section || 'ERP Workspace'));
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeApiEnvelope, resolveApiErrorMessage } from '../src/lib/api';
+import { isCanceledRequestError, normalizeApiEnvelope, resolveApiErrorMessage } from '../src/lib/api';
 
 test('normalizeApiEnvelope unwraps success envelopes and keeps raw payloads intact', () => {
   assert.deepEqual(
@@ -50,4 +50,11 @@ test('resolveApiErrorMessage falls back through message, code, error and native 
     'MATERIAL_NOT_FOUND',
   );
   assert.equal(resolveApiErrorMessage(new Error('network failed')), 'network failed');
+});
+
+
+test('isCanceledRequestError recognizes axios cancellation without treating it as a server error', () => {
+  assert.equal(isCanceledRequestError({ code: 'ERR_CANCELED' }), true);
+  assert.equal(isCanceledRequestError({ name: 'CanceledError' }), true);
+  assert.equal(isCanceledRequestError({ response: { status: 500 }, message: 'server failed' }), false);
 });

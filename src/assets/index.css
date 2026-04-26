@@ -77,35 +77,36 @@
 }
 
 .dark {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
 
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card: 224 39% 14%;
+  --card-foreground: 210 40% 98%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
+  --popover: 224 39% 14%;
+  --popover-foreground: 210 40% 98%;
 
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222 47% 11%;
 
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
+  --secondary: 217 33% 18%;
+  --secondary-foreground: 210 40% 98%;
 
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
+  --muted: 217 33% 18%;
+  --muted-foreground: 215 20% 70%;
 
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
+  --accent: 217 33% 22%;
+  --accent-foreground: 210 40% 98%;
 
-  --destructive: 0 72.2% 50.6%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
 
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  --sidebar: 210 29% 98%;
-  --sidebar-foreground: 217 23% 17%;
+  --border: 217 33% 22%;
+  --input: 217 33% 22%;
+  --ring: 212 27% 84%;
+  /* Desk shell tokens: keep sidebar distinct from page/card surfaces in dark mode. */
+  --sidebar: 224 48% 9%;
+  --sidebar-foreground: 210 40% 96%;
 }
 
 @layer base {
@@ -155,6 +156,7 @@
     @apply mt-1 max-w-2xl text-sm leading-6 text-muted-foreground;
   }
 
+  /* Reusable Desk design tokens: shared Frappe-style cards and status pills. */
   .desk-card {
     @apply rounded-xl border border-border/80 bg-card shadow-xs;
   }
