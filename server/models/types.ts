@@ -47,6 +47,100 @@ export interface MaterialCreationAttributes {
     aliases?: string[];
 }
 
+
+export type MaterialCodeMappingType = 'alias' | 'barcode' | 'legacy_code' | 'supplier_code' | 'internal_code';
+export type MaterialMappingPartyType = 'supplier' | 'customer' | 'internal';
+
+export interface MaterialSupplierMappingAttributes {
+    id: number;
+    material_id: number;
+    supplier_master_id?: number | null;
+    supplier_code: string;
+    normalized_supplier_code: string;
+    supplier_name_snapshot?: string | null;
+    supplier_model?: string | null;
+    purchase_unit?: string | null;
+    stock_unit?: string | null;
+    conversion_factor: number;
+    price?: number | null;
+    currency?: string | null;
+    is_default: boolean;
+    is_active: boolean;
+    remark?: string | null;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface MaterialSupplierMappingCreationAttributes {
+    id?: number;
+    material_id: number;
+    supplier_master_id?: number | null;
+    supplier_code: string;
+    normalized_supplier_code: string;
+    supplier_name_snapshot?: string | null;
+    supplier_model?: string | null;
+    purchase_unit?: string | null;
+    stock_unit?: string | null;
+    conversion_factor?: number;
+    price?: number | null;
+    currency?: string | null;
+    is_default?: boolean;
+    is_active?: boolean;
+    remark?: string | null;
+}
+
+export interface MaterialCodeMappingAttributes {
+    id: number;
+    material_id: number;
+    mapping_type: MaterialCodeMappingType;
+    party_type?: MaterialMappingPartyType | null;
+    party_id?: number | null;
+    external_code: string;
+    normalized_code: string;
+    is_active: boolean;
+    priority: number;
+    metadata_json: string;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface MaterialCodeMappingCreationAttributes {
+    id?: number;
+    material_id: number;
+    mapping_type: MaterialCodeMappingType;
+    party_type?: MaterialMappingPartyType | null;
+    party_id?: number | null;
+    external_code: string;
+    normalized_code: string;
+    is_active?: boolean;
+    priority?: number;
+    metadata_json?: string;
+}
+
+export interface MaterialUomConversionAttributes {
+    id: number;
+    material_id: number;
+    from_unit: string;
+    to_unit: string;
+    factor: number;
+    is_purchase_default: boolean;
+    is_sales_default: boolean;
+    is_active: boolean;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface MaterialUomConversionCreationAttributes {
+    id?: number;
+    material_id: number;
+    from_unit: string;
+    to_unit: string;
+    factor?: number;
+    is_purchase_default?: boolean;
+    is_sales_default?: boolean;
+    is_active?: boolean;
+}
+
 export interface OrderMetadata {
     customer_name?: string;
     internal_name?: string;

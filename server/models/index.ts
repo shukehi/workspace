@@ -11,6 +11,9 @@ import InventoryOutbound from './InventoryOutbound';
 import InventoryOutboundItem from './InventoryOutboundItem';
 import Material from './Material';
 import MaterialMasterAuditLog from './MaterialMasterAuditLog';
+import MaterialUomConversion from './MaterialUomConversion';
+import MaterialCodeMapping from './MaterialCodeMapping';
+import MaterialSupplierMapping from './MaterialSupplierMapping';
 import MaterialCatalogProfile from './MaterialCatalogProfile';
 import MasterDataProfile from './MasterDataProfile';
 import MasterDataRevision from './MasterDataRevision';
@@ -30,6 +33,9 @@ import { runMigrations } from '../db/migrate';
 import type { ModelInstance } from '../shared/types';
 import type {
     MaterialAttributes, MaterialCreationAttributes,
+    MaterialSupplierMappingAttributes, MaterialSupplierMappingCreationAttributes,
+    MaterialCodeMappingAttributes, MaterialCodeMappingCreationAttributes,
+    MaterialUomConversionAttributes, MaterialUomConversionCreationAttributes,
     OrderAttributes, OrderCreationAttributes,
     OrderItemAttributes, OrderItemCreationAttributes,
     OrderIdempotencyKeyAttributes, OrderIdempotencyKeyCreationAttributes,
@@ -57,6 +63,9 @@ export type MaterialInstance = ModelInstance<MaterialAttributes, MaterialCreatio
     outboundItems?: InventoryOutboundItemInstance[];
     supplierMaster?: SupplierMasterInstance | null;
     auditLogs?: MaterialMasterAuditLogInstance[];
+    supplierMappings?: MaterialSupplierMappingInstance[];
+    codeMappings?: MaterialCodeMappingInstance[];
+    uomConversions?: MaterialUomConversionInstance[];
 };
 export type OrderInstance = ModelInstance<OrderAttributes, OrderCreationAttributes> & {
     items?: OrderItemInstance[];
@@ -104,6 +113,16 @@ export type InventoryOutboundItemInstance = ModelInstance<InventoryOutboundItemA
     material?: MaterialInstance | null;
 };
 export type MaterialMasterAuditLogInstance = ModelInstance<import('./MaterialMasterAuditLog').MaterialMasterAuditLogAttributes, import('./MaterialMasterAuditLog').MaterialMasterAuditLogCreationAttributes>;
+export type MaterialSupplierMappingInstance = ModelInstance<MaterialSupplierMappingAttributes, MaterialSupplierMappingCreationAttributes> & {
+    material?: MaterialInstance | null;
+    supplierMaster?: SupplierMasterInstance | null;
+};
+export type MaterialCodeMappingInstance = ModelInstance<MaterialCodeMappingAttributes, MaterialCodeMappingCreationAttributes> & {
+    material?: MaterialInstance | null;
+};
+export type MaterialUomConversionInstance = ModelInstance<MaterialUomConversionAttributes, MaterialUomConversionCreationAttributes> & {
+    material?: MaterialInstance | null;
+};
 export type FormulaDefinitionInstance = ModelInstance<FormulaDefinitionAttributes, FormulaDefinitionCreationAttributes>;
 export type FormulaRevisionInstance = ModelInstance<FormulaRevisionAttributes, FormulaRevisionCreationAttributes>;
 export type FormulaAuditLogInstance = ModelInstance<FormulaAuditLogAttributes, FormulaAuditLogCreationAttributes>;
@@ -134,6 +153,14 @@ Material.hasMany(MaterialMasterAuditLog, { foreignKey: 'material_id', as: 'audit
 MaterialMasterAuditLog.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
 SupplierMaster.hasMany(Material, { foreignKey: 'supplier_master_id', as: 'materials', onDelete: 'SET NULL' });
 Material.belongsTo(SupplierMaster, { foreignKey: 'supplier_master_id', as: 'supplierMaster' });
+Material.hasMany(MaterialSupplierMapping, { foreignKey: 'material_id', as: 'supplierMappings', onDelete: 'CASCADE' });
+MaterialSupplierMapping.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
+SupplierMaster.hasMany(MaterialSupplierMapping, { foreignKey: 'supplier_master_id', as: 'materialSupplierMappings', onDelete: 'SET NULL' });
+MaterialSupplierMapping.belongsTo(SupplierMaster, { foreignKey: 'supplier_master_id', as: 'supplierMaster' });
+Material.hasMany(MaterialCodeMapping, { foreignKey: 'material_id', as: 'codeMappings', onDelete: 'CASCADE' });
+MaterialCodeMapping.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
+Material.hasMany(MaterialUomConversion, { foreignKey: 'material_id', as: 'uomConversions', onDelete: 'CASCADE' });
+MaterialUomConversion.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
 SupplierMaster.hasMany(SupplierMasterAuditLog, { foreignKey: 'supplier_master_id', as: 'auditLogs', onDelete: 'CASCADE' });
 SupplierMasterAuditLog.belongsTo(SupplierMaster, { foreignKey: 'supplier_master_id', as: 'supplierMaster' });
 Warehouse.hasMany(InventoryLocationBalance, { foreignKey: 'warehouse_id', as: 'locationBalances', onDelete: 'CASCADE' });
@@ -208,6 +235,9 @@ export {
     InventoryOutboundItem,
     Material,
     MaterialMasterAuditLog,
+    MaterialSupplierMapping,
+    MaterialCodeMapping,
+    MaterialUomConversion,
     MaterialCatalogProfile,
     MaterialCatalogRevision,
     MaterialCatalogAuditLog,
