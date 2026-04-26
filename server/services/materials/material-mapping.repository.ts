@@ -8,10 +8,13 @@ import {
   SupplierMaster,
 } from '../../models';
 import type {
+  MaterialCodeMappingAttributes,
   MaterialCodeMappingCreationAttributes,
   MaterialCodeMappingType,
   MaterialMappingPartyType,
+  MaterialSupplierMappingAttributes,
   MaterialSupplierMappingCreationAttributes,
+  MaterialUomConversionAttributes,
   MaterialUomConversionCreationAttributes,
 } from '../../models/types';
 
@@ -39,6 +42,52 @@ export type SupplierMappingLookup = {
   supplierCode: string;
   transaction?: Transaction | null;
 };
+
+type MappingUpdate<T> = Partial<Omit<T, 'id' | 'created_at' | 'updated_at'>>;
+type SupplierMappingUpdate = MappingUpdate<MaterialSupplierMappingAttributes>;
+type CodeMappingUpdate = MappingUpdate<MaterialCodeMappingAttributes>;
+type UomConversionUpdate = MappingUpdate<MaterialUomConversionAttributes>;
+
+function notFoundError(message: string) {
+  const error = new Error(message) as Error & { code?: string; status?: number };
+  error.code = 'MATERIAL_MAPPING_NOT_FOUND';
+  error.status = 404;
+  return error;
+}
+
+function plain<T>(instance: any): T {
+  return typeof instance?.get === 'function' ? instance.get({ plain: true }) : instance;
+}
+
+function assignIfPresent<T extends Record<string, unknown>, K extends string>(
+  target: T,
+  source: Record<string, unknown>,
+  key: K,
+) {
+  if (Object.prototype.hasOwnProperty.call(source, key)) {
+    target[key as keyof T] = source[key] as T[keyof T];
+  }
+}
+
+export async function listMaterialMappings(materialId: number, transaction?: Transaction | null) {
+  return {
+    supplierMappings: (await MaterialSupplierMapping.findAll({
+      where: { material_id: materialId },
+      transaction: transaction ?? undefined,
+      order: [['is_default', 'DESC'], ['id', 'ASC']],
+    })).map((item) => plain<MaterialSupplierMappingAttributes>(item)),
+    codeMappings: (await MaterialCodeMapping.findAll({
+      where: { material_id: materialId },
+      transaction: transaction ?? undefined,
+      order: [['priority', 'ASC'], ['id', 'ASC']],
+    })).map((item) => plain<MaterialCodeMappingAttributes>(item)),
+    uomConversions: (await MaterialUomConversion.findAll({
+      where: { material_id: materialId },
+      transaction: transaction ?? undefined,
+      order: [['is_purchase_default', 'DESC'], ['id', 'ASC']],
+    })).map((item) => plain<MaterialUomConversionAttributes>(item)),
+  };
+}
 
 export async function findActiveSupplierMappings(
   lookup: SupplierMappingLookup,
@@ -158,6 +207,123 @@ export async function createUomConversion(
     is_sales_default: payload.is_sales_default ?? false,
     is_active: payload.is_active ?? true,
   }, { transaction: transaction ?? undefined });
+}
+
+export async function updateSupplierMapping(
+  materialId: number,
+  mappingId: number,
+  payload: SupplierMappingUpdate,
+  transaction?: Transaction | null,
+) {
+  const row = await MaterialSupplierMapping.findOne({
+    where: { id: mappingId, material_id: materialId },
+    transaction: transaction ?? undefined,
+  });
+  if (!row) throw notFoundError('Material supplier mapping not found');
+
+  const input = payload as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  for (const key of [
+    'supplier_master_id',
+    'supplier_name_snapshot',
+    'supplier_model',
+    'purchase_unit',
+    'stock_unit',
+    'price',
+    'currency',
+    'is_default',
+    'is_active',
+    'remark',
+  ]) {
+    assignIfPresent(next, input, key);
+  }
+  if (payload.supplier_code !== undefined) {
+    next.supplier_code = payload.supplier_code;
+    next.normalized_supplier_code = normalizeMaterialExternalCode(payload.supplier_code);
+  }
+  if (payload.conversion_factor !== undefined) {
+    const conversionFactor = Number(payload.conversion_factor);
+    if (!Number.isFinite(conversionFactor) || conversionFactor <= 0) {
+      const error = new Error('Material supplier mapping conversion factor must be greater than zero') as Error & { code?: string; status?: number };
+      error.code = 'MATERIAL_UOM_INVALID';
+      error.status = 400;
+      throw error;
+    }
+    next.conversion_factor = conversionFactor;
+  }
+
+  await row.update(next, { transaction: transaction ?? undefined });
+  return row;
+}
+
+export async function updateCodeMapping(
+  materialId: number,
+  mappingId: number,
+  payload: CodeMappingUpdate,
+  transaction?: Transaction | null,
+) {
+  const row = await MaterialCodeMapping.findOne({
+    where: { id: mappingId, material_id: materialId },
+    transaction: transaction ?? undefined,
+  });
+  if (!row) throw notFoundError('Material code mapping not found');
+
+  const input = payload as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  for (const key of [
+    'mapping_type',
+    'party_type',
+    'party_id',
+    'is_active',
+    'priority',
+    'metadata_json',
+  ]) {
+    assignIfPresent(next, input, key);
+  }
+  if (payload.external_code !== undefined) {
+    next.external_code = payload.external_code;
+    next.normalized_code = normalizeMaterialExternalCode(payload.external_code);
+  }
+  if (payload.metadata_json !== undefined && typeof payload.metadata_json !== 'string') {
+    next.metadata_json = JSON.stringify(payload.metadata_json);
+  }
+
+  await row.update(next, { transaction: transaction ?? undefined });
+  return row;
+}
+
+export async function updateUomConversion(
+  materialId: number,
+  conversionId: number,
+  payload: UomConversionUpdate,
+  transaction?: Transaction | null,
+) {
+  const row = await MaterialUomConversion.findOne({
+    where: { id: conversionId, material_id: materialId },
+    transaction: transaction ?? undefined,
+  });
+  if (!row) throw notFoundError('Material UOM conversion not found');
+
+  const input = payload as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  for (const key of ['is_purchase_default', 'is_sales_default', 'is_active']) {
+    assignIfPresent(next, input, key);
+  }
+  if (payload.from_unit !== undefined) next.from_unit = normalizeMaterialUnit(payload.from_unit);
+  if (payload.to_unit !== undefined) next.to_unit = normalizeMaterialUnit(payload.to_unit);
+  if (payload.factor !== undefined) {
+    const factor = Number(payload.factor);
+    if (!Number.isFinite(factor) || factor <= 0) {
+      const error = new Error('Material UOM conversion factor must be greater than zero') as Error & { code?: string; status?: number };
+      error.code = 'MATERIAL_UOM_INVALID';
+      error.status = 400;
+      throw error;
+    }
+    next.factor = factor;
+  }
+
+  await row.update(next, { transaction: transaction ?? undefined });
+  return row;
 }
 
 export async function mappingExists(table: 'supplier' | 'code' | 'uom', where: WhereOptions, transaction?: Transaction | null): Promise<boolean> {
