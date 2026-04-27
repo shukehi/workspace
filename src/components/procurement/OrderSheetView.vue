@@ -27,6 +27,11 @@ import {
   ORDER_SHEET_ACTION_COLUMN_WIDTH,
 } from '@/features/procurement/orderSheetTableLayout';
 import { resolveOrderSchemaPrintCategory } from '@/features/procurement/templateType';
+import {
+  clearMaterialResolutionSnapshot,
+  resolveMaterialCodeInput,
+  syncMaterialResolutionSnapshotQuantity,
+} from '@/features/procurement/materialResolution';
 
 type Mode = 'edit' | 'preview';
 type CustomerNameDisplayMode = 'full' | 'salesDepartment';
@@ -40,6 +45,10 @@ type OrderSheetReorderPayload = {
   targetItemKey: string;
   placement: 'before' | 'after';
 };
+type MaterialResolutionRowState = {
+  loading?: boolean;
+  error?: string;
+};
 
 const props = withDefaults(defineProps<{
   order: Partial<Order>;
@@ -51,6 +60,7 @@ const props = withDefaults(defineProps<{
   customerNameDisplay?: CustomerNameDisplayMode;
   restrictDetailEditing?: boolean;
   validationErrors?: ValidationState;
+  materialResolutionStates?: Record<string, MaterialResolutionRowState>;
 }>(), {
   mode: 'preview',
   hiddenColumns: () => [],
@@ -58,12 +68,14 @@ const props = withDefaults(defineProps<{
   customerNameDisplay: 'full',
   restrictDetailEditing: false,
   validationErrors: () => ({ fields: {}, rows: {}, cells: {} }),
+  materialResolutionStates: () => ({}),
 });
 
 const emit = defineEmits<{
   (e: 'update:columnWidths', value: Record<string, number>): void;
   (e: 'remove:item', itemKey: string): void;
   (e: 'reorder:item', payload: OrderSheetReorderPayload): void;
+  (e: 'resolve:item', itemKey: string): void;
 }>();
 
 const isEditMode = computed(() => props.mode === 'edit');
@@ -198,10 +210,27 @@ function handleCellInput(item: Partial<OrderItem>, key: string, value: string) {
     const nextValue = value === '' ? null : Number(value);
     setEditableValue(item, key, nextValue);
     syncOrderItemQuantity(item, category.value);
+    if (key === 'quantity' || key === 'qtyLeft' || key === 'qtyRight') {
+      syncMaterialResolutionSnapshotQuantity(item);
+    }
     return;
   }
   setEditableValue(item, key, value);
   syncOrderItemQuantity(item, category.value);
+  if (
+    key === 'unit'
+    && item.transaction_unit
+    && String(item.transaction_unit).trim().toUpperCase() !== String(value || '').trim().toUpperCase()
+  ) {
+    clearMaterialResolutionSnapshot(item);
+  }
+}
+
+function handleMaterialCodeInput(item: Partial<OrderItem>, value: string) {
+  if (String(item.external_material_code || '') !== value) {
+    clearMaterialResolutionSnapshot(item);
+  }
+  item.material_id = value;
 }
 
 function resolveCellDisplayValue(item: Partial<OrderItem>, key: string, rowIndex: number) {
@@ -321,6 +350,33 @@ function getCellError(rowIndex: number, columnKey: string) {
 
 function getRowErrors(rowIndex: number) {
   return props.validationErrors?.rows?.[rowIndex] || [];
+}
+
+function getMaterialResolutionState(item: Partial<OrderItem>, idx: number) {
+  return props.materialResolutionStates?.[getRowKey(item, idx)] || {};
+}
+
+function hasMaterialResolutionSnapshot(item: Partial<OrderItem>) {
+  return item.resolved_material_id != null
+    || item.external_material_code != null
+    || item.material_resolve_source != null
+    || item.transaction_unit != null
+    || item.stock_unit != null
+    || item.unit_conversion_factor != null
+    || item.stock_quantity != null;
+}
+
+function formatMaterialResolution(item: Partial<OrderItem>) {
+  if (!hasMaterialResolutionSnapshot(item)) return '';
+  const parts = [
+    item.resolved_material_id != null ? `内部物料 #${item.resolved_material_id}` : '',
+    item.external_material_code ? `外部编码 ${item.external_material_code}` : '',
+    item.material_resolve_source ? `来源 ${item.material_resolve_source}` : '',
+    item.transaction_unit && item.stock_unit ? `${item.transaction_unit} → ${item.stock_unit}` : '',
+    item.unit_conversion_factor != null ? `× ${item.unit_conversion_factor}` : '',
+    item.stock_quantity != null ? `库存数量 ${item.stock_quantity}` : '',
+  ].filter(Boolean);
+  return parts.join(' · ');
 }
 
 onBeforeUnmount(() => {
@@ -559,6 +615,33 @@ onBeforeUnmount(() => {
           <tr v-if="getRowErrors(idx).length > 0" class="bg-red-50/80">
             <td :colspan="schema.columns.length + (showsRowActions ? 1 : 0)" class="px-3 py-2 text-[11px] text-red-700">
               {{ getRowErrors(idx).join('；') }}
+            </td>
+          </tr>
+          <tr v-if="isEditMode && !isRestrictedEditMode" class="bg-muted/10">
+            <td :colspan="schema.columns.length + (showsRowActions ? 1 : 0)" class="px-3 py-2">
+              <div class="flex flex-wrap items-center gap-2 text-[11px]">
+                <span class="text-muted-foreground">物料编码/供应商料号</span>
+                <input
+                  :value="resolveMaterialCodeInput(item)"
+                  class="h-7 min-w-[220px] rounded border bg-background px-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="输入内部编码、供应商料号、别名或条码"
+                  @input="handleMaterialCodeInput(item, ($event.target as HTMLInputElement).value)"
+                />
+                <button
+                  type="button"
+                  class="inline-flex h-7 items-center rounded border bg-background px-2 text-xs transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="getMaterialResolutionState(item, idx).loading || !resolveMaterialCodeInput(item)"
+                  @click="emit('resolve:item', getRowKey(item, idx))"
+                >
+                  {{ getMaterialResolutionState(item, idx).loading ? '解析中...' : '解析物料' }}
+                </button>
+                <span v-if="formatMaterialResolution(item)" class="text-emerald-700">
+                  {{ formatMaterialResolution(item) }}
+                </span>
+                <span v-if="getMaterialResolutionState(item, idx).error" class="text-red-600">
+                  {{ getMaterialResolutionState(item, idx).error }}
+                </span>
+              </div>
             </td>
           </tr>
           </template>

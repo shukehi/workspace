@@ -5,6 +5,13 @@ export interface OrderItem {
     id: number;
     item_key?: string;
     material_id: string | number;
+    resolved_material_id?: number | null;
+    external_material_code?: string | null;
+    material_resolve_source?: string | null;
+    transaction_unit?: string | null;
+    stock_unit?: string | null;
+    unit_conversion_factor?: number | null;
+    stock_quantity?: number | null;
     supplier?: string;
     // Unified semantic fields used by print/preview pipeline
     internal_name?: string;
