@@ -99,6 +99,8 @@ export const api = {
         axiosInstance.post<ApiEnvelope<T>, T>(url, data, config),
     put: <T>(url: string, data?: any, config?: AxiosRequestConfig) =>
         axiosInstance.put<ApiEnvelope<T>, T>(url, data, config),
+    patch: <T>(url: string, data?: any, config?: AxiosRequestConfig) =>
+        axiosInstance.patch<ApiEnvelope<T>, T>(url, data, config),
     delete: <T>(url: string, config?: AxiosRequestConfig) =>
         axiosInstance.delete<ApiEnvelope<T>, T>(url, config),
     postBlob: (url: string, data?: any, config?: AxiosRequestConfig) =>

@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MaterialAuditPanel from '@/features/master-data/components/MaterialAuditPanel.vue';
+import MaterialMappingSection from '@/features/master-data/components/MaterialMappingSection.vue';
 import MaterialRelationshipSection from '@/features/master-data/components/MaterialRelationshipSection.vue';
 import type { MaterialRecord } from '@/features/materials/composables/useMaterialManagementPageState';
+import type { CreateCodeMappingPayload, CreateSupplierMappingPayload, CreateUomConversionPayload, MaterialMappingsPayload, UpdateCodeMappingPayload, UpdateSupplierMappingPayload, UpdateUomConversionPayload } from '@/services/materialMappingApi';
 
 defineProps<{
   material: MaterialRecord | null
@@ -17,6 +19,9 @@ defineProps<{
     meta: Record<string, unknown>
   }>
   supplierMasterOptions: Array<{ id: number; supplierName: string }>
+  mappings: MaterialMappingsPayload | null
+  mappingsLoading: boolean
+  mappingError: string
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +29,13 @@ const emit = defineEmits<{
   (e: 'auto-relink', item: MaterialRecord): void
   (e: 'jump-to-supplier', supplierMasterId: number): void
   (e: 'update:activeTab', value: string): void
+  (e: 'refresh-mappings', materialId: number): void
+  (e: 'create-supplier-mapping', materialId: number, payload: CreateSupplierMappingPayload): void
+  (e: 'update-supplier-mapping', materialId: number, mappingId: number, payload: UpdateSupplierMappingPayload): void
+  (e: 'create-code-mapping', materialId: number, payload: CreateCodeMappingPayload): void
+  (e: 'update-code-mapping', materialId: number, mappingId: number, payload: UpdateCodeMappingPayload): void
+  (e: 'create-uom-conversion', materialId: number, payload: CreateUomConversionPayload): void
+  (e: 'update-uom-conversion', materialId: number, conversionId: number, payload: UpdateUomConversionPayload): void
 }>();
 </script>
 
@@ -42,9 +54,10 @@ const emit = defineEmits<{
       </div>
 
       <Tabs :model-value="activeTab" class="w-full" @update:model-value="emit('update:activeTab', String($event))">
-        <TabsList class="grid w-full grid-cols-4">
+        <TabsList class="grid w-full grid-cols-5">
           <TabsTrigger value="basic">基础信息</TabsTrigger>
           <TabsTrigger value="relationship">关系</TabsTrigger>
+          <TabsTrigger value="mappings">映射</TabsTrigger>
           <TabsTrigger value="diagnostics">诊断</TabsTrigger>
           <TabsTrigger value="audit">审计</TabsTrigger>
         </TabsList>
@@ -85,6 +98,23 @@ const emit = defineEmits<{
             @auto-link="emit('auto-relink', $event)"
             @open-edit="emit('open-edit', $event)"
             @jump-to-supplier="emit('jump-to-supplier', $event)"
+          />
+        </TabsContent>
+
+        <TabsContent value="mappings" class="mt-4">
+          <MaterialMappingSection
+            :material="material"
+            :mappings="mappings"
+            :loading="mappingsLoading"
+            :error="mappingError"
+            :supplier-master-options="supplierMasterOptions"
+            @refresh="emit('refresh-mappings', $event)"
+            @create-supplier="(materialId, payload) => emit('create-supplier-mapping', materialId, payload)"
+            @update-supplier="(materialId, mappingId, payload) => emit('update-supplier-mapping', materialId, mappingId, payload)"
+            @create-code="(materialId, payload) => emit('create-code-mapping', materialId, payload)"
+            @update-code="(materialId, mappingId, payload) => emit('update-code-mapping', materialId, mappingId, payload)"
+            @create-uom="(materialId, payload) => emit('create-uom-conversion', materialId, payload)"
+            @update-uom="(materialId, conversionId, payload) => emit('update-uom-conversion', materialId, conversionId, payload)"
           />
         </TabsContent>
 

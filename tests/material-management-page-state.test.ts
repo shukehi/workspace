@@ -71,6 +71,43 @@ test('material management page state loads list, opens dialogs, and saves update
           calls.push(`post:${payload.code}`);
           return payload;
         },
+        async listMaterialMappings(materialId: number) {
+          calls.push(`mappings:${materialId}`);
+          return {
+            supplierMappings: [{
+              id: 11,
+              material_id: materialId,
+              supplier_master_id: 12,
+              supplier_code: 'SUP-001',
+              normalized_supplier_code: 'sup-001',
+              purchase_unit: 'BOX',
+              stock_unit: 'PCS',
+              conversion_factor: 10,
+              is_default: true,
+              is_active: true,
+            }],
+            codeMappings: [],
+            uomConversions: [],
+          };
+        },
+        async createSupplierMapping(materialId: number, payload: any) {
+          calls.push(`create-supplier-mapping:${materialId}:${payload.supplier_code}`);
+        },
+        async updateSupplierMapping(materialId: number, mappingId: number, payload: any) {
+          calls.push(`update-supplier-mapping:${materialId}:${mappingId}:${payload.is_active}`);
+        },
+        async createCodeMapping(materialId: number, payload: any) {
+          calls.push(`create-code-mapping:${materialId}:${payload.external_code}`);
+        },
+        async updateCodeMapping(materialId: number, mappingId: number, payload: any) {
+          calls.push(`update-code-mapping:${materialId}:${mappingId}:${payload.is_active}`);
+        },
+        async createUomConversion(materialId: number, payload: any) {
+          calls.push(`create-uom-conversion:${materialId}:${payload.from_unit}:${payload.factor}`);
+        },
+        async updateUomConversion(materialId: number, conversionId: number, payload: any) {
+          calls.push(`update-uom-conversion:${materialId}:${conversionId}:${payload.is_active}`);
+        },
         async put(url: string, payload: any) {
           calls.push(`put:${url}:${payload.code ?? ''}:${payload.supplier_master_id ?? 'unset'}`);
           return payload;
@@ -88,6 +125,22 @@ test('material management page state loads list, opens dialogs, and saves update
     assert.equal(state.relationshipHealth.value.inactiveSupplierLinkedMaterialCount, 1);
     assert.equal(state.actionableRelationshipGroups.value.autoFixCandidates.length, 1);
     assert.equal(state.actionableRelationshipGroups.value.manualReviewCandidates.length, 1);
+
+    await state.fetchMaterialMappings(1);
+    assert.equal(state.materialMappingsMaterialId.value, 1);
+    assert.equal(state.materialMappings.value?.supplierMappings[0]?.supplier_code, 'SUP-001');
+    await state.createSupplierMapping(1, { supplier_master_id: 12, supplier_code: 'SUP-002', conversion_factor: 2 });
+    await state.updateSupplierMapping(1, 11, { is_active: false });
+    await state.createCodeMapping(1, { mapping_type: 'alias', external_code: 'ALIAS-001' });
+    await state.updateCodeMapping(1, 21, { is_active: false });
+    await state.createUomConversion(1, { from_unit: 'BOX', to_unit: 'PCS', factor: 10 });
+    await state.updateUomConversion(1, 31, { is_active: false });
+    assert.equal(calls.includes('create-supplier-mapping:1:SUP-002'), true);
+    assert.equal(calls.includes('update-supplier-mapping:1:11:false'), true);
+    assert.equal(calls.includes('create-code-mapping:1:ALIAS-001'), true);
+    assert.equal(calls.includes('update-code-mapping:1:21:false'), true);
+    assert.equal(calls.includes('create-uom-conversion:1:BOX:10'), true);
+    assert.equal(calls.includes('update-uom-conversion:1:31:false'), true);
 
     state.searchQuery.value = ' lock ';
     await state.fetchMaterials();
@@ -130,6 +183,51 @@ test('material management page state loads list, opens dialogs, and saves update
     assert.equal(state.dialogTitle.value, '编辑物料');
     await state.saveMaterial();
     assert.equal(calls.includes('put:/materials/7:M-007:8'), true);
+  } finally {
+    scope.stop();
+  }
+});
+
+test('material management page state ignores stale mapping responses', async () => {
+  const scope = effectScope();
+  try {
+    let releaseFirst!: () => void;
+    const firstResponse = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const state = scope.run(() => useMaterialManagementPageState({
+      api: {
+        async get(): Promise<any> { return []; },
+        async listSupplierMasters() { return []; },
+        async auditLogs() { return []; },
+        async listMaterialMappings(materialId: number) {
+          if (materialId === 1) await firstResponse;
+          return {
+            supplierMappings: [{
+              id: materialId,
+              material_id: materialId,
+              supplier_master_id: null,
+              supplier_code: `SUP-${materialId}`,
+              normalized_supplier_code: `sup-${materialId}`,
+              conversion_factor: 1,
+              is_default: false,
+              is_active: true,
+            }],
+            codeMappings: [],
+            uomConversions: [],
+          };
+        },
+      },
+    }));
+
+    if (!state) throw new Error('state not created');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const first = state.fetchMaterialMappings(1);
+    const second = state.fetchMaterialMappings(2);
+    releaseFirst();
+    await Promise.all([first, second]);
+
+    assert.equal(state.materialMappingsMaterialId.value, 2);
+    assert.equal(state.materialMappings.value?.supplierMappings[0]?.supplier_code, 'SUP-2');
   } finally {
     scope.stop();
   }

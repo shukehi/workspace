@@ -1,6 +1,7 @@
 import { computed, getCurrentInstance, onMounted, ref } from 'vue';
 import { api as defaultApi } from '@/lib/api';
 import { materialMasterProfileApi, type MaterialMasterReferenceCheck, type WorkflowRevisionMeta } from '@/services/materialMasterProfileApi';
+import { materialMappingApi, type CreateCodeMappingPayload, type CreateSupplierMappingPayload, type CreateUomConversionPayload, type MaterialMappingsPayload, type UpdateCodeMappingPayload, type UpdateSupplierMappingPayload, type UpdateUomConversionPayload } from '@/services/materialMappingApi';
 import { supplierMasterProfileApi } from '@/services/supplierMasterProfileApi';
 
 export interface MaterialRecord {
@@ -37,6 +38,13 @@ interface MaterialManagementApi {
   get?: typeof defaultApi.get;
   post?: typeof defaultApi.post;
   put?: typeof defaultApi.put;
+  listMaterialMappings?: (materialId: number) => Promise<MaterialMappingsPayload>;
+  createSupplierMapping?: (materialId: number, payload: CreateSupplierMappingPayload) => Promise<unknown>;
+  updateSupplierMapping?: (materialId: number, mappingId: number, payload: UpdateSupplierMappingPayload) => Promise<unknown>;
+  createCodeMapping?: (materialId: number, payload: CreateCodeMappingPayload) => Promise<unknown>;
+  updateCodeMapping?: (materialId: number, mappingId: number, payload: UpdateCodeMappingPayload) => Promise<unknown>;
+  createUomConversion?: (materialId: number, payload: CreateUomConversionPayload) => Promise<unknown>;
+  updateUomConversion?: (materialId: number, conversionId: number, payload: UpdateUomConversionPayload) => Promise<unknown>;
 }
 
 interface MaterialManagementOptions {
@@ -72,7 +80,7 @@ function createEmptyDraft(): EditableMaterial {
 }
 
 export function useMaterialManagementPageState(options: MaterialManagementOptions = {}) {
-  const api = options.api || materialMasterProfileApi;
+  const api: MaterialManagementApi = options.api || materialMasterProfileApi;
 
   async function listMaterialsByApi(query?: string): Promise<MaterialRecord[]> {
     if (api.list) return await api.list(query);
@@ -116,6 +124,11 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
   const publishing = ref(false);
   const rollingBackRevision = ref<number | null>(null);
   const supplierMasterOptions = ref<Array<{ id: number; supplierName: string }>>([]);
+  const materialMappings = ref<MaterialMappingsPayload | null>(null);
+  const materialMappingsMaterialId = ref<number | null>(null);
+  const materialMappingsLoading = ref(false);
+  const materialMappingError = ref('');
+  let materialMappingsRequestId = 0;
   const isEditDialogOpen = ref(false);
   const editingMaterial = ref<EditableMaterial>(createEmptyDraft());
 
@@ -241,7 +254,78 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
     }
   }
 
+  async function fetchMaterialMappings(materialId: number | null | undefined) {
+    const requestId = ++materialMappingsRequestId;
+    if (materialId == null) {
+      materialMappings.value = null;
+      materialMappingsMaterialId.value = null;
+      materialMappingError.value = '';
+      materialMappingsLoading.value = false;
+      return null;
+    }
 
+    materialMappingsLoading.value = true;
+    materialMappingError.value = '';
+    try {
+      const nextMappings = api.listMaterialMappings
+        ? await api.listMaterialMappings(materialId)
+        : await materialMappingApi.list(materialId);
+      if (requestId !== materialMappingsRequestId) return null;
+      materialMappings.value = nextMappings;
+      materialMappingsMaterialId.value = materialId;
+      return nextMappings;
+    } catch (error: any) {
+      console.error(error);
+      if (requestId !== materialMappingsRequestId) return null;
+      materialMappings.value = null;
+      materialMappingsMaterialId.value = materialId;
+      materialMappingError.value = error?.response?.data?.error
+        || error?.response?.data?.code
+        || error?.message
+        || '物料映射加载失败';
+      return null;
+    } finally {
+      if (requestId === materialMappingsRequestId) {
+        materialMappingsLoading.value = false;
+      }
+    }
+  }
+
+  async function createSupplierMapping(materialId: number, payload: CreateSupplierMappingPayload) {
+    if (api.createSupplierMapping) await api.createSupplierMapping(materialId, payload);
+    else await materialMappingApi.createSupplierMapping(materialId, payload);
+    await fetchMaterialMappings(materialId);
+  }
+
+  async function updateSupplierMapping(materialId: number, mappingId: number, payload: UpdateSupplierMappingPayload) {
+    if (api.updateSupplierMapping) await api.updateSupplierMapping(materialId, mappingId, payload);
+    else await materialMappingApi.updateSupplierMapping(materialId, mappingId, payload);
+    await fetchMaterialMappings(materialId);
+  }
+
+  async function createCodeMapping(materialId: number, payload: CreateCodeMappingPayload) {
+    if (api.createCodeMapping) await api.createCodeMapping(materialId, payload);
+    else await materialMappingApi.createCodeMapping(materialId, payload);
+    await fetchMaterialMappings(materialId);
+  }
+
+  async function updateCodeMapping(materialId: number, mappingId: number, payload: UpdateCodeMappingPayload) {
+    if (api.updateCodeMapping) await api.updateCodeMapping(materialId, mappingId, payload);
+    else await materialMappingApi.updateCodeMapping(materialId, mappingId, payload);
+    await fetchMaterialMappings(materialId);
+  }
+
+  async function createUomConversion(materialId: number, payload: CreateUomConversionPayload) {
+    if (api.createUomConversion) await api.createUomConversion(materialId, payload);
+    else await materialMappingApi.createUomConversion(materialId, payload);
+    await fetchMaterialMappings(materialId);
+  }
+
+  async function updateUomConversion(materialId: number, conversionId: number, payload: UpdateUomConversionPayload) {
+    if (api.updateUomConversion) await api.updateUomConversion(materialId, conversionId, payload);
+    else await materialMappingApi.updateUomConversion(materialId, conversionId, payload);
+    await fetchMaterialMappings(materialId);
+  }
 
   async function publishDraft(changeNote = 'publish material master draft') {
     if (!api.publish || !profileDetail.value?.draftRevision?.revision) return;
@@ -288,6 +372,10 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
     publishing,
     rollingBackRevision,
     supplierMasterOptions,
+    materialMappings,
+    materialMappingsMaterialId,
+    materialMappingsLoading,
+    materialMappingError,
     relationshipHealth,
     actionableRelationshipGroups,
     isEditDialogOpen,
@@ -298,6 +386,13 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
     openEditDialog,
     saveMaterial,
     autoRelinkMaterial,
+    fetchMaterialMappings,
+    createSupplierMapping,
+    updateSupplierMapping,
+    createCodeMapping,
+    updateCodeMapping,
+    createUomConversion,
+    updateUomConversion,
     publishDraft,
     rollbackRevision,
   };
