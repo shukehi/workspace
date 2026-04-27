@@ -22,6 +22,90 @@ import { resolveReceiptOrderItems } from './inventory-receipt.policy';
 import { buildInventoryReceiptListQuery } from './inventory-receipt.query-policy';
 import type { PlainRecord } from '../../shared/types';
 
+function positiveNumber(value: unknown, fallback: number): number {
+  if (value === undefined || value === null || value === '') return fallback;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  const error = new Error('ORDER_ITEM_UNIT_CONVERSION_INVALID') as Error & { code?: string };
+  error.code = 'ORDER_ITEM_UNIT_CONVERSION_INVALID';
+  throw error;
+}
+
+function normalizeUnit(value: unknown): string {
+  return String(value || '').trim().toUpperCase();
+}
+
+function hasMappingSnapshot(item: PlainRecord): boolean {
+  return item.resolved_material_id != null
+    || item.external_material_code != null
+    || item.material_resolve_source != null
+    || item.transaction_unit != null
+    || item.stock_unit != null
+    || item.unit_conversion_factor != null
+    || item.stock_quantity != null;
+}
+
+function resolveStockQuantity(item: PlainRecord, transactionQuantity: number): number {
+  const explicitStockQuantity = Number(item.stock_quantity);
+  const orderedQuantity = Number(item.ordered_quantity || item.quantity || 0);
+  if (Number.isFinite(explicitStockQuantity) && explicitStockQuantity > 0 && orderedQuantity > 0) {
+    return transactionQuantity * (explicitStockQuantity / orderedQuantity);
+  }
+
+  if (item.unit_conversion_factor !== undefined && item.unit_conversion_factor !== null && item.unit_conversion_factor !== '') {
+    return transactionQuantity * positiveNumber(item.unit_conversion_factor, 1);
+  }
+
+  const transactionUnit = normalizeUnit(item.transaction_unit || item.unit);
+  const stockUnit = normalizeUnit(item.stock_unit);
+  if (transactionUnit && stockUnit && transactionUnit === stockUnit) return transactionQuantity;
+  if (hasMappingSnapshot(item) && transactionUnit && stockUnit && transactionUnit !== stockUnit) {
+    const error = new Error('ORDER_ITEM_UNIT_CONVERSION_INVALID') as Error & { code?: string };
+    error.code = 'ORDER_ITEM_UNIT_CONVERSION_INVALID';
+    throw error;
+  }
+
+  return transactionQuantity;
+}
+
+function buildMaterialMappingSnapshot(item: PlainRecord, material: PlainRecord, transactionQuantity: number, stockQuantity: number) {
+  const factor = stockQuantity > 0 && transactionQuantity > 0
+    ? stockQuantity / transactionQuantity
+    : positiveNumber(item.unit_conversion_factor, 1);
+  return {
+    materialId: item.material_id ?? null,
+    resolvedMaterialId: material.id ?? item.resolved_material_id ?? null,
+    externalMaterialCode: item.external_material_code || item.material_id || null,
+    resolveSource: item.material_resolve_source || null,
+    transactionUnit: item.transaction_unit || item.unit || null,
+    stockUnit: item.stock_unit || material.unit || item.unit || null,
+    unitConversionFactor: factor,
+    transactionQuantity,
+    stockQuantity,
+  };
+}
+
+function parseMaterialMappingSnapshot(receipt: PlainRecord): PlainRecord {
+  try {
+    const parsed = JSON.parse(String(receipt.material_mapping_snapshot_json || '{}'));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function stockQuantityToTransactionQuantity(snapshot: PlainRecord, stockQuantity: number): number {
+  const originalStockQuantity = Number(snapshot.stockQuantity);
+  const originalTransactionQuantity = Number(snapshot.transactionQuantity);
+  if (Number.isFinite(originalStockQuantity) && originalStockQuantity > 0
+    && Number.isFinite(originalTransactionQuantity) && originalTransactionQuantity > 0) {
+    return stockQuantity * (originalTransactionQuantity / originalStockQuantity);
+  }
+
+  const factor = positiveNumber(snapshot.unitConversionFactor, 1);
+  return stockQuantity / factor;
+}
+
 class InventoryReceiptService {
   ReceiptReverseNotAllowedError?: typeof ReceiptReverseNotAllowedError;
   ReceiptAlreadyReversedError?: typeof ReceiptAlreadyReversedError;
@@ -43,6 +127,9 @@ class InventoryReceiptService {
       const item = receiptItem!.orderItem;
       const material = await repository.findMaterialForItem(item, transaction);
       const quantity = receiptItem!.quantity;
+      const stockQuantity = resolveStockQuantity(item, quantity);
+      const materialMappingSnapshot = buildMaterialMappingSnapshot(item, material, quantity, stockQuantity);
+      const materialMappingSnapshotJson = JSON.stringify(materialMappingSnapshot);
 
       const receipt = await repository.createReceipt({
         order_id: order.id,
@@ -50,16 +137,17 @@ class InventoryReceiptService {
         order_item_id: item.id || null,
         direction: 'in',
         source_receipt_id: null,
-        material_id: String(item.material_id || material.code || material.id),
+        material_id: item.resolved_material_id != null ? String(material.id) : String(item.material_id || material.code || material.id),
         warehouse_id: warehouse.id,
         location_id: location.id,
         item_name: item.name || item.type || item.model || '-',
         supplier: item.supplier || order.supplier || '',
-        quantity,
-        unit: item.unit || material.unit || '',
+        quantity: stockQuantity,
+        unit: item.stock_unit || material.unit || item.unit || '',
         receipt_date: receiptDate,
         operator: operator || null,
         remark,
+        material_mapping_snapshot_json: materialMappingSnapshotJson,
       }, transaction);
 
       await applyInventoryMovement({
@@ -69,7 +157,7 @@ class InventoryReceiptService {
         sourceType: 'receipt_in',
         sourceId: String(receipt.id),
         sourceLineKey: String(item.id || material.id),
-        deltaQuantity: quantity,
+        deltaQuantity: stockQuantity,
         reason: '采购入库',
         operator: operator || null,
         remark,
@@ -78,6 +166,7 @@ class InventoryReceiptService {
           receipt_id: receipt.id,
           order_id: order.id,
           direction: 'in',
+          material_mapping: materialMappingSnapshot,
         },
         transaction: transaction!,
       });
@@ -164,10 +253,18 @@ class InventoryReceiptService {
         });
       }
 
-      const nextReceived = Number(orderItem.received_quantity || 0) - requestedQuantity;
+      const materialMappingSnapshot = parseMaterialMappingSnapshot(receipt);
+      const reversedTransactionQuantity = stockQuantityToTransactionQuantity(materialMappingSnapshot, requestedQuantity);
+      const nextReceived = Number(orderItem.received_quantity || 0) - reversedTransactionQuantity;
       await orderItem.update({
         received_quantity: Math.max(nextReceived, 0),
       }, { transaction });
+
+      const reversalMappingSnapshot = {
+        ...materialMappingSnapshot,
+        reversedStockQuantity: requestedQuantity,
+        reversedTransactionQuantity,
+      };
 
       const reversal = await repository.createReceipt({
         order_id: receipt.order_id,
@@ -186,6 +283,7 @@ class InventoryReceiptService {
         receipt_date: reversalDate,
         operator: payload.operator ? String(payload.operator).trim() : null,
         remark: payload.remark ? String(payload.remark) : '',
+        material_mapping_snapshot_json: JSON.stringify(reversalMappingSnapshot),
       }, transaction);
 
       await applyInventoryMovement({
@@ -205,6 +303,7 @@ class InventoryReceiptService {
           source_receipt_id: receipt.id,
           order_id: receipt.order_id,
           direction: 'reversal',
+          material_mapping: reversalMappingSnapshot,
         },
         insufficientBalanceCode: ERROR_CODES.RECEIPT_INSUFFICIENT_BALANCE,
         transaction,

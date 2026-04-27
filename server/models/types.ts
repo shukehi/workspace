@@ -199,6 +199,13 @@ export interface OrderItemAttributes {
     order_id: number;
     /** 物料编码，关联 materials 表 */
     material_id?: string | null;
+    resolved_material_id?: number | null;
+    external_material_code?: string | null;
+    material_resolve_source?: string | null;
+    transaction_unit?: string | null;
+    stock_unit?: string | null;
+    unit_conversion_factor?: number | null;
+    stock_quantity?: number | null;
     name: string;
     supplier?: string | null;
     internal_name?: string | null;
@@ -241,6 +248,13 @@ export interface OrderItemCreationAttributes {
     id?: number;
     order_id: number;
     material_id?: string | null;
+    resolved_material_id?: number | null;
+    external_material_code?: string | null;
+    material_resolve_source?: string | null;
+    transaction_unit?: string | null;
+    stock_unit?: string | null;
+    unit_conversion_factor?: number | null;
+    stock_quantity?: number | null;
     name: string;
     supplier?: string | null;
     internal_name?: string | null;
@@ -279,6 +293,7 @@ export interface InventoryReceiptAttributes {
     receipt_date: Date;
     operator?: string | null;
     remark: string;
+    material_mapping_snapshot_json?: string;
     created_at?: Date;
     updated_at?: Date;
 }
@@ -302,6 +317,7 @@ export interface InventoryReceiptCreationAttributes {
     receipt_date: Date | string;
     operator?: string | null;
     remark?: string;
+    material_mapping_snapshot_json?: string;
 }
 
 export interface OrderIdempotencyKeyAttributes {

@@ -85,6 +85,11 @@ const InventoryReceipt: ModelDefined<InventoryReceiptAttributes, InventoryReceip
         type: DataTypes.TEXT,
         allowNull: false,
         defaultValue: ''
+    },
+    material_mapping_snapshot_json: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        defaultValue: '{}'
     }
 }, {
     tableName: 'inventory_receipts',

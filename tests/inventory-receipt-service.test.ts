@@ -21,7 +21,7 @@ purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
 // Runtime CJS bridge: these cache-purging tests must require models after DB_STORAGE is set.
-const { sequelize, Material, InventoryMovement, InventoryReceipt } = _require('../server/models') as any;
+const { sequelize, Material, InventoryMovement, InventoryReceipt, OrderItem } = _require('../server/models') as any;
 const orderService = (_require('../server/services/orders') as any).default;
 const { inventoryReceiptService } = _require('../server/services/inventory') as any;
 import type { MaterialInstance } from '../server/models';
@@ -108,6 +108,75 @@ test('inventoryReceiptService returns a conflict when reverse lock cannot be cla
   } finally {
     InventoryReceipt.removeHook('beforeBulkUpdate', hookName);
   }
+});
+
+
+test('inventoryReceiptService reverses mapped receipts in transaction units and keeps mapping metadata', async () => {
+  const material = await Material.create({
+    code: `RECEIPT-MAPPED-MAT-${Date.now()}`,
+    name: 'Mapped Receipt Material',
+    model: 'RECEIPT-MAPPED',
+    category: '测试',
+    supplier: 'Inventory Supplier',
+    unit: 'PCS',
+    stock_quantity: 0,
+    min_stock: 0,
+  }) as MaterialInstance;
+
+  const order = await orderService.createOrder({
+    order_no: `RECEIPT-MAPPED-PO-${Date.now()}`,
+    supplier: 'Inventory Supplier',
+    category: '测试',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'SUPPLIER-BOX-001',
+        resolved_material_id: material.id,
+        external_material_code: 'SUPPLIER-BOX-001',
+        material_resolve_source: 'supplier_mapping',
+        transaction_unit: 'BOX',
+        stock_unit: 'PCS',
+        unit_conversion_factor: 10,
+        supplier: 'Inventory Supplier',
+        name: 'Mapped Receipt Material',
+        model: 'RECEIPT-MAPPED',
+        spec: 'RECEIPT-MAPPED',
+        quantity: 2,
+        unit: 'BOX',
+      }
+    ]
+  });
+
+  await orderService.stockInOrder(order.id, {
+    stocked_in_at: '2026-03-20T12:00:00.000Z',
+  });
+
+  const list = await inventoryReceiptService.list({ orderId: order.id });
+  const receipt = list.rows.find((item: { direction?: string }) => item.direction !== 'reversal');
+  assert.ok(receipt);
+  assert.equal(Number(receipt.quantity), 20);
+
+  const reversal = await inventoryReceiptService.reverseReceipt(receipt.id, {
+    reverse_reason: 'partial_mapping_reversal',
+    quantity: 10,
+  });
+
+  const orderItem = await OrderItem.findByPk(order.items[0].id) as any;
+  assert.equal(Number(orderItem.received_quantity), 1);
+  assert.equal(Number(reversal.quantity), -10);
+
+  const reversalMovements = await InventoryMovement.findAll({
+    where: {
+      source_type: 'receipt_reversal',
+      source_id: String(reversal.id),
+    },
+  });
+  assert.equal(reversalMovements.length, 1);
+  assert.equal(Number(reversalMovements[0].delta_quantity || 0), -10);
+  const metadata = JSON.parse(reversalMovements[0].metadata_json || '{}');
+  assert.equal(metadata.material_mapping.externalMaterialCode, 'SUPPLIER-BOX-001');
+  assert.equal(metadata.material_mapping.reversedStockQuantity, 10);
+  assert.equal(metadata.material_mapping.reversedTransactionQuantity, 1);
 });
 
 test('inventoryReceiptService writes receipt and reversal movements', async () => {
