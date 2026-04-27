@@ -22,6 +22,34 @@ const OrderItem: ModelDefined<OrderItemAttributes, OrderItemCreationAttributes> 
         type: DataTypes.STRING,
         allowNull: true
     },
+    resolved_material_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    external_material_code: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    material_resolve_source: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    transaction_unit: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    stock_unit: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    unit_conversion_factor: {
+        type: DataTypes.FLOAT,
+        allowNull: true
+    },
+    stock_quantity: {
+        type: DataTypes.FLOAT,
+        allowNull: true
+    },
     name: {
         type: DataTypes.STRING,
         allowNull: false

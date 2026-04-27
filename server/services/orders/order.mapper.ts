@@ -39,6 +39,50 @@ function resolvePersistedQuantity(item: any): number {
     return Number(item?.quantity ?? 0);
 }
 
+function normalizeOptionalNumber(value: unknown): number | null {
+    if (value === undefined || value === null || value === '') return null;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeOptionalPositiveFactor(value: unknown): number | null {
+    if (value === undefined || value === null || value === '') return null;
+    const factor = Number(value);
+    if (Number.isFinite(factor) && factor > 0) return factor;
+    const error = new Error('ORDER_ITEM_UNIT_CONVERSION_INVALID') as Error & { code?: string };
+    error.code = 'ORDER_ITEM_UNIT_CONVERSION_INVALID';
+    throw error;
+}
+
+function normalizeUnit(value: unknown): string {
+    return String(value || '').trim().toUpperCase();
+}
+
+function hasMappingSnapshot(item: any): boolean {
+    return item?.resolved_material_id != null
+        || item?.external_material_code != null
+        || item?.material_resolve_source != null
+        || item?.transaction_unit != null
+        || item?.stock_unit != null
+        || item?.unit_conversion_factor != null
+        || item?.stock_quantity != null;
+}
+
+function resolveStockQuantity(item: any, persistedQuantity: number, unitConversionFactor: number | null): number | null {
+    const explicitStockQuantity = normalizeOptionalNumber(item?.stock_quantity);
+    if (explicitStockQuantity != null) return explicitStockQuantity;
+    if (unitConversionFactor != null) return persistedQuantity * unitConversionFactor;
+    const transactionUnit = normalizeUnit(item?.transaction_unit ?? item?.unit);
+    const stockUnit = normalizeUnit(item?.stock_unit);
+    if (transactionUnit && stockUnit && transactionUnit === stockUnit) return persistedQuantity;
+    if (hasMappingSnapshot(item)) {
+        const error = new Error('ORDER_ITEM_UNIT_CONVERSION_INVALID') as Error & { code?: string };
+        error.code = 'ORDER_ITEM_UNIT_CONVERSION_INVALID';
+        throw error;
+    }
+    return null;
+}
+
 /**
  * 序列化订单项
  */
@@ -50,6 +94,13 @@ export function serializeOrderItem(item: any): any {
         item_key: itemKey,
         // --- 完整物料信息 ---
         material_id: item.material_id ?? null,
+        resolved_material_id: item.resolved_material_id != null ? Number(item.resolved_material_id) : null,
+        external_material_code: item.external_material_code ?? null,
+        material_resolve_source: item.material_resolve_source ?? null,
+        transaction_unit: item.transaction_unit ?? null,
+        stock_unit: item.stock_unit ?? null,
+        unit_conversion_factor: normalizeOptionalPositiveFactor(item.unit_conversion_factor),
+        stock_quantity: item.stock_quantity != null ? Number(item.stock_quantity) : null,
         name: item.name ?? null,
         supplier: item.supplier ?? null,
         internal_name: item.internal_name ?? null,
@@ -75,9 +126,17 @@ export function serializeOrderItem(item: any): any {
  */
 export function normalizeOrderItemForPersistence(item: any): any {
     const persistedQuantity = resolvePersistedQuantity(item);
+    const unitConversionFactor = normalizeOptionalPositiveFactor(item.unit_conversion_factor);
 
     return {
         material_id: item.material_id ?? null,
+        resolved_material_id: normalizeOptionalNumber(item.resolved_material_id),
+        external_material_code: item.external_material_code ?? null,
+        material_resolve_source: item.material_resolve_source ?? null,
+        transaction_unit: item.transaction_unit ?? null,
+        stock_unit: item.stock_unit ?? null,
+        unit_conversion_factor: unitConversionFactor,
+        stock_quantity: resolveStockQuantity(item, persistedQuantity, unitConversionFactor),
         name: item.name || item.type || item.model || item.internal_name || '',
         supplier: item.supplier ?? null,
         internal_name: item.internal_name ?? null,

@@ -20,7 +20,7 @@ purgeDatabaseCache();
 process.env.DB_STORAGE = TEST_DB;
 
 // Runtime CJS bridge: these cache-purging tests must require models after DB_STORAGE is set.
-const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt } = require('../server/models') as any;
+const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt, InventoryMovement } = require('../server/models') as any;
 const orderService = (require('../server/services/orders') as any).default;
 const orderRepository = require('../server/services/orders/order.repository') as typeof import('../server/services/orders/order.repository');
 import type { MaterialInstance, InventoryReceiptInstance, OrderInstance, OrderItemInstance } from '../server/models';
@@ -781,6 +781,171 @@ test('OrderService stockInOrder supports explicit partial receipt items', async 
   }) as MaterialInstance[];
   assert.equal(Number(materials[0].stock_quantity), 8);
   assert.equal(Number(materials[1].stock_quantity), 3);
+});
+
+
+test('OrderService stores resolved material snapshots and stocks in by internal material id', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const material = await Material.create({
+    code: 'MAT-RESOLVED-001',
+    name: '映射锁体',
+    model: 'MAP-1',
+    supplier: '映射供应商',
+    stock_quantity: 7,
+    min_stock: 0,
+    unit: 'PCS',
+  }) as MaterialInstance;
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STOCK-IN-RESOLVED'),
+    supplier: '映射供应商',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'SUPPLIER-PART-001',
+        resolved_material_id: material.id,
+        external_material_code: 'SUPPLIER-PART-001',
+        material_resolve_source: 'supplier_mapping',
+        transaction_unit: 'BOX',
+        stock_unit: 'PCS',
+        unit_conversion_factor: 10,
+        supplier: '映射供应商',
+        name: '映射锁体',
+        model: 'MAP-1',
+        spec: 'MAP-1',
+        quantity: 2,
+        unit: 'BOX',
+      }
+    ]
+  });
+
+  assert.equal(created.items[0].material_id, 'SUPPLIER-PART-001');
+  assert.equal(created.items[0].resolved_material_id, material.id);
+  assert.equal(created.items[0].external_material_code, 'SUPPLIER-PART-001');
+  assert.equal(created.items[0].material_resolve_source, 'supplier_mapping');
+  assert.equal(created.items[0].transaction_unit, 'BOX');
+  assert.equal(created.items[0].stock_unit, 'PCS');
+  assert.equal(created.items[0].unit_conversion_factor, 10);
+  assert.equal(created.items[0].stock_quantity, 20);
+
+  const stockedIn = await orderService.stockInOrder(created.id, {
+    stocked_in_at: '2026-03-12T15:00:00.000Z',
+    operator: '仓管Mapping',
+  });
+
+  assert.equal(stockedIn.status, 'completed');
+  assert.equal(stockedIn.items[0].received_quantity, 2);
+
+  const refreshedMaterial = await Material.findByPk(material.id) as MaterialInstance | null;
+  assert.equal(Number(refreshedMaterial!.stock_quantity), 27);
+
+  const receipts = await InventoryReceipt.findAll({ where: { order_id: created.id } }) as InventoryReceiptInstance[];
+  assert.equal(receipts.length, 1);
+  assert.equal(receipts[0].material_id, String(material.id));
+  assert.equal(receipts[0].unit, 'PCS');
+  assert.equal(Number(receipts[0].quantity), 20);
+  const receiptSnapshot = JSON.parse(receipts[0].material_mapping_snapshot_json || '{}');
+  assert.equal(receiptSnapshot.externalMaterialCode, 'SUPPLIER-PART-001');
+  assert.equal(receiptSnapshot.resolvedMaterialId, material.id);
+  assert.equal(receiptSnapshot.transactionQuantity, 2);
+  assert.equal(receiptSnapshot.stockQuantity, 20);
+  assert.equal(receiptSnapshot.unitConversionFactor, 10);
+
+  const movement = await InventoryMovement.findOne({ where: { source_type: 'receipt_in', source_id: String(receipts[0].id) } }) as any;
+  assert.ok(movement);
+  assert.equal(Number(movement.material_id), material.id);
+  assert.equal(Number(movement.delta_quantity), 20);
+  const movementMetadata = JSON.parse(movement.metadata_json || '{}');
+  assert.equal(movementMetadata.material_mapping.externalMaterialCode, 'SUPPLIER-PART-001');
+  assert.equal(movementMetadata.material_mapping.stockUnit, 'PCS');
+});
+
+
+
+test('OrderService rejects stale resolved material snapshots before stock-in fallback', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Material.create({
+    code: 'MAT-STALE-FALLBACK-001',
+    name: '旧映射回退物料',
+    model: 'STALE-1',
+    supplier: '映射供应商',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: 'PCS',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('STALE-RESOLVED'),
+    supplier: '映射供应商',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-STALE-FALLBACK-001',
+        resolved_material_id: 999999,
+        external_material_code: 'SUPPLIER-STALE-001',
+        material_resolve_source: 'supplier_mapping',
+        transaction_unit: 'PCS',
+        stock_unit: 'PCS',
+        supplier: '映射供应商',
+        name: '旧映射回退物料',
+        model: 'STALE-1',
+        spec: 'STALE-1',
+        quantity: 1,
+        unit: 'PCS',
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () => orderService.stockInOrder(created.id, {
+      stocked_in_at: '2026-03-12T16:00:00.000Z',
+      operator: '仓管Mapping',
+    }),
+    (error: { code?: string; message?: string }) => {
+      assert.equal(error.code || error.message, 'MATERIAL_NOT_FOUND');
+      return true;
+    }
+  );
+
+  assert.equal(await InventoryReceipt.count({ where: { order_id: created.id } }), 0);
+});
+
+test('OrderService rejects invalid material unit conversion factors on create', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await assert.rejects(
+    () => orderService.createOrder({
+      order_no: uniqueOrderNo('INVALID-CONVERSION'),
+      supplier: '映射供应商',
+      category: '锁具',
+      status: 'draft',
+      items: [
+        {
+          material_id: 'SUPPLIER-PART-BAD',
+          resolved_material_id: 1,
+          external_material_code: 'SUPPLIER-PART-BAD',
+          material_resolve_source: 'supplier_mapping',
+          transaction_unit: 'BOX',
+          stock_unit: 'PCS',
+          unit_conversion_factor: 0,
+          name: '无效换算锁体',
+          quantity: 1,
+          unit: 'BOX',
+        }
+      ]
+    }),
+    (error: { code?: string; message?: string }) => {
+      assert.equal(error.code || error.message, 'ORDER_ITEM_UNIT_CONVERSION_INVALID');
+      return true;
+    }
+  );
 });
 
 test('OrderService stockInOrder falls back to quantity when ordered_quantity is zero on legacy items', async () => {

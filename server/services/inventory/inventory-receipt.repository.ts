@@ -37,9 +37,18 @@ const RECEIPT_INCLUDE = [
 ];
 
 export async function findMaterialForItem(
-    item: { material_id?: string | number | null } | null | undefined,
+    item: { material_id?: string | number | null; resolved_material_id?: string | number | null } | null | undefined,
     transaction?: LooseTransaction,
 ): Promise<MaterialInstance> {
+    const resolvedMaterialId = Number(item?.resolved_material_id);
+    if (Number.isInteger(resolvedMaterialId) && resolvedMaterialId > 0) {
+        const resolvedMaterial = await Material.findByPk(resolvedMaterialId, { transaction: transaction ?? null }) as unknown as MaterialInstance | null;
+        if (!resolvedMaterial) {
+            throw createReceiptError('MATERIAL_NOT_FOUND', { materialId: String(resolvedMaterialId) });
+        }
+        return resolvedMaterial;
+    }
+
     const { code, numericId } = resolveMaterialLookupCandidates(item?.material_id);
     if (!code && !numericId) {
         throw createReceiptError('MATERIAL_ID_REQUIRED', { item });
