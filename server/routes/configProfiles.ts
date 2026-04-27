@@ -18,6 +18,7 @@ import { getConfigProfileReplay } from '../services/config-platform/profile.repl
 import { getConfigProfileReferenceCheck } from '../services/config-platform/profile.reference-check';
 
 const router: Router = Router();
+const MAX_FORMULA_RECOMMENDATION_SOURCE_KEY_LENGTH = 128;
 
 function operatorFromRequest(req: Request) {
   return String(req.headers['x-operator'] || req.headers['x-user'] || 'system-admin');
@@ -53,8 +54,16 @@ router.get('/formulas/items', async (req: Request, res: Response) => {
 
 router.get('/formulas/bom-recommendations', async (req: Request, res: Response) => {
   try {
+    const sourceFormulaKey = typeof req.query.sourceFormulaKey === 'string'
+      ? req.query.sourceFormulaKey
+      : undefined;
+    if (sourceFormulaKey && sourceFormulaKey.length > MAX_FORMULA_RECOMMENDATION_SOURCE_KEY_LENGTH) {
+      res.status(400).json({ success: false, error: 'sourceFormulaKey is too long' });
+      return;
+    }
+
     const recommendation = await FormulaService.recommendFormulaBom({
-      sourceFormulaKey: req.query.sourceFormulaKey as string | undefined,
+      sourceFormulaKey,
     });
     res.json({ success: true, recommendation });
   } catch (error) {

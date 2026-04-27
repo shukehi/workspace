@@ -47,6 +47,12 @@ export type FormulaBomRecommendation = {
 };
 
 const VALID_STATES = new Set(['draft', 'published', 'archived']);
+// Advisory UI confidence only; it is not a validation or publish-readiness score.
+const RECOMMENDATION_CONFIDENCE = {
+    NO_SOURCE: 0,
+    REVIEW_REQUIRED: 0.45,
+    CLEAN_PUBLISHED_SOURCE: 0.7,
+} as const;
 
 export function operatorFromRequest(req?: { headers?: Record<string, unknown> }): string {
     const fromHeader = req?.headers?.['x-operator'] || req?.headers?.['x-user'];
@@ -212,7 +218,7 @@ export async function recommendFormulaBom({ sourceFormulaKey = '' }: { sourceFor
         return {
             rows: [],
             source: { type: 'none' },
-            confidence: 0,
+            confidence: RECOMMENDATION_CONFIDENCE.NO_SOURCE,
             explanation: 'No recommendation source selected. Manual BOM entry remains available.',
             warnings: [{
                 code: 'NO_SOURCE',
@@ -228,7 +234,7 @@ export async function recommendFormulaBom({ sourceFormulaKey = '' }: { sourceFor
         return {
             rows: [],
             source: { type: 'none', formulaKey: selectedSource },
-            confidence: 0,
+            confidence: RECOMMENDATION_CONFIDENCE.NO_SOURCE,
             explanation: 'No published formula matched the selected recommendation source. Manual BOM entry remains available.',
             warnings: [{
                 code: 'SOURCE_NOT_FOUND',
@@ -248,7 +254,9 @@ export async function recommendFormulaBom({ sourceFormulaKey = '' }: { sourceFor
             formulaKey: source.formulaKey,
             displayName: source.displayName,
         },
-        confidence: warnings.length > 0 ? 0.45 : 0.7,
+        confidence: warnings.length > 0
+            ? RECOMMENDATION_CONFIDENCE.REVIEW_REQUIRED
+            : RECOMMENDATION_CONFIDENCE.CLEAN_PUBLISHED_SOURCE,
         explanation: 'Draft candidates copied from a published formula. Review every row before saving or publishing.',
         warnings,
         readOnly: true,

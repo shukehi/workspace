@@ -1078,6 +1078,16 @@ test('GET /api/config/profiles/formulas/bom-recommendations degrades safely with
   assert.ok(body.recommendation.warnings.some((warning: any) => warning.code === 'NO_SOURCE'));
 });
 
+test('GET /api/config/profiles/formulas/bom-recommendations rejects overlong source keys', async () => {
+  const overlongKey = 'F'.repeat(129);
+  const res = await fetch(`${baseUrl}/api/config/profiles/formulas/bom-recommendations?sourceFormulaKey=${overlongKey}`);
+  assert.equal(res.status, 400);
+
+  const body = await res.json();
+  assert.equal(body.success, false);
+  assert.match(body.error, /sourceFormulaKey/i);
+});
+
 test('supplier master profile lifecycle seeds, publishes, and rolls back revisions', async () => {
   const initialDetailRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/detail`);
   assert.equal(initialDetailRes.status, 200);

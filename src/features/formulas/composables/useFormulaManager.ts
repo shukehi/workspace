@@ -20,6 +20,9 @@ import {
   validateFormulaDraft,
 } from '@/features/formulas/model/formulaDraft';
 
+// Keeps the source selector bounded until the UI grows search/pagination.
+const RECOMMENDATION_SOURCE_PAGE_SIZE = 200;
+
 export function useFormulaManager() {
   const { toast } = useToastStore();
 
@@ -150,7 +153,11 @@ export function useFormulaManager() {
 
   async function loadRecommendationSources() {
     try {
-      const response = await formulaProfileApi.list({ status: 'published', page: 1, pageSize: 200 });
+      const response = await formulaProfileApi.list({
+        status: 'published',
+        page: 1,
+        pageSize: RECOMMENDATION_SOURCE_PAGE_SIZE,
+      });
       recommendationSources.value = response.items.filter((item) => item.status === 'published');
       const sourceStillAvailable = recommendationSources.value.some((item) => item.formulaKey === recommendationSourceKey.value);
       if (!sourceStillAvailable) {

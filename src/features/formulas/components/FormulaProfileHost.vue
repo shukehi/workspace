@@ -123,7 +123,7 @@ defineProps<{
               <div v-if="manager.recommendation" class="text-xs text-muted-foreground space-y-1">
                 <div>
                   来源：{{ manager.recommendation.source.displayName || manager.recommendation.source.formulaKey || '未选择' }}
-                  · 置信度：{{ manager.recommendation.confidence }}
+                  · 置信度：{{ (manager.recommendation.confidence * 100).toFixed(0) }}%
                   · {{ manager.recommendation.explanation }}
                 </div>
                 <ul v-if="manager.recommendation.warnings.length > 0" class="list-disc pl-5 text-amber-700">
