@@ -18,6 +18,7 @@ export interface MaterialAttributes {
     code: string;
     name: string;
     model?: string | null;
+    /** Compatibility field: legacy display/search fallback. New purchasing supplier data belongs in material_supplier_mappings. */
     supplier?: string | null;
     supplier_master_id?: number | null;
     unit: string;
@@ -26,6 +27,7 @@ export interface MaterialAttributes {
     package_spec?: string | null;
     stock_quantity: number;
     min_stock: number;
+    /** Compatibility field: legacy resolver fallback. New external codes belong in material_code_mappings. */
     aliases: string[];
     createdAt?: Date;
     updatedAt?: Date;
@@ -36,6 +38,7 @@ export interface MaterialCreationAttributes {
     code: string;
     name: string;
     model?: string | null;
+    /** Compatibility field: legacy display/search fallback. New purchasing supplier data belongs in material_supplier_mappings. */
     supplier?: string | null;
     supplier_master_id?: number | null;
     unit?: string;
@@ -44,6 +47,7 @@ export interface MaterialCreationAttributes {
     package_spec?: string | null;
     stock_quantity?: number;
     min_stock?: number;
+    /** Compatibility field: legacy resolver fallback. New external codes belong in material_code_mappings. */
     aliases?: string[];
 }
 

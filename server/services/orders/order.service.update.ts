@@ -11,6 +11,7 @@ import { normalizeOrderItemForPersistence, serializeOrder } from './order.mapper
 import type { PlainRecord } from '../../shared/types';
 import { DuplicateOrderError } from './order.errors';
 import { normalizeTemplateType } from './order.template';
+import { auditLegacyMaterialFallbackUsage } from '../materials/material-legacy-compatibility';
 
 type OrderLike = Pick<
     OrderAttributes,
@@ -166,6 +167,15 @@ function buildNextOrderValues({
     };
 }
 
+function auditLegacyMaterialFallbacksOnUpdate(nextItems: PlainRecord[], orderId: number | string, orderNo: string) {
+    nextItems.forEach((item: PlainRecord) => auditLegacyMaterialFallbackUsage({
+        stage: 'order_update',
+        orderId,
+        orderNo,
+        item,
+    }));
+}
+
 
 export function buildUpdateOrderLifecycleDeps(bindings: {
     getOrderById: (id: number | string) => Promise<PlainRecord | null>;
@@ -319,6 +329,9 @@ export async function updateOrderLifecycle(
         }
 
         await transaction.commit();
+        if (data.items) {
+            auditLegacyMaterialFallbacksOnUpdate(nextItems, id, nextOrderNo);
+        }
         const persisted = await deps.getOrderById(id);
         if (persisted) return persisted;
 

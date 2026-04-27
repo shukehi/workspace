@@ -23,6 +23,7 @@ process.env.DB_STORAGE = TEST_DB;
 const { sequelize, Order, OrderItem, OrderIdempotencyKey, Material, InventoryReceipt, InventoryMovement } = require('../server/models') as any;
 const orderService = (require('../server/services/orders') as any).default;
 const orderRepository = require('../server/services/orders/order.repository') as typeof import('../server/services/orders/order.repository');
+const { logger } = require('../server/app/logger') as typeof import('../server/app/logger');
 import type { MaterialInstance, InventoryReceiptInstance, OrderInstance, OrderItemInstance } from '../server/models';
 import type { OrderCreateInput, OrderUpdateInput } from '../server/models/types';
 
@@ -861,6 +862,60 @@ test('OrderService stores resolved material snapshots and stocks in by internal 
   const movementMetadata = JSON.parse(movement.metadata_json || '{}');
   assert.equal(movementMetadata.material_mapping.externalMaterialCode, 'SUPPLIER-PART-001');
   assert.equal(movementMetadata.material_mapping.stockUnit, 'PCS');
+});
+
+test('OrderService warns when stock-in commits through legacy material_id fallback', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  await Material.create({
+    code: 'MAT-LEGACY-WARN-001',
+    name: '旧字段告警物料',
+    model: 'LEGACY-WARN-1',
+    supplier: '旧字段供应商',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: 'PCS',
+  });
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('LEGACY-WARN'),
+    supplier: '旧字段供应商',
+    category: '锁具',
+    status: 'arrived',
+    items: [
+      {
+        material_id: 'MAT-LEGACY-WARN-001',
+        supplier: '旧字段供应商',
+        name: '旧字段告警物料',
+        model: 'LEGACY-WARN-1',
+        spec: 'LEGACY-WARN-1',
+        quantity: 1,
+        unit: 'PCS',
+      }
+    ]
+  });
+
+  const originalWarn = logger.warn;
+  const warnings: Array<{ meta: Record<string, unknown>; message?: string }> = [];
+  (logger as any).warn = (meta: Record<string, unknown>, message?: string) => {
+    warnings.push({ meta, message });
+  };
+  try {
+    await orderService.stockInOrder(created.id, {
+      stocked_in_at: '2026-03-12T15:30:00.000Z',
+      operator: '仓管Legacy',
+    });
+  } finally {
+    (logger as any).warn = originalWarn;
+  }
+
+  assert.ok(warnings.some((entry) => (
+    entry.message === 'Legacy material mapping fallback used during transaction commit'
+    && entry.meta.stage === 'stock_in_receipt'
+    && entry.meta.reason === 'legacy_material_id_commit_fallback'
+    && entry.meta.materialInput === 'MAT-LEGACY-WARN-001'
+  )));
 });
 
 
