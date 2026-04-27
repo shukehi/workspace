@@ -5,6 +5,10 @@ import type {
 } from '../../models/types';
 import type { PlainRecord } from '../../shared/types';
 import type { BomRow } from './formula.validator';
+import type {
+    FormulaBomRecommendation as SharedFormulaBomRecommendation,
+    FormulaBomRecommendationWarning,
+} from '@/shared/types/formulaRecommendation';
 
 import FormulaRepository from './formula.repository';
 import { Op } from 'sequelize';
@@ -20,31 +24,13 @@ type FormulaWorkflowResult =
     | { ok: true; revision?: PlainRecord | number | null; definition?: PlainRecord | null }
     | { ok: false; status: number; errors: FormulaError[]; latestRevision?: number | null };
 
-type FormulaBomRecommendationWarning = {
-    code: string;
-    message: string;
-    field?: string;
-};
-
 type PublishedFormulaBomSource = {
     formulaKey: string;
     displayName?: string;
     bom: unknown[];
 };
 
-export type FormulaBomRecommendation = {
-    rows: BomRow[];
-    source: {
-        type: 'published_formula' | 'none';
-        formulaKey?: string;
-        displayName?: string;
-    };
-    confidence: number;
-    explanation: string;
-    warnings: FormulaBomRecommendationWarning[];
-    readOnly: true;
-    sideEffect: 'none';
-};
+export type FormulaBomRecommendation = SharedFormulaBomRecommendation<BomRow>;
 
 const VALID_STATES = new Set(['draft', 'published', 'archived']);
 // Advisory UI confidence only; it is not a validation or publish-readiness score.

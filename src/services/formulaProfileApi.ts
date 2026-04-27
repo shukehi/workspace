@@ -7,6 +7,11 @@ import type {
   FormulaSummary,
 } from '@/types/formula';
 import type { MappingWorkflowDiff, MappingWorkflowImpact, MappingWorkflowReplay, MappingWorkflowReferenceCheck, SupplierMasterEntry } from '@/services/mappingConfigApi';
+import type {
+  FormulaBomRecommendation as SharedFormulaBomRecommendation,
+  FormulaBomRecommendationResponse,
+  FormulaBomRecommendationWarning,
+} from '@/shared/types/formulaRecommendation';
 
 export type MutationError = {
   field: string;
@@ -38,25 +43,8 @@ export interface FormulaCollectionProfileDetail {
   publishedPayload: Record<string, unknown>;
 }
 
-export type FormulaBomRecommendationWarning = {
-  code: string;
-  message: string;
-  field?: string;
-};
-
-export type FormulaBomRecommendation = {
-  rows: FormulaBOMItem[];
-  source: {
-    type: 'published_formula' | 'none';
-    formulaKey?: string;
-    displayName?: string;
-  };
-  confidence: number;
-  explanation: string;
-  warnings: FormulaBomRecommendationWarning[];
-  readOnly: true;
-  sideEffect: 'none';
-};
+export type { FormulaBomRecommendationWarning };
+export type FormulaBomRecommendation = SharedFormulaBomRecommendation<FormulaBOMItem>;
 
 export const formulaProfileApi = {
   async profileDetail(): Promise<FormulaCollectionProfileDetail> {
@@ -97,7 +85,7 @@ export const formulaProfileApi = {
   },
 
   async bomRecommendation(params: { sourceFormulaKey?: string } = {}): Promise<FormulaBomRecommendation> {
-    const res = await api.get<{ success: boolean; recommendation: FormulaBomRecommendation }>(
+    const res = await api.get<FormulaBomRecommendationResponse<FormulaBOMItem>>(
       '/config/profiles/formulas/bom-recommendations',
       { params }
     );
