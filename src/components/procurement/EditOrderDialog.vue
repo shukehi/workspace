@@ -8,8 +8,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { resolveApiErrorMessage } from '@/lib/api';
 import { useProcurementStore } from '@/stores/useProcurementStore';
 import type { Order } from '@/types/order';
+import { materialMappingApi } from '@/services/materialMappingApi';
+import { supplierMasterApi } from '@/services/supplierMasterApi';
 import { cloneOrderDraft } from '@/features/procurement/orderDraft';
 import {
   type PrintCategory
@@ -41,8 +44,14 @@ import {
   nowStamp,
 } from '@/features/procurement/editOrderDraft';
 import { collectManualOrderValidationIssues, stripBlankManualItems, validateManualOrderDraft } from '@/features/procurement/manualOrderValidation';
+import {
+  applyMaterialResolutionToOrderItem,
+  findSupplierMasterIdForOrder,
+  resolveMaterialCodeInput,
+} from '@/features/procurement/materialResolution';
 import { removeOrderItemByKey, reorderOrderItemsByKey, type OrderItemDropPlacement } from '@/features/procurement/orderItemEditor';
 import { isOrderRiskDismissed, resolveOrderRisk } from '@/features/procurement/orderRisk';
+import type { SupplierMasterEntry } from '@/services/mappingConfigApi';
 
 type DialogMode = 'edit' | 'create';
 
@@ -74,6 +83,8 @@ const columnWidths = ref<Record<string, number>>({ ...getDefaultWidths('packagin
 const aggregateSideQuantities = ref(false);
 const validationErrors = ref<ReturnType<typeof collectManualOrderValidationIssues>>([]);
 const validationVisible = ref(false);
+const supplierMasterOptions = ref<SupplierMasterEntry[]>([]);
+const materialResolutionStates = ref<Record<string, { loading?: boolean; error?: string }>>({});
 
 const isCreateMode = computed(() => props.mode === 'create');
 const isRestrictedDetailEdit = computed(() => !isCreateMode.value && form.value.status === 'arrived');
@@ -208,6 +219,7 @@ function bootstrapEditOrder(order: Order) {
   columnWidths.value = widths;
   aggregateSideQuantities.value = supportsAggregateQuantityToggle.value && Boolean(draft.metadata?.aggregateSideQuantities);
   validationVisible.value = false;
+  materialResolutionStates.value = {};
   updateValidationErrors(draft);
   initialSnapshot.value = JSON.stringify(draft);
 }
@@ -221,8 +233,18 @@ function bootstrapCreateOrder() {
   form.value.metadata.aggregateSideQuantities = false;
   applyCreateTemplate(props.createTemplateType, props.createCategory || undefined);
   validationVisible.value = false;
+  materialResolutionStates.value = {};
   updateValidationErrors(form.value);
   initialSnapshot.value = JSON.stringify(form.value);
+}
+
+async function loadSupplierMasterOptions() {
+  try {
+    supplierMasterOptions.value = await supplierMasterApi.list();
+  } catch (error) {
+    console.warn('Supplier master options unavailable for material resolution', error);
+    supplierMasterOptions.value = [];
+  }
 }
 
 function applyCreateTemplate(templateType: ProcurementTemplateType, nextCategory?: string) {
@@ -264,6 +286,7 @@ watch(
   }),
   ({ open, mode, order }) => {
     if (!open) return;
+    void loadSupplierMasterOptions();
 
     if (mode === 'create') {
       bootstrapCreateOrder();
@@ -440,6 +463,53 @@ const reorderItemRow = (payload: { sourceItemKey: string; targetItemKey: string;
   form.value.items = reorderOrderItemsByKey(form.value.items, payload) as Order['items'];
 };
 
+function findDraftItemByKey(itemKey: string) {
+  return (form.value?.items || []).find((item, index) => {
+    if (String(item.item_key || '') === itemKey) return true;
+    if (item.id && `order-item-${item.id}` === itemKey) return true;
+    return `draft-row-${index}` === itemKey;
+  });
+}
+
+async function resolveMaterialForItem(itemKey: string) {
+  if (!form.value) return;
+  const item = findDraftItemByKey(itemKey);
+  if (!item) return;
+  const code = resolveMaterialCodeInput(item);
+  if (!code) {
+    materialResolutionStates.value = {
+      ...materialResolutionStates.value,
+      [itemKey]: { error: '请输入物料编码或供应商料号' },
+    };
+    return;
+  }
+
+  materialResolutionStates.value = {
+    ...materialResolutionStates.value,
+    [itemKey]: { loading: true },
+  };
+  try {
+    const resolution = await materialMappingApi.resolve({
+      code,
+      supplierMasterId: findSupplierMasterIdForOrder(form.value as Order, supplierMasterOptions.value),
+      transactionUnit: item.unit,
+      stockUnit: item.stock_unit,
+      allowLegacyFallback: true,
+    });
+    const syncedItem = syncOrderItemQuantity(item, currentCategory.value);
+    applyMaterialResolutionToOrderItem(syncedItem, resolution, { externalCode: code });
+    materialResolutionStates.value = {
+      ...materialResolutionStates.value,
+      [itemKey]: {},
+    };
+  } catch (error) {
+    materialResolutionStates.value = {
+      ...materialResolutionStates.value,
+      [itemKey]: { error: resolveApiErrorMessage(error) },
+    };
+  }
+}
+
 const handleTemplateChange = (event: Event) => {
   if (!isCreateMode.value || !form.value) return;
   const templateType = (event.target as HTMLSelectElement).value as ProcurementTemplateType;
@@ -545,10 +615,12 @@ const handleBusinessCategoryChange = (event: Event) => {
           :default-widths="currentDefaultWidths"
           :aggregate-side-quantities="aggregateSideQuantities"
           :validation-errors="orderSheetValidationState"
+          :material-resolution-states="materialResolutionStates"
           :hidden-columns="isCreateMode ? ['mb'] : []"
           @update:column-widths="handleColumnWidthsChange"
           @remove:item="removeItemRow"
           @reorder:item="reorderItemRow"
+          @resolve:item="resolveMaterialForItem"
         />
       </div>
     </DialogContent>

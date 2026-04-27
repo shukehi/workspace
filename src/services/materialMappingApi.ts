@@ -57,6 +57,29 @@ export interface MaterialMappingsPayload {
   uomConversions: MaterialUomConversionRecord[];
 }
 
+export type MaterialResolveSource = 'internal_code' | 'supplier_mapping' | 'code_mapping' | 'legacy_alias' | 'legacy_exact';
+
+export interface ResolvedMaterialPayload {
+  material: Record<string, unknown>;
+  materialId: number;
+  materialCode: string;
+  materialName: string;
+  stockUnit: string;
+  transactionUnit: string;
+  conversionFactor: number;
+  supplierMasterId?: number | null;
+  supplierCode?: string | null;
+  source: MaterialResolveSource;
+}
+
+export interface ResolveMaterialParams {
+  code: string;
+  supplierMasterId?: number | null;
+  transactionUnit?: string | null;
+  stockUnit?: string | null;
+  allowLegacyFallback?: boolean;
+}
+
 export type CreateSupplierMappingPayload = Partial<MaterialSupplierMappingRecord> & {
   supplier_master_id?: number | null;
   supplier_code: string;
@@ -92,6 +115,19 @@ function emptyMappings(): MaterialMappingsPayload {
 }
 
 export const materialMappingApi = {
+  async resolve(params: ResolveMaterialParams): Promise<ResolvedMaterialPayload> {
+    const res = await api.get<{ success: boolean; resolution: ResolvedMaterialPayload }>('/materials/resolve', {
+      params: {
+        code: params.code,
+        supplier_master_id: params.supplierMasterId ?? undefined,
+        transaction_unit: params.transactionUnit || undefined,
+        stock_unit: params.stockUnit || undefined,
+        allow_legacy_fallback: params.allowLegacyFallback === undefined ? undefined : String(params.allowLegacyFallback),
+      },
+    });
+    return res.resolution;
+  },
+
   async list(materialId: number): Promise<MaterialMappingsPayload> {
     const res = await api.get<{ success: boolean; mappings?: MaterialMappingsPayload }>(`/materials/${materialId}/mappings`);
     return res.mappings || emptyMappings();
