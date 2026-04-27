@@ -20,7 +20,7 @@ import {
 const route = useRoute();
 const router = useRouter();
 
-const MATERIAL_DETAIL_TABS = ['basic', 'relationship', 'diagnostics', 'audit'] as const;
+const MATERIAL_DETAIL_TABS = ['basic', 'relationship', 'mappings', 'diagnostics', 'audit'] as const;
 type MaterialDetailTab = typeof MATERIAL_DETAIL_TABS[number];
 
 function normalizeMaterialTab(value: unknown): MaterialDetailTab {
@@ -40,6 +40,10 @@ const {
   publishing,
   rollingBackRevision,
   supplierMasterOptions,
+  materialMappings,
+  materialMappingsMaterialId,
+  materialMappingsLoading,
+  materialMappingError,
   relationshipHealth,
   actionableRelationshipGroups,
   isEditDialogOpen,
@@ -50,6 +54,13 @@ const {
   openEditDialog,
   saveMaterial,
   autoRelinkMaterial,
+  fetchMaterialMappings,
+  createSupplierMapping,
+  updateSupplierMapping,
+  createCodeMapping,
+  updateCodeMapping,
+  createUomConversion,
+  updateUomConversion,
   publishDraft,
   rollbackRevision,
 } = useMaterialManagementPageState();
@@ -61,6 +72,12 @@ const selectedMaterial = computed(() => (
   materials.value.find((item) => item.id === selectedMaterialId.value)
   ?? materials.value[0]
   ?? null
+));
+
+const selectedMaterialMappings = computed(() => (
+  selectedMaterial.value && materialMappingsMaterialId.value === selectedMaterial.value.id
+    ? materialMappings.value
+    : null
 ));
 
 function syncRouteSelection(materialId: number | null, tab = activeDetailTab.value) {
@@ -100,6 +117,10 @@ watch(selectedMaterialId, (nextId) => {
   if (nextId && Number(route.query.materialId || 0) !== nextId) {
     syncRouteSelection(nextId);
   }
+});
+
+watch(selectedMaterialId, (nextId) => {
+  void fetchMaterialMappings(nextId);
 });
 
 function handleMaterialSelect(material: MaterialRecord) {
@@ -178,10 +199,20 @@ function jumpToSupplierDetail(supplierMasterId: number) {
           :active-tab="activeDetailTab"
           :audit-logs="auditLogs"
           :supplier-master-options="supplierMasterOptions"
+          :mappings="selectedMaterialMappings"
+          :mappings-loading="materialMappingsLoading"
+          :mapping-error="materialMappingError"
           @open-edit="openEditDialog"
           @auto-relink="autoRelinkMaterial"
           @jump-to-supplier="jumpToSupplierDetail"
           @update:active-tab="handleDetailTabChange"
+          @refresh-mappings="fetchMaterialMappings"
+          @create-supplier-mapping="createSupplierMapping"
+          @update-supplier-mapping="updateSupplierMapping"
+          @create-code-mapping="createCodeMapping"
+          @update-code-mapping="updateCodeMapping"
+          @create-uom-conversion="createUomConversion"
+          @update-uom-conversion="updateUomConversion"
         />
       </div>
     </section>
