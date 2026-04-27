@@ -2,6 +2,7 @@ import { sequelize } from '../../models';
 import * as orderRepository from './order.repository';
 import type { Transaction } from 'sequelize';
 import type { PlainRecord } from '../../shared/types';
+import { auditLegacyMaterialFallbackUsage } from '../materials/material-legacy-compatibility';
 
 type ReceiptItem = {
     orderItem: PlainRecord;
@@ -121,7 +122,7 @@ async function resolveStockInOrderUpdate(
     data: PlainRecord,
     transaction: Transaction | undefined,
     deps: StockInOrderServices,
-): Promise<PlainRecord> {
+): Promise<{ nextOrderValues: PlainRecord; receiptItems: ReceiptItem[] }> {
     const receiptItems = await createReceiptItemsFromOrder(order, data, transaction, {
         inventoryReceiptService: deps.inventoryReceiptService,
         MissingMaterialError: deps.MissingMaterialError,
@@ -138,7 +139,10 @@ async function resolveStockInOrderUpdate(
         deps.resolveOrderedQuantity,
     );
 
-    return buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark);
+    return {
+        nextOrderValues: buildStockInOrderUpdate(order, data, allReceived, deps.normalizeOrderRemark),
+        receiptItems,
+    };
 }
 
 export async function stockInOrderLifecycle(
@@ -160,7 +164,7 @@ export async function stockInOrderLifecycle(
         if (!order) throw new Error('Order not found');
 
         assertOrderReadyForStockIn(order, deps.normalizeStatus, deps.InvalidStatusTransitionError);
-        const nextOrderValues = await resolveStockInOrderUpdate(order, data, transaction, {
+        const { nextOrderValues, receiptItems } = await resolveStockInOrderUpdate(order, data, transaction, {
             inventoryReceiptService: deps.inventoryReceiptService,
             MissingMaterialError: deps.MissingMaterialError,
             resolveOrderedQuantity: deps.resolveOrderedQuantity,
@@ -171,6 +175,12 @@ export async function stockInOrderLifecycle(
         await order.update(nextOrderValues, { transaction });
 
         await transaction.commit();
+        receiptItems.forEach((receiptItem) => auditLegacyMaterialFallbackUsage({
+            stage: 'stock_in_receipt',
+            orderId: order.id,
+            orderNo: order.order_no,
+            item: receiptItem.orderItem,
+        }));
         return await deps.getOrderById(id);
     } catch (error) {
         await transaction.rollback();

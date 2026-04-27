@@ -1,6 +1,7 @@
 import type { Transaction } from 'sequelize';
 import type { MaterialAttributes, MaterialCreationAttributes } from '../models/types';
 import MaterialRepository from './materials/material.repository';
+import materialResolverService from './materials/material-resolver.service';
 import { SupplierMaster } from '../models';
 import { createMaterialMasterAuditLog } from './config-platform/material-master.audit';
 import { syncMasterDataDraft } from './config-platform/master-data.lifecycle';
@@ -170,15 +171,22 @@ export class MaterialService {
         if (!rawName) return null;
 
         try {
-            // 1. 第一优先级：精确匹配 (Code, Model, Name)
-            const exactMatch = await MaterialRepository.findOneExact(rawName, transaction);
-            if (exactMatch) return exactMatch.get({ plain: true });
+            // Authoritative path: mapping resolver owns exact code, mapping-table,
+            // and legacy alias/exact compatibility fallback ordering.
+            const resolved = await materialResolverService.resolve({
+                code: rawName,
+                allowLegacyFallback: true,
+                transaction,
+            });
+            return resolved.material;
+        } catch {
+            // DB not ready, no deterministic mapping hit, or table missing —
+            // degrade to fuzzy compatibility search below.
+        }
 
-            // 2. 第二优先级：别名匹配 (Alias Match)
-            const aliasMatch = await MaterialRepository.findByAlias(rawName, transaction);
-            if (aliasMatch) return aliasMatch.get({ plain: true });
-
-            // 3. 第三优先级：模糊保底匹配 (Fuzzy Match)
+        try {
+            // Final compatibility path: fuzzy search is search-only, never a
+            // transaction-commit resolver.
             const fuzzyMatch = await MaterialRepository.findFuzzy(rawName, transaction);
             return fuzzyMatch ? fuzzyMatch.get({ plain: true }) : null;
         } catch {

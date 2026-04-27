@@ -10,6 +10,7 @@ import { sanitizeManualCreateItems, validateManualCreateOrder } from './order-cr
 import { isUniqueOrderNoError, normalizeOrderRemark } from './order.service.helpers';
 import { DuplicateOrderError } from './order.errors';
 import type { PlainRecord } from '../../shared/types';
+import { auditLegacyMaterialFallbackUsage } from '../materials/material-legacy-compatibility';
 
 type CreateOrderContext = {
   normalizedCategory: OrderAttributes['category'];
@@ -99,6 +100,15 @@ function buildCreateOrderItems(normalizedData: PlainRecord, orderId: number) {
     ...normalizeOrderItemForPersistence(item),
     id: undefined,
     order_id: orderId,
+  }));
+}
+
+function auditLegacyMaterialFallbacksOnCreate(normalizedData: PlainRecord, orderId: number) {
+  (normalizedData.items || []).forEach((item: PlainRecord) => auditLegacyMaterialFallbackUsage({
+    stage: 'order_create',
+    orderId,
+    orderNo: normalizedData.order_no,
+    item,
   }));
 }
 
@@ -214,6 +224,7 @@ export async function createOrderLifecycle(
       }, transaction);
 
       await transaction.commit();
+      auditLegacyMaterialFallbacksOnCreate(normalizedData, order.id);
       const persisted = await deps.getOrderById(order.id);
       if (persisted) return persisted;
 

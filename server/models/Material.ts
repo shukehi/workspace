@@ -29,7 +29,8 @@ const Material: ModelDefined<MaterialAttributes, MaterialCreationAttributes> = s
     },
     supplier: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
+        comment: 'Compatibility field only. New supplier purchasing codes/units belong in material_supplier_mappings.'
     },
     supplier_master_id: {
         type: DataTypes.INTEGER,
@@ -61,7 +62,8 @@ const Material: ModelDefined<MaterialAttributes, MaterialCreationAttributes> = s
     },
     aliases: {
         type: DataTypes.JSON,
-        defaultValue: []
+        defaultValue: [],
+        comment: 'Compatibility field only. New aliases/barcodes/legacy codes belong in material_code_mappings.'
     }
 }, {
     tableName: 'materials',
