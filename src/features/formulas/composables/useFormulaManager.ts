@@ -1,9 +1,10 @@
-import { onBeforeUnmount, ref, watch } from 'vue';
-import { formulaProfileApi, type FormulaCollectionProfileDetail } from '@/services/formulaProfileApi';
+import { getCurrentInstance, onBeforeUnmount, ref, watch } from 'vue';
+import { formulaProfileApi, type FormulaBomRecommendation, type FormulaCollectionProfileDetail } from '@/services/formulaProfileApi';
 import type {
   FormulaBOMItem,
   FormulaDetail,
   FormulaRevisionMeta,
+  FormulaSummary,
 } from '@/types/formula';
 import { useToastStore } from '@/stores/useToastStore';
 import { BOM_MATERIAL_CATEGORIES, type FormulaValidationErrors } from '@/features/formulas/types';
@@ -45,6 +46,10 @@ export function useFormulaManager() {
 
   const bomDraft = ref<FormulaBOMItem[]>([]);
   const validationErrors = ref<FormulaValidationErrors>({});
+  const recommendationSources = ref<FormulaSummary[]>([]);
+  const recommendationSourceKey = ref('');
+  const recommendation = ref<FormulaBomRecommendation | null>(null);
+  const recommendationLoading = ref(false);
 
   function clearSelection() {
     selectedKey.value = '';
@@ -141,6 +146,66 @@ export function useFormulaManager() {
   function removeBomRow(index: number) {
     bomDraft.value.splice(index, 1);
     markDirty();
+  }
+
+  async function loadRecommendationSources() {
+    try {
+      const response = await formulaProfileApi.list({ status: 'published', page: 1, pageSize: 200 });
+      recommendationSources.value = response.items.filter((item) => item.status === 'published');
+      const sourceStillAvailable = recommendationSources.value.some((item) => item.formulaKey === recommendationSourceKey.value);
+      if (!sourceStillAvailable) {
+        recommendationSourceKey.value = recommendationSources.value[0]?.formulaKey || '';
+      }
+    } catch {
+      recommendationSources.value = [];
+      toast({ title: '加载推荐来源失败', variant: 'destructive' });
+    }
+  }
+
+  async function applyBomRecommendation() {
+    if (!detail.value) return;
+    if (!recommendationSourceKey.value) {
+      toast({ title: '请先选择已发布配方作为推荐来源', variant: 'destructive' });
+      return;
+    }
+
+    const hasExistingBom = bomDraft.value.some((row) => isMeaningfulBomRow(normalizeBomRow(row)));
+    if (hasExistingBom) {
+      const confirmed = window.confirm('推荐 BOM 会替换当前未保存 BOM 明细，确认应用？');
+      if (!confirmed) return;
+    }
+
+    recommendationLoading.value = true;
+    try {
+      const result = await formulaProfileApi.bomRecommendation({ sourceFormulaKey: recommendationSourceKey.value });
+      recommendation.value = result;
+
+      if (result.rows.length === 0) {
+        toast({
+          title: '没有可应用的推荐 BOM',
+          description: result.warnings[0]?.message || result.explanation,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      bomDraft.value = result.rows.map((row) => normalizeBomRow(row));
+      validationErrors.value = {};
+      markDirty();
+      toast({
+        title: '已应用推荐 BOM（仅本地草稿）',
+        description: result.warnings.length > 0 ? `存在 ${result.warnings.length} 条需复核提示，保存前请检查。` : '保存或发布前仍会经过原有校验。',
+        variant: result.warnings.length > 0 ? 'default' : 'success',
+      });
+    } catch (error: any) {
+      toast({
+        title: '读取推荐 BOM 失败',
+        description: error?.response?.data?.error || '请稍后重试',
+        variant: 'destructive',
+      });
+    } finally {
+      recommendationLoading.value = false;
+    }
   }
 
   async function createFormula() {
@@ -244,6 +309,7 @@ export function useFormulaManager() {
       await loadDetail(detail.value.formulaKey, true);
       page.value = 1;
       await loadList();
+      await loadRecommendationSources();
       toast({ title: '发布成功', variant: 'success' });
     } catch (error: any) {
       const message = error?.response?.data?.errors?.[0]?.message || '发布失败';
@@ -261,6 +327,7 @@ export function useFormulaManager() {
       toast({ title: '已归档', variant: 'success' });
       page.value = 1;
       await loadList();
+      await loadRecommendationSources();
       await loadDetail(detail.value.formulaKey, true);
     } catch {
       toast({ title: '归档失败', variant: 'destructive' });
@@ -309,6 +376,7 @@ export function useFormulaManager() {
       clearSelection();
       page.value = 1;
       await loadList();
+      await loadRecommendationSources();
     } catch (error: any) {
       const message = error?.response?.data?.errors?.[0]?.message || '删除失败';
       toast({ title: '删除失败', description: message, variant: 'destructive' });
@@ -352,15 +420,18 @@ export function useFormulaManager() {
       collectionSupplierMaster.value = [];
     });
 
+    loadRecommendationSources();
     loadList();
   }
 
-  onBeforeUnmount(() => {
-    window.onbeforeunload = null;
-    stopHandles.forEach((stop) => stop());
-    stopHandles.length = 0;
-    initialized.value = false;
-  });
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      window.onbeforeunload = null;
+      stopHandles.forEach((stop) => stop());
+      stopHandles.length = 0;
+      initialized.value = false;
+    });
+  }
 
   return {
     loading,
@@ -379,6 +450,7 @@ export function useFormulaManager() {
     keyword,
     statusFilter,
     isLocalDraftSelected,
+    isDirty,
     hasMore,
     changeNote,
     collectionProfileDetail,
@@ -389,10 +461,16 @@ export function useFormulaManager() {
     collectionSupplierMaster,
     bomDraft,
     validationErrors,
+    recommendationSources,
+    recommendationSourceKey,
+    recommendation,
+    recommendationLoading,
     bomMaterialCategories: BOM_MATERIAL_CATEGORIES,
     markDirty,
     loadNextPage,
     loadDetail,
+    loadRecommendationSources,
+    applyBomRecommendation,
     addBomRow,
     removeBomRow,
     createFormula,

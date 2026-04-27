@@ -76,6 +76,46 @@ test('formulaProfileApi uses profile bridge item endpoints for list/detail/revis
   ]);
 });
 
+test('formulaProfileApi reads BOM recommendations without mutation calls', async () => {
+  const calls: Array<{ method: string; url: string; params?: Record<string, unknown> }> = [];
+  api.get = (async (url: string, config?: { params?: Record<string, unknown> }) => {
+    calls.push({ method: 'GET', url, params: config?.params });
+    return {
+      success: true,
+      recommendation: {
+        rows: [],
+        source: { type: 'none' },
+        confidence: 0,
+        explanation: 'No source selected',
+        warnings: [{ code: 'NO_SOURCE', message: 'Select a source formula' }],
+        readOnly: true,
+        sideEffect: 'none',
+      },
+    } as any;
+  }) as ApiLike['get'];
+  api.post = (async (url: string) => {
+    throw new Error(`Unexpected POST ${url}`);
+  }) as ApiLike['post'];
+  api.put = (async (url: string) => {
+    throw new Error(`Unexpected PUT ${url}`);
+  }) as ApiLike['put'];
+  api.delete = (async (url: string) => {
+    throw new Error(`Unexpected DELETE ${url}`);
+  }) as ApiLike['delete'];
+
+  const recommendation = await formulaProfileApi.bomRecommendation({ sourceFormulaKey: 'F001' });
+
+  assert.equal(recommendation.readOnly, true);
+  assert.equal(recommendation.sideEffect, 'none');
+  assert.deepEqual(calls, [
+    {
+      method: 'GET',
+      url: '/config/profiles/formulas/bom-recommendations',
+      params: { sourceFormulaKey: 'F001' },
+    },
+  ]);
+});
+
 test('formulaProfileApi uses profile bridge item endpoints for mutations', async () => {
   const calls: Array<{ method: string; url: string }> = [];
   api.post = (async (url: string) => {

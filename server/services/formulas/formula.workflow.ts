@@ -20,6 +20,32 @@ type FormulaWorkflowResult =
     | { ok: true; revision?: PlainRecord | number | null; definition?: PlainRecord | null }
     | { ok: false; status: number; errors: FormulaError[]; latestRevision?: number | null };
 
+type FormulaBomRecommendationWarning = {
+    code: string;
+    message: string;
+    field?: string;
+};
+
+type PublishedFormulaBomSource = {
+    formulaKey: string;
+    displayName?: string;
+    bom: unknown[];
+};
+
+export type FormulaBomRecommendation = {
+    rows: BomRow[];
+    source: {
+        type: 'published_formula' | 'none';
+        formulaKey?: string;
+        displayName?: string;
+    };
+    confidence: number;
+    explanation: string;
+    warnings: FormulaBomRecommendationWarning[];
+    readOnly: true;
+    sideEffect: 'none';
+};
+
 const VALID_STATES = new Set(['draft', 'published', 'archived']);
 
 export function operatorFromRequest(req?: { headers?: Record<string, unknown> }): string {
@@ -85,6 +111,16 @@ function wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function collectBomCandidateCodes(rows: BomRow[]): string[] {
+    const candidateCodes = new Set<string>();
+    rows.forEach((row: BomRow) => {
+        if (row.materialId) candidateCodes.add(row.materialId);
+        const supplierModelCode = buildSupplierModelCode(row.supplier, row.materialId);
+        if (supplierModelCode) candidateCodes.add(supplierModelCode);
+    });
+    return [...candidateCodes];
+}
+
 async function validateAndResolveBomWithMaterials(bom: unknown[]): Promise<{ bom: BomRow[]; errors: FormulaError[] }> {
     const normalizedRows = normalizeBom(bom);
     const shapeErrors = validateBomRows({ bom: normalizedRows, allowEmptyBom: false, materialCodeSet: null });
@@ -92,14 +128,7 @@ async function validateAndResolveBomWithMaterials(bom: unknown[]): Promise<{ bom
         return { bom: normalizedRows, errors: shapeErrors };
     }
 
-    const candidateCodes = new Set<string>();
-    normalizedRows.forEach((row: any) => {
-        if (row.materialId) candidateCodes.add(row.materialId);
-        const supplierModelCode = buildSupplierModelCode(row.supplier, row.materialId);
-        if (supplierModelCode) candidateCodes.add(supplierModelCode);
-    });
-
-    const found = await FormulaRepository.findMaterialsByCodes([...candidateCodes]);
+    const found = await FormulaRepository.findMaterialsByCodes(collectBomCandidateCodes(normalizedRows));
     const materialCodeSet = new Set(found.map((item: { code?: string }) => String(item.code || '').trim()).filter(Boolean));
 
     const resolvedBom = normalizedRows.map((row: any) => {
@@ -131,6 +160,100 @@ async function validateAndResolveBomWithMaterials(bom: unknown[]): Promise<{ bom
     });
 
     return { bom: resolvedBom, errors: missingErrors };
+}
+
+async function buildRecommendationWarnings(rows: BomRow[]): Promise<FormulaBomRecommendationWarning[]> {
+    const warnings: FormulaBomRecommendationWarning[] = [];
+    if (rows.length === 0) {
+        warnings.push({
+            code: 'EMPTY_SOURCE_BOM',
+            message: 'Selected source formula has no BOM rows to recommend.',
+        });
+        return warnings;
+    }
+
+    const found = await FormulaRepository.findMaterialsByCodes(collectBomCandidateCodes(rows));
+    const materialCodeSet = new Set(found.map((item: { code?: string }) => String(item.code || '').trim()).filter(Boolean));
+    rows.forEach((row, index) => {
+        const supplierModelCode = buildSupplierModelCode(row.supplier, row.materialId);
+        if (materialCodeSet.has(row.materialId) || (supplierModelCode && materialCodeSet.has(supplierModelCode))) {
+            return;
+        }
+        warnings.push({
+            code: 'MATERIAL_NOT_FOUND',
+            field: `rows[${index}].materialId`,
+            message: row.supplier
+                ? `Recommended material requires review: ${row.supplier}+${row.materialId}`
+                : `Recommended material requires review: ${row.materialId}`,
+        });
+    });
+
+    return warnings;
+}
+
+async function findPublishedFormulaBomSource(formulaKey: string): Promise<PublishedFormulaBomSource | null> {
+    const definition = await FormulaRepository.findDefinitionByKey(formulaKey) as FormulaDefinitionAttributes | null;
+    if (!definition || definition.status !== 'published') return null;
+
+    const [publishedRevision] = await FormulaRepository.listPublishedRevisionsByFormulaIds([definition.id]) as FormulaRevisionAttributes[];
+    if (!publishedRevision) return null;
+
+    const payload = parsePayload(publishedRevision.payload_json);
+    return {
+        formulaKey: String(definition.formula_key || '').trim(),
+        displayName: String(payload.displayName || definition.display_name || '').trim() || undefined,
+        bom: Array.isArray(payload.bom) ? payload.bom : [],
+    };
+}
+
+export async function recommendFormulaBom({ sourceFormulaKey = '' }: { sourceFormulaKey?: string } = {}): Promise<FormulaBomRecommendation> {
+    const selectedSource = String(sourceFormulaKey || '').trim();
+    if (!selectedSource) {
+        return {
+            rows: [],
+            source: { type: 'none' },
+            confidence: 0,
+            explanation: 'No recommendation source selected. Manual BOM entry remains available.',
+            warnings: [{
+                code: 'NO_SOURCE',
+                message: 'Select a published source formula before applying recommendations.',
+            }],
+            readOnly: true,
+            sideEffect: 'none',
+        };
+    }
+
+    const source = await findPublishedFormulaBomSource(selectedSource);
+    if (!source) {
+        return {
+            rows: [],
+            source: { type: 'none', formulaKey: selectedSource },
+            confidence: 0,
+            explanation: 'No published formula matched the selected recommendation source. Manual BOM entry remains available.',
+            warnings: [{
+                code: 'SOURCE_NOT_FOUND',
+                message: `Published formula not found: ${selectedSource}`,
+            }],
+            readOnly: true,
+            sideEffect: 'none',
+        };
+    }
+
+    const rows = normalizeBom(source.bom || []);
+    const warnings = await buildRecommendationWarnings(rows);
+    return {
+        rows,
+        source: {
+            type: 'published_formula',
+            formulaKey: source.formulaKey,
+            displayName: source.displayName,
+        },
+        confidence: warnings.length > 0 ? 0.45 : 0.7,
+        explanation: 'Draft candidates copied from a published formula. Review every row before saving or publishing.',
+        warnings,
+        readOnly: true,
+        sideEffect: 'none',
+    };
 }
 
 export async function listFormulas({ keyword = '', status = '', page = 1, pageSize = 20 } = {}) {

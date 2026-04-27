@@ -20,7 +20,7 @@ const purgeDatabaseCache = () => {
 purgeDatabaseCache();
 process.env.DB_STORAGE = tempDbPath;
 
-const { initDB, sequelize, Material } = _require('../server/models') as typeof import('../server/models');
+const { initDB, sequelize, Material, FormulaDefinition, FormulaRevision, FormulaAuditLog } = _require('../server/models') as typeof import('../server/models');
 const FormulaWorkflow = _require('../server/services/formulas') as typeof import('../server/services/formulas');
 const FormulaRepository = (_require('../server/services/formulas/formula.repository') as typeof import('../server/services/formulas/formula.repository')).default;
 
@@ -154,6 +154,106 @@ test('createFormula retries when sqlite is busy', async () => {
   } finally {
     FormulaRepository.withTransaction = originalWithTransaction;
   }
+});
+
+test('recommendFormulaBom returns read-only recommendation metadata from a published formula', async () => {
+  const created = await FormulaWorkflow.createFormula({
+    displayName: '推荐来源配方',
+    bom: [
+      {
+        materialId: 'M-001',
+        position: 'main',
+        materialCategory: '油漆',
+        supplier: '供应商A',
+        usage: { single: 1, double: 2, paired: 3 }
+      }
+    ],
+    changeNote: 'recommendation source create',
+    operator: 'tester'
+  }) as any;
+  assert.equal(created.ok, true);
+  const formulaKey = created.definition.formula_key;
+
+  const published = await FormulaWorkflow.publish(formulaKey, {
+    fromRevision: created.revision.revision,
+    changeNote: 'recommendation source publish',
+    operator: 'tester'
+  }) as any;
+  assert.equal(published.ok, true);
+
+  const definitionsBefore = await FormulaDefinition.count();
+  const revisionsBefore = await FormulaRevision.count();
+  const auditLogsBefore = await FormulaAuditLog.count();
+  const recommendation = await FormulaWorkflow.recommendFormulaBom({ sourceFormulaKey: formulaKey });
+  const definitionsAfter = await FormulaDefinition.count();
+  const revisionsAfter = await FormulaRevision.count();
+  const auditLogsAfter = await FormulaAuditLog.count();
+
+  assert.equal(definitionsAfter, definitionsBefore);
+  assert.equal(revisionsAfter, revisionsBefore);
+  assert.equal(auditLogsAfter, auditLogsBefore);
+  assert.equal(recommendation.readOnly, true);
+  assert.equal(recommendation.sideEffect, 'none');
+  assert.equal(recommendation.source.type, 'published_formula');
+  assert.equal(recommendation.source.formulaKey, formulaKey);
+  assert.equal(recommendation.rows.length, 1);
+  assert.equal(recommendation.rows[0].materialId, 'M-001');
+  assert.equal(recommendation.rows[0].usage.paired, 3);
+  assert.ok(recommendation.confidence > 0);
+  assert.match(recommendation.explanation, /published formula/i);
+  assert.deepEqual(recommendation.warnings, []);
+
+  const updated = await FormulaWorkflow.updateDraft(formulaKey, {
+    revision: published.revision.revision,
+    bom: recommendation.rows,
+    changeNote: 'recommendation rows still pass normal draft validation',
+    operator: 'tester'
+  });
+  assert.equal(updated.ok, true);
+});
+
+test('recommendFormulaBom does not read from unpublished draft formulas', async () => {
+  const created = await FormulaWorkflow.createFormula({
+    displayName: '未发布推荐来源配方',
+    bom: [
+      {
+        materialId: 'M-001',
+        position: 'main',
+        materialCategory: '油漆',
+        supplier: '供应商A',
+        usage: { single: 1, double: 1, paired: 1 }
+      }
+    ],
+    changeNote: 'draft-only recommendation source',
+    operator: 'tester'
+  }) as any;
+  assert.equal(created.ok, true);
+
+  const definitionsBefore = await FormulaDefinition.count();
+  const revisionsBefore = await FormulaRevision.count();
+  const auditLogsBefore = await FormulaAuditLog.count();
+  const recommendation = await FormulaWorkflow.recommendFormulaBom({ sourceFormulaKey: created.definition.formula_key });
+
+  assert.equal(await FormulaDefinition.count(), definitionsBefore);
+  assert.equal(await FormulaRevision.count(), revisionsBefore);
+  assert.equal(await FormulaAuditLog.count(), auditLogsBefore);
+  assert.equal(recommendation.readOnly, true);
+  assert.equal(recommendation.sideEffect, 'none');
+  assert.equal(recommendation.source.type, 'none');
+  assert.equal(recommendation.confidence, 0);
+  assert.deepEqual(recommendation.rows, []);
+  assert.ok(recommendation.warnings.some((warning: any) => warning.code === 'SOURCE_NOT_FOUND'));
+});
+
+test('recommendFormulaBom degrades safely when no source is selected', async () => {
+  const recommendation = await FormulaWorkflow.recommendFormulaBom();
+
+  assert.equal(recommendation.readOnly, true);
+  assert.equal(recommendation.sideEffect, 'none');
+  assert.equal(recommendation.source.type, 'none');
+  assert.equal(recommendation.confidence, 0);
+  assert.deepEqual(recommendation.rows, []);
+  assert.ok(recommendation.warnings.some((warning: any) => warning.code === 'NO_SOURCE'));
 });
 
 test.after(async () => {

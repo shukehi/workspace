@@ -89,6 +89,51 @@ defineProps<{
               </div>
             </div>
 
+            <div class="rounded-md border bg-muted/20 p-3 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-medium">BOM 推荐候选</div>
+                  <p class="text-xs text-muted-foreground">从已发布配方复制 BOM 到当前本地草稿；不会自动保存或发布。</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <select
+                    v-model="manager.recommendationSourceKey"
+                    class="h-9 min-w-[220px] rounded-md border bg-background px-3 text-sm"
+                    :disabled="manager.recommendationLoading || manager.recommendationSources.length === 0"
+                  >
+                    <option value="">选择已发布配方</option>
+                    <option
+                      v-for="source in manager.recommendationSources"
+                      :key="source.formulaKey"
+                      :value="source.formulaKey"
+                    >
+                      {{ source.displayName }}（{{ source.formulaKey }}）
+                    </option>
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    :disabled="!manager.detail || !manager.recommendationSourceKey || manager.recommendationLoading"
+                    @click="manager.applyBomRecommendation"
+                  >
+                    {{ manager.recommendationLoading ? '读取中...' : '应用推荐 BOM' }}
+                  </Button>
+                </div>
+              </div>
+              <div v-if="manager.recommendation" class="text-xs text-muted-foreground space-y-1">
+                <div>
+                  来源：{{ manager.recommendation.source.displayName || manager.recommendation.source.formulaKey || '未选择' }}
+                  · 置信度：{{ manager.recommendation.confidence }}
+                  · {{ manager.recommendation.explanation }}
+                </div>
+                <ul v-if="manager.recommendation.warnings.length > 0" class="list-disc pl-5 text-amber-700">
+                  <li v-for="warning in manager.recommendation.warnings" :key="`${warning.code}-${warning.field || warning.message}`">
+                    {{ warning.message }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
             <FormulaBomTable
               :bom-draft="manager.bomDraft"
               :validation-errors="manager.validationErrors"

@@ -1024,6 +1024,60 @@ test('formula profile item bridge canonicalizes supplier + model split to materi
   assert.equal(detail.formula.bom[0].materialId, '华荣8181');
 });
 
+test('GET /api/config/profiles/formulas/bom-recommendations returns read-only draft candidates', async () => {
+  const createRes = await fetch(`${baseUrl}/api/config/profiles/formulas/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      displayName: '推荐源桥接配方',
+      bom: [{ materialId: 'M001', position: 'main', materialCategory: '油漆', supplier: '供应商A', usage: { single: 1, double: 2, paired: 3 } }],
+      changeNote: 'recommend source create',
+    }),
+  });
+  assert.equal(createRes.status, 201);
+  const created = await createRes.json();
+  const formulaKey = created.formula.formulaKey;
+
+  const publishRes = await fetch(`${baseUrl}/api/config/profiles/formulas/items/${encodeURIComponent(formulaKey)}/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      fromRevision: created.revision.revision,
+      changeNote: 'recommend source publish',
+    }),
+  });
+  assert.equal(publishRes.status, 200);
+
+  const beforeRevisions = await FormulaService.listRevisions(formulaKey);
+  const res = await fetch(`${baseUrl}/api/config/profiles/formulas/bom-recommendations?sourceFormulaKey=${encodeURIComponent(formulaKey)}`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  const afterRevisions = await FormulaService.listRevisions(formulaKey);
+
+  assert.equal(body.success, true);
+  assert.equal(body.recommendation.readOnly, true);
+  assert.equal(body.recommendation.sideEffect, 'none');
+  assert.equal(body.recommendation.source.type, 'published_formula');
+  assert.equal(body.recommendation.source.formulaKey, formulaKey);
+  assert.equal(body.recommendation.rows[0].materialId, 'M001');
+  assert.equal(body.recommendation.rows[0].usage.paired, 3);
+  assert.equal(afterRevisions?.length, beforeRevisions?.length);
+});
+
+test('GET /api/config/profiles/formulas/bom-recommendations degrades safely without a source', async () => {
+  const res = await fetch(`${baseUrl}/api/config/profiles/formulas/bom-recommendations`);
+  assert.equal(res.status, 200);
+
+  const body = await res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.recommendation.readOnly, true);
+  assert.equal(body.recommendation.sideEffect, 'none');
+  assert.equal(body.recommendation.source.type, 'none');
+  assert.equal(body.recommendation.confidence, 0);
+  assert.deepEqual(body.recommendation.rows, []);
+  assert.ok(body.recommendation.warnings.some((warning: any) => warning.code === 'NO_SOURCE'));
+});
+
 test('supplier master profile lifecycle seeds, publishes, and rolls back revisions', async () => {
   const initialDetailRes = await fetch(`${baseUrl}/api/config/profiles/supplier_master/detail`);
   assert.equal(initialDetailRes.status, 200);

@@ -51,6 +51,18 @@ router.get('/formulas/items', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/formulas/bom-recommendations', async (req: Request, res: Response) => {
+  try {
+    const recommendation = await FormulaService.recommendFormulaBom({
+      sourceFormulaKey: req.query.sourceFormulaKey as string | undefined,
+    });
+    res.json({ success: true, recommendation });
+  } catch (error) {
+    console.error('Error reading formula BOM recommendations:', error);
+    res.status(500).json({ success: false, error: 'Failed to read formula BOM recommendations' });
+  }
+});
+
 router.get('/material_master/items', async (req: Request, res: Response) => {
   try {
     const query = req.query.q as string | undefined;
