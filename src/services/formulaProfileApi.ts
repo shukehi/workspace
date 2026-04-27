@@ -38,6 +38,26 @@ export interface FormulaCollectionProfileDetail {
   publishedPayload: Record<string, unknown>;
 }
 
+export type FormulaBomRecommendationWarning = {
+  code: string;
+  message: string;
+  field?: string;
+};
+
+export type FormulaBomRecommendation = {
+  rows: FormulaBOMItem[];
+  source: {
+    type: 'published_formula' | 'none';
+    formulaKey?: string;
+    displayName?: string;
+  };
+  confidence: number;
+  explanation: string;
+  warnings: FormulaBomRecommendationWarning[];
+  readOnly: true;
+  sideEffect: 'none';
+};
+
 export const formulaProfileApi = {
   async profileDetail(): Promise<FormulaCollectionProfileDetail> {
     const response = await api.get<{
@@ -74,6 +94,14 @@ export const formulaProfileApi = {
 
   list(params: { keyword?: string; status?: string; page?: number; pageSize?: number }): Promise<FormulaListResponse> {
     return api.get<FormulaListResponse>('/config/profiles/formulas/items', { params });
+  },
+
+  async bomRecommendation(params: { sourceFormulaKey?: string } = {}): Promise<FormulaBomRecommendation> {
+    const res = await api.get<{ success: boolean; recommendation: FormulaBomRecommendation }>(
+      '/config/profiles/formulas/bom-recommendations',
+      { params }
+    );
+    return res.recommendation;
   },
 
   detail(formulaKey: string): Promise<{
