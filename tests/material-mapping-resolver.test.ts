@@ -121,6 +121,41 @@ test('material resolver uses generic code mapping when no supplier mapping match
   assert.equal(resolved.materialId, codeMaterial.id);
 });
 
+test('material resolver keeps mapping-table matches authoritative over legacy aliases and exact fallback', async () => {
+  const aliasLegacyMaterial = await createMaterial('LEGACY-ALIAS-SHADOW-MAT', { aliases: ['shadowed-external-code'] });
+  const exactLegacyMaterial = await createMaterial('LEGACY-EXACT-SHADOW-MAT', { model: 'shadowed-exact-code' });
+  const codeMappedMaterial = await createMaterial('CODE-MAPPED-SHADOW-MAT');
+  const supplierMappedMaterial = await createMaterial('SUPPLIER-MAPPED-SHADOW-MAT');
+  const supplier = await createSupplierMaster('Resolver Supplier Legacy Shadow');
+
+  await createCodeMapping({
+    material_id: codeMappedMaterial.id,
+    mapping_type: 'alias',
+    external_code: 'shadowed-external-code',
+    priority: 1,
+    is_active: true,
+  } as any);
+  await createSupplierMapping({
+    material_id: supplierMappedMaterial.id,
+    supplier_master_id: supplier.id,
+    supplier_code: 'shadowed-exact-code',
+    is_active: true,
+  } as any);
+
+  const codeResolved = await materialResolverService.resolve({ code: '  SHADOWED-EXTERNAL-CODE  ' });
+  assert.equal(codeResolved.source, 'code_mapping');
+  assert.equal(codeResolved.materialId, codeMappedMaterial.id);
+  assert.notEqual(codeResolved.materialId, aliasLegacyMaterial.id);
+
+  const supplierResolved = await materialResolverService.resolve({
+    code: ' SHADOWED-EXACT-CODE ',
+    supplierMasterId: supplier.id,
+  });
+  assert.equal(supplierResolved.source, 'supplier_mapping');
+  assert.equal(supplierResolved.materialId, supplierMappedMaterial.id);
+  assert.notEqual(supplierResolved.materialId, exactLegacyMaterial.id);
+});
+
 test('material resolver falls back to legacy aliases when mapping tables do not match', async () => {
   const aliasMaterial = await createMaterial('ALIAS-MAT', { aliases: ['legacy-alias-001'] });
 
@@ -137,11 +172,16 @@ test('material resolver falls back to legacy exact model/name matching after ali
   assert.equal(resolved.materialId, legacyExactMaterial.id);
 });
 
-test('material resolver respects allowLegacyFallback=false for otherwise valid legacy aliases', async () => {
+test('material resolver respects allowLegacyFallback=false for otherwise valid legacy aliases and exact matches', async () => {
   await createMaterial('NO-LEGACY-FALLBACK-MAT', { aliases: ['no-legacy-fallback-alias'] });
+  await createMaterial('NO-LEGACY-EXACT-MAT', { model: 'no-legacy-exact-model' });
 
   await assert.rejects(
     () => materialResolverService.resolve({ code: 'no-legacy-fallback-alias', allowLegacyFallback: false }),
+    (error: any) => error?.code === 'MATERIAL_NOT_RESOLVED',
+  );
+  await assert.rejects(
+    () => materialResolverService.resolve({ code: 'no-legacy-exact-model', allowLegacyFallback: false }),
     (error: any) => error?.code === 'MATERIAL_NOT_RESOLVED',
   );
 });
