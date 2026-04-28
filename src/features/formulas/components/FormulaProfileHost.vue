@@ -7,17 +7,11 @@ import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterS
 import FormulaListPanel from '@/features/formulas/components/FormulaListPanel.vue';
 import FormulaEditorHeader from '@/features/formulas/components/FormulaEditorHeader.vue';
 import FormulaBomTable from '@/features/formulas/components/FormulaBomTable.vue';
+import { previewReferenceIssues } from '@/features/formulas/utils/referenceIssuePreview';
 
 defineProps<{
   manager: any;
 }>();
-
-function previewReferenceIssues(values: unknown, limit = 12): string {
-  if (!Array.isArray(values)) return '';
-  const preview = values.slice(0, limit).join('、');
-  const remaining = values.length - limit;
-  return remaining > 0 ? `${preview} 等 ${remaining} 项` : preview;
-}
 </script>
 
 <template>
