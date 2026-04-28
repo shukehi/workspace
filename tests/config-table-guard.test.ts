@@ -115,6 +115,10 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(formulaHost, /Collection Impact/);
   assert.match(formulaHost, /Collection Replay/);
   assert.match(formulaHost, /Collection Reference Check/);
+  assert.match(formulaHost, /存在主数据治理问题/);
+  assert.match(formulaHost, /suppliersMissingInSupplierMaster/);
+  assert.match(formulaHost, /suppliersMissingInMaterialMaster/);
+  assert.match(formulaHost, /missingMaterialCodes/);
   assert.match(formulaHost, /<FormulaListPanel/);
   assert.match(formulaHost, /<FormulaEditorHeader/);
   assert.match(colorFormula, /<FormulaProfileHost :manager="manager" \/>/);
