@@ -99,6 +99,8 @@ async function getSupplierMasterProfileDetail(): Promise<ConfigProfileWorkflowRe
       page: 1,
       pageSize: Number(detail.total || 0),
       previewItems: detail.items || [],
+      runtimeReadiness: detail.runtimeReadiness,
+      runtimeNotReady: detail.runtimeNotReady,
     },
   };
   return { ok: true, detail: result, profile: result.profile };

@@ -108,12 +108,16 @@ router.get('/supplier_master/items', async (_req: Request, res: Response) => {
       sendWorkflowResult(res, detail as any);
       return;
     }
+    const runtimeReadiness = detail.detail.collection?.runtimeReadiness;
+    const runtimeNotReady = detail.detail.collection?.runtimeNotReady;
     res.json({
       success: true,
       items: detail.detail.collection?.previewItems || [],
       total: detail.detail.collection?.total || 0,
       page: 1,
       pageSize: detail.detail.collection?.pageSize || 0,
+      runtimeReadiness,
+      runtimeNotReady,
     });
   } catch (error) {
     console.error('Error listing supplier master items:', error);
