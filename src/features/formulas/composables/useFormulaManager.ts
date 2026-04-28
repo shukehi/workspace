@@ -50,6 +50,7 @@ export function useFormulaManager() {
   const bomDraft = ref<FormulaBOMItem[]>([]);
   const validationErrors = ref<FormulaValidationErrors>({});
   const recommendationSources = ref<FormulaSummary[]>([]);
+  const bomMaterialCategories = ref([...BOM_MATERIAL_CATEGORIES]);
   const recommendationSourceKey = ref('');
   const recommendation = ref<FormulaBomRecommendation | null>(null);
   const recommendationLoading = ref(false);
@@ -149,6 +150,17 @@ export function useFormulaManager() {
   function removeBomRow(index: number) {
     bomDraft.value.splice(index, 1);
     markDirty();
+  }
+
+  async function loadFormulaMetadata() {
+    try {
+      const metadata = await formulaProfileApi.metadata();
+      if (metadata.materialCategories.length > 0) {
+        bomMaterialCategories.value = [...metadata.materialCategories];
+      }
+    } catch {
+      bomMaterialCategories.value = [...BOM_MATERIAL_CATEGORIES];
+    }
   }
 
   async function loadRecommendationSources() {
@@ -427,6 +439,7 @@ export function useFormulaManager() {
       collectionSupplierMaster.value = [];
     });
 
+    loadFormulaMetadata();
     loadRecommendationSources();
     loadList();
   }
@@ -472,10 +485,11 @@ export function useFormulaManager() {
     recommendationSourceKey,
     recommendation,
     recommendationLoading,
-    bomMaterialCategories: BOM_MATERIAL_CATEGORIES,
+    bomMaterialCategories,
     markDirty,
     loadNextPage,
     loadDetail,
+    loadFormulaMetadata,
     loadRecommendationSources,
     applyBomRecommendation,
     addBomRow,

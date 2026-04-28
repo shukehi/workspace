@@ -6,6 +6,10 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import type { Router } from 'express';
+import {
+  FORMULA_BOM_MATERIAL_CATEGORIES,
+  FORMULA_BOM_MATERIAL_CATEGORY_LABEL,
+} from '../src/shared/types/formulaBom';
 
 const _require = createRequire(import.meta.url);
 const tempDbPath = path.join(os.tmpdir(), `test-config-profile-routes-${crypto.randomBytes(8).toString('hex')}.sqlite`);
@@ -859,6 +863,18 @@ test('GET /api/config/profiles/supplier_master/reference-check reports inactive 
   assert.equal(body.check.profileCode, 'supplier_master');
   assert.equal(typeof body.check.inactiveLinkedSupplierCount, 'number');
   assert.ok(body.check.inactiveLinkedSupplierCount >= 1);
+});
+
+test('GET /api/config/profiles/formulas/metadata returns read-only BOM metadata', async () => {
+  const res = await fetch(`${baseUrl}/api/config/profiles/formulas/metadata`);
+  assert.equal(res.status, 200);
+
+  const body = await res.json();
+  assert.equal(body.success, true);
+  assert.deepEqual(body.metadata.materialCategories, [...FORMULA_BOM_MATERIAL_CATEGORIES]);
+  assert.equal(body.metadata.materialCategoryLabel, FORMULA_BOM_MATERIAL_CATEGORY_LABEL);
+  assert.equal(body.metadata.readOnly, true);
+  assert.equal(body.metadata.sideEffect, 'none');
 });
 
 test('GET /api/config/profiles/formulas/detail returns collection-style read-only detail', async () => {

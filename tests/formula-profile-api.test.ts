@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { formulaProfileApi } from '../src/services/formulaProfileApi';
 import { api } from '../src/lib/api';
+import {
+  FORMULA_BOM_MATERIAL_CATEGORIES,
+  FORMULA_BOM_MATERIAL_CATEGORY_LABEL,
+} from '../src/shared/types/formulaBom';
 
 type ApiLike = typeof api;
 const originalApiGet = api.get;
@@ -74,6 +78,39 @@ test('formulaProfileApi uses profile bridge item endpoints for list/detail/revis
     '/config/profiles/formulas/items/F001',
     '/config/profiles/formulas/items/F001/revisions',
   ]);
+});
+
+test('formulaProfileApi reads Formula BOM metadata without mutation calls', async () => {
+  const calls: Array<{ method: string; url: string }> = [];
+  api.get = (async (url: string) => {
+    calls.push({ method: 'GET', url });
+    return {
+      success: true,
+      metadata: {
+        materialCategories: [...FORMULA_BOM_MATERIAL_CATEGORIES],
+        materialCategoryLabel: FORMULA_BOM_MATERIAL_CATEGORY_LABEL,
+        readOnly: true,
+        sideEffect: 'none',
+      },
+    } as any;
+  }) as ApiLike['get'];
+  api.post = (async (url: string) => {
+    throw new Error(`Unexpected POST ${url}`);
+  }) as ApiLike['post'];
+  api.put = (async (url: string) => {
+    throw new Error(`Unexpected PUT ${url}`);
+  }) as ApiLike['put'];
+  api.delete = (async (url: string) => {
+    throw new Error(`Unexpected DELETE ${url}`);
+  }) as ApiLike['delete'];
+
+  const metadata = await formulaProfileApi.metadata();
+
+  assert.deepEqual(metadata.materialCategories, [...FORMULA_BOM_MATERIAL_CATEGORIES]);
+  assert.equal(metadata.materialCategoryLabel, FORMULA_BOM_MATERIAL_CATEGORY_LABEL);
+  assert.equal(metadata.readOnly, true);
+  assert.equal(metadata.sideEffect, 'none');
+  assert.deepEqual(calls, [{ method: 'GET', url: '/config/profiles/formulas/metadata' }]);
 });
 
 test('formulaProfileApi reads BOM recommendations without mutation calls', async () => {
