@@ -2,9 +2,20 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  VALID_BOM_CATEGORIES,
   validateBaseFields,
   validateBomRows,
 } from '../server/services/formulas/formula.validator'
+import { BOM_MATERIAL_CATEGORIES } from '../src/features/formulas/types'
+import {
+  FORMULA_BOM_MATERIAL_CATEGORIES,
+  FORMULA_BOM_MATERIAL_CATEGORY_LABEL,
+} from '../src/shared/types/formulaBom'
+
+test('formula BOM categories use the shared frontend/backend contract', () => {
+  assert.deepEqual([...VALID_BOM_CATEGORIES], [...FORMULA_BOM_MATERIAL_CATEGORIES]);
+  assert.equal(BOM_MATERIAL_CATEGORIES, FORMULA_BOM_MATERIAL_CATEGORIES);
+});
 
 test('validateBaseFields enforces required fields', () => {
   const errors = validateBaseFields({ formulaKey: '', displayName: '' });
@@ -35,6 +46,7 @@ test('validateBomRows enforces row-level constraints', () => {
   });
 
   assert.ok(errors.some((item) => item.field === 'bom[0].materialCategory'));
+  assert.ok(errors.some((item) => item.message.includes(FORMULA_BOM_MATERIAL_CATEGORY_LABEL)));
   assert.ok(errors.some((item) => item.field === 'bom[0].supplier'));
   assert.ok(errors.some((item) => item.field === 'bom[0].usage.single'));
   assert.ok(errors.some((item) => item.field === 'bom[1]'));

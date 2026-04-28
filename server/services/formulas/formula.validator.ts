@@ -1,3 +1,8 @@
+import {
+    FORMULA_BOM_MATERIAL_CATEGORIES,
+    FORMULA_BOM_MATERIAL_CATEGORY_LABEL,
+} from '@/shared/types/formulaBom';
+
 export type BomUsage = {
     single: number;
     double: number;
@@ -23,7 +28,7 @@ export type ValidationError = {
     message: string;
 };
 
-export const VALID_BOM_CATEGORIES = new Set(['转印纸', '油漆', '塑粉']);
+export const VALID_BOM_CATEGORIES = new Set<string>(FORMULA_BOM_MATERIAL_CATEGORIES);
 
 export function normalizeBom(input: unknown): BomRow[] {
     if (!Array.isArray(input)) return [];
@@ -110,7 +115,7 @@ export function validateBomRows({
             errors.push({ field: `bom[${i}].position`, message: '位置不能为空' });
         }
         if (!row.materialCategory || !VALID_BOM_CATEGORIES.has(row.materialCategory)) {
-            errors.push({ field: `bom[${i}].materialCategory`, message: '类别必须是: 转印纸/油漆/塑粉' });
+            errors.push({ field: `bom[${i}].materialCategory`, message: `类别必须是: ${FORMULA_BOM_MATERIAL_CATEGORY_LABEL}` });
         }
         if (!row.supplier) {
             errors.push({ field: `bom[${i}].supplier`, message: '供应商不能为空' });
