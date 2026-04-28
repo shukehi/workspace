@@ -168,6 +168,22 @@ test('material resolver treats SQL-like input as unresolved data, not a SQL fail
 test('material mapping repository treats zero material ids as real candidates during conflict and ambiguity checks', async () => {
   const zeroIdMaterial = await createMaterial('ZERO-ID-MAT', { id: 0 });
   assert.equal(zeroIdMaterial.id, 0, 'Precondition: material ID must be 0 for this test');
+
+  await createUomConversion({
+    material_id: zeroIdMaterial.id,
+    from_unit: 'bag',
+    to_unit: 'pcs',
+    factor: 50,
+    is_purchase_default: true,
+    is_active: true,
+  } as any);
+
+  const zeroIdConverted = await materialResolverService.resolve({ code: 'ZERO-ID-MAT', transactionUnit: 'bag', stockUnit: 'pcs' });
+  assert.equal(zeroIdConverted.materialId, 0);
+  assert.equal(zeroIdConverted.conversionFactor, 50);
+  assert.equal(zeroIdConverted.transactionUnit, 'BAG');
+  assert.equal(zeroIdConverted.stockUnit, 'PCS');
+
   const normalMaterial = await createMaterial('ZERO-ID-OTHER-MAT');
 
   await createCodeMapping({
