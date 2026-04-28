@@ -78,6 +78,14 @@ type BackfillSummary = {
   conflicts: Conflict[];
 };
 
+function isPlannedCodeMapping(insert: PlannedInsert): insert is PlannedCodeMappingInsert {
+  return insert.table === 'material_code_mappings';
+}
+
+function isPlannedSupplierMapping(insert: PlannedInsert): insert is PlannedSupplierMappingInsert {
+  return insert.table === 'material_supplier_mappings';
+}
+
 function readOptions(argv: string[]): Options {
   return {
     apply: argv.includes('--apply'),
@@ -105,6 +113,47 @@ function parseAliases(value: unknown): string[] {
 
 function toPlain(instance: any): Record<string, any> {
   return typeof instance?.get === 'function' ? instance.get({ plain: true }) : instance;
+}
+
+function normalizeNullableNumber(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function normalizeNullableText(value: unknown): string | null {
+  const text = String(value ?? '').trim();
+  return text || null;
+}
+
+function findPlannedCodeMapping(
+  planned: PlannedInsert[],
+  mappingType: string,
+  normalizedCode: string,
+  partyType?: unknown,
+  partyId?: unknown,
+): PlannedCodeMappingInsert | undefined {
+  const normalizedPartyType = normalizeNullableText(partyType);
+  const normalizedPartyId = normalizeNullableNumber(partyId);
+  return planned.filter(isPlannedCodeMapping).find((insert) => (
+    insert.payload.is_active !== false
+    && insert.payload.mapping_type === mappingType
+    && normalizeNullableText(insert.payload.party_type) === normalizedPartyType
+    && normalizeNullableNumber(insert.payload.party_id) === normalizedPartyId
+    && insert.payload.normalized_code === normalizedCode
+  ));
+}
+
+function findPlannedSupplierMapping(
+  planned: PlannedInsert[],
+  supplierMasterId: number,
+  normalizedSupplierCode: string,
+): PlannedSupplierMappingInsert | undefined {
+  return planned.filter(isPlannedSupplierMapping).find((insert) => (
+    insert.payload.is_active !== false
+    && Number(insert.payload.supplier_master_id) === supplierMasterId
+    && insert.payload.normalized_supplier_code === normalizedSupplierCode
+  ));
 }
 
 async function planCodeMapping(
@@ -135,6 +184,19 @@ async function planCodeMapping(
       reason: 'active normalized code already maps to another material',
       payload: { mapping_type: mappingType, external_code: externalCode, normalized_code: normalized },
     });
+    return;
+  }
+
+  const plannedForCode = findPlannedCodeMapping(planned, mappingType, normalized);
+  if (plannedForCode) {
+    if (Number(plannedForCode.material_id) !== Number(material.id)) {
+      conflicts.push({
+        material_id: Number(material.id),
+        table: 'material_code_mappings',
+        reason: 'planned normalized code already maps to another material in this backfill run',
+        payload: { mapping_type: mappingType, external_code: externalCode, normalized_code: normalized },
+      });
+    }
     return;
   }
 
@@ -200,6 +262,19 @@ async function planSupplierMapping(
       reason: 'active supplier code already maps to another material',
       payload: { supplier_master_id: supplierMasterId, supplier_code: supplierCode, normalized_supplier_code: normalized },
     });
+    return;
+  }
+
+  const plannedForSupplierCode = findPlannedSupplierMapping(planned, supplierMasterId, normalized);
+  if (plannedForSupplierCode) {
+    if (Number(plannedForSupplierCode.material_id) !== Number(material.id)) {
+      conflicts.push({
+        material_id: Number(material.id),
+        table: 'material_supplier_mappings',
+        reason: 'planned supplier code already maps to another material in this backfill run',
+        payload: { supplier_master_id: supplierMasterId, supplier_code: supplierCode, normalized_supplier_code: normalized },
+      });
+    }
     return;
   }
 

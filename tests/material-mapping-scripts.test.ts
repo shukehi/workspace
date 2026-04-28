@@ -161,7 +161,7 @@ test('backfill apply is idempotent when all planned mappings already exist', asy
   assert.deepEqual(summary.plannedByTable, {});
 });
 
-test('backfill apply rolls back all planned inserts when one insert fails', async () => {
+test('backfill apply refuses intra-run duplicate planned mappings before writing rows', async () => {
   const supplier = await createSupplierMaster('Script Supplier Transaction Rollback');
   await createMaterial('SCRIPT-TX-DUP CODE', {
     supplier: supplier.supplier_name,
@@ -182,7 +182,12 @@ test('backfill apply rolls back all planned inserts when one insert fails', asyn
   ]);
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /backfill_material_mappings.*failed|Validation error|SQLITE_CONSTRAINT/i);
+  assert.match(result.stderr, /Refusing to apply material mapping backfill with .* conflict/i);
+  const summary = parseJsonFromOutput(result.stdout);
+  assert.ok(summary.conflictCount > 0);
+  assert.ok(
+    summary.conflicts.some((conflict: any) => /planned .*backfill run/i.test(conflict.reason)),
+  );
   assert.deepEqual(await countMappingRows(), before);
 });
 
@@ -191,6 +196,20 @@ test('audit script reports zero duplicates for clean active mappings', async () 
 
   assert.equal(audit.codeDuplicateCount, 0);
   assert.equal(audit.supplierDuplicateCount, 0);
+});
+
+test('backfill dry-run skips duplicate planned keys for the same material', async () => {
+  await createMaterial('SCRIPT-SAME-MATERIAL-DUP', {
+    model: 'SCRIPT-SAME-MATERIAL-DUP',
+    aliases: [' script-same-material-dup  '],
+  });
+
+  const summary = runScript('server/scripts/backfill_material_mappings.ts', ['--dry-run', '--json']);
+
+  assert.equal(
+    summary.conflicts.some((conflict: any) => conflict.payload?.normalized_code === 'script-same-material-dup'),
+    false,
+  );
 });
 
 test('backfill dry-run reports code conflicts before writing new mappings', async () => {
