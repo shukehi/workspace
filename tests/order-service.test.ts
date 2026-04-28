@@ -29,6 +29,8 @@ import type { OrderCreateInput, OrderUpdateInput } from '../server/models/types'
 
 const createdOrderIds: number[] = [];
 
+type CapturedLoggerWarning = { meta: Record<string, unknown>; message?: string };
+
 function uniqueOrderNo(prefix = 'TEST-PO') {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 }
@@ -862,6 +864,130 @@ test('OrderService stores resolved material snapshots and stocks in by internal 
   const movementMetadata = JSON.parse(movement.metadata_json || '{}');
   assert.equal(movementMetadata.material_mapping.externalMaterialCode, 'SUPPLIER-PART-001');
   assert.equal(movementMetadata.material_mapping.stockUnit, 'PCS');
+});
+
+test('OrderService warns when createOrder commits a legacy alias resolver snapshot', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const material = await Material.create({
+    code: 'MAT-CREATE-LEGACY-ALIAS-001',
+    name: '创建旧别名物料',
+    model: 'CREATE-LEGACY-ALIAS-1',
+    supplier: '旧别名供应商',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: 'PCS',
+  }) as MaterialInstance;
+
+  const originalWarn = logger.warn;
+  const warnings: CapturedLoggerWarning[] = [];
+  (logger as any).warn = (meta: Record<string, unknown>, message?: string) => {
+    warnings.push({ meta, message });
+  };
+  try {
+    await orderService.createOrder({
+      order_no: uniqueOrderNo('CREATE-LEGACY-ALIAS'),
+      supplier: '旧别名供应商',
+      category: '锁具',
+      status: 'draft',
+      items: [
+        {
+          material_id: 'ALIAS-CREATE-001',
+          resolved_material_id: material.id,
+          external_material_code: 'ALIAS-CREATE-001',
+          material_resolve_source: 'legacy_alias',
+          transaction_unit: 'PCS',
+          stock_unit: 'PCS',
+          supplier: '旧别名供应商',
+          name: '创建旧别名物料',
+          model: 'CREATE-LEGACY-ALIAS-1',
+          spec: 'CREATE-LEGACY-ALIAS-1',
+          quantity: 1,
+          unit: 'PCS',
+        }
+      ]
+    } as OrderCreateInput);
+  } finally {
+    (logger as any).warn = originalWarn;
+  }
+
+  assert.ok(warnings.some((entry) => (
+    entry.message === 'Legacy material mapping fallback used during transaction commit'
+    && entry.meta.stage === 'order_create'
+    && entry.meta.reason === 'legacy_resolver_snapshot'
+    && entry.meta.materialInput === 'ALIAS-CREATE-001'
+    && entry.meta.resolvedMaterialId === material.id
+  )));
+});
+
+test('OrderService warns when updateOrder commits a legacy exact resolver snapshot', async () => {
+  await sequelize.authenticate();
+  await sequelize.sync({ force: true });
+
+  const material = await Material.create({
+    code: 'MAT-UPDATE-LEGACY-EXACT-001',
+    name: '更新旧精确物料',
+    model: 'UPDATE-LEGACY-EXACT-1',
+    supplier: '旧精确供应商',
+    stock_quantity: 0,
+    min_stock: 0,
+    unit: 'PCS',
+  }) as MaterialInstance;
+
+  const created = await orderService.createOrder({
+    order_no: uniqueOrderNo('UPDATE-LEGACY-EXACT'),
+    supplier: '旧精确供应商',
+    category: '锁具',
+    status: 'draft',
+    items: [
+      {
+        supplier: '旧精确供应商',
+        name: '更新旧精确物料',
+        model: 'UPDATE-LEGACY-EXACT-1',
+        spec: 'UPDATE-LEGACY-EXACT-1',
+        quantity: 1,
+        unit: 'PCS',
+      }
+    ]
+  } as OrderCreateInput);
+
+  const originalWarn = logger.warn;
+  const warnings: CapturedLoggerWarning[] = [];
+  (logger as any).warn = (meta: Record<string, unknown>, message?: string) => {
+    warnings.push({ meta, message });
+  };
+  try {
+    await orderService.updateOrder(created.id, {
+      items: [
+        {
+          ...created.items[0],
+          material_id: 'MAT-UPDATE-LEGACY-EXACT-001',
+          resolved_material_id: material.id,
+          external_material_code: 'MAT-UPDATE-LEGACY-EXACT-001',
+          material_resolve_source: 'legacy_exact',
+          transaction_unit: 'PCS',
+          stock_unit: 'PCS',
+          supplier: '旧精确供应商',
+          name: '更新旧精确物料',
+          model: 'UPDATE-LEGACY-EXACT-1',
+          spec: 'UPDATE-LEGACY-EXACT-1',
+          quantity: 1,
+          unit: 'PCS',
+        }
+      ]
+    } as OrderUpdateInput);
+  } finally {
+    (logger as any).warn = originalWarn;
+  }
+
+  assert.ok(warnings.some((entry) => (
+    entry.message === 'Legacy material mapping fallback used during transaction commit'
+    && entry.meta.stage === 'order_update'
+    && entry.meta.reason === 'legacy_resolver_snapshot'
+    && entry.meta.materialInput === 'MAT-UPDATE-LEGACY-EXACT-001'
+    && entry.meta.resolvedMaterialId === material.id
+  )));
 });
 
 test('OrderService warns when stock-in commits through legacy material_id fallback', async () => {
