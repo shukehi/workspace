@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import puppeteer from 'puppeteer'
+import { respondToRuntimeConfigSnapshotRequest } from './helpers/runtime-config-snapshot-fixture'
 
 const ROOT = process.cwd()
 const PORT = 4175
@@ -101,6 +102,8 @@ test('print document e2e: print route shows sales department label', async () =>
 
     page.on('request', (req) => {
       const url = req.url()
+      if (respondToRuntimeConfigSnapshotRequest(req)) return
+
       if (url.includes('/api/print/snapshots/snapshot-customer-name')) {
         req.respond({
           status: 200,

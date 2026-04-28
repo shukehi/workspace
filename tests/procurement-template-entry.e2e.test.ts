@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import puppeteer, { type Browser, type Dialog, type HTTPRequest, type Page } from 'puppeteer'
+import { respondToRuntimeConfigSnapshotRequest } from './helpers/runtime-config-snapshot-fixture'
 
 const ROOT = process.cwd()
 const PORT = 4176
@@ -131,6 +132,8 @@ test('procurement template entry e2e: merged templates require business category
     page.on('request', (req: HTTPRequest) => {
       const url = req.url()
       const method = req.method()
+
+      if (respondToRuntimeConfigSnapshotRequest(req)) return
 
       if (url.includes('/api/orders') && method === 'GET') {
         req.respond({
