@@ -62,7 +62,11 @@ test('runtime config profile and master routes reject missing API keys', async (
     server = started.server;
     const { baseUrl } = started;
 
-    for (const route of ['/api/config/profiles/formulas/bom-recommendations', '/api/config/masters/suppliers']) {
+    for (const route of [
+      '/api/config/profiles/formulas/metadata',
+      '/api/config/profiles/formulas/bom-recommendations',
+      '/api/config/masters/suppliers',
+    ]) {
       const response = await fetch(`${baseUrl}${route}`);
       const body = await response.json() as { success?: boolean; code?: string };
 

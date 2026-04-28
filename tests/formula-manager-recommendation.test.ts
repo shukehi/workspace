@@ -4,9 +4,11 @@ import { createPinia, setActivePinia } from 'pinia';
 import { useFormulaManager } from '../src/features/formulas/composables/useFormulaManager';
 import { formulaProfileApi } from '../src/services/formulaProfileApi';
 import type { FormulaDetail } from '../src/types/formula';
+import { FORMULA_BOM_MATERIAL_CATEGORIES } from '../src/shared/types/formulaBom';
 
 type FormulaProfileApi = typeof formulaProfileApi;
 
+const originalMetadata = formulaProfileApi.metadata;
 const originalBomRecommendation = formulaProfileApi.bomRecommendation;
 const originalList = formulaProfileApi.list;
 const originalCreate = formulaProfileApi.create;
@@ -31,6 +33,7 @@ test.beforeEach(() => {
 });
 
 test.afterEach(() => {
+  formulaProfileApi.metadata = originalMetadata as FormulaProfileApi['metadata'];
   formulaProfileApi.bomRecommendation = originalBomRecommendation as FormulaProfileApi['bomRecommendation'];
   formulaProfileApi.list = originalList as FormulaProfileApi['list'];
   formulaProfileApi.create = originalCreate as FormulaProfileApi['create'];
@@ -122,6 +125,28 @@ test('formula manager keeps existing BOM when recommendation overwrite is cancel
   assert.equal(recommendationCalls, 0);
   assert.equal(manager.bomDraft.value[0].materialId, 'OLD');
   assert.equal(manager.recommendation.value, null);
+});
+
+test('formula manager loads BOM categories from read-only metadata with shared fallback', async () => {
+  formulaProfileApi.metadata = (async () => ({
+    materialCategories: ['油漆', '塑粉'],
+    materialCategoryLabel: '油漆/塑粉',
+    readOnly: true,
+    sideEffect: 'none',
+  })) as FormulaProfileApi['metadata'];
+
+  const manager = useFormulaManager();
+  await manager.loadFormulaMetadata();
+
+  assert.deepEqual(manager.bomMaterialCategories.value, ['油漆', '塑粉']);
+
+  formulaProfileApi.metadata = (async () => {
+    throw new Error('metadata unavailable');
+  }) as FormulaProfileApi['metadata'];
+
+  await manager.loadFormulaMetadata();
+
+  assert.deepEqual(manager.bomMaterialCategories.value, [...FORMULA_BOM_MATERIAL_CATEGORIES]);
 });
 
 test('formula manager loads only published formulas as recommendation sources', async () => {

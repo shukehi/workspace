@@ -16,6 +16,10 @@ import { getConfigProfileDiff } from '../services/config-platform/profile.diff';
 import { getConfigProfileImpactSummary } from '../services/config-platform/profile.impact';
 import { getConfigProfileReplay } from '../services/config-platform/profile.replay';
 import { getConfigProfileReferenceCheck } from '../services/config-platform/profile.reference-check';
+import {
+  FORMULA_BOM_MATERIAL_CATEGORIES,
+  FORMULA_BOM_MATERIAL_CATEGORY_LABEL,
+} from '@/shared/types/formulaBom';
 
 const router: Router = Router();
 const MAX_FORMULA_RECOMMENDATION_SOURCE_KEY_LENGTH = 128;
@@ -50,6 +54,18 @@ router.get('/formulas/items', async (req: Request, res: Response) => {
     console.error('Error listing formula profile items:', error);
     res.status(500).json({ success: false, error: 'Failed to list formula profile items' });
   }
+});
+
+router.get('/formulas/metadata', async (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    metadata: {
+      materialCategories: [...FORMULA_BOM_MATERIAL_CATEGORIES],
+      materialCategoryLabel: FORMULA_BOM_MATERIAL_CATEGORY_LABEL,
+      readOnly: true,
+      sideEffect: 'none',
+    },
+  });
 });
 
 router.get('/formulas/bom-recommendations', async (req: Request, res: Response) => {

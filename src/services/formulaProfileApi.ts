@@ -12,6 +12,7 @@ import type {
   FormulaBomRecommendationResponse,
   FormulaBomRecommendationWarning,
 } from '@/shared/types/formulaRecommendation';
+import type { FormulaBomMetadata, FormulaBomMetadataResponse } from '@/shared/types/formulaBom';
 
 export type MutationError = {
   field: string;
@@ -45,6 +46,7 @@ export interface FormulaCollectionProfileDetail {
 
 export type { FormulaBomRecommendationWarning };
 export type FormulaBomRecommendation = SharedFormulaBomRecommendation<FormulaBOMItem>;
+export type { FormulaBomMetadata };
 
 export const formulaProfileApi = {
   async profileDetail(): Promise<FormulaCollectionProfileDetail> {
@@ -82,6 +84,11 @@ export const formulaProfileApi = {
 
   list(params: { keyword?: string; status?: string; page?: number; pageSize?: number }): Promise<FormulaListResponse> {
     return api.get<FormulaListResponse>('/config/profiles/formulas/items', { params });
+  },
+
+  async metadata(): Promise<FormulaBomMetadata> {
+    const res = await api.get<FormulaBomMetadataResponse>('/config/profiles/formulas/metadata');
+    return res.metadata;
   },
 
   async bomRecommendation(params: { sourceFormulaKey?: string } = {}): Promise<FormulaBomRecommendation> {
