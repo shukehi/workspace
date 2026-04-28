@@ -63,7 +63,7 @@ test('config source guard: static JSON fallback reads are removed for mappings',
   assert.deepEqual(rgFiles('/data/lock-mapping\\.json'), []);
   assert.deepEqual(rgFiles('/data/lock-fork-mapping\\.json'), []);
   assert.deepEqual(rgFiles('/data/handle-mapping\\.json'), []);
-  assert.deepEqual(rgFiles('/data/materials-catalog\\.json'), ['src/services/configRepository.ts']);
+  assert.deepEqual(rgFiles('/data/materials-catalog\\.json'), []);
 });
 
 test('config source guard: src must not add new direct dependencies on legacy compatibility routes', () => {

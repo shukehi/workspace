@@ -63,7 +63,7 @@ export class ApiWithStaticFallbackConfigRepository implements ConfigRepository {
         if (!payload || typeof payload !== 'object') return null;
         const detail = (payload as { detail?: { publishedPayload?: T } }).detail;
         const publishedPayload = detail?.publishedPayload;
-        return publishedPayload && typeof publishedPayload === 'object'
+        return publishedPayload && typeof publishedPayload === 'object' && !Array.isArray(publishedPayload)
             ? publishedPayload
             : null;
     }
@@ -75,12 +75,7 @@ export class ApiWithStaticFallbackConfigRepository implements ConfigRepository {
             return { payload: workflowPayload, source: 'api' };
         }
 
-        const staticPayload = await this.fetchJson('/data/materials-catalog.json');
-        if (staticPayload === null) {
-            throw new Error('Failed to load materials catalog');
-        }
-
-        return { payload: staticPayload, source: 'static' };
+        throw new Error('Failed to load published material catalog from Config Center');
     }
 
     async readFormulas(): Promise<ConfigReadResult<Record<string, any>>> {

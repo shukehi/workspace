@@ -81,6 +81,33 @@ test('configLoader: materials prefer workflow published endpoint before legacy c
   assert.equal(loader.getMaterials().M001?.name, '材料A');
 });
 
+test('configLoader: materials reject missing workflow payload without static fallback', async () => {
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+    calls.push(url);
+
+    if (url === '/api/config/profiles/material_catalog/detail') {
+      return createResponse(true, {
+        success: true,
+        detail: {
+          publishedPayload: null,
+        },
+      }) as unknown as Response;
+    }
+
+    return createResponse(false, null) as unknown as Response;
+  }) as typeof fetch;
+
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
+  await assert.rejects(
+    () => loader.loadMaterials(),
+    /Failed to load published material catalog from Config Center/,
+  );
+
+  assert.deepEqual(calls, ['/api/config/profiles/material_catalog/detail']);
+});
+
 test('configLoader: formulas fallback reads unified formulas profile detail payload', async () => {
   const calls: string[] = [];
   globalThis.fetch = (async (input: string | URL | Request) => {
