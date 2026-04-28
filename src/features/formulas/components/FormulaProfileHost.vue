@@ -36,8 +36,19 @@ defineProps<{
     <Card>
       <CardContent class="p-4 flex items-center gap-3">
         <Button class="shrink-0" @click="manager.createFormula">+ 新增配方</Button>
-        <Input v-model="manager.keyword" placeholder="搜索配方编码/名称" class="flex-1 min-w-0" />
-        <select v-model="manager.statusFilter" class="h-9 w-[180px] shrink-0 rounded-md border bg-background px-3 text-sm">
+        <Input
+          id="formula-search"
+          v-model="manager.keyword"
+          name="formula-search"
+          placeholder="搜索配方编码/名称"
+          class="flex-1 min-w-0"
+        />
+        <select
+          id="formula-status-filter"
+          v-model="manager.statusFilter"
+          name="formula-status-filter"
+          class="h-9 w-[180px] shrink-0 rounded-md border bg-background px-3 text-sm"
+        >
           <option value="">全部状态</option>
           <option value="draft">draft</option>
           <option value="published">published</option>
@@ -76,7 +87,9 @@ defineProps<{
               <div>
                 <div class="text-xs text-muted-foreground mb-1">配方编码</div>
                 <Input
+                  id="formula-key"
                   v-model="manager.detail.formulaKey"
+                  name="formula-key"
                   readonly
                   placeholder="保存后自动生成（FYYYYMMDD-####）"
                 />
@@ -85,7 +98,12 @@ defineProps<{
               </div>
               <div>
                 <div class="text-xs text-muted-foreground mb-1">配方名称</div>
-                <Input v-model="manager.detail.displayName" @update:model-value="manager.markDirty" />
+                <Input
+                  id="formula-display-name"
+                  v-model="manager.detail.displayName"
+                  name="formula-display-name"
+                  @update:model-value="manager.markDirty"
+                />
                 <p v-if="manager.validationErrors.displayName" class="text-xs text-rose-600 mt-1">{{ manager.validationErrors.displayName }}</p>
               </div>
             </div>
@@ -98,7 +116,9 @@ defineProps<{
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                   <select
+                    id="formula-bom-recommendation-source"
                     v-model="manager.recommendationSourceKey"
+                    name="formula-bom-recommendation-source"
                     class="h-9 min-w-[220px] rounded-md border bg-background px-3 text-sm"
                     :disabled="manager.recommendationLoading || manager.recommendationSources.length === 0"
                   >
@@ -146,7 +166,12 @@ defineProps<{
 
             <div>
               <div class="text-xs text-muted-foreground mb-1">变更说明</div>
-              <Textarea v-model="manager.changeNote" placeholder="本次变更说明（发布/回滚建议填写）" />
+              <Textarea
+                id="formula-change-note"
+                v-model="manager.changeNote"
+                name="formula-change-note"
+                placeholder="本次变更说明（发布/回滚建议填写）"
+              />
             </div>
 
             <div class="flex flex-wrap gap-2">
