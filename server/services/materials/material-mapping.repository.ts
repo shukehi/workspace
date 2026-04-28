@@ -180,7 +180,7 @@ export async function findUomConversion(
 ) {
   const from = normalizeMaterialUnit(fromUnit);
   const to = normalizeMaterialUnit(toUnit);
-  if (!materialId || !from || !to) return null;
+  if (materialId == null || !from || !to) return null;
 
   return MaterialUomConversion.findOne({
     where: {
