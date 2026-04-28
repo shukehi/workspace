@@ -15,7 +15,7 @@ import {
 const requireForTest = createRequire(import.meta.url);
 const TEST_DB = path.join(os.tmpdir(), `material-scripts-${crypto.randomBytes(8).toString('hex')}.sqlite`);
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TSX_BIN = path.join(REPO_ROOT, 'node_modules/.bin/tsx');
+const TSX_CLI = requireForTest.resolve('tsx/cli');
 
 const purgeServerCache = () => {
   // Keep this before server imports so child scripts and this process share the
@@ -56,7 +56,7 @@ function parseJsonFromOutput(output: string): JsonObject {
 }
 
 function runRawScript(script: string, args: string[] = []) {
-  return spawnSync(TSX_BIN, [script, ...args], {
+  return spawnSync(process.execPath, [TSX_CLI, script, ...args], {
     cwd: REPO_ROOT,
     env: { ...process.env, DB_STORAGE: TEST_DB },
     encoding: 'utf8',
