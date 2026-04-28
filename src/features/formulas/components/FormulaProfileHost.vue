@@ -11,6 +11,13 @@ import FormulaBomTable from '@/features/formulas/components/FormulaBomTable.vue'
 defineProps<{
   manager: any;
 }>();
+
+function previewReferenceIssues(values: unknown, limit = 12): string {
+  if (!Array.isArray(values)) return '';
+  const preview = values.slice(0, limit).join('、');
+  const remaining = values.length - limit;
+  return remaining > 0 ? `${preview} 等 ${remaining} 项` : preview;
+}
 </script>
 
 <template>
@@ -189,10 +196,43 @@ defineProps<{
       </Card>
       <Card v-if="manager.collectionProfileReferenceCheck">
         <CardHeader><CardTitle class="text-base">Collection Reference Check</CardTitle></CardHeader>
-        <CardContent class="text-sm text-muted-foreground">
+        <CardContent class="space-y-2 text-sm text-muted-foreground">
           <div>supplierRefs: {{ manager.collectionProfileReferenceCheck.supplierRefs.length }}</div>
           <div>materialRefs: {{ manager.collectionProfileReferenceCheck.materialCodeRefs.length }}</div>
           <div>supplierMaster: {{ manager.collectionSupplierMaster.length }}</div>
+          <div
+            class="inline-flex rounded-full border px-2 py-0.5 text-xs"
+            :class="manager.collectionProfileReferenceCheck.hasIssues ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'"
+          >
+            {{ manager.collectionProfileReferenceCheck.hasIssues ? '存在主数据治理问题' : '主数据引用正常' }}
+          </div>
+          <div
+            v-if="manager.collectionProfileReferenceCheck.suppliersMissingInSupplierMaster?.length"
+            class="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800"
+          >
+            <div class="font-medium">供应商未纳入 Supplier Master</div>
+            <div class="mt-1 break-words">
+              {{ previewReferenceIssues(manager.collectionProfileReferenceCheck.suppliersMissingInSupplierMaster) }}
+            </div>
+          </div>
+          <div
+            v-if="manager.collectionProfileReferenceCheck.suppliersMissingInMaterialMaster?.length"
+            class="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800"
+          >
+            <div class="font-medium">供应商未出现在 Material Master</div>
+            <div class="mt-1 break-words">
+              {{ previewReferenceIssues(manager.collectionProfileReferenceCheck.suppliersMissingInMaterialMaster) }}
+            </div>
+          </div>
+          <div
+            v-if="manager.collectionProfileReferenceCheck.missingMaterialCodes?.length"
+            class="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800"
+          >
+            <div class="font-medium">物料编码未出现在 Material Master</div>
+            <div class="mt-1 break-words">
+              {{ previewReferenceIssues(manager.collectionProfileReferenceCheck.missingMaterialCodes) }}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
