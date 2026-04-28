@@ -222,6 +222,31 @@ test('material mapping API preserves old material list shape and returns typed r
   assert.equal(invalidSupplierIdPayload.code, 'MATERIAL_MAPPING_INVALID');
 });
 
+test('material mapping API reports and can disable legacy resolver fallback', async () => {
+  await createMaterial('API-LEGACY-ALIAS-MAT', { aliases: ['api-legacy-alias-code'] });
+  await createMaterial('API-LEGACY-EXACT-MAT', { model: 'api-legacy-exact-model' });
+
+  const aliasResolved = await readJson(await fetch(`${baseUrl}/api/materials/resolve?code=${encodeURIComponent('api-legacy-alias-code')}`));
+  assert.equal(aliasResolved.success, true);
+  assert.equal(aliasResolved.resolution.source, 'legacy_alias');
+
+  const exactResolved = await readJson(await fetch(`${baseUrl}/api/materials/resolve?code=${encodeURIComponent('api-legacy-exact-model')}`));
+  assert.equal(exactResolved.success, true);
+  assert.equal(exactResolved.resolution.source, 'legacy_exact');
+
+  const aliasDisabled = await fetch(`${baseUrl}/api/materials/resolve?code=${encodeURIComponent('api-legacy-alias-code')}&allow_legacy_fallback=false`);
+  assert.equal(aliasDisabled.status, 404);
+  const aliasDisabledPayload = await readJson(aliasDisabled);
+  assert.equal(aliasDisabledPayload.success, false);
+  assert.equal(aliasDisabledPayload.code, 'MATERIAL_NOT_RESOLVED');
+
+  const exactDisabled = await fetch(`${baseUrl}/api/materials/resolve?code=${encodeURIComponent('api-legacy-exact-model')}&allow_legacy_fallback=false`);
+  assert.equal(exactDisabled.status, 404);
+  const exactDisabledPayload = await readJson(exactDisabled);
+  assert.equal(exactDisabledPayload.success, false);
+  assert.equal(exactDisabledPayload.code, 'MATERIAL_NOT_RESOLVED');
+});
+
 test('material mapping API rejects invalid mapping payloads', async () => {
   const material = await createMaterial('API-INVALID-MAT');
 
