@@ -79,6 +79,22 @@ function createEmptyDraft(): EditableMaterial {
   };
 }
 
+function formatMaterialMappingError(error: any): string {
+  const data = error?.response?.data || error?.data || {};
+  const code = data?.code ? String(data.code) : '';
+  const message = data?.error || data?.message || error?.message || '物料映射操作失败';
+  const details = data?.details || {};
+
+  if (code === 'MATERIAL_CODE_MAPPING_CONFLICT') {
+    const normalizedCode = details.normalizedCode ? `「${details.normalizedCode}」` : '当前编码';
+    const mappingType = details.mappingType ? `${details.mappingType} ` : '';
+    const conflictingMaterial = details.conflictingMaterialId != null ? `物料 #${details.conflictingMaterialId}` : '其他物料';
+    return `${code}：${mappingType}${normalizedCode} 已绑定到${conflictingMaterial}，请停用冲突映射或换用不同编码。`;
+  }
+
+  return code ? `${code}：${message}` : String(message);
+}
+
 export function useMaterialManagementPageState(options: MaterialManagementOptions = {}) {
   const api: MaterialManagementApi = options.api || materialMasterProfileApi;
 
@@ -279,10 +295,7 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
       if (requestId !== materialMappingsRequestId) return null;
       materialMappings.value = null;
       materialMappingsMaterialId.value = materialId;
-      materialMappingError.value = error?.response?.data?.error
-        || error?.response?.data?.code
-        || error?.message
-        || '物料映射加载失败';
+      materialMappingError.value = formatMaterialMappingError(error);
       return null;
     } finally {
       if (requestId === materialMappingsRequestId) {
@@ -291,40 +304,57 @@ export function useMaterialManagementPageState(options: MaterialManagementOption
     }
   }
 
+  async function runMaterialMappingMutation(materialId: number, action: () => Promise<unknown>) {
+    materialMappingError.value = '';
+    try {
+      await action();
+      await fetchMaterialMappings(materialId);
+    } catch (error) {
+      console.error(error);
+      materialMappingError.value = formatMaterialMappingError(error);
+    }
+  }
+
   async function createSupplierMapping(materialId: number, payload: CreateSupplierMappingPayload) {
-    if (api.createSupplierMapping) await api.createSupplierMapping(materialId, payload);
-    else await materialMappingApi.createSupplierMapping(materialId, payload);
-    await fetchMaterialMappings(materialId);
+    await runMaterialMappingMutation(materialId, async () => {
+      if (api.createSupplierMapping) await api.createSupplierMapping(materialId, payload);
+      else await materialMappingApi.createSupplierMapping(materialId, payload);
+    });
   }
 
   async function updateSupplierMapping(materialId: number, mappingId: number, payload: UpdateSupplierMappingPayload) {
-    if (api.updateSupplierMapping) await api.updateSupplierMapping(materialId, mappingId, payload);
-    else await materialMappingApi.updateSupplierMapping(materialId, mappingId, payload);
-    await fetchMaterialMappings(materialId);
+    await runMaterialMappingMutation(materialId, async () => {
+      if (api.updateSupplierMapping) await api.updateSupplierMapping(materialId, mappingId, payload);
+      else await materialMappingApi.updateSupplierMapping(materialId, mappingId, payload);
+    });
   }
 
   async function createCodeMapping(materialId: number, payload: CreateCodeMappingPayload) {
-    if (api.createCodeMapping) await api.createCodeMapping(materialId, payload);
-    else await materialMappingApi.createCodeMapping(materialId, payload);
-    await fetchMaterialMappings(materialId);
+    await runMaterialMappingMutation(materialId, async () => {
+      if (api.createCodeMapping) await api.createCodeMapping(materialId, payload);
+      else await materialMappingApi.createCodeMapping(materialId, payload);
+    });
   }
 
   async function updateCodeMapping(materialId: number, mappingId: number, payload: UpdateCodeMappingPayload) {
-    if (api.updateCodeMapping) await api.updateCodeMapping(materialId, mappingId, payload);
-    else await materialMappingApi.updateCodeMapping(materialId, mappingId, payload);
-    await fetchMaterialMappings(materialId);
+    await runMaterialMappingMutation(materialId, async () => {
+      if (api.updateCodeMapping) await api.updateCodeMapping(materialId, mappingId, payload);
+      else await materialMappingApi.updateCodeMapping(materialId, mappingId, payload);
+    });
   }
 
   async function createUomConversion(materialId: number, payload: CreateUomConversionPayload) {
-    if (api.createUomConversion) await api.createUomConversion(materialId, payload);
-    else await materialMappingApi.createUomConversion(materialId, payload);
-    await fetchMaterialMappings(materialId);
+    await runMaterialMappingMutation(materialId, async () => {
+      if (api.createUomConversion) await api.createUomConversion(materialId, payload);
+      else await materialMappingApi.createUomConversion(materialId, payload);
+    });
   }
 
   async function updateUomConversion(materialId: number, conversionId: number, payload: UpdateUomConversionPayload) {
-    if (api.updateUomConversion) await api.updateUomConversion(materialId, conversionId, payload);
-    else await materialMappingApi.updateUomConversion(materialId, conversionId, payload);
-    await fetchMaterialMappings(materialId);
+    await runMaterialMappingMutation(materialId, async () => {
+      if (api.updateUomConversion) await api.updateUomConversion(materialId, conversionId, payload);
+      else await materialMappingApi.updateUomConversion(materialId, conversionId, payload);
+    });
   }
 
   async function publishDraft(changeNote = 'publish material master draft') {

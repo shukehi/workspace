@@ -232,3 +232,155 @@ test('material management page state ignores stale mapping responses', async () 
     scope.stop();
   }
 });
+
+test('material management page state reports mapping load failures and clears selection state', async () => {
+  const scope = effectScope();
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    const state = scope.run(() => useMaterialManagementPageState({
+      api: {
+        async get(): Promise<any> { return []; },
+        async listSupplierMasters() { return []; },
+        async auditLogs() { return []; },
+        async listMaterialMappings(materialId: number) {
+          throw Object.assign(new Error(`mapping load failed for ${materialId}`), {
+            response: { data: { code: 'MAPPING_LOAD_FAILED' } },
+          });
+        },
+      },
+    }));
+
+    if (!state) throw new Error('state not created');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const failedLoad = state.fetchMaterialMappings(7);
+    assert.equal(state.materialMappingsLoading.value, true);
+    await failedLoad;
+
+    assert.equal(state.materialMappingsMaterialId.value, 7);
+    assert.equal(state.materialMappings.value, null);
+    assert.equal(state.materialMappingError.value, 'MAPPING_LOAD_FAILED：mapping load failed for 7');
+    assert.equal(state.materialMappingsLoading.value, false);
+
+    await state.fetchMaterialMappings(null);
+    assert.equal(state.materialMappingsMaterialId.value, null);
+    assert.equal(state.materialMappings.value, null);
+    assert.equal(state.materialMappingError.value, '');
+    assert.equal(state.materialMappingsLoading.value, false);
+  } finally {
+    console.error = originalConsoleError;
+    scope.stop();
+  }
+});
+
+test('material management page state surfaces typed mapping mutation conflicts', async () => {
+  const scope = effectScope();
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    let mappingLoads = 0;
+    const state = scope.run(() => useMaterialManagementPageState({
+      api: {
+        async get(): Promise<any> { return []; },
+        async listSupplierMasters() { return []; },
+        async auditLogs() { return []; },
+        async listMaterialMappings() {
+          mappingLoads += 1;
+          return { supplierMappings: [], codeMappings: [], uomConversions: [] };
+        },
+        async createCodeMapping() {
+          throw {
+            response: {
+              data: {
+                code: 'MATERIAL_CODE_MAPPING_CONFLICT',
+                details: {
+                  normalizedCode: 'alias-001',
+                  mappingType: 'alias',
+                  conflictingMaterialId: 0,
+                },
+              },
+            },
+          };
+        },
+      },
+    }));
+
+    if (!state) throw new Error('state not created');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    await state.createCodeMapping(7, { mapping_type: 'alias', external_code: 'ALIAS-001' });
+
+    assert.equal(mappingLoads, 0);
+    assert.equal(
+      state.materialMappingError.value,
+      'MATERIAL_CODE_MAPPING_CONFLICT：alias 「alias-001」 已绑定到物料 #0，请停用冲突映射或换用不同编码。',
+    );
+  } finally {
+    console.error = originalConsoleError;
+    scope.stop();
+  }
+});
+
+test('material management page state ignores stale mapping failures after a newer success', async () => {
+  const scope = effectScope();
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    let releaseFirst!: () => void;
+    const firstResponse = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const state = scope.run(() => useMaterialManagementPageState({
+      api: {
+        async get(): Promise<any> { return []; },
+        async listSupplierMasters() { return []; },
+        async auditLogs() { return []; },
+        async listMaterialMappings(materialId: number) {
+          if (materialId === 1) {
+            await firstResponse;
+            throw new Error('stale mapping failure');
+          }
+          return {
+            supplierMappings: [{
+              id: materialId,
+              material_id: materialId,
+              supplier_master_id: null,
+              supplier_code: `SUP-${materialId}`,
+              normalized_supplier_code: `sup-${materialId}`,
+              conversion_factor: 1,
+              is_default: false,
+              is_active: true,
+            }],
+            codeMappings: [],
+            uomConversions: [],
+          };
+        },
+      },
+    }));
+
+    if (!state) throw new Error('state not created');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const staleFailure = state.fetchMaterialMappings(1);
+    const newerSuccess = state.fetchMaterialMappings(2);
+    await newerSuccess;
+
+    assert.equal(state.materialMappingsMaterialId.value, 2);
+    assert.equal(state.materialMappings.value?.supplierMappings[0]?.supplier_code, 'SUP-2');
+    assert.equal(state.materialMappingError.value, '');
+    assert.equal(state.materialMappingsLoading.value, false);
+
+    releaseFirst();
+    await staleFailure;
+
+    assert.equal(state.materialMappingsMaterialId.value, 2);
+    assert.equal(state.materialMappings.value?.supplierMappings[0]?.supplier_code, 'SUP-2');
+    assert.equal(state.materialMappingError.value, '');
+    assert.equal(state.materialMappingsLoading.value, false);
+  } finally {
+    console.error = originalConsoleError;
+    scope.stop();
+  }
+});
