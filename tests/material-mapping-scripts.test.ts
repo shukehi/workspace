@@ -256,16 +256,22 @@ test('backfill apply refuses detected planning conflicts before writing rows', a
 test('audit script reports duplicate active code mappings across different materials', async () => {
   const first = await createMaterial('SCRIPT-DUP-001');
   const second = await createMaterial('SCRIPT-DUP-002');
-  await createCodeMapping({
+
+  // The runtime repository intentionally rejects new duplicate active mappings.
+  // Seed the impossible-but-auditable legacy state directly so the audit script
+  // continues to prove it can detect pre-existing data drift.
+  await MaterialCodeMapping.create({
     material_id: first.id,
     mapping_type: 'alias',
     external_code: 'duplicate-external-code',
+    normalized_code: 'duplicate-external-code',
     is_active: true,
   } as any);
-  await createCodeMapping({
+  await MaterialCodeMapping.create({
     material_id: second.id,
     mapping_type: 'alias',
     external_code: 'duplicate-external-code',
+    normalized_code: 'duplicate-external-code',
     is_active: true,
   } as any);
 
