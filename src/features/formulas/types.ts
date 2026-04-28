@@ -1,5 +1,10 @@
+import {
+  FORMULA_BOM_MATERIAL_CATEGORIES,
+  type FormulaBomMaterialCategory,
+} from '@/shared/types/formulaBom';
+
 export type FormulaValidationErrors = Record<string, string>;
 
-export const BOM_MATERIAL_CATEGORIES = ['转印纸', '油漆', '塑粉'] as const;
+export const BOM_MATERIAL_CATEGORIES = FORMULA_BOM_MATERIAL_CATEGORIES;
 
-export type BomMaterialCategory = typeof BOM_MATERIAL_CATEGORIES[number];
+export type BomMaterialCategory = FormulaBomMaterialCategory;
