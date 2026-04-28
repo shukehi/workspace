@@ -92,14 +92,14 @@ async function assertNoActiveCodeMappingConflict(
   excludeMappingId?: number | null,
   transaction?: Transaction | null,
 ) {
-  if (!materialId || !mappingType || !normalizedCode) return;
+  if (materialId == null || !mappingType || !normalizedCode) return;
 
   const where: WhereOptions = {
     mapping_type: mappingType,
     normalized_code: normalizedCode,
     is_active: true,
     material_id: { [Op.ne]: materialId },
-    ...(excludeMappingId ? { id: { [Op.ne]: excludeMappingId } } : {}),
+    ...(excludeMappingId == null ? {} : { id: { [Op.ne]: excludeMappingId } }),
   };
   const existing = await MaterialCodeMapping.findOne({
     where,
