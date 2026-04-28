@@ -30,7 +30,7 @@ const runtimeConfigRoutes = (_require('../server/routes/runtimeConfig') as { def
 const MappingService = _require('../server/services/mappings') as typeof import('../server/services/mappings');
 const MaterialCatalogService = _require('../server/services/materials') as typeof import('../server/services/materials');
 const FormulaService = _require('../server/services/formulas') as typeof import('../server/services/formulas');
-const { initDB, sequelize, Material } = _require('../server/models') as typeof import('../server/models');
+const { initDB, sequelize, Material, MappingProfile, MappingRevision } = _require('../server/models') as typeof import('../server/models');
 
 let server: ReturnType<ReturnType<typeof express>['listen']>;
 let baseUrl: string;
@@ -182,4 +182,23 @@ test('GET /api/runtime/config-snapshot returns a unified published runtime snaps
   assert.ok(body.meta.revisions.material_catalog >= 1);
   assert.equal(body.meta.revisions.packaging, 2);
   assert.deepEqual(body.meta.degradedProfiles, []);
+});
+
+
+test('GET /api/runtime/config-snapshot fails closed when a required published mapping is missing', async () => {
+  const profile = await MappingProfile.findOne({ where: { profile_code: 'packaging' } }) as any;
+  assert.ok(profile);
+  const publishedRevision = await MappingRevision.findOne({ where: { profile_id: profile.id, state: 'published' } }) as any;
+  assert.ok(publishedRevision);
+
+  try {
+    await publishedRevision.update({ state: 'draft' });
+    const res = await fetch(`${baseUrl}/api/runtime/config-snapshot`);
+    assert.equal(res.status, 500);
+    const body = await res.json();
+    assert.equal(body.success, false);
+    assert.match(String(body.message || ''), /Missing published mapping payload for packaging/);
+  } finally {
+    await publishedRevision.update({ state: 'published' });
+  }
 });

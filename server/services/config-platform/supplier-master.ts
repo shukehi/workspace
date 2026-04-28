@@ -1,6 +1,7 @@
 import { Material, SupplierMaster } from '../../models';
 import type { SupplierMasterInstance } from '../../models';
 import { buildRuntimeConfigSnapshot } from './profile.snapshot';
+import { runtimeNotReady, runtimeReady, type RuntimeReadiness } from './profile.runtime-readiness';
 
 export type SupplierMasterEntry = {
   id?: number | null;
@@ -24,6 +25,19 @@ export type SupplierLinkedMaterialEntry = {
   supplier: string;
   supplierMasterId: number | null;
   updatedAt: string | null;
+};
+
+type AggregatedSupplierEntry = {
+  supplierName: string;
+  normalizedName: string;
+  sources: string[];
+  materialCount: number;
+};
+
+export type SupplierMasterListResult = {
+  items: SupplierMasterEntry[];
+  runtimeReadiness: RuntimeReadiness;
+  runtimeNotReady: boolean;
 };
 
 function normalizeSupplierName(value: unknown): string {
@@ -60,8 +74,9 @@ function collectSuppliersFromObject(map: Map<string, { name: string; sources: Se
   });
 }
 
-async function buildAggregatedSupplierEntries() {
+async function buildAggregatedSupplierEntries(): Promise<{ entries: AggregatedSupplierEntry[]; runtimeReadiness: RuntimeReadiness }> {
   const map = new Map<string, { name: string; sources: Set<string>; materialCount: number }>();
+  let runtimeReadiness: RuntimeReadiness = runtimeReady();
 
   const materials = await Material.findAll({ attributes: ['supplier'] }) as Array<{ supplier?: string | null }>;
   const counts = new Map<string, number>();
@@ -77,6 +92,7 @@ async function buildAggregatedSupplierEntries() {
 
   try {
     const snapshot = await buildRuntimeConfigSnapshot();
+    runtimeReadiness = runtimeReady(snapshot.meta?.degradedProfiles);
     collectSuppliersFromObject(map, snapshot.profiles.packaging, 'config:packaging');
     collectSuppliersFromObject(map, snapshot.profiles.cylinder, 'config:cylinder');
     collectSuppliersFromObject(map, snapshot.profiles.lock, 'config:lock');
@@ -84,26 +100,39 @@ async function buildAggregatedSupplierEntries() {
     collectSuppliersFromObject(map, snapshot.profiles.lock_fork, 'config:lock_fork');
     collectSuppliersFromObject(map, snapshot.profiles.material_catalog, 'config:material_catalog');
   } catch (error) {
+    runtimeReadiness = runtimeNotReady(error);
     console.warn('[supplier-master] runtime snapshot unavailable while aggregating suppliers', error);
   }
 
-  return [...map.values()].map((entry) => ({
-    supplierName: entry.name,
-    normalizedName: entry.name.toLowerCase(),
-    sources: [...entry.sources].sort(),
-    materialCount: entry.materialCount,
-  }));
+  return {
+    entries: [...map.values()].map((entry) => ({
+      supplierName: entry.name,
+      normalizedName: entry.name.toLowerCase(),
+      sources: [...entry.sources].sort(),
+      materialCount: entry.materialCount,
+    })),
+    runtimeReadiness,
+  };
+}
+
+async function readSupplierRuntimeReadiness(): Promise<RuntimeReadiness> {
+  try {
+    const snapshot = await buildRuntimeConfigSnapshot();
+    return runtimeReady(snapshot.meta?.degradedProfiles);
+  } catch (error) {
+    return runtimeNotReady(error);
+  }
 }
 
 async function seedPersistedSupplierMasterIfEmpty() {
   const count = await SupplierMaster.count();
   if (count > 0) return false;
 
-  const aggregated = await buildAggregatedSupplierEntries();
-  if (aggregated.length === 0) return false;
+  const { entries } = await buildAggregatedSupplierEntries();
+  if (entries.length === 0) return false;
 
   await SupplierMaster.bulkCreate(
-    aggregated.map((entry) => ({
+    entries.map((entry) => ({
       supplier_name: entry.supplierName,
       normalized_name: entry.normalizedName,
       status: 'active',
@@ -161,7 +190,7 @@ async function buildMaterialSupplierCounts() {
   return counts;
 }
 
-export async function listSupplierMaster(options: { skipSeed?: boolean } = {}): Promise<SupplierMasterEntry[]> {
+export async function listSupplierMasterWithReadiness(options: { skipSeed?: boolean } = {}): Promise<SupplierMasterListResult> {
   if (!options.skipSeed) {
     await seedPersistedSupplierMasterIfEmpty();
   }
@@ -172,10 +201,21 @@ export async function listSupplierMaster(options: { skipSeed?: boolean } = {}): 
   ]);
 
   if (entries.length === 0) {
-    return (await buildAggregatedSupplierEntries()).map((entry) => ({ ...entry, id: null, status: 'active', sourceNote: entry.sources.join(','), linkedMaterialCount: 0, linkedMaterialCodes: [], hasLinkedMaterialsWhileInactive: false, persisted: false }));
+    const aggregated = await buildAggregatedSupplierEntries();
+    const items = aggregated.entries.map((entry) => ({ ...entry, id: null, status: 'active', sourceNote: entry.sources.join(','), linkedMaterialCount: 0, linkedMaterialCodes: [], hasLinkedMaterialsWhileInactive: false, persisted: false }));
+    return { items, runtimeReadiness: aggregated.runtimeReadiness, runtimeNotReady: aggregated.runtimeReadiness.runtimeNotReady };
   }
 
-  return entries.map((entry) => toPersistedEntry(entry, materialCounts, linkedMaterials));
+  const runtimeReadiness = await readSupplierRuntimeReadiness();
+  return {
+    items: entries.map((entry) => toPersistedEntry(entry, materialCounts, linkedMaterials)),
+    runtimeReadiness,
+    runtimeNotReady: runtimeReadiness.runtimeNotReady,
+  };
+}
+
+export async function listSupplierMaster(options: { skipSeed?: boolean } = {}): Promise<SupplierMasterEntry[]> {
+  return (await listSupplierMasterWithReadiness(options)).items;
 }
 
 export async function listSupplierMasterLinkedMaterials(idInput: unknown): Promise<SupplierLinkedMaterialEntry[]> {
@@ -209,7 +249,8 @@ export async function listSupplierMasterLinkedMaterials(idInput: unknown): Promi
 
 export async function getSupplierMasterDetail() {
   const seeded = await seedPersistedSupplierMasterIfEmpty();
-  const items = await listSupplierMaster({ skipSeed: true });
+  const result = await listSupplierMasterWithReadiness({ skipSeed: true });
+  const items = result.items;
   return {
     profile: {
       code: 'supplier_master',
@@ -222,5 +263,7 @@ export async function getSupplierMasterDetail() {
     seededFromAggregate: seeded,
     total: items.length,
     items,
+    runtimeReadiness: result.runtimeReadiness,
+    runtimeNotReady: result.runtimeNotReady,
   };
 }

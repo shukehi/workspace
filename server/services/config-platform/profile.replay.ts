@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { analyzeSourceOrder } from '@/services/sourceAnalysis';
 import { buildRuntimeConfigSnapshot } from './profile.snapshot';
+import { runtimeNotReady, runtimeReady, type RuntimeReadiness } from './profile.runtime-readiness';
 import { getConfigProfileDefinition } from './profile.registry';
 import { getConfigProfileDetail } from './profile.service';
 import { ErpContract } from '../../models';
@@ -35,6 +36,8 @@ export type ConfigProfileReplayResult = {
   sampleCount: number;
   changedSampleCount: number;
   items: ConfigProfileReplayItem[];
+  runtimeReadiness?: RuntimeReadiness;
+  runtimeNotReady?: boolean;
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -233,10 +236,13 @@ export async function getConfigProfileReplay(code: string): Promise<{ ok: boolea
 
   const detail = detailResult.detail;
   let beforeProfiles: Record<string, unknown> = createEmptyProfiles();
+  let runtimeReadiness: RuntimeReadiness = runtimeReady();
   try {
     const snapshot = await buildRuntimeConfigSnapshot();
     beforeProfiles = snapshot.profiles as Record<string, unknown>;
+    runtimeReadiness = runtimeReady(snapshot.meta?.degradedProfiles);
   } catch (error) {
+    runtimeReadiness = runtimeNotReady(error);
     console.warn('[profile-replay] runtime snapshot unavailable, falling back to empty baseline profiles', error);
   }
 
@@ -281,6 +287,8 @@ export async function getConfigProfileReplay(code: string): Promise<{ ok: boolea
       sampleCount: items.length,
       changedSampleCount: items.filter((item) => item.changed).length,
       items,
+      runtimeReadiness,
+      runtimeNotReady: runtimeReadiness.runtimeNotReady,
     },
   };
 }

@@ -195,6 +195,10 @@ test('GET /api/config/profiles/packaging/replay returns fixture-backed replay su
   assert.equal(replayBody.replay.sampleSource, 'fixtures');
   assert.ok(replayBody.replay.sampleCount > 0);
   assert.ok(Array.isArray(replayBody.replay.items));
+  assert.equal(replayBody.replay.runtimeNotReady, true);
+  assert.equal(replayBody.replay.runtimeReadiness.ready, false);
+  assert.equal(replayBody.replay.runtimeReadiness.runtimeNotReady, true);
+  assert.equal(typeof replayBody.replay.runtimeReadiness.message, 'string');
 });
 
 test('GET /api/config/profiles/packaging/replay prefers recent contract cache samples when available', async () => {
@@ -228,6 +232,8 @@ test('GET /api/config/profiles/packaging/replay prefers recent contract cache sa
   assert.equal(replayBody.success, true);
   assert.equal(replayBody.replay.sampleSource, 'contract-cache');
   assert.ok(replayBody.replay.sampleCount >= 1);
+  assert.equal(replayBody.replay.runtimeNotReady, true);
+  assert.equal(replayBody.replay.runtimeReadiness.ready, false);
 });
 
 test('PUT/POST profile draft+publish bridge works for packaging', async () => {
@@ -522,6 +528,8 @@ test('GET /api/config/profiles/supplier_master/detail returns unified supplier m
   assert.equal(body.detail.profile.workflowKind, 'collection');
   assert.equal(typeof body.detail.collection.total, 'number');
   assert.ok(Array.isArray(body.detail.collection.previewItems));
+  assert.equal(body.detail.collection.runtimeNotReady, true);
+  assert.equal(body.detail.collection.runtimeReadiness.ready, false);
 });
 
 test('GET /api/config/masters/suppliers returns aggregated supplier master entries', async () => {
@@ -535,6 +543,9 @@ test('GET /api/config/masters/suppliers returns aggregated supplier master entri
   assert.ok(body.items.every((item: any) => typeof item.persisted === 'boolean'));
   assert.ok(body.items.every((item: any) => typeof item.linkedMaterialCount === 'number'));
   assert.ok(body.items.every((item: any) => typeof item.hasLinkedMaterialsWhileInactive === 'boolean'));
+  assert.equal(body.runtimeNotReady, true);
+  assert.equal(body.runtimeReadiness.ready, false);
+  assert.equal(typeof body.runtimeReadiness.message, 'string');
 });
 
 test('GET /api/config/masters/materials and detail expose lower-level material master domain surface', async () => {
@@ -562,6 +573,9 @@ test('GET /api/config/masters/suppliers/detail seeds and reads persisted supplie
   assert.equal(typeof body.detail.total, 'number');
   assert.ok(Array.isArray(body.detail.items));
   assert.ok(body.detail.items.some((item: any) => item.supplierName === '供应商A'));
+  assert.equal(body.runtimeNotReady, true);
+  assert.equal(body.detail.runtimeNotReady, true);
+  assert.equal(body.detail.runtimeReadiness.ready, false);
 
   const persistedCount = await SupplierMaster.count();
   assert.ok(persistedCount > 0);

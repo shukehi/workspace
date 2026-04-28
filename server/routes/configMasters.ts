@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { archiveSupplierMasterItem, createSupplierMasterItem, updateSupplierMasterItem } from '../services/config-platform/supplier-master.crud';
 import { listSupplierMasterAuditLogs } from '../services/config-platform/supplier-master.audit';
-import { getSupplierMasterDetail, listSupplierMaster, listSupplierMasterLinkedMaterials } from '../services/config-platform/supplier-master';
+import { getSupplierMasterDetail, listSupplierMasterLinkedMaterials, listSupplierMasterWithReadiness } from '../services/config-platform/supplier-master';
 import { getMaterialMasterDetail, listMaterialMasterItems } from '../services/config-platform/material-master';
 import materialService from '../services/MaterialService';
 import { listMaterialMasterAuditLogs } from '../services/config-platform/material-master.audit';
@@ -10,8 +10,13 @@ const router: Router = Router();
 
 router.get('/suppliers', async (_req: Request, res: Response) => {
   try {
-    const items = await listSupplierMaster();
-    res.json({ success: true, items });
+    const result = await listSupplierMasterWithReadiness();
+    res.json({
+      success: true,
+      items: result.items,
+      runtimeReadiness: result.runtimeReadiness,
+      runtimeNotReady: result.runtimeNotReady,
+    });
   } catch (error) {
     console.error('Error listing supplier master entries:', error);
     res.status(500).json({ success: false, error: 'Failed to list supplier master entries' });
@@ -21,7 +26,12 @@ router.get('/suppliers', async (_req: Request, res: Response) => {
 router.get('/suppliers/detail', async (_req: Request, res: Response) => {
   try {
     const detail = await getSupplierMasterDetail();
-    res.json({ success: true, detail });
+    res.json({
+      success: true,
+      detail,
+      runtimeReadiness: detail.runtimeReadiness,
+      runtimeNotReady: detail.runtimeNotReady,
+    });
   } catch (error) {
     console.error('Error reading supplier master detail:', error);
     res.status(500).json({ success: false, error: 'Failed to read supplier master detail' });
