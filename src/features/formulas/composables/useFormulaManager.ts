@@ -7,7 +7,7 @@ import type {
   FormulaSummary,
 } from '@/types/formula';
 import { useToastStore } from '@/stores/useToastStore';
-import { BOM_MATERIAL_CATEGORIES, type FormulaValidationErrors } from '@/features/formulas/types';
+import { BOM_MATERIAL_CATEGORIES, type BomMaterialCategory, type FormulaValidationErrors } from '@/features/formulas/types';
 import { useDirtyBeforeUnload } from '@/features/formulas/composables/useDirtyBeforeUnload';
 import { useFormulaList } from '@/features/formulas/composables/useFormulaList';
 import { useFormulaDetail } from '@/features/formulas/composables/useFormulaDetail';
@@ -22,6 +22,30 @@ import {
 
 // Keeps the source selector bounded until the UI grows search/pagination.
 const RECOMMENDATION_SOURCE_PAGE_SIZE = 200;
+const KNOWN_BOM_MATERIAL_CATEGORIES = new Set<string>(BOM_MATERIAL_CATEGORIES);
+
+function readBomMaterialCategories(metadata: unknown): BomMaterialCategory[] | null {
+  if (!metadata || typeof metadata !== 'object') return null;
+
+  const bomMetadata = metadata as {
+    materialCategories?: unknown;
+    readOnly?: unknown;
+    sideEffect?: unknown;
+  };
+  if (bomMetadata.readOnly !== true || bomMetadata.sideEffect !== 'none') return null;
+
+  const materialCategories = bomMetadata.materialCategories;
+  if (!Array.isArray(materialCategories) || materialCategories.length === 0) return null;
+
+  const categories: BomMaterialCategory[] = [];
+  for (const category of materialCategories) {
+    if (typeof category !== 'string' || !KNOWN_BOM_MATERIAL_CATEGORIES.has(category)) {
+      return null;
+    }
+    categories.push(category as BomMaterialCategory);
+  }
+  return categories;
+}
 
 export function useFormulaManager() {
   const { toast } = useToastStore();
@@ -155,9 +179,7 @@ export function useFormulaManager() {
   async function loadFormulaMetadata() {
     try {
       const metadata = await formulaProfileApi.metadata();
-      if (metadata.materialCategories.length > 0) {
-        bomMaterialCategories.value = [...metadata.materialCategories];
-      }
+      bomMaterialCategories.value = readBomMaterialCategories(metadata) ?? [...BOM_MATERIAL_CATEGORIES];
     } catch {
       bomMaterialCategories.value = [...BOM_MATERIAL_CATEGORIES];
     }

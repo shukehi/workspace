@@ -140,6 +140,39 @@ test('formula manager loads BOM categories from read-only metadata with shared f
 
   assert.deepEqual(manager.bomMaterialCategories.value, ['油漆', '塑粉']);
 
+  formulaProfileApi.metadata = (async () => ({
+    materialCategories: '油漆',
+    materialCategoryLabel: '油漆',
+    readOnly: true,
+    sideEffect: 'none',
+  } as unknown as Awaited<ReturnType<FormulaProfileApi['metadata']>>)) as FormulaProfileApi['metadata'];
+
+  await manager.loadFormulaMetadata();
+
+  assert.deepEqual(manager.bomMaterialCategories.value, [...FORMULA_BOM_MATERIAL_CATEGORIES]);
+
+  formulaProfileApi.metadata = (async () => ({
+    materialCategories: ['油漆', '未知类别'],
+    materialCategoryLabel: '油漆/未知类别',
+    readOnly: true,
+    sideEffect: 'none',
+  } as unknown as Awaited<ReturnType<FormulaProfileApi['metadata']>>)) as FormulaProfileApi['metadata'];
+
+  await manager.loadFormulaMetadata();
+
+  assert.deepEqual(manager.bomMaterialCategories.value, [...FORMULA_BOM_MATERIAL_CATEGORIES]);
+
+  formulaProfileApi.metadata = (async () => ({
+    materialCategories: ['油漆'],
+    materialCategoryLabel: '油漆',
+    readOnly: true,
+    sideEffect: 'writes-draft',
+  } as unknown as Awaited<ReturnType<FormulaProfileApi['metadata']>>)) as FormulaProfileApi['metadata'];
+
+  await manager.loadFormulaMetadata();
+
+  assert.deepEqual(manager.bomMaterialCategories.value, [...FORMULA_BOM_MATERIAL_CATEGORIES]);
+
   formulaProfileApi.metadata = (async () => {
     throw new Error('metadata unavailable');
   }) as FormulaProfileApi['metadata'];
