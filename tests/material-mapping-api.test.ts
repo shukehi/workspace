@@ -152,6 +152,54 @@ test('material mapping API creates, lists, patches and resolves mappings', async
   assert.equal(resolved.resolution.conversionFactor, 12);
 });
 
+test('material mapping API rejects duplicate active code mappings across materials', async () => {
+  const first = await createMaterial('API-DUP-CODE-001', { unit: 'PCS' });
+  const second = await createMaterial('API-DUP-CODE-002', { unit: 'PCS' });
+
+  const firstCreate = await fetch(`${baseUrl}/api/materials/${first.id}/code-mappings`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ mapping_type: 'alias', external_code: 'Shared Duplicate Code' }),
+  });
+  assert.equal(firstCreate.status, 201);
+
+  const duplicateCreate = await fetch(`${baseUrl}/api/materials/${second.id}/code-mappings`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ mapping_type: 'alias', external_code: '  shared   duplicate code  ' }),
+  });
+  assert.equal(duplicateCreate.status, 409);
+  const duplicatePayload = await readJson(duplicateCreate);
+  assert.equal(duplicatePayload.success, false);
+  assert.equal(duplicatePayload.code, 'MATERIAL_CODE_MAPPING_CONFLICT');
+  assert.equal(duplicatePayload.details.conflictingMaterialId, first.id);
+  assert.equal(duplicatePayload.details.mappingType, 'alias');
+  assert.equal(duplicatePayload.details.normalizedCode, 'shared duplicate code');
+
+  const inactiveCreate = await fetch(`${baseUrl}/api/materials/${second.id}/code-mappings`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      mapping_type: 'alias',
+      external_code: 'Shared Duplicate Code',
+      is_active: false,
+    }),
+  });
+  assert.equal(inactiveCreate.status, 201);
+  const inactivePayload = await readJson(inactiveCreate);
+
+  const activateDuplicate = await fetch(`${baseUrl}/api/materials/${second.id}/code-mappings/${inactivePayload.mapping.id}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ is_active: true }),
+  });
+  assert.equal(activateDuplicate.status, 409);
+  const activatePayload = await readJson(activateDuplicate);
+  assert.equal(activatePayload.success, false);
+  assert.equal(activatePayload.code, 'MATERIAL_CODE_MAPPING_CONFLICT');
+  assert.equal(activatePayload.details.conflictingMaterialId, first.id);
+});
+
 test('material mapping API preserves old material list shape and returns typed resolver errors', async () => {
   await createMaterial('API-LIST-MAT');
 

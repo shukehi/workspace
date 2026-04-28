@@ -55,6 +55,22 @@ function notFoundError(message: string) {
   return error;
 }
 
+function codeMappingConflictError(conflictingMaterialId: number, mappingType: MaterialCodeMappingType, normalizedCode: string) {
+  const error = new Error('Active material code mapping already exists for another material') as Error & {
+    code?: string;
+    status?: number;
+    details?: Record<string, unknown>;
+  };
+  error.code = 'MATERIAL_CODE_MAPPING_CONFLICT';
+  error.status = 409;
+  error.details = {
+    conflictingMaterialId,
+    mappingType,
+    normalizedCode,
+  };
+  return error;
+}
+
 function plain<T>(instance: any): T {
   return typeof instance?.get === 'function' ? instance.get({ plain: true }) : instance;
 }
@@ -66,6 +82,32 @@ function assignIfPresent<T extends Record<string, unknown>, K extends string>(
 ) {
   if (Object.prototype.hasOwnProperty.call(source, key)) {
     target[key as keyof T] = source[key] as T[keyof T];
+  }
+}
+
+async function assertNoActiveCodeMappingConflict(
+  materialId: number,
+  mappingType: MaterialCodeMappingType,
+  normalizedCode: string,
+  excludeMappingId?: number | null,
+  transaction?: Transaction | null,
+) {
+  if (!materialId || !mappingType || !normalizedCode) return;
+
+  const where: WhereOptions = {
+    mapping_type: mappingType,
+    normalized_code: normalizedCode,
+    is_active: true,
+    material_id: { [Op.ne]: materialId },
+    ...(excludeMappingId ? { id: { [Op.ne]: excludeMappingId } } : {}),
+  };
+  const existing = await MaterialCodeMapping.findOne({
+    where,
+    transaction: transaction ?? undefined,
+    order: [['id', 'ASC']],
+  });
+  if (existing) {
+    throw codeMappingConflictError(plain<MaterialCodeMappingAttributes>(existing).material_id, mappingType, normalizedCode);
   }
 }
 
@@ -177,10 +219,22 @@ export async function createCodeMapping(
   payload: Omit<MaterialCodeMappingCreationAttributes, 'normalized_code'> & { normalized_code?: string },
   transaction?: Transaction | null,
 ) {
+  const normalizedCode = payload.normalized_code || normalizeMaterialExternalCode(payload.external_code);
+  const isActive = payload.is_active ?? true;
+  if (isActive) {
+    await assertNoActiveCodeMappingConflict(
+      payload.material_id,
+      payload.mapping_type,
+      normalizedCode,
+      null,
+      transaction,
+    );
+  }
+
   return MaterialCodeMapping.create({
     ...payload,
-    normalized_code: payload.normalized_code || normalizeMaterialExternalCode(payload.external_code),
-    is_active: payload.is_active ?? true,
+    normalized_code: normalizedCode,
+    is_active: isActive,
     priority: payload.priority ?? 100,
     metadata_json: payload.metadata_json ?? '{}',
   }, { transaction: transaction ?? undefined });
@@ -286,6 +340,18 @@ export async function updateCodeMapping(
   }
   if (payload.metadata_json !== undefined && typeof payload.metadata_json !== 'string') {
     next.metadata_json = JSON.stringify(payload.metadata_json);
+  }
+
+  const current = plain<MaterialCodeMappingAttributes>(row);
+  const nextIsActive = next.is_active === undefined ? current.is_active : Boolean(next.is_active);
+  if (nextIsActive) {
+    await assertNoActiveCodeMappingConflict(
+      materialId,
+      (next.mapping_type ?? current.mapping_type) as MaterialCodeMappingType,
+      (next.normalized_code ?? current.normalized_code) as string,
+      mappingId,
+      transaction,
+    );
   }
 
   await row.update(next, { transaction: transaction ?? undefined });
