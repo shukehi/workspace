@@ -1,4 +1,3 @@
-import fs from 'fs';
 import type { Transaction } from 'sequelize';
 import MappingRepository from './mapping.repository';
 import { AUDIT_ACTIONS, PROFILE_STATUSES, REVISION_STATES, SCHEMA_VERSION, getProfileDisplayName } from './mapping.constants';
@@ -6,7 +5,6 @@ import { parsePayload, serializePayload, validateMappingPayload, validateProfile
 import { toDetail, toRevisionMeta, toSummary, toAuditLog } from './mapping.mapper';
 import type { PlainRecord } from '../../shared/types';
 import type { MappingProfileCode } from '../../models/types';
-import { CONFIG_FILES } from '../../config/paths';
 
 interface WorkflowIssue {
     path: string;
@@ -62,82 +60,6 @@ export function normalizeSchemaVersion(input: unknown): number {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : SCHEMA_VERSION;
 }
 
-function readLegacyCylinderPayload(): PlainRecord {
-    try {
-        if (!fs.existsSync(CONFIG_FILES.cylinderMapping)) return {};
-        const raw = fs.readFileSync(CONFIG_FILES.cylinderMapping, 'utf8');
-        return parsePayload(raw);
-    } catch {
-        return {};
-    }
-}
-
-function buildCylinderAccessoryRuleKey(rule: PlainRecord): string {
-    return [
-        String(rule.conditionField || '').trim(),
-        String(rule.keyword || '').trim(),
-        String(rule.supplier || '').trim(),
-    ].join('|');
-}
-
-function normalizeCylinderPublishedPayload(profileCode: string, payload: PlainRecord | null): PlainRecord | null {
-    if (profileCode !== 'cylinder' || !payload || typeof payload !== 'object') return payload;
-
-    const rules = Array.isArray(payload.secondaryAccessoryPackRules)
-        ? payload.secondaryAccessoryPackRules
-        : [];
-    if (rules.length === 0) return payload;
-
-    const legacyPayload = readLegacyCylinderPayload();
-    const legacyRules = Array.isArray(legacyPayload.secondaryAccessoryPackRules)
-        ? legacyPayload.secondaryAccessoryPackRules
-        : [];
-    if (legacyRules.length === 0) return payload;
-
-    const legacyRuleMap = new Map<string, PlainRecord>(
-        legacyRules.map((rule) => [buildCylinderAccessoryRuleKey(rule as PlainRecord), rule as PlainRecord]),
-    );
-
-    const nextRules = rules.map((rule) => {
-        const currentRule = rule && typeof rule === 'object' ? { ...(rule as PlainRecord) } : {};
-        const thicknessAccessoryPacks = currentRule.thicknessAccessoryPacks && typeof currentRule.thicknessAccessoryPacks === 'object'
-            ? { ...(currentRule.thicknessAccessoryPacks as PlainRecord) }
-            : {};
-        const currentCodes = currentRule.thicknessMaterialCodes && typeof currentRule.thicknessMaterialCodes === 'object'
-            ? { ...(currentRule.thicknessMaterialCodes as PlainRecord) }
-            : {};
-
-        const missingKeys = Object.keys(thicknessAccessoryPacks).filter((thickness) => !String(currentCodes[thickness] || '').trim());
-        if (missingKeys.length === 0) {
-            return currentRule;
-        }
-
-        const legacyRule = legacyRuleMap.get(buildCylinderAccessoryRuleKey(currentRule));
-        if (!legacyRule || !legacyRule.thicknessMaterialCodes || typeof legacyRule.thicknessMaterialCodes !== 'object') {
-            return currentRule;
-        }
-
-        const legacyCodes = legacyRule.thicknessMaterialCodes as PlainRecord;
-        const mergedCodes: PlainRecord = { ...currentCodes };
-        for (const thickness of missingKeys) {
-            const legacyCode = String(legacyCodes[thickness] || '').trim();
-            if (legacyCode) {
-                mergedCodes[thickness] = legacyCode;
-            }
-        }
-
-        return {
-            ...currentRule,
-            thicknessMaterialCodes: mergedCodes,
-        };
-    });
-
-    return {
-        ...payload,
-        secondaryAccessoryPackRules: nextRules,
-    };
-}
-
 export async function ensureProfile(profileCode: unknown, transaction?: Transaction): Promise<PlainRecord> {
     const normalizedProfileCode = normalizeProfileCode(profileCode);
     let profile = await MappingRepository.findProfileByCode(normalizedProfileCode, transaction);
@@ -178,8 +100,8 @@ export async function getMappingDetail(profileCode: unknown): Promise<PlainRecor
             latestRevision,
             draftRevision,
             publishedRevision,
-            draftPayload: draftRevision ? normalizeCylinderPublishedPayload(normalizedProfileCode, parsePayload(draftRevision.payload_json)) : null,
-            publishedPayload: publishedRevision ? normalizeCylinderPublishedPayload(normalizedProfileCode, parsePayload(publishedRevision.payload_json)) : null
+            draftPayload: draftRevision ? parsePayload(draftRevision.payload_json) : null,
+            publishedPayload: publishedRevision ? parsePayload(publishedRevision.payload_json) : null
         })
     };
 }

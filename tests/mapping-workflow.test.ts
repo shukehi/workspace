@@ -33,18 +33,12 @@ const {
   PROFILE_CODES,
   REVISION_STATES,
 } = _require('../server/services/mappings/mapping.constants') as typeof import('../server/services/mappings/mapping.constants');
-const { CONFIG_FILES } = _require('../server/config/paths') as typeof import('../server/config/paths');
-
 const packagingPayload = {
   supplierName: '方亮包装',
   mappings: {
     包装A: '外协包装A',
   },
 };
-
-const originalCylinderMappingFile = fs.existsSync(CONFIG_FILES.cylinderMapping)
-  ? fs.readFileSync(CONFIG_FILES.cylinderMapping, 'utf8')
-  : null;
 
 test.before(async () => {
   await initDB();
@@ -204,8 +198,16 @@ test('getPublishedMapping returns null before first publish and payload after pu
   });
 });
 
-test('mapping workflow backfills cylinder accessory material codes from legacy file when published payload is incomplete', async () => {
-  fs.writeFileSync(CONFIG_FILES.cylinderMapping, JSON.stringify({
+test('mapping workflow returns stored cylinder accessory rules without legacy JSON completion', async () => {
+  const profile = await MappingProfile.findOne({
+    where: { profile_code: PROFILE_CODES.CYLINDER },
+  }) as MappingProfileInstance | null;
+  assert.ok(profile);
+
+  const storedPayload = {
+    dimensions: {
+      7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
+    },
     secondaryAccessoryPackRules: [
       {
         conditionField: 'fshz',
@@ -217,72 +219,37 @@ test('mapping workflow backfills cylinder accessory material codes from legacy f
           '5': '5 公分配件包',
           '7': '7 公分配件包',
         },
-        thicknessMaterialCodes: {
-          '5': 'ACC-FSHZ-YHLXMB-5',
-          '7': 'ACC-FSHZ-YHLXMB-7',
-        },
       },
     ],
-  }, null, 2));
-
-  const profile = await MappingProfile.findOne({
-    where: { profile_code: PROFILE_CODES.CYLINDER },
-  }) as MappingProfileInstance | null;
-  assert.ok(profile);
+    mappings: {},
+  };
 
   await MappingRevision.create({
     profile_id: profile!.id,
     revision: 99,
     state: REVISION_STATES.PUBLISHED,
     schema_version: 1,
-    payload_json: JSON.stringify({
-      dimensions: {
-        7: { code: '90AB', eccentricity: '34.5*55.5/中心孔偏心' },
-      },
-      secondaryAccessoryPackRules: [
-        {
-          conditionField: 'fshz',
-          keyword: '一号铝小面板',
-          supplier: '巨力',
-          itemName: '铝小面板 - 单开',
-          unit: '个',
-          thicknessAccessoryPacks: {
-            '5': '5 公分配件包',
-            '7': '7 公分配件包',
-          },
-        },
-      ],
-      mappings: {},
-    }),
+    payload_json: JSON.stringify(storedPayload),
     change_note: 'seed incomplete published revision',
     created_by: 'tester',
   });
 
   const detail = await MappingWorkflow.getMappingDetail(PROFILE_CODES.CYLINDER);
   assert.equal(detail?.ok, true);
-  assert.deepEqual(detail?.mapping.publishedPayload.secondaryAccessoryPackRules?.[0]?.thicknessMaterialCodes, {
-    '5': 'ACC-FSHZ-YHLXMB-5',
-    '7': 'ACC-FSHZ-YHLXMB-7',
-  });
+  assert.deepEqual(detail?.mapping.publishedPayload, storedPayload);
+  assert.equal(
+    detail?.mapping.publishedPayload.secondaryAccessoryPackRules?.[0]?.thicknessMaterialCodes,
+    undefined,
+  );
 
   const payload = await MappingWorkflow.getPublishedMapping(PROFILE_CODES.CYLINDER);
   assert.equal(payload?.ok, true);
-  assert.deepEqual(payload?.payload.secondaryAccessoryPackRules?.[0]?.thicknessMaterialCodes, {
-    '5': 'ACC-FSHZ-YHLXMB-5',
-    '7': 'ACC-FSHZ-YHLXMB-7',
-  });
+  assert.deepEqual(payload?.payload, storedPayload);
 });
 
 test.after(async () => {
   await sequelize.close();
   if (fs.existsSync(TEST_DB)) {
     fs.unlinkSync(TEST_DB);
-  }
-  if (originalCylinderMappingFile === null) {
-    if (fs.existsSync(CONFIG_FILES.cylinderMapping)) {
-      fs.unlinkSync(CONFIG_FILES.cylinderMapping);
-    }
-  } else {
-    fs.writeFileSync(CONFIG_FILES.cylinderMapping, originalCylinderMappingFile);
   }
 });

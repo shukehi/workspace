@@ -57,6 +57,14 @@ test('config source guard: legacy config endpoints stay isolated to repository a
   );
 });
 
+
+test('config source guard: mapping detail must not read legacy cylinder JSON on request path', () => {
+  const workflow = read('server/services/mappings/mapping.workflow.ts');
+  assert.equal(workflow.includes('CONFIG_FILES.cylinderMapping'), false);
+  assert.equal(workflow.includes('cylinder-mapping.json'), false);
+  assert.equal(workflow.includes('readLegacyCylinderPayload'), false);
+});
+
 test('config source guard: static JSON fallback reads are removed for mappings', () => {
   assert.deepEqual(rgFiles('/data/packaging-mapping\\.json'), []);
   assert.deepEqual(rgFiles('/data/cylinder-mapping\\.json'), []);
