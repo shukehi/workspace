@@ -65,6 +65,19 @@ type SupplierLinkCandidate = {
   note: string;
 };
 
+type BackfillSummary = {
+  generatedAt: string;
+  mode: 'apply' | 'dry-run';
+  scannedMaterials: number;
+  plannedInsertCount: number;
+  conflictCount: number;
+  supplierLinkCandidateCount: number;
+  plannedByTable: Record<string, number>;
+  plannedPreview: PlannedInsert[];
+  supplierLinkCandidatePreview: SupplierLinkCandidate[];
+  conflicts: Conflict[];
+};
+
 function readOptions(argv: string[]): Options {
   return {
     apply: argv.includes('--apply'),
@@ -254,6 +267,49 @@ async function applyInsert(insert: PlannedInsert, transaction: Transaction) {
   }
 }
 
+function buildSummary(
+  options: Options,
+  materialsLength: number,
+  planned: PlannedInsert[],
+  conflicts: Conflict[],
+  supplierLinkCandidates: SupplierLinkCandidate[],
+): BackfillSummary {
+  return {
+    generatedAt: new Date().toISOString(),
+    mode: options.apply ? 'apply' : 'dry-run',
+    scannedMaterials: materialsLength,
+    plannedInsertCount: planned.length,
+    conflictCount: conflicts.length,
+    supplierLinkCandidateCount: supplierLinkCandidates.length,
+    plannedByTable: planned.reduce<Record<string, number>>((acc, item) => {
+      acc[item.table] = (acc[item.table] || 0) + 1;
+      return acc;
+    }, {}),
+    plannedPreview: planned.slice(0, 50),
+    supplierLinkCandidatePreview: supplierLinkCandidates.slice(0, 50),
+    conflicts,
+  };
+}
+
+function printSummary(summary: BackfillSummary, json: boolean) {
+  if (json) {
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  console.log('[backfill_material_mappings] summary', {
+    mode: summary.mode,
+    scannedMaterials: summary.scannedMaterials,
+    plannedInsertCount: summary.plannedInsertCount,
+    conflictCount: summary.conflictCount,
+    supplierLinkCandidateCount: summary.supplierLinkCandidateCount,
+    plannedByTable: summary.plannedByTable,
+  });
+  for (const conflict of summary.conflicts.slice(0, 20)) {
+    console.log('[backfill_material_mappings] conflict', conflict);
+  }
+}
+
 async function main() {
   const options = readOptions(process.argv.slice(2));
   await initDB();
@@ -278,6 +334,13 @@ async function main() {
       await planUomConversion(planned, material);
     }
 
+    const summary = buildSummary(options, materials.length, planned, conflicts, supplierLinkCandidates);
+
+    if (options.apply && conflicts.length > 0) {
+      printSummary(summary, options.json);
+      throw new Error(`Refusing to apply material mapping backfill with ${conflicts.length} detected conflict(s). Run --dry-run --json, resolve conflicts, then retry --apply.`);
+    }
+
     if (options.apply) {
       await sequelize.transaction(async (transaction) => {
         for (const insert of planned) {
@@ -286,37 +349,7 @@ async function main() {
       });
     }
 
-    const summary = {
-      generatedAt: new Date().toISOString(),
-      mode: options.apply ? 'apply' : 'dry-run',
-      scannedMaterials: materials.length,
-      plannedInsertCount: planned.length,
-      conflictCount: conflicts.length,
-      supplierLinkCandidateCount: supplierLinkCandidates.length,
-      plannedByTable: planned.reduce<Record<string, number>>((acc, item) => {
-        acc[item.table] = (acc[item.table] || 0) + 1;
-        return acc;
-      }, {}),
-      plannedPreview: planned.slice(0, 50),
-      supplierLinkCandidatePreview: supplierLinkCandidates.slice(0, 50),
-      conflicts,
-    };
-
-    if (options.json) {
-      console.log(JSON.stringify(summary, null, 2));
-    } else {
-      console.log('[backfill_material_mappings] summary', {
-        mode: summary.mode,
-        scannedMaterials: summary.scannedMaterials,
-        plannedInsertCount: summary.plannedInsertCount,
-        conflictCount: summary.conflictCount,
-        supplierLinkCandidateCount: summary.supplierLinkCandidateCount,
-        plannedByTable: summary.plannedByTable,
-      });
-      for (const conflict of conflicts.slice(0, 20)) {
-        console.log('[backfill_material_mappings] conflict', conflict);
-      }
-    }
+    printSummary(summary, options.json);
   } catch (error) {
     console.error('[backfill_material_mappings] failed', error);
     process.exitCode = 1;
