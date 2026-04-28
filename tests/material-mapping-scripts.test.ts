@@ -211,6 +211,29 @@ test('backfill dry-run reports code conflicts before writing new mappings', asyn
   );
 });
 
+test('backfill apply refuses detected planning conflicts before writing rows', async () => {
+  const existingMaterial = await createMaterial('SCRIPT-CONFLICT-APPLY-EXISTING');
+  await createCodeMapping({
+    material_id: existingMaterial.id,
+    mapping_type: 'legacy_code',
+    external_code: 'script-conflict-apply-model',
+    is_active: true,
+  } as any);
+  await createMaterial('SCRIPT-CONFLICT-APPLY-NEW', { model: 'script-conflict-apply-model' });
+  const before = await countMappingRows();
+
+  const result = runRawScript('server/scripts/backfill_material_mappings.ts', ['--apply', '--json']);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Refusing to apply material mapping backfill with .* conflict/i);
+  const summary = parseJsonFromOutput(result.stdout);
+  assert.ok(summary.conflictCount > 0);
+  assert.ok(
+    summary.conflicts.some((conflict: any) => conflict.payload?.normalized_code === 'script-conflict-apply-model'),
+  );
+  assert.deepEqual(await countMappingRows(), before);
+});
+
 test('audit script reports duplicate active code mappings across different materials', async () => {
   const first = await createMaterial('SCRIPT-DUP-001');
   const second = await createMaterial('SCRIPT-DUP-002');
