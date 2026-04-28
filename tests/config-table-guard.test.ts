@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { configCenterNavGroups, flatMainNav, mainNavGroups } from '../src/config/nav';
 
 const ROOT = process.cwd();
 
@@ -259,4 +260,59 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(materialDiagnostics, /可自动修复/);
   assert.match(materialDiagnostics, /需人工处理/);
   assert.match(materialDiagnostics, /自动重连/);
+});
+
+test('config navigation guard: every Config Center route is grouped once by operator intent', () => {
+  const expectedConfigCenterRoutes = [
+    '/material-master',
+    '/config/suppliers',
+    '/config/master-data-diagnostics',
+    '/config/master-data-governance',
+    '/config/material-catalog',
+    '/formula',
+    '/config/packaging',
+    '/config/cylinder',
+    '/config/lock',
+    '/config/handle',
+    '/config/lock-fork'
+  ];
+  const configGroup = mainNavGroups.find((group) => group.id === 'config');
+
+  assert.ok(configGroup);
+
+  const flatConfigCenterRoutes = configGroup.items.map((item) => item.href);
+  const groupedConfigCenterItems = configCenterNavGroups.flatMap((group) => group.items);
+  const groupedConfigCenterRoutes = groupedConfigCenterItems.map((item) => item.href);
+  const groupedRouteCounts = groupedConfigCenterRoutes.reduce((counts, href) => {
+    counts.set(href, (counts.get(href) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+  const duplicateGroupedRoutes = [...groupedRouteCounts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([href]) => href);
+
+  assert.deepEqual(flatConfigCenterRoutes, expectedConfigCenterRoutes);
+  assert.deepEqual(flatMainNav.filter((item) => expectedConfigCenterRoutes.includes(item.href)).map((item) => item.href), expectedConfigCenterRoutes);
+  assert.deepEqual([...groupedRouteCounts.keys()].sort(), [...expectedConfigCenterRoutes].sort());
+  assert.deepEqual(duplicateGroupedRoutes, []);
+  assert.equal(groupedConfigCenterRoutes.length, expectedConfigCenterRoutes.length);
+
+  for (const group of configCenterNavGroups) {
+    assert.ok(group.title);
+    assert.ok(group.operatorIntentLabel);
+    assert.ok(group.description);
+
+    for (const item of group.items) {
+      assert.ok(item.title);
+      assert.ok(item.operatorIntentLabel);
+      assert.ok(item.operatorIntentDescription);
+    }
+  }
+
+  const materialCatalogJsonFallback = groupedConfigCenterItems.find((item) => item.href === '/config/material-catalog');
+
+  assert.ok(materialCatalogJsonFallback);
+  assert.match(materialCatalogJsonFallback.title, /JSON/);
+  assert.match(materialCatalogJsonFallback.operatorIntentLabel, /高级管理员 JSON 兜底/);
+  assert.match(materialCatalogJsonFallback.operatorIntentDescription, /高级管理员兜底/);
 });
