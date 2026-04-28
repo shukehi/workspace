@@ -40,6 +40,8 @@ const pageSection = computed(() => String(route.meta.section || 'ERP Workspace')
             <div class="relative">
               <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                id="global-workspace-search"
+                name="global-workspace-search"
                 placeholder="搜索页面、合同、采购单或物料…"
                 class="h-9 rounded-full border-border/70 bg-muted/70 pl-9 shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0"
               />

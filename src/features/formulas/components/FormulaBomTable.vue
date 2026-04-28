@@ -53,19 +53,35 @@ const emit = defineEmits<{
         <tbody>
           <tr v-for="(row, idx) in bomDraft" :key="`${idx}-${row.materialId}-${row.position}`" class="border-t">
             <td class="p-2">
-              <Input v-model="row.materialId" @update:model-value="emit('dirty')" />
+              <Input
+                :id="`formula-bom-${idx}-material-id`"
+                v-model="row.materialId"
+                :name="`formula-bom-${idx}-material-id`"
+                @update:model-value="emit('dirty')"
+              />
               <p v-if="validationErrors[`bom.${idx}.materialId`]" class="text-xs text-rose-600 mt-1">
                 {{ validationErrors[`bom.${idx}.materialId`] }}
               </p>
             </td>
             <td class="p-2">
-              <Input v-model="row.position" @update:model-value="emit('dirty')" />
+              <Input
+                :id="`formula-bom-${idx}-position`"
+                v-model="row.position"
+                :name="`formula-bom-${idx}-position`"
+                @update:model-value="emit('dirty')"
+              />
               <p v-if="validationErrors[`bom.${idx}.position`]" class="text-xs text-rose-600 mt-1">
                 {{ validationErrors[`bom.${idx}.position`] }}
               </p>
             </td>
             <td class="p-2">
-              <select v-model="row.materialCategory" class="h-9 w-full rounded-md border bg-background px-2 text-sm" @change="emit('dirty')">
+              <select
+                :id="`formula-bom-${idx}-material-category`"
+                v-model="row.materialCategory"
+                :name="`formula-bom-${idx}-material-category`"
+                class="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                @change="emit('dirty')"
+              >
                 <option value="">请选择</option>
                 <option v-for="cat in materialCategories" :key="cat" :value="cat">{{ cat }}</option>
               </select>
@@ -74,19 +90,48 @@ const emit = defineEmits<{
               </p>
             </td>
             <td class="p-2">
-              <Input v-model="row.supplier" @update:model-value="emit('dirty')" />
+              <Input
+                :id="`formula-bom-${idx}-supplier`"
+                v-model="row.supplier"
+                :name="`formula-bom-${idx}-supplier`"
+                @update:model-value="emit('dirty')"
+              />
               <p v-if="validationErrors[`bom.${idx}.supplier`]" class="text-xs text-rose-600 mt-1">
                 {{ validationErrors[`bom.${idx}.supplier`] }}
               </p>
             </td>
             <td class="p-2">
-              <Input v-model="row.usage.single" type="number" min="0" class="no-spin text-right" @update:model-value="emit('dirty')" />
+              <Input
+                :id="`formula-bom-${idx}-usage-single`"
+                v-model="row.usage.single"
+                :name="`formula-bom-${idx}-usage-single`"
+                type="number"
+                min="0"
+                class="no-spin text-right"
+                @update:model-value="emit('dirty')"
+              />
             </td>
             <td class="p-2">
-              <Input v-model="row.usage.double" type="number" min="0" class="no-spin text-right" @update:model-value="emit('dirty')" />
+              <Input
+                :id="`formula-bom-${idx}-usage-double`"
+                v-model="row.usage.double"
+                :name="`formula-bom-${idx}-usage-double`"
+                type="number"
+                min="0"
+                class="no-spin text-right"
+                @update:model-value="emit('dirty')"
+              />
             </td>
             <td class="p-2">
-              <Input v-model="row.usage.paired" type="number" min="0" class="no-spin text-right" @update:model-value="emit('dirty')" />
+              <Input
+                :id="`formula-bom-${idx}-usage-paired`"
+                v-model="row.usage.paired"
+                :name="`formula-bom-${idx}-usage-paired`"
+                type="number"
+                min="0"
+                class="no-spin text-right"
+                @update:model-value="emit('dirty')"
+              />
             </td>
             <td class="p-2 text-right">
               <Button size="sm" variant="ghost" @click="emit('remove-row', idx)">删除</Button>
