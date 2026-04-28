@@ -58,6 +58,20 @@ test('config source guard: legacy config endpoints stay isolated to repository a
 });
 
 
+
+test('config source guard: material catalog request workflow must not bridge to legacy JSON', () => {
+  const workflow = read('server/services/materials/materialCatalog.workflow.ts');
+  const repository = read('server/services/materials/materialCatalog.repository.ts');
+
+  assert.equal(workflow.includes('readLegacyCatalog'), false);
+  assert.equal(workflow.includes('writeLegacyCatalog'), false);
+  assert.equal(workflow.includes('materials-catalog.json'), false);
+  assert.equal(workflow.includes('CONFIG_FILES.materialsCatalog'), false);
+  assert.equal(repository.includes('readLegacyCatalog'), false);
+  assert.equal(repository.includes('writeLegacyCatalog'), false);
+  assert.equal(repository.includes('CONFIG_FILES.materialsCatalog'), false);
+});
+
 test('config source guard: mapping detail must not read legacy cylinder JSON on request path', () => {
   const workflow = read('server/services/mappings/mapping.workflow.ts');
   assert.equal(workflow.includes('CONFIG_FILES.cylinderMapping'), false);

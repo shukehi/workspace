@@ -36,10 +36,10 @@ const originalMaterialsFile = fs.existsSync(materialsFile)
   ? fs.readFileSync(materialsFile, 'utf8')
   : null;
 
-const legacyPayload = {
-  M001: {
-    supplier: '供应商A',
-    name: '旧材料A',
+const legacyFileSentinelPayload = {
+  LEGACY_ONLY: {
+    supplier: '旧供应商',
+    name: '只能存在于旧文件的材料',
     unit: 'kg',
   },
 };
@@ -49,16 +49,18 @@ test.before(async () => {
   await initDB();
 });
 
-test('materials workflow: seed from legacy file, update draft, publish and sync back to legacy file', async () => {
-  fs.writeFileSync(materialsFile, JSON.stringify(legacyPayload, null, 2));
+test('materials workflow: uses workflow revisions only and leaves legacy JSON untouched', async () => {
+  fs.writeFileSync(materialsFile, JSON.stringify(legacyFileSentinelPayload, null, 2));
 
-  const publishedFromSeed = await MaterialCatalogWorkflow.getPublishedMaterialsCatalog();
-  assert.deepEqual(publishedFromSeed, legacyPayload);
+  const publishedWithoutRevision = await MaterialCatalogWorkflow.getPublishedMaterialsCatalog();
+  assert.deepEqual(publishedWithoutRevision, {});
 
-  const detail = await MaterialCatalogWorkflow.getMaterialsCatalogDetail();
-  assert.equal(detail.profile.profileCode, 'materials');
-  assert.equal(detail.publishedRevision.revision, 1);
-  assert.deepEqual(detail.publishedPayload, legacyPayload);
+  const emptyDetail = await MaterialCatalogWorkflow.getMaterialsCatalogDetail();
+  assert.equal(emptyDetail.profile.profileCode, 'materials');
+  assert.equal(emptyDetail.profile.activeRevision, null);
+  assert.equal(emptyDetail.latestRevision, null);
+  assert.equal(emptyDetail.publishedRevision, null);
+  assert.equal(emptyDetail.publishedPayload, null);
 
   const draftPayload = {
     M001: {
@@ -74,13 +76,13 @@ test('materials workflow: seed from legacy file, update draft, publish and sync 
   };
 
   const draftResult = await MaterialCatalogWorkflow.updateDraft({
-    revision: detail.latestRevision.revision,
+    revision: 0,
     payload: draftPayload,
     changeNote: 'update draft',
     operator: 'tester',
   });
   assert.equal(draftResult.ok, true);
-  assert.equal(draftResult.revision.revision, 2);
+  assert.equal(draftResult.revision.revision, 1);
   assert.equal(draftResult.revision.state, 'draft');
 
   const publishResult = await MaterialCatalogWorkflow.publish({
@@ -89,7 +91,7 @@ test('materials workflow: seed from legacy file, update draft, publish and sync 
     operator: 'tester',
   });
   assert.equal(publishResult.ok, true);
-  assert.equal(publishResult.revision.revision, 3);
+  assert.equal(publishResult.revision.revision, 2);
   assert.equal(publishResult.revision.state, 'published');
 
   const published = await MaterialCatalogWorkflow.getPublishedMaterialsCatalog();
@@ -99,15 +101,14 @@ test('materials workflow: seed from legacy file, update draft, publish and sync 
   assert.deepEqual(
     (revisions as { revision: number; state: string }[]).map((item) => [item.revision, item.state]),
     [
-      [3, 'published'],
-      [2, 'archived'],
+      [2, 'published'],
       [1, 'archived'],
     ],
   );
 
   const profile = await MaterialCatalogProfile.findOne({ where: { profile_code: 'materials' } }) as MaterialCatalogProfileInstance | null;
   assert.ok(profile);
-  assert.equal(profile!.active_revision, 3);
+  assert.equal(profile!.active_revision, 2);
 
   const revisionRows = await MaterialCatalogRevision.findAll({
     where: { profile_id: profile!.id },
@@ -115,11 +116,11 @@ test('materials workflow: seed from legacy file, update draft, publish and sync 
   });
   assert.deepEqual(
     (revisionRows as MaterialCatalogRevisionInstance[]).map((item) => item.state),
-    ['archived', 'archived', 'published'],
+    ['archived', 'published'],
   );
 
   const legacyFilePayload = JSON.parse(fs.readFileSync(materialsFile, 'utf8'));
-  assert.deepEqual(legacyFilePayload, draftPayload);
+  assert.deepEqual(legacyFilePayload, legacyFileSentinelPayload);
 
   const auditLogs = await MaterialCatalogAuditLog.findAll({
     where: { profile_id: profile!.id },
@@ -127,7 +128,11 @@ test('materials workflow: seed from legacy file, update draft, publish and sync 
   });
   assert.deepEqual(
     (auditLogs as MaterialCatalogAuditLogInstance[]).map((item) => item.action),
-    ['seed_legacy', 'update_draft', 'publish'],
+    ['create_draft', 'publish'],
+  );
+  assert.deepEqual(
+    (auditLogs as MaterialCatalogAuditLogInstance[]).map((item) => JSON.parse(item.meta_json || '{}').legacySync),
+    [undefined, undefined],
   );
 });
 

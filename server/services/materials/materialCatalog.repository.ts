@@ -9,10 +9,8 @@ import type {
     MaterialCatalogRevisionState,
 } from '../../models/types';
 
-import fs from 'fs';
 import sequelize from '../../config/database';
 import { MaterialCatalogProfile, MaterialCatalogRevision, MaterialCatalogAuditLog } from '../../models';
-import { CONFIG_FILES } from '../../config/paths';
 
 function txOpts(transaction?: Transaction) {
     return transaction ? { transaction } : {};
@@ -143,21 +141,6 @@ class MaterialCatalogRepository {
             order: [['id', 'DESC']],
             ...txOpts(transaction)
         });
-    }
-
-    static readLegacyCatalog(): Record<string, unknown> {
-        try {
-            if (!fs.existsSync(CONFIG_FILES.materialsCatalog)) return {};
-            const raw = fs.readFileSync(CONFIG_FILES.materialsCatalog, 'utf8');
-            return raw ? JSON.parse(raw) : {};
-        } catch (error) {
-            console.warn('[materialCatalog] failed to read legacy materials catalog:', error);
-            return {};
-        }
-    }
-
-    static writeLegacyCatalog(payload: Record<string, unknown>): void {
-        fs.writeFileSync(CONFIG_FILES.materialsCatalog, JSON.stringify(payload || {}, null, 4));
     }
 }
 
