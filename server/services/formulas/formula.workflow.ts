@@ -283,9 +283,10 @@ export async function getFormulaDetail(formulaKey: string) {
     if (!definition) return null;
 
     const revisions = await FormulaRepository.listRevisionsByFormulaId(definition.id);
-    const draftRevision = revisions[0] || null;
+    const latestRevision = revisions[0] || null;
+    const draftRevision = latestRevision?.state === 'draft' ? latestRevision : null;
     const publishedRevision = revisions.find((item: FormulaRevisionAttributes) => item.state === 'published') || null;
-    const activeRevision = draftRevision || publishedRevision || revisions[0] || null;
+    const activeRevision = draftRevision || publishedRevision || latestRevision;
 
     const payload = activeRevision
         ? parsePayload(activeRevision.payload_json)

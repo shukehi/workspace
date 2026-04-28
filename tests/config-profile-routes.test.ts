@@ -903,16 +903,24 @@ test('GET /api/config/profiles/formulas/detail returns collection-style read-onl
   assert.equal(typeof body.detail.publishedPayload, 'object');
 });
 
-test('formulas profile rejects singleton draft workflow actions with 405 bridge response', async () => {
-  const res = await fetch(`${baseUrl}/api/config/profiles/formulas/draft`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
-    body: JSON.stringify({ revision: 1, payload: {} }),
-  });
-  assert.equal(res.status, 405);
-  const body = await res.json();
-  assert.equal(body.success, false);
-  assert.equal(body.errors[0].code, 'unsupported');
+test('formulas profile rejects singleton draft/publish/rollback workflow actions with 405 bridge response', async () => {
+  const unsupportedActions = [
+    { path: 'draft', method: 'PUT', body: { revision: 1, payload: {} } },
+    { path: 'publish', method: 'POST', body: { fromRevision: 1 } },
+    { path: 'rollback', method: 'POST', body: { targetRevision: 1 } },
+  ];
+
+  for (const action of unsupportedActions) {
+    const res = await fetch(`${baseUrl}/api/config/profiles/formulas/${action.path}`, {
+      method: action.method,
+      headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+      body: JSON.stringify(action.body),
+    });
+    assert.equal(res.status, 405, `${action.path} should stay unsupported at profile level`);
+    const body = await res.json();
+    assert.equal(body.success, false);
+    assert.equal(body.errors[0].code, 'unsupported');
+  }
 });
 
 test('formulas profile returns collection diff summary', async () => {
@@ -998,6 +1006,50 @@ test('formula profile item bridge supports list/detail/draft/publish/revisions',
   assert.equal(publishRes.status, 200);
   const publishBody = await publishRes.json();
   assert.equal(publishBody.success, true);
+
+  const publishedDetailRes = await fetch(`${baseUrl}/api/config/profiles/formulas/items/${encodeURIComponent(formulaKey)}`);
+  assert.equal(publishedDetailRes.status, 200);
+  const publishedDetailBody = await publishedDetailRes.json();
+  assert.equal(publishedDetailBody.success, true);
+  assert.equal(publishedDetailBody.draftRevision, null);
+  assert.equal(publishedDetailBody.publishedRevision.revision, publishBody.revision.revision);
+  assert.equal(publishedDetailBody.publishedRevision.state, 'published');
+
+  const secondDraftRes = await fetch(`${baseUrl}/api/config/profiles/formulas/items/${encodeURIComponent(formulaKey)}/draft`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      revision: publishBody.revision.revision,
+      formulaKey,
+      displayName: '桥接配方-二次草稿',
+      bom: [{ materialId: 'M001', position: 'main', materialCategory: '油漆', supplier: '供应商A', usage: { single: 1.75, double: 1, paired: 2 } }],
+      changeNote: 'bridge second draft',
+    }),
+  });
+  assert.equal(secondDraftRes.status, 200);
+  const secondDraftBody = await secondDraftRes.json();
+  assert.equal(secondDraftBody.success, true);
+
+  const draftDetailRes = await fetch(`${baseUrl}/api/config/profiles/formulas/items/${encodeURIComponent(formulaKey)}`);
+  assert.equal(draftDetailRes.status, 200);
+  const draftDetailBody = await draftDetailRes.json();
+  assert.equal(draftDetailBody.success, true);
+  assert.equal(draftDetailBody.draftRevision.revision, secondDraftBody.revision.revision);
+  assert.equal(draftDetailBody.draftRevision.state, 'draft');
+  assert.equal(draftDetailBody.publishedRevision.revision, publishBody.revision.revision);
+  assert.equal(draftDetailBody.publishedRevision.state, 'published');
+
+  const secondPublishRes = await fetch(`${baseUrl}/api/config/profiles/formulas/items/${encodeURIComponent(formulaKey)}/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      fromRevision: secondDraftBody.revision.revision,
+      changeNote: 'bridge second publish',
+    }),
+  });
+  assert.equal(secondPublishRes.status, 200);
+  const secondPublishBody = await secondPublishRes.json();
+  assert.equal(secondPublishBody.success, true);
 
   const revisionsRes = await fetch(`${baseUrl}/api/config/profiles/formulas/items/${encodeURIComponent(formulaKey)}/revisions`);
   assert.equal(revisionsRes.status, 200);
