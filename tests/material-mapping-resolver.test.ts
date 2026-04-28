@@ -37,6 +37,7 @@ const materialResolverService = (requireForTest('../server/services/materials/ma
 const {
   createCodeMapping,
   createSupplierMapping,
+  updateCodeMapping,
   createUomConversion,
   normalizeMaterialExternalCode,
 } = requireForTest('../server/services/materials/material-mapping.repository') as typeof import('../server/services/materials/material-mapping.repository');
@@ -164,10 +165,50 @@ test('material resolver treats SQL-like input as unresolved data, not a SQL fail
   assert.ok(await Material.count() >= 0);
 });
 
-test('material resolver treats zero material ids as real candidates during ambiguity checks', async () => {
+test('material mapping repository treats zero material ids as real candidates during conflict and ambiguity checks', async () => {
   const zeroIdMaterial = await createMaterial('ZERO-ID-MAT', { id: 0 });
   assert.equal(zeroIdMaterial.id, 0, 'Precondition: material ID must be 0 for this test');
   const normalMaterial = await createMaterial('ZERO-ID-OTHER-MAT');
+
+  await createCodeMapping({
+    material_id: normalMaterial.id,
+    mapping_type: 'alias',
+    external_code: 'zero-id-conflict-code',
+    priority: 5,
+    is_active: true,
+  } as any);
+
+  await assert.rejects(
+    () => createCodeMapping({
+      material_id: zeroIdMaterial.id,
+      mapping_type: 'alias',
+      external_code: '  zero-id-conflict-code  ',
+      priority: 10,
+      is_active: true,
+    } as any),
+    (error: any) => error?.code === 'MATERIAL_CODE_MAPPING_CONFLICT'
+      && error?.status === 409
+      && error?.details?.conflictingMaterialId === normalMaterial.id
+      && error?.details?.mappingType === 'alias'
+      && error?.details?.normalizedCode === 'zero-id-conflict-code',
+  );
+
+  const inactiveZeroConflict = await createCodeMapping({
+    material_id: zeroIdMaterial.id,
+    mapping_type: 'alias',
+    external_code: 'zero-id-conflict-code',
+    priority: 10,
+    is_active: false,
+  } as any);
+
+  await assert.rejects(
+    () => updateCodeMapping(zeroIdMaterial.id, (inactiveZeroConflict as any).id, { is_active: true } as any),
+    (error: any) => error?.code === 'MATERIAL_CODE_MAPPING_CONFLICT'
+      && error?.status === 409
+      && error?.details?.conflictingMaterialId === normalMaterial.id
+      && error?.details?.mappingType === 'alias'
+      && error?.details?.normalizedCode === 'zero-id-conflict-code',
+  );
 
   await createCodeMapping({
     material_id: zeroIdMaterial.id,
