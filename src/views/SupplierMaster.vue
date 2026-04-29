@@ -12,20 +12,17 @@ import SupplierDiagnosticsPanel from '@/features/master-data/components/Supplier
 import SupplierEditDialog from '@/features/master-data/components/SupplierEditDialog.vue';
 import SupplierListPanel from '@/features/master-data/components/SupplierListPanel.vue';
 import SupplierSummaryCards from '@/features/master-data/components/SupplierSummaryCards.vue';
+import {
+  buildMaterialMasterRoute,
+  buildSupplierMasterRoute,
+  normalizeSupplierDetailTab,
+  type SupplierDetailTab,
+} from '@/features/master-data/masterDataNavigation';
 import { useSupplierMaster } from '@/features/master-data/composables/useSupplierMaster';
 import type { SupplierMasterEntry } from '@/services/mappingConfigApi';
 
 const route = useRoute();
 const router = useRouter();
-
-const SUPPLIER_DETAIL_TABS = ['basic', 'materials', 'diagnostics', 'audit'] as const;
-type SupplierDetailTab = typeof SUPPLIER_DETAIL_TABS[number];
-
-function normalizeSupplierTab(value: unknown): SupplierDetailTab {
-  return typeof value === 'string' && SUPPLIER_DETAIL_TABS.includes(value as SupplierDetailTab)
-    ? (value as SupplierDetailTab)
-    : 'basic';
-}
 
 const {
   loading,
@@ -57,7 +54,7 @@ const {
   rollbackRevision,
 } = useSupplierMaster();
 
-const activeDetailTab = ref<SupplierDetailTab>(normalizeSupplierTab(route.query.tab));
+const activeDetailTab = ref<SupplierDetailTab>(normalizeSupplierDetailTab(route.query.tab));
 
 onMounted(() => {
   load();
@@ -66,18 +63,18 @@ onMounted(() => {
 const selectedSupplierId = computed(() => Number(selectedSupplier.value?.id || 0) || null);
 
 function syncRouteSelection(supplierId: number | null, tab = activeDetailTab.value) {
+  const targetRoute = buildSupplierMasterRoute(supplierId, tab);
   void router.replace({
-    name: 'config-suppliers',
+    ...targetRoute,
     query: {
       ...route.query,
-      supplierId: supplierId ? String(supplierId) : undefined,
-      tab,
+      ...targetRoute.query,
     },
   });
 }
 
 watch(() => route.query.tab, (nextTab) => {
-  activeDetailTab.value = normalizeSupplierTab(nextTab);
+  activeDetailTab.value = normalizeSupplierDetailTab(nextTab);
 }, { immediate: true });
 
 watch(filteredItems, (items) => {
@@ -119,18 +116,12 @@ function handleSupplierSelect(item: SupplierMasterEntry) {
 }
 
 function handleDetailTabChange(nextTab: string) {
-  activeDetailTab.value = normalizeSupplierTab(nextTab);
+  activeDetailTab.value = normalizeSupplierDetailTab(nextTab);
   syncRouteSelection(selectedSupplierId.value, activeDetailTab.value);
 }
 
 function jumpToMaterialDetail(item: { id: number }) {
-  void router.push({
-    name: 'material-master',
-    query: {
-      materialId: String(item.id),
-      tab: 'relationship',
-    },
-  });
+  void router.push(buildMaterialMasterRoute(item.id, 'relationship'));
 }
 </script>
 
