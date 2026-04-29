@@ -1,9 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  resolveLockForkDimensionRuleLegacy,
-  resolveLockForkDimensionRuleWithRules,
-} from '../src/services/mappings/lockForkDimensionSelector';
+import { resolveLockForkDimensionRuleWithRules } from '../src/services/mappings/lockForkDimensionSelector';
 
 const mapping = {
   baseDimensions: {
@@ -27,6 +24,7 @@ const mapping = {
         lower: { base1: 524, base2: 313 },
       },
     },
+    '11': {},
   },
   highHeightRules: {
     '5': {
@@ -67,35 +65,104 @@ const mapping = {
 };
 
 const cases = [
-  { thickness: '5', doorHeight: 2050, useHangingFeetDimensions: false },
-  { thickness: '5', doorHeight: 2050, useHangingFeetDimensions: true },
-  { thickness: '7', doorHeight: 2198, useHangingFeetDimensions: false },
-  { thickness: '7', doorHeight: 2400, useHangingFeetDimensions: false },
-  { thickness: '7', doorHeight: 2400, useHangingFeetDimensions: true },
-  { thickness: '9', doorHeight: 2050, useHangingFeetDimensions: false },
+  {
+    name: 'falls back from 5cm to 7cm base dimensions when no 5cm base exists',
+    params: { thickness: '5', doorHeight: 2050, useHangingFeetDimensions: false },
+    expected: {
+      dimensions: {
+        upper: { base1: 570, base2: 301 },
+        lower: { base1: 570, base2: 301 },
+      },
+      heightReference: 2050,
+      matchedRules: ['lock-fork-dimension-fallback_7-7-standard'],
+      winningRules: ['lock-fork-dimension-fallback_7-7-standard'],
+      selectedThicknessKey: '7',
+      selectedVariant: 'standard',
+      source: 'fallback_7',
+    },
+  },
+  {
+    name: 'uses hanging-feet dimensions for the fallback 7cm rule',
+    params: { thickness: '5', doorHeight: 2050, useHangingFeetDimensions: true },
+    expected: {
+      dimensions: {
+        upper: { base1: 570, base2: 301 },
+        lower: { base1: 570, base2: 313 },
+      },
+      heightReference: 2050,
+      matchedRules: ['lock-fork-dimension-fallback_7-7-withHangingFeet'],
+      winningRules: ['lock-fork-dimension-fallback_7-7-withHangingFeet'],
+      selectedThicknessKey: '7',
+      selectedVariant: 'withHangingFeet',
+      source: 'fallback_7',
+    },
+  },
+  {
+    name: 'selects the high-height 7cm rule at and above the configured threshold',
+    params: { thickness: '7', doorHeight: 2400, useHangingFeetDimensions: false },
+    expected: {
+      dimensions: {
+        upper: { base1: 570, base2: 376 },
+        lower: { base1: 570, base2: 376 },
+      },
+      heightReference: 2200,
+      matchedRules: [
+        'lock-fork-dimension-high_height-7-standard',
+        'lock-fork-dimension-base-7-standard',
+      ],
+      winningRules: ['lock-fork-dimension-high_height-7-standard'],
+      selectedThicknessKey: '7',
+      selectedVariant: 'standard',
+      source: 'high_height',
+    },
+  },
+  {
+    name: 'selects base 9cm dimensions when no high-height rule applies',
+    params: { thickness: '9', doorHeight: 2050, useHangingFeetDimensions: false },
+    expected: {
+      dimensions: {
+        upper: { base1: 524, base2: 301 },
+        lower: { base1: 524, base2: 301 },
+      },
+      heightReference: 2050,
+      matchedRules: ['lock-fork-dimension-base-9-standard'],
+      winningRules: ['lock-fork-dimension-base-9-standard'],
+      selectedThicknessKey: '9',
+      selectedVariant: 'standard',
+      source: 'base',
+    },
+  },
+  {
+    name: 'returns no dimensions when the selected base thickness is missing dimension groups',
+    params: { thickness: '11', doorHeight: 2050, useHangingFeetDimensions: false },
+    expected: {
+      dimensions: null,
+      heightReference: 2050,
+      matchedRules: ['lock-fork-dimension-base-11-standard'],
+      winningRules: ['lock-fork-dimension-base-11-standard'],
+      selectedThicknessKey: '11',
+      selectedVariant: 'standard',
+      source: 'base',
+    },
+  },
 ];
 
-test('lock fork dimension selector rule path matches legacy selection path', () => {
-  cases.forEach((params) => {
-    const legacy = resolveLockForkDimensionRuleLegacy(mapping, params);
+test('lock fork dimension selector resolves explicit rule-contract outputs', () => {
+  cases.forEach(({ name, params, expected }) => {
     const rules = resolveLockForkDimensionRuleWithRules(mapping, params);
 
     assert.deepEqual(
       {
         dimensions: rules.dimensions,
         heightReference: rules.heightReference,
+        matchedRules: rules.matchedRules,
+        winningRules: rules.winningRules,
         selectedThicknessKey: rules.selectedThicknessKey,
         selectedVariant: rules.selectedVariant,
         source: rules.source,
       },
-      {
-        dimensions: legacy.dimensions,
-        heightReference: legacy.heightReference,
-        selectedThicknessKey: legacy.selectedThicknessKey,
-        selectedVariant: legacy.selectedVariant,
-        source: legacy.source,
-      },
-      `selector mismatch for ${JSON.stringify(params)}`,
+      expected,
+      name,
     );
   });
 });
