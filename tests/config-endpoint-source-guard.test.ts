@@ -23,9 +23,26 @@ function rgFiles(pattern: string, roots: string[] = ['src']): string[] {
 }
 
 const LEGACY_CONFIG_JSON_PATTERN =
-  '(materials-catalog|packaging-mapping|cylinder-mapping|lock-mapping|lock-fork-mapping|handle-mapping|color-formulas)\\.json';
+  '(materials-catalog|packaging-mapping|cylinder-mapping|lock-mapping|lock-fork-mapping|handle-mapping|color-formulas|procurement-settings)\\.json';
 const LEGACY_MAPPING_CONFIG_FILES_PATTERN =
-  'CONFIG_FILES\\.(materialsCatalog|[A-Za-z]+Mapping)';
+  'CONFIG_FILES\\.[A-Za-z]+';
+
+const ALLOWED_LEGACY_CONFIG_REFERENCES: Record<string, string> = {
+  'scripts/import_csv.js': 'manual legacy CSV import bridge',
+  'scripts/migrate_material_schema.js': 'manual legacy material/formula migration bridge',
+  'server/config/index.ts': 'static config path declaration only',
+  'server/config/paths.ts': 'central legacy file path declarations',
+  'server/scripts/importMaterials.ts': 'manual material import bridge',
+  'server/scripts/migrate_formulas_to_sqlite.ts': 'manual formula migration bridge',
+  'server/scripts/seed_mapping_profiles.ts': 'manual published-profile seed bridge',
+  'tests/config-endpoint-source-guard.test.ts': 'this guard inventories the boundary',
+  'tests/cylinder-secondary-special-rules-shape.test.ts': 'fixture shape regression reads legacy cylinder JSON',
+  'tests/manual/test_cylinder_logic.js': 'manual fixture note only',
+  'tests/mapping-adapter-baseline.test.ts': 'adapter baseline fixtures read legacy mapping JSON',
+  'tests/mapping-runtime-derived-regression.test.ts': 'runtime extraction fixture regression reads legacy mapping JSON',
+  'tests/mapping-runtime-regression.test.ts': 'runtime extraction fixture regression reads legacy mapping JSON',
+  'tests/materials-workflow.test.ts': 'sentinel test proves workflow leaves legacy material JSON untouched',
+};
 
 test('config source guard: workflow published endpoints must be the default mapping sources', () => {
   const repository = read('src/services/configRepository.ts');
@@ -103,41 +120,31 @@ test('config source guard: src must not add new direct dependencies on legacy co
   assert.deepEqual(rgFiles('/api/config/packaging-mapping', ['src']).sort(), []);
 });
 
-test('config source guard: legacy config JSON access stays in fixture and import/migration boundaries', () => {
-  const allowedLegacyConfigReaders = [
-    'scripts/import_csv.js',
-    'scripts/migrate_material_schema.js',
-    'server/config/index.ts',
-    'server/config/paths.ts',
-    'server/scripts/importMaterials.ts',
-    'server/scripts/migrate_formulas_to_sqlite.ts',
-    'server/scripts/seed_mapping_profiles.ts',
-    'tests/config-endpoint-source-guard.test.ts',
-    'tests/cylinder-secondary-special-rules-shape.test.ts',
-    'tests/manual/test_cylinder_logic.js',
-    'tests/mapping-adapter-baseline.test.ts',
-    'tests/mapping-runtime-derived-regression.test.ts',
-    'tests/mapping-runtime-regression.test.ts',
-    'tests/materials-workflow.test.ts',
-  ];
-
+test('config source guard: legacy config JSON access stays in named fixture and import/migration boundaries', () => {
   assert.deepEqual(
     rgFiles(
       `(data/config|CONFIG_FILES\\.|${LEGACY_CONFIG_JSON_PATTERN})`,
       ['scripts', 'server', 'src', 'tests'],
     ).sort(),
-    allowedLegacyConfigReaders,
+    Object.keys(ALLOWED_LEGACY_CONFIG_REFERENCES).sort(),
   );
+  for (const [filePath, rationale] of Object.entries(ALLOWED_LEGACY_CONFIG_REFERENCES)) {
+    assert.notEqual(rationale.trim(), '', `${filePath} must document why legacy config access is allowed`);
+  }
 });
 
-test('config source guard: runtime and front-end sources must not reference legacy config JSON files', () => {
+test('config source guard: runtime and front-end request paths must not reference legacy config JSON files', () => {
   assert.deepEqual(
     rgFiles(
       `(data/config|/data/${LEGACY_CONFIG_JSON_PATTERN}|${LEGACY_CONFIG_JSON_PATTERN}|${LEGACY_MAPPING_CONFIG_FILES_PATTERN})`,
-      ['src', 'server/services'],
+      ['src', 'server/app', 'server/controllers', 'server/routes', 'server/services'],
     ).sort(),
     [],
   );
+});
+
+test('config source guard: retired request-path file route factory must stay removed', () => {
+  assert.equal(fs.existsSync(`${ROOT}/server/routes/mappingProfile.routeFactory.ts`), false);
 });
 
 test('config source guard: front-end direct `/config/formulas` reads stay isolated behind formula adapter files only', () => {
