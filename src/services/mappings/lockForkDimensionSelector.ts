@@ -34,56 +34,6 @@ function chooseDimensionGroup(
   return rule.standard || rule.withHangingFeet || null;
 }
 
-export function resolveLockForkDimensionRuleLegacy(
-  payload: LockForkMappingConfig,
-  params: LockForkDimensionSelectionParams,
-): LockForkDimensionSelectionResult {
-  const { thickness, doorHeight, useHangingFeetDimensions } = params;
-  const defaultHeightReference = Number(payload.heightReference || DEFAULT_LOCK_FORK_HEIGHT_REFERENCE);
-  const variant = useHangingFeetDimensions ? 'withHangingFeet' : 'standard';
-
-  const highHeightRule = payload.highHeightRules?.[thickness];
-  if (highHeightRule && doorHeight >= Number(highHeightRule.minHeight || 0)) {
-    return {
-      dimensions: chooseDimensionGroup(highHeightRule, variant),
-      heightReference: Number(highHeightRule.heightReference || defaultHeightReference),
-      matchedRules: [],
-      winningRules: [],
-      selectedThicknessKey: thickness,
-      selectedVariant: variant,
-      source: 'high_height',
-    };
-  }
-
-  let thicknessKey = thickness;
-  let baseDimensions = payload.baseDimensions?.[thicknessKey];
-  let source: LockForkDimensionSelectionResult['source'] = 'base';
-  if (!baseDimensions && thickness === '5') {
-    thicknessKey = '7';
-    baseDimensions = payload.baseDimensions?.[thicknessKey];
-    source = 'fallback_7';
-  }
-
-  if (!baseDimensions) {
-    return {
-      dimensions: null,
-      heightReference: defaultHeightReference,
-      matchedRules: [],
-      winningRules: [],
-    };
-  }
-
-  return {
-    dimensions: chooseDimensionGroup(baseDimensions, variant),
-    heightReference: defaultHeightReference,
-    matchedRules: [],
-    winningRules: [],
-    selectedThicknessKey: thicknessKey,
-    selectedVariant: variant,
-    source,
-  };
-}
-
 export function resolveLockForkDimensionRuleWithRules(
   payload: LockForkMappingConfig,
   params: LockForkDimensionSelectionParams,
