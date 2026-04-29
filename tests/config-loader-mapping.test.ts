@@ -198,6 +198,7 @@ test('configLoader: cylinder and lock-fork loaders normalize published payloads 
             mappings: {
               锁芯A: { supplier: '忠恒', template: '{code}锁芯A' },
             },
+            excludedCylinders: [],
           },
         },
       }) as unknown as Response;
@@ -233,6 +234,7 @@ test('configLoader: cylinder and lock-fork loaders normalize published payloads 
 
   assert.equal(loader.getCylinderMapping().dimensions['7']?.code, '90AB');
   assert.equal(loader.getCylinderMapping().mappings['锁芯A']?.supplier, '忠恒');
+  assert.deepEqual(loader.getCylinderMapping().excludedCylinders, []);
   assert.equal(loader.getLockForkMapping().hangingFeet.standard, 35);
   assert.deepEqual(loader.getLockForkMapping().hangingFeet.keywords, ['吊脚', 'diaojiao']);
   assert.equal(loader.getLockForkMapping().suppliers.default, '应志友');

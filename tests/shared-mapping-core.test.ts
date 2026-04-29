@@ -67,6 +67,19 @@ test('shared mapping core: cylinder adapter defaults and validator nested paths 
   assert.ok(issues.some((item: { path: string }) => item.path === 'mappings["锁芯A"].supplier'))
 })
 
+test('shared mapping core: cylinder exclusions preserve explicit empty lists across module formats', async () => {
+  const mjsCore = await import('../shared/mappings/mapping-adapter-core.mjs') as any
+  const missingCjs = adaptCylinderMapping({}) as any
+  const emptyCjs = adaptCylinderMapping({ excludedCylinders: [] }) as any
+  const missingMjs = mjsCore.adaptCylinderMapping({}) as any
+  const emptyMjs = mjsCore.adaptCylinderMapping({ excludedCylinders: [] }) as any
+
+  assert.deepEqual(missingCjs.excludedCylinders, ['指纹锁配套锁芯'])
+  assert.deepEqual(missingMjs.excludedCylinders, ['指纹锁配套锁芯'])
+  assert.deepEqual(emptyCjs.excludedCylinders, [])
+  assert.deepEqual(emptyMjs.excludedCylinders, [])
+})
+
 test('shared mapping core: handle ownership defaults are exported from the shared boundary', () => {
   assert.equal((defaults as any).DEFAULT_HANDLE_SUPPLIER, '拉手供应商');
   assert.equal((defaults as any).DEFAULT_HANDLE_UNMATCHED_SUPPLIER, '待人工处理');
