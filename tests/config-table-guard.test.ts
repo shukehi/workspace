@@ -264,6 +264,11 @@ test('config navigation guard: supplier master is exposed in config routes and n
 
 test('config navigation guard: every Config Center route is grouped once by operator intent', () => {
   const materialCatalogConfig = read('src/views/MaterialCatalogConfig.vue');
+  const packagingConfig = read('src/views/PackagingConfig.vue');
+  const lockConfig = read('src/views/LockConfig.vue');
+  const handleConfig = read('src/views/HandleConfig.vue');
+  const cylinderConfig = read('src/views/CylinderConfig.vue');
+  const lockForkConfig = read('src/views/LockForkConfig.vue');
   const expectedConfigCenterRoutes = [
     '/material-master',
     '/config/suppliers',
@@ -317,8 +322,27 @@ test('config navigation guard: every Config Center route is grouped once by oper
   const governanceAdminFallbackRoutes = configCenterNavGroups
     .find((group) => group.id === 'governance-admin-fallback')
     ?.items.map((item) => item.href) ?? [];
+  const expectedRuleExceptionRoutes = [
+    '/config/packaging',
+    '/config/lock',
+    '/config/handle',
+    '/config/cylinder',
+    '/config/lock-fork'
+  ];
+  const nonRuleExceptionRoutes = [
+    '/formula',
+    '/material-master',
+    '/config/suppliers',
+    '/config/master-data-diagnostics',
+    '/config/master-data-governance',
+    '/config/material-catalog'
+  ];
 
   assert.ok(materialCatalogJsonFallback);
+  assert.deepEqual(ruleExceptionRoutes, expectedRuleExceptionRoutes);
+  for (const route of nonRuleExceptionRoutes) {
+    assert.equal(ruleExceptionRoutes.includes(route), false);
+  }
   assert.match(materialCatalogJsonFallback.title, /JSON/);
   assert.match(materialCatalogJsonFallback.operatorIntentLabel, /高级管理员 JSON 兜底/);
   assert.match(materialCatalogJsonFallback.operatorIntentDescription, /高级管理员兜底/);
@@ -330,4 +354,9 @@ test('config navigation guard: every Config Center route is grouped once by oper
   assert.match(materialCatalogConfig, /高级管理员 JSON 兜底/);
   assert.match(materialCatalogConfig, /常规新增、编辑、供应商归属和关系修复应优先在「物料数据」中完成/);
   assert.match(materialCatalogConfig, /请仅在管理员兜底场景使用/);
+  assert.match(packagingConfig, /规则例外维护/);
+  assert.match(lockConfig, /规则例外维护/);
+  assert.match(handleConfig, /规则例外维护/);
+  assert.match(cylinderConfig, /规则例外维护/);
+  assert.match(lockForkConfig, /规则例外维护/);
 });
