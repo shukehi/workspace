@@ -75,6 +75,14 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(packagingConfig, /actions-position="header"/);
   assert.match(packagingConfig, /<ProfileEditorHost/);
   assert.match(packagingConfig, /scroll-mode="page"/);
+  for (const page of [packagingConfig, lockConfig, handleConfig, cylinderConfig, lockForkConfig]) {
+    assert.match(page, /data-operator-guide="true"/);
+    assert.match(page, /首屏维护顺序/);
+    assert.match(page, /默认策略/);
+    assert.match(page, /规则试跑/);
+    assert.match(page, /例外行/);
+  }
+
   assert.match(packagingConfig, /<CardTitle>基础配置<\/CardTitle>/);
   assert.match(packagingConfig, /<CardTitle>映射列表<\/CardTitle>/);
   assert.match(packagingConfig, /当前没有需要人工维护的包装例外项/);
@@ -94,7 +102,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(lockConfig, /默认收起，避免挤占首屏/);
 
   const mappingIndex = lockConfig.indexOf('型号映射');
-  const testerIndex = lockConfig.indexOf('规则试跑');
+  const testerIndex = lockConfig.indexOf('<CardTitle>规则试跑</CardTitle>');
   assert.ok(mappingIndex > -1);
   assert.ok(testerIndex > -1);
   assert.ok(mappingIndex < testerIndex);
