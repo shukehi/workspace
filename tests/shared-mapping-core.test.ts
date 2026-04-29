@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  defaults,
   adaptPackagingMapping,
   adaptCylinderMapping,
   adaptLockForkMapping,
@@ -65,6 +66,12 @@ test('shared mapping core: cylinder adapter defaults and validator nested paths 
   assert.ok(issues.some((item: { path: string }) => item.path === 'specialRules[0].variants["内开"].code'))
   assert.ok(issues.some((item: { path: string }) => item.path === 'mappings["锁芯A"].supplier'))
 })
+
+test('shared mapping core: handle ownership defaults are exported from the shared boundary', () => {
+  assert.equal((defaults as any).DEFAULT_HANDLE_SUPPLIER, '拉手供应商');
+  assert.equal((defaults as any).DEFAULT_HANDLE_UNMATCHED_SUPPLIER, '待人工处理');
+  assert.equal((defaults as any).DEFAULT_HANDLE_MANUAL_REVIEW_LABEL, '未匹配拉手(待人工处理)');
+});
 
 test('shared mapping core: lock defaults normalize missing and empty ownership fields', () => {
   const adapted = adaptLockMapping({

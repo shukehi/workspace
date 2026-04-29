@@ -5,6 +5,9 @@ const DEFAULT_CYLINDER_EXCLUDED = ['指纹锁配套锁芯'];
 const DEFAULT_LOCK_UNIT = '套';
 const DEFAULT_LOCK_PRIMARY_LABEL = '主锁';
 const DEFAULT_LOCK_SECONDARY_LABEL = '副锁';
+const DEFAULT_HANDLE_SUPPLIER = '拉手供应商';
+const DEFAULT_HANDLE_UNMATCHED_SUPPLIER = '待人工处理';
+const DEFAULT_HANDLE_MANUAL_REVIEW_LABEL = '未匹配拉手(待人工处理)';
 const {
   asRecord,
   toTrimmedString,
@@ -455,6 +458,9 @@ module.exports = {
     DEFAULT_LOCK_UNIT,
     DEFAULT_LOCK_PRIMARY_LABEL,
     DEFAULT_LOCK_SECONDARY_LABEL,
+    DEFAULT_HANDLE_SUPPLIER,
+    DEFAULT_HANDLE_UNMATCHED_SUPPLIER,
+    DEFAULT_HANDLE_MANUAL_REVIEW_LABEL,
   },
   normalizePackagingMappingKey,
   normalizeLockMappingKey,
