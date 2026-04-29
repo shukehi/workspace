@@ -54,6 +54,12 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(profileHost, /主数据引用检查/);
   assert.match(profileHost, /Material Ref Paths/);
   assert.match(profileHost, /Supplier Ref Paths/);
+  assert.match(profileHost, /hasReviewPanel/);
+  assert.match(profileHost, /showSidePanel/);
+  assert.match(profileHost, /<details v-if="hasReviewPanel"/);
+  assert.match(profileHost, /data-review-panel="true"/);
+  assert.match(profileHost, /发布前检查与审计记录/);
+  assert.match(profileHost, /<Card v-if="showIssuesPanel" data-issue-anchor="true">/);
   assert.match(profileHost, /v-if="actionsPosition === 'bottom'"/);
   assert.doesNotMatch(profileHost, /Button :disabled="editor\.isLoading\.value \|\| editor\.isSaving\.value \|\| clientIssues\.length > 0"/);
   assert.match(centerShell, /<slot name="header-right"><\/slot>/);
