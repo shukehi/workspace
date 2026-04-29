@@ -294,7 +294,7 @@ onMounted(editor.load);
 <template>
   <ProfileEditorHost
     title="锁芯配置"
-    description="维护锁芯规格、规则与供应商映射。"
+    description="规则例外维护：维护锁芯规格、规则与供应商例外映射。"
     :editor="editor"
     :clientIssues="clientIssues"
     workflow-meta-variant="inline"

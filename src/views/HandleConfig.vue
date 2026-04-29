@@ -219,7 +219,7 @@ onMounted(editor.load);
 <template>
   <ProfileEditorHost
     title="拉手配置"
-    description="维护拉手单双活映射、门厚配件包与人工处理策略。"
+    description="规则例外维护：维护拉手单双活映射、门厚配件包与人工处理策略。"
     :editor="editor"
     :clientIssues="clientIssues"
     workflow-meta-variant="inline"

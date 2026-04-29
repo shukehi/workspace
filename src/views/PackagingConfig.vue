@@ -140,7 +140,7 @@ onMounted(editor.load);
 <template>
   <ProfileEditorHost
     title="包装配置"
-    description="优先依赖系统默认供应商与标准字典，仅维护需要人工覆盖的包装例外映射。"
+    description="规则例外维护：优先依赖系统默认供应商与标准字典，仅维护需要人工覆盖的包装例外映射。"
     :editor="editor"
     :clientIssues="clientIssues"
     workflow-meta-variant="inline"

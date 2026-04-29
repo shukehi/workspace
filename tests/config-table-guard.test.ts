@@ -60,6 +60,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(centerShell, /<slot name="footer"><\/slot>/);
 
   assert.match(packagingConfig, /workflow-meta-variant="inline"/);
+  assert.match(packagingConfig, /规则例外维护：优先依赖系统默认供应商与标准字典/);
   assert.match(packagingConfig, /actions-position="header"/);
   assert.match(packagingConfig, /<ProfileEditorHost/);
   assert.match(packagingConfig, /scroll-mode="page"/);
@@ -69,6 +70,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(packagingConfig, /新增例外映射/);
 
   assert.match(lockConfig, /workflow-meta-variant="inline"/);
+  assert.match(lockConfig, /规则例外维护：维护锁具主副锁标签及型号例外映射/);
   assert.match(lockConfig, /actions-position="header"/);
   assert.match(lockConfig, /<ProfileEditorHost/);
   assert.match(lockConfig, /scroll-mode="page"/);
@@ -88,6 +90,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.ok(mappingIndex < testerIndex);
 
   assert.match(cylinderConfig, /workflow-meta-variant="inline"/);
+  assert.match(cylinderConfig, /规则例外维护：维护锁芯规格、规则与供应商例外映射/);
   assert.match(cylinderConfig, /actions-position="header"/);
   assert.match(cylinderConfig, /<ProfileEditorHost/);
   assert.match(cylinderConfig, /未保存/);
@@ -96,6 +99,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(cylinderConfig, /新增例外映射/);
 
   assert.match(handleConfig, /workflow-meta-variant="inline"/);
+  assert.match(handleConfig, /规则例外维护：维护拉手单双活映射、门厚配件包与人工处理策略/);
   assert.match(handleConfig, /actions-position="header"/);
   assert.match(handleConfig, /<ProfileEditorHost/);
   assert.match(handleConfig, /scroll-mode="page"/);
@@ -103,6 +107,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(handleConfig, /新增例外映射/);
 
   assert.match(lockForkConfig, /workflow-meta-variant="inline"/);
+  assert.match(lockForkConfig, /规则例外维护：维护锁叉拨片基础参数与默认供应商例外/);
   assert.match(lockForkConfig, /actions-position="header"/);
   assert.match(lockForkConfig, /<ProfileEditorHost/);
   assert.match(lockForkConfig, /未保存/);
@@ -317,6 +322,27 @@ test('config navigation guard: every Config Center route is grouped once by oper
   const governanceAdminFallbackRoutes = configCenterNavGroups
     .find((group) => group.id === 'governance-admin-fallback')
     ?.items.map((item) => item.href) ?? [];
+
+  assert.deepEqual(ruleExceptionRoutes, [
+    '/config/packaging',
+    '/config/lock',
+    '/config/handle',
+    '/config/cylinder',
+    '/config/lock-fork'
+  ]);
+
+  const nonRuleExceptionRoutes = [
+    '/config/material-catalog',
+    '/formula',
+    '/material-master',
+    '/config/suppliers',
+    '/config/master-data-diagnostics',
+    '/config/master-data-governance'
+  ];
+
+  for (const route of nonRuleExceptionRoutes) {
+    assert.equal(ruleExceptionRoutes.includes(route), false, `${route} must not be grouped as rule-exceptions`);
+  }
 
   assert.ok(materialCatalogJsonFallback);
   assert.match(materialCatalogJsonFallback.title, /JSON/);

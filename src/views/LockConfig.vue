@@ -219,7 +219,7 @@ onMounted(editor.load);
 <template>
   <ProfileEditorHost
     title="锁具配置"
-    description="维护锁具主副锁标签及型号映射。"
+    description="规则例外维护：维护锁具主副锁标签及型号例外映射。"
     :editor="editor"
     :clientIssues="clientIssues"
     workflow-meta-variant="inline"
