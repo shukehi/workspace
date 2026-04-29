@@ -161,7 +161,7 @@ onMounted(editor.load);
 <template>
   <ProfileEditorHost
     title="锁叉配置"
-    description="维护锁叉拨片基础参数。"
+    description="规则例外维护：维护锁叉配置契约、默认供应商与锁具类型规则例外。"
     :editor="editor"
     :clientIssues="clientIssues"
     workflow-meta-variant="inline"
