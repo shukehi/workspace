@@ -50,13 +50,14 @@ onMounted(editor.load);
 
 <template>
   <ProfileEditorHost
-    title="物料目录配置"
-    description="管理 BOM 计算使用的材料目录发布态与审计记录。"
+    title="物料目录 JSON 兜底"
+    description="高级管理员入口：仅用于发布物料目录 JSON 的兜底维护；日常物料维护请使用物料数据。"
     :editor="editor"
     :clientIssues="editor.clientIssues.value"
   >
     <template #header-extra>
       <div class="flex items-center gap-2 px-3 py-1 bg-muted rounded-full text-xs font-medium">
+        高级管理员兜底 ·
         条目数: {{ entryCount }}
       </div>
     </template>
@@ -68,10 +69,19 @@ onMounted(editor.load);
       </div>
     </template>
 
+    <Card>
+      <CardHeader>
+        <CardTitle>高级管理员 JSON 兜底</CardTitle>
+        <CardDescription>
+          此页面保留给配置管理员处理发布态物料目录 JSON 的应急兜底。常规新增、编辑、供应商归属和关系修复应优先在「物料数据」中完成。
+        </CardDescription>
+      </CardHeader>
+    </Card>
+
     <Card class="flex-1 min-h-0">
       <CardHeader>
-        <CardTitle>目录 JSON</CardTitle>
-        <CardDescription>直接编辑物料目录对象。保存后将创建 draft 并立即发布。</CardDescription>
+        <CardTitle>物料目录 JSON</CardTitle>
+        <CardDescription>直接编辑发布用物料目录对象。保存后仍会创建 draft 并立即发布，请仅在管理员兜底场景使用。</CardDescription>
       </CardHeader>
       <CardContent class="h-[60vh]">
         <CodeMirrorEditor v-model="jsonDraft" class="h-full border rounded-md" />
