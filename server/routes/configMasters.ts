@@ -14,6 +14,7 @@ router.get('/suppliers', async (_req: Request, res: Response) => {
     res.json({
       success: true,
       items: result.items,
+      degradedProfiles: result.degradedProfiles,
       runtimeReadiness: result.runtimeReadiness,
       runtimeNotReady: result.runtimeNotReady,
     });
@@ -29,6 +30,7 @@ router.get('/suppliers/detail', async (_req: Request, res: Response) => {
     res.json({
       success: true,
       detail,
+      degradedProfiles: detail.degradedProfiles,
       runtimeReadiness: detail.runtimeReadiness,
       runtimeNotReady: detail.runtimeNotReady,
     });

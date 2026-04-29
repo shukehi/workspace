@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import * as MappingService from '../mappings';
 import * as MaterialCatalogService from '../materials';
 import * as FormulaService from '../formulas';
+import { normalizeRuntimeDegradedProfiles } from './profile.runtime-readiness';
 
 type MappingProfileCode = 'packaging' | 'cylinder' | 'lock' | 'handle' | 'lock_fork';
 
@@ -35,6 +36,39 @@ type RuntimeConfigSnapshot = {
     degradedProfiles: string[];
   };
 };
+
+type PublishedProfilePayload = {
+  payload: Record<string, unknown>;
+  revision: number | null;
+  publishedAt: string | null;
+};
+
+const REQUIRED_MAPPING_PROFILE_CODES: MappingProfileCode[] = ['packaging', 'cylinder', 'lock', 'handle', 'lock_fork'];
+
+class RuntimeProfileUnavailableError extends Error {
+  readonly profileCode: MappingProfileCode;
+
+  constructor(profileCode: MappingProfileCode, message: string) {
+    super(message);
+    this.name = 'RuntimeProfileUnavailableError';
+    this.profileCode = profileCode;
+  }
+}
+
+export class RuntimeConfigSnapshotNotReadyError extends Error {
+  readonly degradedProfiles: string[];
+
+  constructor(failures: Array<{ profileCode: MappingProfileCode; message: string }>) {
+    const degradedProfiles = normalizeRuntimeDegradedProfiles(failures.map((failure) => failure.profileCode));
+    super(
+      failures.length === 1
+        ? failures[0].message
+        : `Missing required published mapping profiles: ${degradedProfiles.join(', ')}`,
+    );
+    this.name = 'RuntimeConfigSnapshotNotReadyError';
+    this.degradedProfiles = degradedProfiles;
+  }
+}
 
 function toRevisionNumber(value: unknown): number | null {
   const numeric = Number(value);
@@ -79,15 +113,15 @@ function extractErrorMessage(error: unknown, fallback: string) {
 async function readPublishedMapping(profileCode: MappingProfileCode) {
   const detail = await MappingService.getMappingDetail(profileCode);
   if (!detail) {
-    throw new Error(`Missing mapping profile: ${profileCode}`);
+    throw new RuntimeProfileUnavailableError(profileCode, `Missing mapping profile: ${profileCode}`);
   }
   if (!detail.ok) {
-    throw new Error(extractErrorMessage(detail, `Failed to read mapping profile: ${profileCode}`));
+    throw new RuntimeProfileUnavailableError(profileCode, extractErrorMessage(detail, `Failed to read mapping profile: ${profileCode}`));
   }
 
   const payload = detail.mapping?.publishedPayload;
   if (!payload || typeof payload !== 'object') {
-    throw new Error(`Missing published mapping payload for ${profileCode}`);
+    throw new RuntimeProfileUnavailableError(profileCode, `Missing published mapping payload for ${profileCode}`);
   }
 
   const publishedRevision = (detail.mapping?.publishedRevision || null) as RevisionMetaLike | null;
@@ -118,14 +152,33 @@ async function readPublishedFormulasMap() {
 export async function buildRuntimeConfigSnapshot(): Promise<RuntimeConfigSnapshot> {
   const degradedProfiles: string[] = [];
 
-  const [materials, packaging, cylinder, lock, handle, lockFork] = await Promise.all([
+  const [materials, mappingResults] = await Promise.all([
     readPublishedMaterialsCatalog(),
-    readPublishedMapping('packaging'),
-    readPublishedMapping('cylinder'),
-    readPublishedMapping('lock'),
-    readPublishedMapping('handle'),
-    readPublishedMapping('lock_fork'),
+    Promise.allSettled(REQUIRED_MAPPING_PROFILE_CODES.map((profileCode) => readPublishedMapping(profileCode))),
   ]);
+
+  const mappingFailures = mappingResults
+    .map((result, index) => ({ result, profileCode: REQUIRED_MAPPING_PROFILE_CODES[index] }))
+    .filter((item): item is { result: PromiseRejectedResult; profileCode: MappingProfileCode } => item.result.status === 'rejected')
+    .map(({ result, profileCode }) => ({
+      profileCode: result.reason instanceof RuntimeProfileUnavailableError
+        ? result.reason.profileCode
+        : profileCode,
+      message: result.reason instanceof Error ? result.reason.message : String(result.reason || `Missing mapping profile: ${profileCode}`),
+    }));
+
+  if (mappingFailures.length > 0) {
+    throw new RuntimeConfigSnapshotNotReadyError(mappingFailures);
+  }
+
+  const [packaging, cylinder, lock, handle, lockFork] = mappingResults
+    .map((result) => (result as PromiseFulfilledResult<PublishedProfilePayload>).value) as [
+      PublishedProfilePayload,
+      PublishedProfilePayload,
+      PublishedProfilePayload,
+      PublishedProfilePayload,
+      PublishedProfilePayload,
+    ];
 
   let formulasPayload: Record<string, unknown> = {};
   try {
