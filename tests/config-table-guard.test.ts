@@ -263,6 +263,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
 });
 
 test('config navigation guard: every Config Center route is grouped once by operator intent', () => {
+  const sidebar = read('src/layout/Sidebar.vue');
   const materialCatalogConfig = read('src/views/MaterialCatalogConfig.vue');
   const packagingConfig = read('src/views/PackagingConfig.vue');
   const lockConfig = read('src/views/LockConfig.vue');
@@ -359,4 +360,13 @@ test('config navigation guard: every Config Center route is grouped once by oper
   assert.match(handleConfig, /规则例外维护/);
   assert.match(cylinderConfig, /规则例外维护/);
   assert.match(lockForkConfig, /规则例外维护/);
+  assert.match(sidebar, /configCenterNavGroups/);
+  assert.match(sidebar, /group\.id === 'config'/);
+  assert.match(sidebar, /v-for="intentGroup in configCenterNavGroups"/);
+  assert.match(sidebar, /\{\{ intentGroup\.title \}\}/);
+  assert.match(sidebar, /v-for="item in intentGroup\.items"/);
+  assert.match(sidebar, /intentGroup\.operatorIntentLabel/);
+  assert.match(sidebar, /:title="item\.operatorIntentDescription"/);
+  assert.match(sidebar, /item\.operatorIntentDescription/);
+  assert.doesNotMatch(sidebar, /规则例外维护/);
 });
