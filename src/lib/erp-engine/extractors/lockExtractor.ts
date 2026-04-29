@@ -50,9 +50,9 @@ export function extractLockData(orderList: LockOrderItem[], orderInfo: LockOrder
   const lockMap: Record<string, LockResultRow> = {};
   const adaptedLockMapping = adaptLockMapping(LOCK_MAPPING);
   const unmatchedSupplier = '待人工处理';
-  const defaultUnit = String(adaptedLockMapping.defaultUnit || '套').trim() || '套';
-  const primaryLabel = String(adaptedLockMapping.primaryLabel || '主锁').trim();
-  const secondaryLabel = String(adaptedLockMapping.secondaryLabel || '副锁').trim();
+  const defaultUnit = adaptedLockMapping.defaultUnit;
+  const primaryLabel = adaptedLockMapping.primaryLabel;
+  const secondaryLabel = adaptedLockMapping.secondaryLabel;
   const primaryRuleSet = adaptLockMappingsToRuleSet(adaptedLockMapping, 'primary', normalizeLockMappingKey);
   const secondaryRuleSet = adaptLockMappingsToRuleSet(adaptedLockMapping, 'secondary', normalizeLockMappingKey);
 

@@ -150,6 +150,30 @@ test('mapping rules adapter builds lock preview rules for primary and secondary 
   assert.equal(secondaryRuleSet.rules[0].then.spec, '副锁规格');
 });
 
+test('mapping rules adapter resolves missing or empty lock defaults through shared adapter', () => {
+  const payload = {
+    defaultUnit: ' ',
+    primaryLabel: '',
+    mappings: {
+      'F02-A副锁': {
+        supplier: '汇成',
+        vendorName: 'F02-A副锁',
+      },
+    },
+  } as any;
+
+  const ruleSet = adaptLockMappingsToRuleSet(payload, 'secondary', (value) => value.trim());
+  const previewOutput = applyLockRulePreviewFallbacks(payload, 'secondary', '未维护副锁', {});
+
+  assert.ok(ruleSet.defaults);
+  assert.equal(ruleSet.defaults.unit, '套');
+  assert.equal(ruleSet.defaults.secondaryLabel, '副锁');
+  assert.equal(ruleSet.rules[0].then.spec, '副锁');
+  assert.equal(ruleSet.rules[0].then.unit, '套');
+  assert.equal(previewOutput.spec, '副锁');
+  assert.equal(previewOutput.unit, '套');
+});
+
 test('mapping rules adapter applies lock preview fallbacks for unmatched output', () => {
   const output = applyLockRulePreviewFallbacks({
     defaultUnit: '把',

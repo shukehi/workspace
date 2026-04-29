@@ -4,6 +4,7 @@ import {
   adaptPackagingMapping,
   adaptCylinderMapping,
   adaptLockForkMapping,
+  adaptLockMapping,
 } from '../shared/mappings/mapping-adapter-core'
 import {
   validatePackagingMapping,
@@ -64,6 +65,18 @@ test('shared mapping core: cylinder adapter defaults and validator nested paths 
   assert.ok(issues.some((item: { path: string }) => item.path === 'specialRules[0].variants["内开"].code'))
   assert.ok(issues.some((item: { path: string }) => item.path === 'mappings["锁芯A"].supplier'))
 })
+
+test('shared mapping core: lock defaults normalize missing and empty ownership fields', () => {
+  const adapted = adaptLockMapping({
+    defaultUnit: ' ',
+    primaryLabel: '',
+    mappings: {},
+  }) as any;
+
+  assert.equal(adapted.defaultUnit, '套');
+  assert.equal(adapted.primaryLabel, '主锁');
+  assert.equal(adapted.secondaryLabel, '副锁');
+});
 
 test('shared mapping core: lock and lock-fork validator paths remain compatible', () => {
   const lockIssues = validateLockMapping({
