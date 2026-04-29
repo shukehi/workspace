@@ -50,6 +50,15 @@ test('config source guard: workflow published endpoints must be the default mapp
   assert.notEqual(repository.indexOf('/api/config/profiles/material_catalog/detail'), -1);
 });
 
+test('config source guard: packaging runtime supplier defaults stay in the shared adapter', () => {
+  const packagingRule = read('src/services/po-rules/packagingRule.ts');
+  const packagingTable = read('src/lib/erp-engine/packagingTable.ts');
+
+  assert.equal(packagingRule.includes('方亮包装'), false);
+  assert.equal(packagingTable.includes('方亮包装'), false);
+  assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_PACKAGING_SUPPLIER = '方亮包装'/);
+});
+
 test('config source guard: legacy config endpoints stay isolated to repository and compatibility tests', () => {
   assert.deepEqual(
     rgFiles('/api/config/materials', ['src', 'tests']).sort(),

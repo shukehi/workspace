@@ -40,7 +40,7 @@ export function buildPackagingGroups(ctx: RuleContext, options?: BuildOptions): 
   const groups: Record<string, SupplierGroup> = {};
   const packagingMapping = adaptPackagingMapping(ctx.packagingConfig.getPackagingMapping());
   const mappings = packagingMapping.mappings;
-  const fallbackSupplier = packagingMapping.supplierName || '方亮包装';
+  const fallbackSupplier = packagingMapping.supplierName;
 
   if (mergeSameSpec) {
     const hardware = ctx.sourceStore.hardwareRequirements;
