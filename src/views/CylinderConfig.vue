@@ -325,6 +325,27 @@ onMounted(editor.load);
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
 
+    <Card class="border-primary/20 bg-primary/5">
+      <CardHeader>
+        <CardTitle>首屏操作指南</CardTitle>
+        <CardDescription>先确认默认策略，再用规则试跑验证命中；只有规则无法覆盖时，才维护例外行。</CardDescription>
+      </CardHeader>
+      <CardContent class="grid gap-3 text-sm md:grid-cols-3">
+        <div class="rounded-md border bg-background/80 p-3">
+          <div class="font-medium">默认策略</div>
+          <p class="mt-1 text-muted-foreground">优先沿用系统默认供应商、标签或尺寸规则，避免把标准规则复制成例外。</p>
+        </div>
+        <div class="rounded-md border bg-background/80 p-3">
+          <div class="font-medium">规则试跑</div>
+          <p class="mt-1 text-muted-foreground">有试跑面板时先用样本验证命中轨迹；无试跑面板时按页面说明核对标准字典。</p>
+        </div>
+        <div class="rounded-md border bg-background/80 p-3">
+          <div class="font-medium">例外行</div>
+          <p class="mt-1 text-muted-foreground">仅在默认策略与规则试跑都无法覆盖时新增，保留最小必要映射。</p>
+        </div>
+      </CardContent>
+    </Card>
+
     <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
       <button v-for="t in [{id:'base',label:'基础与副锁',hasIssue:hasBaseIssues},{id:'rules',label:'特殊规则',hasIssue:hasRulesIssues},{id:'mappings',label:'映射与排除',hasIssue:hasMappingsIssues}]" :key="t.id"
         @click="activeTab = t.id as any"
