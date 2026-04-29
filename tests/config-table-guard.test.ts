@@ -9,6 +9,10 @@ function read(filePath: string): string {
   return fs.readFileSync(`${ROOT}/${filePath}`, 'utf8');
 }
 
+function countOccurrences(source: string, needle: string): number {
+  return source.split(needle).length - 1;
+}
+
 test('config table guard: add toolbar is not gated by title/header presence', () => {
   const table = read('src/features/config-editor/components/ConfigTable.vue');
 
@@ -43,7 +47,9 @@ test('config layout guard: rule-exception pages keep first-screen operator guide
 
   for (const page of pages) {
     const source = read(page);
-    assert.match(source, /<CardTitle>首屏操作指南<\/CardTitle>/, `${page} should render the shared first-screen guide`);
+    assert.equal(countOccurrences(source, '<CardTitle>首屏操作指南</CardTitle>'), 1, `${page} should render one shared first-screen guide`);
+    assert.doesNotMatch(source, /data-operator-guide="true"/, `${page} should not render the legacy duplicate guide`);
+    assert.doesNotMatch(source, /首屏维护顺序/, `${page} should not render the legacy duplicate guide title`);
     assert.match(source, /默认策略/, `${page} guide should mention default strategy first`);
     assert.match(source, /规则试跑/, `${page} guide should mention rule test before exception rows`);
     assert.match(source, /例外行/, `${page} guide should mention exception rows`);
@@ -95,8 +101,9 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(packagingConfig, /<ProfileEditorHost/);
   assert.match(packagingConfig, /scroll-mode="page"/);
   for (const page of [packagingConfig, lockConfig, handleConfig, cylinderConfig, lockForkConfig]) {
-    assert.match(page, /data-operator-guide="true"/);
-    assert.match(page, /首屏维护顺序/);
+    assert.equal(countOccurrences(page, '<CardTitle>首屏操作指南</CardTitle>'), 1);
+    assert.doesNotMatch(page, /data-operator-guide="true"/);
+    assert.doesNotMatch(page, /首屏维护顺序/);
     assert.match(page, /默认策略/);
     assert.match(page, /规则试跑/);
     assert.match(page, /例外行/);
