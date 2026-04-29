@@ -82,6 +82,26 @@ test('config source guard: handle runtime ownership defaults stay in the shared 
   assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_HANDLE_MANUAL_REVIEW_LABEL = '未匹配拉手\(待人工处理\)'/);
 });
 
+test('config source guard: lock-fork selector legacy oracle stays retired', () => {
+  const legacySelectorOraclePattern = '\\bresolveLockForkDimensionRuleLegacy\\b';
+  const selectorContractTest = read('tests/lock-fork-dimension-selector.test.ts');
+
+  assert.deepEqual(rgFiles(legacySelectorOraclePattern, ['src']).sort(), []);
+  assert.equal(new RegExp(legacySelectorOraclePattern).test(selectorContractTest), false);
+  assert.equal(/\blegacy\b/i.test(selectorContractTest), false);
+});
+
+test('config source guard: lock-fork selector contract stays on the rule-based oracle only', () => {
+  const selectorContractTest = read('tests/lock-fork-dimension-selector.test.ts');
+
+  assert.equal(selectorContractTest.includes('resolveLockForkDimensionRuleLegacy'), false);
+  assert.equal(selectorContractTest.includes('legacy-vs-rules'), false);
+  assert.equal(selectorContractTest.includes('parity oracle'), false);
+  assert.equal(selectorContractTest.includes('legacy helper'), false);
+  assert.equal(selectorContractTest.includes('parity'), false);
+  assert.equal(selectorContractTest.includes('oracle'), false);
+});
+
 test('config source guard: lock-fork reference defaults stay in shared adapter boundary', () => {
   const businessDefaults = read('src/shared/constants/business.ts');
   const lockForkConfig = read('src/views/LockForkConfig.vue');
