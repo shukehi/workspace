@@ -1,5 +1,6 @@
 import { adaptLockForkDimensionSelectionRulesToRuleSet } from '@/services/mappings/mappingRules.adapter';
 import { executeRuleSet } from '@/services/mappings/mappingRules.execute';
+import { DEFAULT_LOCK_FORK_HEIGHT_REFERENCE } from '@/services/mappings/mappingAdapter';
 import type {
   LockForkBaseDimensionRule,
   LockForkDimensionGroup,
@@ -38,7 +39,7 @@ export function resolveLockForkDimensionRuleLegacy(
   params: LockForkDimensionSelectionParams,
 ): LockForkDimensionSelectionResult {
   const { thickness, doorHeight, useHangingFeetDimensions } = params;
-  const defaultHeightReference = Number(payload.heightReference || 2050);
+  const defaultHeightReference = Number(payload.heightReference || DEFAULT_LOCK_FORK_HEIGHT_REFERENCE);
   const variant = useHangingFeetDimensions ? 'withHangingFeet' : 'standard';
 
   const highHeightRule = payload.highHeightRules?.[thickness];
@@ -88,7 +89,7 @@ export function resolveLockForkDimensionRuleWithRules(
   params: LockForkDimensionSelectionParams,
 ): LockForkDimensionSelectionResult {
   const { thickness, doorHeight, useHangingFeetDimensions } = params;
-  const defaultHeightReference = Number(payload.heightReference || 2050);
+  const defaultHeightReference = Number(payload.heightReference || DEFAULT_LOCK_FORK_HEIGHT_REFERENCE);
   const ruleSet = adaptLockForkDimensionSelectionRulesToRuleSet(payload);
   const execution = executeRuleSet(ruleSet, {
     thickness,

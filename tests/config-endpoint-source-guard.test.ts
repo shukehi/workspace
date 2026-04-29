@@ -82,6 +82,31 @@ test('config source guard: handle runtime ownership defaults stay in the shared 
   assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_HANDLE_MANUAL_REVIEW_LABEL = '未匹配拉手\(待人工处理\)'/);
 });
 
+test('config source guard: lock-fork reference defaults stay in shared adapter boundary', () => {
+  const businessDefaults = read('src/shared/constants/business.ts');
+  const lockForkConfig = read('src/views/LockForkConfig.vue');
+  const adapterCore = read('shared/mappings/mapping-adapter-core.mjs');
+  const mappingAdapter = read('src/services/mappings/mappingAdapter.ts');
+  const lockForkExtractor = read('src/lib/erp-engine/extractors/lockForkExtractor.ts');
+  const lockForkDimensionSelector = read('src/services/mappings/lockForkDimensionSelector.ts');
+  const mappingRulesAdapter = read('src/services/mappings/mappingRules.adapter.ts');
+
+  assert.equal(businessDefaults.includes('DEFAULT_HANGING_FEET_STANDARD'), false);
+  assert.equal(businessDefaults.includes('DEFAULT_HEIGHT_REFERENCE'), false);
+  assert.equal(lockForkConfig.includes('LOCK_FORK_REFERENCE_DEFAULT_STRINGS'), true);
+  assert.equal(lockForkConfig.includes('DEFAULT_LOCK_FORK_HANGING_FEET'), false);
+  assert.equal(lockForkConfig.includes('DEFAULT_LOCK_FORK_HEIGHT_REFERENCE'), false);
+  assert.equal(lockForkExtractor.includes('|| 35'), false);
+  assert.equal(lockForkDimensionSelector.includes('|| 2050'), false);
+  assert.equal(mappingRulesAdapter.includes('|| 2050'), false);
+  assert.match(adapterCore, /DEFAULT_LOCK_FORK_HANGING_FEET = 35/);
+  assert.match(adapterCore, /DEFAULT_LOCK_FORK_HEIGHT_REFERENCE = 2050/);
+  assert.match(mappingAdapter, /export const DEFAULT_LOCK_FORK_HANGING_FEET = defaults\.DEFAULT_LOCK_FORK_HANGING_FEET/);
+  assert.match(mappingAdapter, /export const DEFAULT_LOCK_FORK_HEIGHT_REFERENCE = defaults\.DEFAULT_LOCK_FORK_HEIGHT_REFERENCE/);
+  assert.match(mappingAdapter, /hangingFeetStandard: String\(DEFAULT_LOCK_FORK_HANGING_FEET\)/);
+  assert.match(mappingAdapter, /heightReference: String\(DEFAULT_LOCK_FORK_HEIGHT_REFERENCE\)/);
+});
+
 test('config source guard: legacy config endpoints stay isolated to repository and compatibility tests', () => {
   assert.deepEqual(
     rgFiles('/api/config/materials', ['src', 'tests']).sort(),
