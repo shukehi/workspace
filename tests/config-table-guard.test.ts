@@ -32,6 +32,25 @@ test('config table guard: mapping pages rely on ConfigTable add button for confi
   assert.match(lockForkConfig, /<ConfigTable[\s\S]*@add="lockTypes\.add\(\)"/);
 });
 
+test('config layout guard: rule-exception pages keep first-screen operator guide', () => {
+  const pages = [
+    'src/views/PackagingConfig.vue',
+    'src/views/LockConfig.vue',
+    'src/views/HandleConfig.vue',
+    'src/views/CylinderConfig.vue',
+    'src/views/LockForkConfig.vue',
+  ];
+
+  for (const page of pages) {
+    const source = read(page);
+    assert.match(source, /<CardTitle>首屏操作指南<\/CardTitle>/, `${page} should render the shared first-screen guide`);
+    assert.match(source, /默认策略/, `${page} guide should mention default strategy first`);
+    assert.match(source, /规则试跑/, `${page} guide should mention rule test before exception rows`);
+    assert.match(source, /例外行/, `${page} guide should mention exception rows`);
+    assert.match(source, /先确认默认策略，再用规则试跑验证命中；只有规则无法覆盖时，才维护例外行。/, `${page} should keep the shared operator guide copy`);
+  }
+});
+
 test('config layout guard: supports header actions and inline workflow meta for focused pages', () => {
   const profileHost = read('src/features/config-editor/components/ProfileEditorHost.vue');
   const centerShell = read('src/features/config-editor/components/ConfigCenterShell.vue');
@@ -75,6 +94,14 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(packagingConfig, /actions-position="header"/);
   assert.match(packagingConfig, /<ProfileEditorHost/);
   assert.match(packagingConfig, /scroll-mode="page"/);
+  for (const page of [packagingConfig, lockConfig, handleConfig, cylinderConfig, lockForkConfig]) {
+    assert.match(page, /data-operator-guide="true"/);
+    assert.match(page, /首屏维护顺序/);
+    assert.match(page, /默认策略/);
+    assert.match(page, /规则试跑/);
+    assert.match(page, /例外行/);
+  }
+
   assert.match(packagingConfig, /<CardTitle>基础配置<\/CardTitle>/);
   assert.match(packagingConfig, /<CardTitle>映射列表<\/CardTitle>/);
   assert.match(packagingConfig, /当前没有需要人工维护的包装例外项/);
@@ -94,7 +121,7 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(lockConfig, /默认收起，避免挤占首屏/);
 
   const mappingIndex = lockConfig.indexOf('型号映射');
-  const testerIndex = lockConfig.indexOf('规则试跑');
+  const testerIndex = lockConfig.indexOf('<CardTitle>规则试跑</CardTitle>');
   assert.ok(mappingIndex > -1);
   assert.ok(testerIndex > -1);
   assert.ok(mappingIndex < testerIndex);

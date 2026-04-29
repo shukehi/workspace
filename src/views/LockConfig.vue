@@ -225,9 +225,51 @@ onMounted(editor.load);
     workflow-meta-variant="inline"
     actions-position="header"
   >
+
+    <Card class="border-dashed bg-muted/20" data-operator-guide="true">
+      <CardHeader class="pb-3">
+        <CardTitle class="text-sm">首屏维护顺序</CardTitle>
+        <CardDescription>先确认默认策略与规则试跑，再只把无法自动覆盖的内容写入例外行。</CardDescription>
+      </CardHeader>
+      <CardContent class="grid gap-3 text-sm md:grid-cols-3">
+        <div class="rounded-md border bg-background px-3 py-2">
+          <div class="font-medium">默认策略</div>
+          <div class="mt-1 text-xs text-muted-foreground">优先复用系统默认与标准规则。</div>
+        </div>
+        <div class="rounded-md border bg-background px-3 py-2">
+          <div class="font-medium">规则试跑</div>
+          <div class="mt-1 text-xs text-muted-foreground">有试跑入口时先验证自动命中结果。</div>
+        </div>
+        <div class="rounded-md border bg-background px-3 py-2">
+          <div class="font-medium">例外行</div>
+          <div class="mt-1 text-xs text-muted-foreground">仅维护标准规则无法覆盖的人工例外。</div>
+        </div>
+      </CardContent>
+    </Card>
     <template #header-extra>
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
+
+    <Card class="border-primary/20 bg-primary/5">
+      <CardHeader>
+        <CardTitle>首屏操作指南</CardTitle>
+        <CardDescription>先确认默认策略，再用规则试跑验证命中；只有规则无法覆盖时，才维护例外行。</CardDescription>
+      </CardHeader>
+      <CardContent class="grid gap-3 text-sm md:grid-cols-3">
+        <div class="rounded-md border bg-background/80 p-3">
+          <div class="font-medium">默认策略</div>
+          <p class="mt-1 text-muted-foreground">优先沿用系统默认供应商、标签或尺寸规则，避免把标准规则复制成例外。</p>
+        </div>
+        <div class="rounded-md border bg-background/80 p-3">
+          <div class="font-medium">规则试跑</div>
+          <p class="mt-1 text-muted-foreground">有试跑面板时先用样本验证命中轨迹；无试跑面板时按页面说明核对标准字典。</p>
+        </div>
+        <div class="rounded-md border bg-background/80 p-3">
+          <div class="font-medium">例外行</div>
+          <p class="mt-1 text-muted-foreground">仅在默认策略与规则试跑都无法覆盖时新增，保留最小必要映射。</p>
+        </div>
+      </CardContent>
+    </Card>
 
     <div class="grid gap-4 md:grid-cols-3">
       <Card>
