@@ -116,6 +116,31 @@ const latestAuditTime = computed(() => (
       </div>
 
       <div v-if="showIssuesPanel" class="flex flex-col gap-6 min-h-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+        <Card data-issue-anchor="true" class="border-destructive/40 bg-destructive/5">
+          <CardHeader>
+            <CardTitle>校验结果</CardTitle>
+            <CardDescription>请修正以下问题后再保存。</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div v-if="clientIssues.length > 0" class="space-y-1">
+              <div class="text-sm font-medium">本地校验</div>
+              <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                <li v-for="issue in clientIssues" :key="`client-${issue.path}-${issue.code}`">
+                  {{ issue.path }}: {{ issue.message }}
+                </li>
+              </ul>
+            </div>
+            <div v-if="editor.serverIssues.value.length > 0" class="space-y-1">
+              <div class="text-sm font-medium">服务端校验</div>
+              <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                <li v-for="issue in editor.serverIssues.value" :key="`server-${issue.path}-${issue.code}`">
+                  {{ issue.path }}: {{ issue.message }}
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
         <details v-if="editor.diff?.value" class="review-panel border border-dashed border-muted/50 bg-muted/20">
           <summary class="review-panel-summary cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground">配置差异</summary>
           <Card class="border-0">
@@ -323,30 +348,6 @@ const latestAuditTime = computed(() => (
           </Card>
         </details>
 
-        <Card data-issue-anchor="true">
-          <CardHeader>
-            <CardTitle>校验结果</CardTitle>
-            <CardDescription>请修正以下问题后再保存。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div v-if="clientIssues.length > 0" class="space-y-1">
-              <div class="text-sm font-medium">本地校验</div>
-              <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                <li v-for="issue in clientIssues" :key="`client-${issue.path}-${issue.code}`">
-                  {{ issue.path }}: {{ issue.message }}
-                </li>
-              </ul>
-            </div>
-            <div v-if="editor.serverIssues.value.length > 0" class="space-y-1">
-              <div class="text-sm font-medium">服务端校验</div>
-              <ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                <li v-for="issue in editor.serverIssues.value" :key="`server-${issue.path}-${issue.code}`">
-                  {{ issue.path }}: {{ issue.message }}
-                </li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
 
