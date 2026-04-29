@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ConfigCenterShell from '@/features/config-editor/components/ConfigCenterShell.vue';
 import MasterDataDiagnosticsSummaryCards from '@/features/master-data/components/MasterDataDiagnosticsSummaryCards.vue';
+import {
+  buildMaterialMasterRoute,
+  buildSupplierMasterRoute,
+} from '@/features/master-data/masterDataNavigation';
 import { useMasterDataDiagnostics } from '@/features/master-data/composables/useMasterDataDiagnostics';
 import type { MaterialMasterItem } from '@/services/materialMasterProfileApi';
 import type { SupplierMasterEntry } from '@/services/mappingConfigApi';
@@ -93,36 +97,18 @@ onMounted(() => {
 });
 
 function openMaterial(item: { id: number }, tab: 'basic' | 'relationship' | 'diagnostics' | 'audit' = 'diagnostics') {
-  void router.push({
-    name: 'material-master',
-    query: {
-      materialId: String(item.id),
-      tab,
-    },
-  });
+  void router.push(buildMaterialMasterRoute(item.id, tab));
 }
 
 function openSupplier(item: SupplierMasterEntry, tab: 'basic' | 'materials' | 'diagnostics' | 'audit' = 'diagnostics') {
   if (!item.id) return;
-  void router.push({
-    name: 'config-suppliers',
-    query: {
-      supplierId: String(item.id),
-      tab,
-    },
-  });
+  void router.push(buildSupplierMasterRoute(item.id, tab));
 }
 
 function jumpToSuggestedSupplier(item: MaterialMasterItem & { suggestedSupplierMaster?: { id?: number | null } | null }) {
   const supplierId = Number(item.suggestedSupplierMaster?.id || 0);
   if (!supplierId) return;
-  void router.push({
-    name: 'config-suppliers',
-    query: {
-      supplierId: String(supplierId),
-      tab: 'materials',
-    },
-  });
+  void router.push(buildSupplierMasterRoute(supplierId, 'materials'));
 }
 
 function toggleAutoFixSelection(materialId: number) {
@@ -161,10 +147,10 @@ function openCurrentRelatedTask() {
 
 function openLifecycleIssue(profileCode: 'material_master' | 'supplier_master') {
   if (profileCode === 'material_master') {
-    void router.push({ name: 'material-master', query: { tab: 'audit' } });
+    void router.push(buildMaterialMasterRoute(null, 'audit'));
     return;
   }
-  void router.push({ name: 'config-suppliers', query: { tab: 'audit' } });
+  void router.push(buildSupplierMasterRoute(null, 'audit'));
 }
 </script>
 

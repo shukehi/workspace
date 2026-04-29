@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { configCenterNavGroups, flatMainNav, mainNavGroups } from '../src/config/nav';
+import { configCenterNavGroups, flatMainNav, mainNavGroups, type ConfigCenterRoute } from '../src/config/nav';
 
 const ROOT = process.cwd();
 
@@ -219,7 +219,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(supplierMaster, /useRouter/);
   assert.match(supplierMaster, /supplierId/);
   assert.match(supplierMaster, /tab/);
-  assert.match(supplierMaster, /name: 'material-master'/);
+  assert.match(supplierMaster, /buildMaterialMasterRoute/);
   assert.match(supplierMaster, /<SupplierSummaryCards/);
   assert.match(supplierMaster, /<MasterDataLifecyclePanel/);
   assert.match(supplierMaster, /<SupplierDiagnosticsPanel/);
@@ -271,7 +271,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
   assert.match(materialMaster, /useRouter/);
   assert.match(materialMaster, /materialId/);
   assert.match(materialMaster, /tab/);
-  assert.match(materialMaster, /name: 'config-suppliers'/);
+  assert.match(materialMaster, /buildSupplierMasterRoute/);
   assert.match(materialMaster, /<ConfigCenterShell/);
   assert.match(materialMaster, /<MasterDataLifecyclePanel/);
   assert.match(materialMaster, /profile: \{\{ profileDetail\.profile\.code \}\}/);
@@ -376,7 +376,7 @@ test('config navigation guard: every Config Center route is grouped once by oper
     '/config/cylinder',
     '/config/lock-fork'
   ];
-  const nonRuleExceptionRoutes = [
+  const nonRuleExceptionRoutes: ConfigCenterRoute[] = [
     '/formula',
     '/material-master',
     '/config/suppliers',

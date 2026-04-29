@@ -13,21 +13,18 @@ import MasterDataLifecyclePanel from '@/features/master-data/components/MasterDa
 import MaterialListPanel from '@/features/master-data/components/MaterialListPanel.vue';
 import MaterialSummaryCards from '@/features/master-data/components/MaterialSummaryCards.vue';
 import {
+  buildMaterialMasterRoute,
+  buildSupplierMasterRoute,
+  normalizeMaterialDetailTab,
+  type MaterialDetailTab,
+} from '@/features/master-data/masterDataNavigation';
+import {
   type MaterialRecord,
   useMaterialManagementPageState,
 } from '@/features/materials/composables/useMaterialManagementPageState';
 
 const route = useRoute();
 const router = useRouter();
-
-const MATERIAL_DETAIL_TABS = ['basic', 'relationship', 'mappings', 'diagnostics', 'audit'] as const;
-type MaterialDetailTab = typeof MATERIAL_DETAIL_TABS[number];
-
-function normalizeMaterialTab(value: unknown): MaterialDetailTab {
-  return typeof value === 'string' && MATERIAL_DETAIL_TABS.includes(value as MaterialDetailTab)
-    ? (value as MaterialDetailTab)
-    : 'basic';
-}
 
 const {
   materials,
@@ -66,7 +63,7 @@ const {
 } = useMaterialManagementPageState();
 
 const selectedMaterialId = ref<number | null>(null);
-const activeDetailTab = ref<MaterialDetailTab>(normalizeMaterialTab(route.query.tab));
+const activeDetailTab = ref<MaterialDetailTab>(normalizeMaterialDetailTab(route.query.tab));
 
 const selectedMaterial = computed(() => (
   materials.value.find((item) => item.id === selectedMaterialId.value)
@@ -81,19 +78,18 @@ const selectedMaterialMappings = computed(() => (
 ));
 
 function syncRouteSelection(materialId: number | null, tab = activeDetailTab.value) {
-  const nextQuery = {
-    ...route.query,
-    materialId: materialId ? String(materialId) : undefined,
-    tab,
-  };
+  const targetRoute = buildMaterialMasterRoute(materialId, tab);
   void router.replace({
-    name: 'material-master',
-    query: nextQuery,
+    ...targetRoute,
+    query: {
+      ...route.query,
+      ...targetRoute.query,
+    },
   });
 }
 
 watch(() => route.query.tab, (nextTab) => {
-  activeDetailTab.value = normalizeMaterialTab(nextTab);
+  activeDetailTab.value = normalizeMaterialDetailTab(nextTab);
 }, { immediate: true });
 
 watch([materials, () => route.query.materialId], ([nextMaterials, queryMaterialId]) => {
@@ -129,18 +125,12 @@ function handleMaterialSelect(material: MaterialRecord) {
 }
 
 function handleDetailTabChange(nextTab: string) {
-  activeDetailTab.value = normalizeMaterialTab(nextTab);
+  activeDetailTab.value = normalizeMaterialDetailTab(nextTab);
   syncRouteSelection(selectedMaterialId.value, activeDetailTab.value);
 }
 
 function jumpToSupplierDetail(supplierMasterId: number) {
-  void router.push({
-    name: 'config-suppliers',
-    query: {
-      supplierId: String(supplierMasterId),
-      tab: 'materials',
-    },
-  });
+  void router.push(buildSupplierMasterRoute(supplierMasterId, 'materials'));
 }
 </script>
 
