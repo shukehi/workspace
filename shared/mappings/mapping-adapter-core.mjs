@@ -372,6 +372,8 @@ function adaptPackagingMapping(value) {
 
 function adaptCylinderMapping(value) {
   const record = asRecord(value);
+  const hasExcludedCylinders = Object.prototype.hasOwnProperty.call(record, 'excludedCylinders');
+  const excludedCylinders = adaptStringList(record.excludedCylinders);
 
   return {
     dimensions: adaptCylinderDimensionMap(record.dimensions),
@@ -381,10 +383,7 @@ function adaptCylinderMapping(value) {
     secondaryAccessoryPackRules: adaptCylinderAccessoryPackRules(record.secondaryAccessoryPackRules),
     mappings: adaptCylinderMappings(record.mappings),
     customLogos: adaptStringList(record.customLogos),
-    excludedCylinders: (() => {
-      const excluded = adaptStringList(record.excludedCylinders);
-      return excluded.length > 0 ? excluded : [...DEFAULT_CYLINDER_EXCLUDED];
-    })(),
+    excludedCylinders: hasExcludedCylinders ? excludedCylinders : [...DEFAULT_CYLINDER_EXCLUDED],
   };
 }
 
