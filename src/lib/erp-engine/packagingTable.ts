@@ -51,7 +51,7 @@ export function aggregatePackaging(items: PackagingItem[], PACKAGING_MAPPING: Pa
     const groups: AggregatedPackaging = {};
     const packagingConfig = adaptPackagingMapping(PACKAGING_MAPPING);
     const mappings = packagingConfig.mappings;
-    const supplierName = packagingConfig.supplierName || "方亮包装";
+    const supplierName = packagingConfig.supplierName;
 
     if (!items || !Array.isArray(items)) {
         console.warn('aggregatePackaging received invalid items:', items);

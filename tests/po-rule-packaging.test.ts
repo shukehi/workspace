@@ -130,6 +130,34 @@ test('packaging rule: merge=false maps qty pair and falls back to matcher', () =
   assert.equal(groups[0].items[0].quantity_right, 4);
 });
 
+test('packaging rule: merge=false uses the published packaging profile supplier', () => {
+  const ctx = createCtx({
+    sourceStore: {
+      currentOrder: {
+        list: [
+          {
+            bz: '包装A',
+            productModelName: 'M2',
+            spec: '880*2050',
+            mb: '门边A',
+            qty: '1/0',
+          },
+        ],
+      },
+      materialRequirements: null,
+      hardwareRequirements: null,
+    },
+    packagingConfig: {
+      getPackagingMapping: () => ({ supplierName: '配置中心包装供应商', mappings: { 包装A: '外协包装A' } }),
+    },
+  });
+
+  const groups = buildPackagingGroups(ctx, { mergeSameSpec: false });
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].supplierName, '配置中心包装供应商');
+  assert.equal(groups[0].items[0].supplier, '配置中心包装供应商');
+});
+
 test('packaging rule: merge=false uses 未匹配 when bz is empty', () => {
   let matchCalled = false;
   const ctx = createCtx({

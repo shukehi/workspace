@@ -826,13 +826,43 @@ test('GET /api/config/profiles/handle/reference-check reports material and suppl
 });
 
 test('GET /api/config/profiles/packaging/reference-check only reports packaging supplier refs', async () => {
+  const detailRes = await fetch(`${baseUrl}/api/config/profiles/packaging/detail`);
+  const detailBody = await detailRes.json();
+  const currentRevision = detailBody.detail?.latestRevision?.revision ?? 0;
+
+  const draftRes = await fetch(`${baseUrl}/api/config/profiles/packaging/draft`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      revision: currentRevision,
+      payload: {
+        supplierName: '引用检查包装供应商',
+        mappings: {
+          包装A: '外协包装A',
+        },
+      },
+      changeNote: 'packaging reference-check draft',
+    }),
+  });
+  assert.equal(draftRes.status, 200);
+
   const res = await fetch(`${baseUrl}/api/config/profiles/packaging/reference-check`);
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.success, true);
   assert.equal(body.check.profileCode, 'packaging');
-  assert.ok(body.check.supplierRefs.includes('新包装供应商') || body.check.supplierRefs.includes('方亮包装'));
+  assert.deepEqual(body.check.supplierRefs, ['引用检查包装供应商']);
+  assert.deepEqual(body.check.supplierRefItems, [{
+    path: 'supplierName',
+    value: '引用检查包装供应商',
+    missingInMaterialMaster: true,
+    missingInSupplierMaster: true,
+  }]);
   assert.deepEqual(body.check.materialCodeRefs, []);
+  assert.deepEqual(body.check.materialCodeRefItems, []);
+  assert.deepEqual(body.check.suppliersMissingInMaterialMaster, ['引用检查包装供应商']);
+  assert.deepEqual(body.check.suppliersMissingInSupplierMaster, ['引用检查包装供应商']);
+  assert.equal(body.check.hasIssues, true);
 });
 
 test('GET /api/config/profiles/formulas/reference-check extracts formula BOM supplier/material refs', async () => {

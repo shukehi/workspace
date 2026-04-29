@@ -50,6 +50,36 @@ test('configLoader: packaging mapping prefers API and normalizes legacy dictiona
   assert.equal(loader.getLoadSources().packaging, 'api');
 });
 
+test('configLoader: packaging mapping uses published profile supplier as owner', async () => {
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+    calls.push(url);
+
+    if (url === '/api/config/profiles/packaging/detail') {
+      return createResponse(true, {
+        success: true,
+        detail: {
+          publishedPayload: {
+            supplierName: '配置中心包装供应商',
+            mappings: { 包装A: '外协包装A' },
+          },
+        },
+      }) as unknown as Response;
+    }
+
+    return createResponse(false, null) as unknown as Response;
+  }) as typeof fetch;
+
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
+  await loader.loadPackagingMapping();
+
+  assert.deepEqual(calls, ['/api/config/profiles/packaging/detail']);
+  assert.equal(loader.getPackagingMapping().supplierName, '配置中心包装供应商');
+  assert.equal(loader.getPackagingMapping().mappings['包装A'], '外协包装A');
+  assert.equal(loader.getLoadSources().packaging, 'api');
+});
+
 test('configLoader: materials prefer workflow published endpoint before legacy config endpoint', async () => {
   const calls: string[] = [];
   globalThis.fetch = (async (input: string | URL | Request) => {
