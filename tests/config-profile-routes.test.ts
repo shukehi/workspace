@@ -14,6 +14,34 @@ import {
 const _require = createRequire(import.meta.url);
 const tempDbPath = path.join(os.tmpdir(), `test-config-profile-routes-${crypto.randomBytes(8).toString('hex')}.sqlite`);
 
+const testLockForkDimensionGroup = {
+  standard: {
+    upper: { base1: 570, base2: 301 },
+    lower: { base1: 570, base2: 301 },
+  },
+  withHangingFeet: {
+    upper: { base1: 570, base2: 301 },
+    lower: { base1: 570, base2: 313 },
+  },
+};
+
+function buildTestLockForkMapping(defaultSupplier: string) {
+  return {
+    baseDimensions: {
+      7: testLockForkDimensionGroup,
+      10: testLockForkDimensionGroup,
+    },
+    highHeightRules: {},
+    lockTypes: {},
+    edgeTypes: {
+      T型: { category: '', nameModifier: 'T型', upper: '', lower: '' },
+    },
+    hangingFeet: { standard: 35, keywords: ['吊脚', 'diaojiao'] },
+    heightReference: 2050,
+    suppliers: { default: defaultSupplier },
+  };
+}
+
 const purgeDatabaseCache = () => {
   Object.keys(_require.cache).forEach((key) => {
     if (key.includes('/server/config/database') || key.includes('/server/models/') || key.includes('/server/services/') || key.includes('/server/routes/configProfiles')) {
@@ -79,6 +107,7 @@ test.before(async () => {
     supplierName: '方亮包装',
     mappings: { 包装A: '外协包装A' },
   });
+  await seedPublishedMapping('lock_fork', buildTestLockForkMapping('应志友'));
 
   const created = await FormulaService.createFormula({
     displayName: '测试配方',
@@ -198,9 +227,54 @@ test('GET /api/config/profiles/packaging/replay returns fixture-backed replay su
   assert.equal(replayBody.replay.runtimeNotReady, true);
   assert.equal(replayBody.replay.runtimeReadiness.ready, false);
   assert.equal(replayBody.replay.runtimeReadiness.runtimeNotReady, true);
-  assert.deepEqual(replayBody.replay.degradedProfiles, ['cylinder', 'handle', 'lock', 'lock_fork']);
+  assert.deepEqual(replayBody.replay.degradedProfiles, ['cylinder', 'handle', 'lock']);
   assert.deepEqual(replayBody.replay.runtimeReadiness.degradedProfiles, replayBody.replay.degradedProfiles);
   assert.equal(typeof replayBody.replay.runtimeReadiness.message, 'string');
+});
+
+test('GET /api/config/profiles/lock_fork/replay returns read-only lock fork replay summary', async () => {
+  const detailRes = await fetch(`${baseUrl}/api/config/profiles/lock_fork/detail`);
+  assert.equal(detailRes.status, 200);
+  const detailBody = await detailRes.json();
+  const revision = detailBody.detail.latestRevision.revision;
+
+  const draftRes = await fetch(`${baseUrl}/api/config/profiles/lock_fork/draft`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      revision,
+      payload: buildTestLockForkMapping('回放锁叉供应商'),
+      changeNote: 'lock fork replay draft',
+    }),
+  });
+  assert.equal(draftRes.status, 200);
+
+  const beforeReplayDetailRes = await fetch(`${baseUrl}/api/config/profiles/lock_fork/detail`);
+  assert.equal(beforeReplayDetailRes.status, 200);
+  const beforeReplayDetailBody = await beforeReplayDetailRes.json();
+
+  const replayRes = await fetch(`${baseUrl}/api/config/profiles/lock_fork/replay`);
+  assert.equal(replayRes.status, 200);
+  const replayBody = await replayRes.json();
+  assert.equal(replayBody.success, true);
+  assert.equal(replayBody.replay.profileCode, 'lock_fork');
+  assert.equal(replayBody.replay.supported, true);
+  assert.equal(replayBody.replay.sampleSource, 'fixtures');
+  assert.ok(replayBody.replay.sampleCount > 0);
+  assert.ok(Array.isArray(replayBody.replay.items));
+  assert.ok(replayBody.replay.items.some((item: any) => item.before.counts.lockForks > 0));
+  assert.ok(replayBody.replay.items.some((item: any) => item.after.counts.lockForks > 0));
+  assert.ok(replayBody.replay.items.every((item: any) => typeof item.before.counts.lockForks === 'number'));
+  assert.ok(replayBody.replay.items.every((item: any) => typeof item.after.counts.lockForks === 'number'));
+  assert.ok(replayBody.replay.items.some((item: any) => item.after.changedSections.includes('lockForks')));
+
+  const afterReplayDetailRes = await fetch(`${baseUrl}/api/config/profiles/lock_fork/detail`);
+  assert.equal(afterReplayDetailRes.status, 200);
+  const afterReplayDetailBody = await afterReplayDetailRes.json();
+  assert.equal(afterReplayDetailBody.detail.latestRevision.revision, beforeReplayDetailBody.detail.latestRevision.revision);
+  assert.equal(afterReplayDetailBody.detail.draftRevision.revision, beforeReplayDetailBody.detail.draftRevision.revision);
+  assert.equal(afterReplayDetailBody.detail.publishedRevision.revision, beforeReplayDetailBody.detail.publishedRevision.revision);
+  assert.equal(afterReplayDetailBody.detail.profile.activeRevision, beforeReplayDetailBody.detail.profile.activeRevision);
 });
 
 test('GET /api/config/profiles/packaging/replay prefers recent contract cache samples when available', async () => {
@@ -862,6 +936,50 @@ test('GET /api/config/profiles/packaging/reference-check only reports packaging 
   assert.deepEqual(body.check.materialCodeRefItems, []);
   assert.deepEqual(body.check.suppliersMissingInMaterialMaster, ['引用检查包装供应商']);
   assert.deepEqual(body.check.suppliersMissingInSupplierMaster, ['引用检查包装供应商']);
+  assert.equal(body.check.hasIssues, true);
+});
+
+test('GET /api/config/profiles/lock_fork/reference-check reports lock fork supplier refs', async () => {
+  const detailRes = await fetch(`${baseUrl}/api/config/profiles/lock_fork/detail`);
+  let currentRevision = 0;
+  if (detailRes.status === 200) {
+    const detailBody = await detailRes.json();
+    currentRevision = detailBody.detail?.latestRevision?.revision ?? 0;
+  } else {
+    assert.equal(detailRes.status, 404);
+  }
+
+  const draftRes = await fetch(`${baseUrl}/api/config/profiles/lock_fork/draft`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
+    body: JSON.stringify({
+      revision: currentRevision,
+      payload: {
+        suppliers: {
+          default: '引用检查锁叉供应商',
+        },
+      },
+      changeNote: 'lock fork reference-check draft',
+    }),
+  });
+  assert.equal(draftRes.status, 200);
+
+  const res = await fetch(`${baseUrl}/api/config/profiles/lock_fork/reference-check`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.check.profileCode, 'lock_fork');
+  assert.deepEqual(body.check.supplierRefs, ['引用检查锁叉供应商']);
+  assert.deepEqual(body.check.supplierRefItems, [{
+    path: 'suppliers.default',
+    value: '引用检查锁叉供应商',
+    missingInMaterialMaster: true,
+    missingInSupplierMaster: true,
+  }]);
+  assert.deepEqual(body.check.materialCodeRefs, []);
+  assert.deepEqual(body.check.materialCodeRefItems, []);
+  assert.deepEqual(body.check.suppliersMissingInMaterialMaster, ['引用检查锁叉供应商']);
+  assert.deepEqual(body.check.suppliersMissingInSupplierMaster, ['引用检查锁叉供应商']);
   assert.equal(body.check.hasIssues, true);
 });
 
