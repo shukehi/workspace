@@ -249,8 +249,8 @@ test('configLoader: lock loader normalizes published payloads through adapter', 
         success: true,
         detail: {
           publishedPayload: {
-            primaryLabel: '主锁',
-            secondaryLabel: '副锁',
+            defaultUnit: '   ',
+            primaryLabel: '',
             mappings: {
               'SD-9030（6607大锁）': {
                 supplier: '汇成',
@@ -269,7 +269,9 @@ test('configLoader: lock loader normalizes published payloads through adapter', 
   const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
   await loader.loadLockMapping();
 
+  assert.equal(loader.getLockMapping().defaultUnit, '套');
   assert.equal(loader.getLockMapping().primaryLabel, '主锁');
+  assert.equal(loader.getLockMapping().secondaryLabel, '副锁');
   assert.equal(loader.getLockMapping().mappings['SD-9030（6607大锁）']?.vendorName, '6607大锁');
   assert.equal(loader.getLockMapping().mappings['SD-9030（6607大锁）']?.primarySpec, '主锁体');
   assert.equal(loader.getLoadSources().lock, 'api');
@@ -365,6 +367,9 @@ test('configLoader: loadAll prefers runtime snapshot when available', async () =
   assert.equal(loader.getMaterials().M001?.name, '材料A');
   assert.ok(loader.getFormulas().F001);
   assert.equal(loader.getPackagingMapping().mappings['包装A'], '外协包装A');
+  assert.equal(loader.getLockMapping().defaultUnit, '套');
+  assert.equal(loader.getLockMapping().primaryLabel, '主锁');
+  assert.equal(loader.getLockMapping().secondaryLabel, '副锁');
   assert.equal(loader.getLockForkMapping().suppliers.default, '应志友');
   assert.equal(loader.getLoadSources().materials, 'api');
   assert.equal(loader.getLoadSources().packaging, 'api');

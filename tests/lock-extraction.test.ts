@@ -51,6 +51,39 @@ test('lock extraction: normalized mapping matches bracket variants and swaps lef
   assert.deepEqual(secondary!.winningRules, ['lock-secondary-f02-a副锁']);
 });
 
+test('lock extraction: missing or empty lock defaults fall back through the shared adapter', () => {
+  const result = extractLockData([
+    {
+      sj: 'SD-9030（6607大锁）',
+      fssj: 'F02-A副锁',
+      qty: '1/2',
+      spec: '970*2040/10/外开外包',
+    },
+  ], {
+    customerName: '客户A',
+  }, {
+    defaultUnit: '   ',
+    primaryLabel: '',
+    secondaryLabel: undefined,
+    mappings: {
+      'SD-9030（6607大锁）': {
+        supplier: '汇成',
+        vendorName: '6607大锁',
+      },
+    },
+  });
+
+  assert.equal(result.length, 2);
+  const primary = result.find((item) => item.type === '6607大锁');
+  const secondary = result.find((item) => item.type === 'F02-A副锁');
+  assert.ok(primary);
+  assert.ok(secondary);
+  assert.equal(primary!.unit, '套');
+  assert.equal(primary!.spec, '主锁');
+  assert.equal(secondary!.unit, '套');
+  assert.equal(secondary!.spec, '副锁');
+});
+
 test('lock extraction: keeps configured default unit', () => {
   const result = extractLockData([
     {

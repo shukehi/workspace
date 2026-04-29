@@ -59,6 +59,17 @@ test('config source guard: packaging runtime supplier defaults stay in the share
   assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_PACKAGING_SUPPLIER = '方亮包装'/);
 });
 
+test('config source guard: lock runtime unit and label defaults stay in the shared adapter', () => {
+  const lockExtractor = read('src/lib/erp-engine/extractors/lockExtractor.ts');
+
+  assert.equal(lockExtractor.includes("|| '套'"), false);
+  assert.equal(lockExtractor.includes("|| '主锁'"), false);
+  assert.equal(lockExtractor.includes("|| '副锁'"), false);
+  assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_LOCK_UNIT = '套'/);
+  assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_LOCK_PRIMARY_LABEL = '主锁'/);
+  assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_LOCK_SECONDARY_LABEL = '副锁'/);
+});
+
 test('config source guard: legacy config endpoints stay isolated to repository and compatibility tests', () => {
   assert.deepEqual(
     rgFiles('/api/config/materials', ['src', 'tests']).sort(),

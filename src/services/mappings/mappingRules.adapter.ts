@@ -1,3 +1,4 @@
+import { adaptLockMapping } from '@/services/mappings/mappingAdapter';
 import type {
   CylinderAccessoryPackRule,
   CylinderMappingConfig,
@@ -127,7 +128,8 @@ export function adaptLockMappingsToRuleSet(
   mode: 'primary' | 'secondary',
   normalizeKey: (value: string) => string,
 ): MappingRuleSet {
-  const rules = Object.entries(payload.mappings || {}).reduce<MappingRule[]>((acc, [model, entry]) => {
+  const adaptedPayload = adaptLockMapping(payload);
+  const rules = Object.entries(adaptedPayload.mappings || {}).reduce<MappingRule[]>((acc, [model, entry]) => {
     const normalizedModel = toTrimmedString(normalizeKey(model));
     if (!normalizedModel) return acc;
 
@@ -148,8 +150,8 @@ export function adaptLockMappingsToRuleSet(
         supplier: toTrimmedString(entry.supplier) || '待人工处理',
         type: toTrimmedString(entry.vendorName),
         spec: toTrimmedString(mode === 'primary' ? entry.primarySpec : entry.secondarySpec)
-          || toTrimmedString(mode === 'primary' ? payload.primaryLabel : payload.secondaryLabel),
-        unit: toTrimmedString(payload.defaultUnit),
+          || toTrimmedString(mode === 'primary' ? adaptedPayload.primaryLabel : adaptedPayload.secondaryLabel),
+        unit: toTrimmedString(adaptedPayload.defaultUnit),
         remark: toTrimmedString(entry.remark),
         extra: {
           sourceModel: model,
@@ -173,13 +175,13 @@ export function adaptLockMappingsToRuleSet(
     },
     defaults: {
       supplier: '待人工处理',
-      unit: toTrimmedString(payload.defaultUnit),
+      unit: toTrimmedString(adaptedPayload.defaultUnit),
       extra: {
         mode,
       },
       ...(mode === 'primary'
-        ? { primaryLabel: toTrimmedString(payload.primaryLabel) }
-        : { secondaryLabel: toTrimmedString(payload.secondaryLabel) }),
+        ? { primaryLabel: toTrimmedString(adaptedPayload.primaryLabel) }
+        : { secondaryLabel: toTrimmedString(adaptedPayload.secondaryLabel) }),
     },
     rules,
   };
@@ -191,16 +193,17 @@ export function applyLockRulePreviewFallbacks(
   rawModel: string,
   output: RuleOutput,
 ): RuleOutput {
+  const adaptedPayload = adaptLockMapping(payload);
   const normalizedRawModel = toTrimmedString(rawModel);
   const fallbackSpec = toTrimmedString(
-    mode === 'primary' ? payload.primaryLabel : payload.secondaryLabel,
+    mode === 'primary' ? adaptedPayload.primaryLabel : adaptedPayload.secondaryLabel,
   );
 
   return {
     ...output,
     type: toTrimmedString(output.type) || normalizedRawModel,
     spec: toTrimmedString(output.spec) || fallbackSpec,
-    unit: toTrimmedString(output.unit) || toTrimmedString(payload.defaultUnit),
+    unit: toTrimmedString(output.unit) || toTrimmedString(adaptedPayload.defaultUnit),
   };
 }
 
