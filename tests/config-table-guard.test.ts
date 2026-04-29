@@ -59,6 +59,11 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(profileHost, /<details[^>]*class="review-panel/);
   assert.match(profileHost, /<summary class="review-panel-summary/);
   assert.doesNotMatch(profileHost, /<details[^>]*open/);
+  assert.match(profileHost, /<Card data-issue-anchor="true"[\s\S]*校验结果/);
+  assert.doesNotMatch(profileHost, /<details[^>]*>[\s\S]*?data-issue-anchor="true"[\s\S]*?<\/details>/);
+  const validationAnchor = profileHost.indexOf('data-issue-anchor="true"');
+  const lastSecondaryPanelClose = profileHost.lastIndexOf('</details>');
+  assert.ok(validationAnchor > lastSecondaryPanelClose, 'validation panel should remain outside review side panels');
   assert.match(profileHost, /v-if="actionsPosition === 'bottom'"/);
   assert.doesNotMatch(profileHost, /Button :disabled="editor\.isLoading\.value \|\| editor\.isSaving\.value \|\| clientIssues\.length > 0"/);
   assert.match(centerShell, /<slot name="header-right"><\/slot>/);
