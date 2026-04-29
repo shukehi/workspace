@@ -54,6 +54,11 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(profileHost, /主数据引用检查/);
   assert.match(profileHost, /Material Ref Paths/);
   assert.match(profileHost, /Supplier Ref Paths/);
+  assert.match(profileHost, /class="review-panel[^"]*"/);
+  assert.match(profileHost, /review-panel-summary/);
+  assert.match(profileHost, /<details[^>]*class="review-panel/);
+  assert.match(profileHost, /<summary class="review-panel-summary/);
+  assert.doesNotMatch(profileHost, /<details[^>]*open/);
   assert.match(profileHost, /v-if="actionsPosition === 'bottom'"/);
   assert.doesNotMatch(profileHost, /Button :disabled="editor\.isLoading\.value \|\| editor\.isSaving\.value \|\| clientIssues\.length > 0"/);
   assert.match(centerShell, /<slot name="header-right"><\/slot>/);

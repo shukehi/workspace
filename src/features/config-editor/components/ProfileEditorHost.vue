@@ -116,63 +116,23 @@ const latestAuditTime = computed(() => (
       </div>
 
       <div v-if="showIssuesPanel" class="flex flex-col gap-6 min-h-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
-        <Card v-if="editor.diff?.value">
-          <CardHeader>
-            <CardTitle>配置差异</CardTitle>
-            <CardDescription>当前 draft 与 published 的最小结构差异。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div class="text-xs text-muted-foreground">
-              draft: {{ editor.diff.value.draftRevision ?? '-' }} · published: {{ editor.diff.value.publishedRevision ?? '-' }}
-            </div>
-            <div v-if="editor.diffLoading?.value" class="text-sm text-muted-foreground">差异加载中...</div>
-            <div v-else-if="!editor.diff.value.hasChanges" class="text-sm text-muted-foreground">当前无结构差异</div>
-            <div v-else class="space-y-2">
-              <div
-                v-for="item in editor.diff.value.items.slice(0, 10)"
-                :key="`${item.kind}-${item.path}`"
-                class="rounded-md border bg-background px-3 py-2"
-              >
-                <div class="flex items-center justify-between gap-2">
-                  <div class="text-sm font-medium">{{ item.path || '(root)' }}</div>
-                  <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ item.kind }}</div>
-                </div>
+        <details v-if="editor.diff?.value" class="review-panel border border-dashed border-muted/50 bg-muted/20">
+          <summary class="review-panel-summary cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground">配置差异</summary>
+          <Card class="border-0">
+            <CardHeader class="pb-2">
+              <CardTitle>配置差异</CardTitle>
+              <CardDescription>当前 draft 与 published 的最小结构差异。</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-3">
+              <div class="text-xs text-muted-foreground">
+                draft: {{ editor.diff.value.draftRevision ?? '-' }} · published: {{ editor.diff.value.publishedRevision ?? '-' }}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card v-if="editor.impact?.value">
-          <CardHeader>
-            <CardTitle>影响摘要</CardTitle>
-            <CardDescription>基于当前 draft 与 published 差异的最小影响统计。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div v-if="editor.impactLoading?.value" class="text-sm text-muted-foreground">影响摘要加载中...</div>
-            <template v-else>
-              <div class="grid grid-cols-2 gap-3">
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">总变更数</div>
-                  <div class="text-xl font-semibold">{{ editor.impact.value.totalChanges }}</div>
-                </div>
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">changed</div>
-                  <div class="text-xl font-semibold">{{ editor.impact.value.counts.changed }}</div>
-                </div>
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">added</div>
-                  <div class="text-xl font-semibold">{{ editor.impact.value.counts.added }}</div>
-                </div>
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">removed</div>
-                  <div class="text-xl font-semibold">{{ editor.impact.value.counts.removed }}</div>
-                </div>
-              </div>
-              <div v-if="editor.impact.value.topPaths.length > 0" class="space-y-2">
-                <div class="text-sm font-medium">Top Paths</div>
+              <div v-if="editor.diffLoading?.value" class="text-sm text-muted-foreground">差异加载中...</div>
+              <div v-else-if="!editor.diff.value.hasChanges" class="text-sm text-muted-foreground">当前无结构差异</div>
+              <div v-else class="space-y-2">
                 <div
-                  v-for="item in editor.impact.value.topPaths.slice(0, 5)"
-                  :key="`impact-${item.kind}-${item.path}`"
+                  v-for="item in editor.diff.value.items.slice(0, 10)"
+                  :key="`${item.kind}-${item.path}`"
                   class="rounded-md border bg-background px-3 py-2"
                 >
                   <div class="flex items-center justify-between gap-2">
@@ -181,132 +141,187 @@ const latestAuditTime = computed(() => (
                   </div>
                 </div>
               </div>
-            </template>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </details>
 
-        <Card v-if="editor.replay?.value">
-          <CardHeader>
-            <CardTitle>样本回放</CardTitle>
-            <CardDescription>基于内置样本的最小回放摘要。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div v-if="editor.replayLoading?.value" class="text-sm text-muted-foreground">样本回放加载中...</div>
-            <template v-else>
-              <div class="grid grid-cols-2 gap-3">
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">样本数</div>
-                  <div class="text-xl font-semibold">{{ editor.replay.value.sampleCount }}</div>
+        <details v-if="editor.impact?.value" class="review-panel border border-dashed border-muted/50 bg-muted/20">
+          <summary class="review-panel-summary cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground">影响摘要</summary>
+          <Card class="border-0">
+            <CardHeader class="pb-2">
+              <CardTitle>影响摘要</CardTitle>
+              <CardDescription>基于当前 draft 与 published 差异的最小影响统计。</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-3">
+              <div v-if="editor.impactLoading?.value" class="text-sm text-muted-foreground">影响摘要加载中...</div>
+              <template v-else>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">总变更数</div>
+                    <div class="text-xl font-semibold">{{ editor.impact.value.totalChanges }}</div>
+                  </div>
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">changed</div>
+                    <div class="text-xl font-semibold">{{ editor.impact.value.counts.changed }}</div>
+                  </div>
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">added</div>
+                    <div class="text-xl font-semibold">{{ editor.impact.value.counts.added }}</div>
+                  </div>
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">removed</div>
+                    <div class="text-xl font-semibold">{{ editor.impact.value.counts.removed }}</div>
+                  </div>
                 </div>
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">变化样本</div>
-                  <div class="text-xl font-semibold">{{ editor.replay.value.changedSampleCount }}</div>
-                </div>
-              </div>
-              <div v-if="editor.replay.value.items.length > 0" class="space-y-2">
-                <div class="text-sm font-medium">Samples</div>
-                <div
-                  v-for="item in editor.replay.value.items.slice(0, 5)"
-                  :key="`replay-${item.id}`"
-                  class="rounded-md border bg-background px-3 py-2"
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="text-sm font-medium">{{ item.label }}</div>
-                    <div class="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {{ item.changed ? 'changed' : 'unchanged' }}
+                <div v-if="editor.impact.value.topPaths.length > 0" class="space-y-2">
+                  <div class="text-sm font-medium">Top Paths</div>
+                  <div
+                    v-for="item in editor.impact.value.topPaths.slice(0, 5)"
+                    :key="`impact-${item.kind}-${item.path}`"
+                    class="rounded-md border bg-background px-3 py-2"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="text-sm font-medium">{{ item.path || '(root)' }}</div>
+                      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ item.kind }}</div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </template>
-          </CardContent>
-        </Card>
+              </template>
+            </CardContent>
+          </Card>
+        </details>
 
-        <Card v-if="editor.referenceCheck?.value">
-          <CardHeader>
-            <CardTitle>主数据引用检查</CardTitle>
-            <CardDescription>检查当前配置中的 supplier / materialCode 引用是否落在主数据视图中。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div v-if="editor.referenceCheckLoading?.value || editor.supplierMasterLoading?.value" class="text-sm text-muted-foreground">
-              引用检查加载中...
-            </div>
-            <template v-else>
-              <div class="grid grid-cols-2 gap-3">
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">supplier refs</div>
-                  <div class="text-xl font-semibold">{{ editor.referenceCheck.value.supplierRefs.length }}</div>
+        <details v-if="editor.replay?.value" class="review-panel border border-dashed border-muted/50 bg-muted/20">
+          <summary class="review-panel-summary cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground">样本回放</summary>
+          <Card class="border-0">
+            <CardHeader class="pb-2">
+              <CardTitle>样本回放</CardTitle>
+              <CardDescription>基于内置样本的最小回放摘要。</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-3">
+              <div v-if="editor.replayLoading?.value" class="text-sm text-muted-foreground">样本回放加载中...</div>
+              <template v-else>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">样本数</div>
+                    <div class="text-xl font-semibold">{{ editor.replay.value.sampleCount }}</div>
+                  </div>
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">变化样本</div>
+                    <div class="text-xl font-semibold">{{ editor.replay.value.changedSampleCount }}</div>
+                  </div>
                 </div>
-                <div class="rounded-md border bg-background px-3 py-2">
-                  <div class="text-xs text-muted-foreground">material refs</div>
-                  <div class="text-xl font-semibold">{{ editor.referenceCheck.value.materialCodeRefs.length }}</div>
+                <div v-if="editor.replay.value.items.length > 0" class="space-y-2">
+                  <div class="text-sm font-medium">Samples</div>
+                  <div
+                    v-for="item in editor.replay.value.items.slice(0, 5)"
+                    :key="`replay-${item.id}`"
+                    class="rounded-md border bg-background px-3 py-2"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="text-sm font-medium">{{ item.label }}</div>
+                      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {{ item.changed ? 'changed' : 'unchanged' }}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </template>
+            </CardContent>
+          </Card>
+        </details>
 
-              <div v-if="editor.referenceCheck.value.hasIssues" class="space-y-2">
-                <div class="text-sm font-medium text-amber-700">发现潜在问题</div>
-                <div v-if="editor.referenceCheck.value.missingMaterialCodes.length > 0" class="rounded-md border bg-background px-3 py-2 text-sm">
-                  缺失物料编码：{{ editor.referenceCheck.value.missingMaterialCodes.join('，') }}
+        <details v-if="editor.referenceCheck?.value" class="review-panel border border-dashed border-muted/50 bg-muted/20">
+          <summary class="review-panel-summary cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground">主数据引用检查</summary>
+          <Card class="border-0">
+            <CardHeader class="pb-2">
+              <CardTitle>主数据引用检查</CardTitle>
+              <CardDescription>检查当前配置中的 supplier / materialCode 引用是否落在主数据视图中。</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-3">
+              <div v-if="editor.referenceCheckLoading?.value || editor.supplierMasterLoading?.value" class="text-sm text-muted-foreground">
+                引用检查加载中...
+              </div>
+              <template v-else>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">supplier refs</div>
+                    <div class="text-xl font-semibold">{{ editor.referenceCheck.value.supplierRefs.length }}</div>
+                  </div>
+                  <div class="rounded-md border bg-background px-3 py-2">
+                    <div class="text-xs text-muted-foreground">material refs</div>
+                    <div class="text-xl font-semibold">{{ editor.referenceCheck.value.materialCodeRefs.length }}</div>
+                  </div>
                 </div>
-                <div v-if="editor.referenceCheck.value.suppliersMissingInMaterialMaster.length > 0" class="rounded-md border bg-background px-3 py-2 text-sm">
-                  未出现在物料主档供应商中的引用：{{ editor.referenceCheck.value.suppliersMissingInMaterialMaster.join('，') }}
+
+                <div v-if="editor.referenceCheck.value.hasIssues" class="space-y-2">
+                  <div class="text-sm font-medium text-amber-700">发现潜在问题</div>
+                  <div v-if="editor.referenceCheck.value.missingMaterialCodes.length > 0" class="rounded-md border bg-background px-3 py-2 text-sm">
+                    缺失物料编码：{{ editor.referenceCheck.value.missingMaterialCodes.join('，') }}
+                  </div>
+                  <div v-if="editor.referenceCheck.value.suppliersMissingInMaterialMaster.length > 0" class="rounded-md border bg-background px-3 py-2 text-sm">
+                    未出现在物料主档供应商中的引用：{{ editor.referenceCheck.value.suppliersMissingInMaterialMaster.join('，') }}
+                  </div>
+                </div>
+
+                <div v-if="editor.referenceCheck.value.materialCodeRefItems?.length > 0" class="space-y-2">
+                  <div class="text-sm font-medium">Material Ref Paths</div>
+                  <div
+                    v-for="item in editor.referenceCheck.value.materialCodeRefItems.slice(0, 5)"
+                    :key="`material-ref-${item.path}-${item.value}`"
+                    class="rounded-md border bg-background px-3 py-2 text-sm"
+                  >
+                    <div class="font-medium">{{ item.path }}</div>
+                    <div class="text-muted-foreground">{{ item.value }}</div>
+                  </div>
+                </div>
+
+                <div v-if="editor.referenceCheck.value.supplierRefItems?.length > 0" class="space-y-2">
+                  <div class="text-sm font-medium">Supplier Ref Paths</div>
+                  <div
+                    v-for="item in editor.referenceCheck.value.supplierRefItems.slice(0, 5)"
+                    :key="`supplier-ref-${item.path}-${item.value}`"
+                    class="rounded-md border bg-background px-3 py-2 text-sm"
+                  >
+                    <div class="font-medium">{{ item.path }}</div>
+                    <div class="text-muted-foreground">{{ item.value }}</div>
+                  </div>
+                </div>
+
+                <div class="text-xs text-muted-foreground">
+                  当前 supplier master 聚合条目：{{ editor.supplierMaster.value.length }}
+                </div>
+              </template>
+            </CardContent>
+          </Card>
+        </details>
+
+        <details v-if="hasWorkflowMeta && editor.auditLogs?.value?.length > 0" class="review-panel border border-dashed border-muted/50 bg-muted/20">
+          <summary class="review-panel-summary cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground">审计记录</summary>
+          <Card class="border-0">
+            <CardHeader class="pb-2">
+              <CardTitle>审计记录</CardTitle>
+              <CardDescription>最近的 workflow 操作记录。</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-3">
+              <div
+                v-for="log in editor.auditLogs.value.slice(0, 6)"
+                :key="log.id"
+                class="rounded-md border bg-background px-3 py-3"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="font-medium text-sm">{{ log.action }}</div>
+                  <div class="text-xs text-muted-foreground">{{ new Date(log.createdAt).toLocaleString() }}</div>
+                </div>
+                <div class="mt-2 text-xs text-muted-foreground space-y-1">
+                  <div>operator: {{ log.operator }}</div>
+                  <div>from: {{ log.fromRevision ?? '-' }} -> to: {{ log.toRevision ?? '-' }}</div>
+                  <div v-if="log.meta?.changeNote">note: {{ log.meta.changeNote }}</div>
                 </div>
               </div>
-
-              <div v-if="editor.referenceCheck.value.materialCodeRefItems?.length > 0" class="space-y-2">
-                <div class="text-sm font-medium">Material Ref Paths</div>
-                <div
-                  v-for="item in editor.referenceCheck.value.materialCodeRefItems.slice(0, 5)"
-                  :key="`material-ref-${item.path}-${item.value}`"
-                  class="rounded-md border bg-background px-3 py-2 text-sm"
-                >
-                  <div class="font-medium">{{ item.path }}</div>
-                  <div class="text-muted-foreground">{{ item.value }}</div>
-                </div>
-              </div>
-
-              <div v-if="editor.referenceCheck.value.supplierRefItems?.length > 0" class="space-y-2">
-                <div class="text-sm font-medium">Supplier Ref Paths</div>
-                <div
-                  v-for="item in editor.referenceCheck.value.supplierRefItems.slice(0, 5)"
-                  :key="`supplier-ref-${item.path}-${item.value}`"
-                  class="rounded-md border bg-background px-3 py-2 text-sm"
-                >
-                  <div class="font-medium">{{ item.path }}</div>
-                  <div class="text-muted-foreground">{{ item.value }}</div>
-                </div>
-              </div>
-
-              <div class="text-xs text-muted-foreground">
-                当前 supplier master 聚合条目：{{ editor.supplierMaster.value.length }}
-              </div>
-            </template>
-          </CardContent>
-        </Card>
-
-        <Card v-if="hasWorkflowMeta && editor.auditLogs?.value?.length > 0">
-          <CardHeader>
-            <CardTitle>审计记录</CardTitle>
-            <CardDescription>最近的 workflow 操作记录。</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <div
-              v-for="log in editor.auditLogs.value.slice(0, 6)"
-              :key="log.id"
-              class="rounded-md border bg-background px-3 py-3"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <div class="font-medium text-sm">{{ log.action }}</div>
-                <div class="text-xs text-muted-foreground">{{ new Date(log.createdAt).toLocaleString() }}</div>
-              </div>
-              <div class="mt-2 text-xs text-muted-foreground space-y-1">
-                <div>operator: {{ log.operator }}</div>
-                <div>from: {{ log.fromRevision ?? '-' }} -> to: {{ log.toRevision ?? '-' }}</div>
-                <div v-if="log.meta?.changeNote">note: {{ log.meta.changeNote }}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </details>
 
         <Card data-issue-anchor="true">
           <CardHeader>
