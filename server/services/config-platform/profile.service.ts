@@ -147,6 +147,19 @@ async function getFormulasCollectionDetail(): Promise<ConfigProfileWorkflowResul
       page: Number(list?.page || 1),
       pageSize: Number(list?.pageSize || 20),
       previewItems: Array.isArray(list?.items) ? list.items : [],
+      readOnly: true,
+      mutationScope: 'items',
+      revisionScope: 'items',
+      itemWorkflowCapabilities: {
+        detail: true,
+        create: true,
+        draft: true,
+        publish: true,
+        rollback: true,
+        revisions: true,
+        archive: true,
+        delete: true,
+      },
     },
   };
 
