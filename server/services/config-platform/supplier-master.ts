@@ -38,6 +38,7 @@ export type SupplierMasterListResult = {
   items: SupplierMasterEntry[];
   runtimeReadiness: RuntimeReadiness;
   runtimeNotReady: boolean;
+  degradedProfiles: string[];
 };
 
 function normalizeSupplierName(value: unknown): string {
@@ -203,7 +204,12 @@ export async function listSupplierMasterWithReadiness(options: { skipSeed?: bool
   if (entries.length === 0) {
     const aggregated = await buildAggregatedSupplierEntries();
     const items = aggregated.entries.map((entry) => ({ ...entry, id: null, status: 'active', sourceNote: entry.sources.join(','), linkedMaterialCount: 0, linkedMaterialCodes: [], hasLinkedMaterialsWhileInactive: false, persisted: false }));
-    return { items, runtimeReadiness: aggregated.runtimeReadiness, runtimeNotReady: aggregated.runtimeReadiness.runtimeNotReady };
+    return {
+      items,
+      runtimeReadiness: aggregated.runtimeReadiness,
+      runtimeNotReady: aggregated.runtimeReadiness.runtimeNotReady,
+      degradedProfiles: aggregated.runtimeReadiness.degradedProfiles,
+    };
   }
 
   const runtimeReadiness = await readSupplierRuntimeReadiness();
@@ -211,6 +217,7 @@ export async function listSupplierMasterWithReadiness(options: { skipSeed?: bool
     items: entries.map((entry) => toPersistedEntry(entry, materialCounts, linkedMaterials)),
     runtimeReadiness,
     runtimeNotReady: runtimeReadiness.runtimeNotReady,
+    degradedProfiles: runtimeReadiness.degradedProfiles,
   };
 }
 
@@ -265,5 +272,6 @@ export async function getSupplierMasterDetail() {
     items,
     runtimeReadiness: result.runtimeReadiness,
     runtimeNotReady: result.runtimeNotReady,
+    degradedProfiles: result.degradedProfiles,
   };
 }

@@ -198,6 +198,8 @@ test('GET /api/config/profiles/packaging/replay returns fixture-backed replay su
   assert.equal(replayBody.replay.runtimeNotReady, true);
   assert.equal(replayBody.replay.runtimeReadiness.ready, false);
   assert.equal(replayBody.replay.runtimeReadiness.runtimeNotReady, true);
+  assert.deepEqual(replayBody.replay.degradedProfiles, ['cylinder', 'handle', 'lock', 'lock_fork']);
+  assert.deepEqual(replayBody.replay.runtimeReadiness.degradedProfiles, replayBody.replay.degradedProfiles);
   assert.equal(typeof replayBody.replay.runtimeReadiness.message, 'string');
 });
 
@@ -234,6 +236,8 @@ test('GET /api/config/profiles/packaging/replay prefers recent contract cache sa
   assert.ok(replayBody.replay.sampleCount >= 1);
   assert.equal(replayBody.replay.runtimeNotReady, true);
   assert.equal(replayBody.replay.runtimeReadiness.ready, false);
+  assert.ok(Array.isArray(replayBody.replay.degradedProfiles));
+  assert.ok(replayBody.replay.degradedProfiles.includes('cylinder'));
 });
 
 test('PUT/POST profile draft+publish bridge works for packaging', async () => {
@@ -530,6 +534,9 @@ test('GET /api/config/profiles/supplier_master/detail returns unified supplier m
   assert.ok(Array.isArray(body.detail.collection.previewItems));
   assert.equal(body.detail.collection.runtimeNotReady, true);
   assert.equal(body.detail.collection.runtimeReadiness.ready, false);
+  assert.ok(Array.isArray(body.detail.collection.degradedProfiles));
+  assert.ok(body.detail.collection.degradedProfiles.includes('cylinder'));
+  assert.deepEqual(body.detail.collection.runtimeReadiness.degradedProfiles, body.detail.collection.degradedProfiles);
 });
 
 test('GET /api/config/masters/suppliers returns aggregated supplier master entries', async () => {
@@ -545,6 +552,9 @@ test('GET /api/config/masters/suppliers returns aggregated supplier master entri
   assert.ok(body.items.every((item: any) => typeof item.hasLinkedMaterialsWhileInactive === 'boolean'));
   assert.equal(body.runtimeNotReady, true);
   assert.equal(body.runtimeReadiness.ready, false);
+  assert.ok(Array.isArray(body.degradedProfiles));
+  assert.ok(body.degradedProfiles.includes('cylinder'));
+  assert.deepEqual(body.runtimeReadiness.degradedProfiles, body.degradedProfiles);
   assert.equal(typeof body.runtimeReadiness.message, 'string');
 });
 
@@ -576,6 +586,9 @@ test('GET /api/config/masters/suppliers/detail seeds and reads persisted supplie
   assert.equal(body.runtimeNotReady, true);
   assert.equal(body.detail.runtimeNotReady, true);
   assert.equal(body.detail.runtimeReadiness.ready, false);
+  assert.ok(Array.isArray(body.degradedProfiles));
+  assert.ok(body.degradedProfiles.includes('cylinder'));
+  assert.deepEqual(body.detail.degradedProfiles, body.degradedProfiles);
 
   const persistedCount = await SupplierMaster.count();
   assert.ok(persistedCount > 0);

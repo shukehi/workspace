@@ -36,6 +36,7 @@ export type ConfigProfileReplayResult = {
   sampleCount: number;
   changedSampleCount: number;
   items: ConfigProfileReplayItem[];
+  degradedProfiles?: string[];
   runtimeReadiness?: RuntimeReadiness;
   runtimeNotReady?: boolean;
 };
@@ -287,6 +288,7 @@ export async function getConfigProfileReplay(code: string): Promise<{ ok: boolea
       sampleCount: items.length,
       changedSampleCount: items.filter((item) => item.changed).length,
       items,
+      degradedProfiles: runtimeReadiness.degradedProfiles,
       runtimeReadiness,
       runtimeNotReady: runtimeReadiness.runtimeNotReady,
     },

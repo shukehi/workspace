@@ -5,21 +5,31 @@ export type RuntimeReadiness = {
   message?: string;
 };
 
+export function normalizeRuntimeDegradedProfiles(value: unknown): string[] {
+  return Array.isArray(value)
+    ? [...new Set(value.map((item) => String(item)).filter(Boolean))].sort()
+    : [];
+}
+
 export function runtimeReady(degradedProfiles: unknown = []): RuntimeReadiness {
   return {
     ready: true,
     runtimeNotReady: false,
-    degradedProfiles: Array.isArray(degradedProfiles)
-      ? degradedProfiles.map((item) => String(item)).filter(Boolean).sort()
-      : [],
+    degradedProfiles: normalizeRuntimeDegradedProfiles(degradedProfiles),
   };
 }
 
 export function runtimeNotReady(error: unknown): RuntimeReadiness {
+  const errorRecord = (error || {}) as {
+    degradedProfiles?: unknown;
+    runtimeReadiness?: { degradedProfiles?: unknown };
+  };
   return {
     ready: false,
     runtimeNotReady: true,
-    degradedProfiles: [],
+    degradedProfiles: normalizeRuntimeDegradedProfiles(
+      errorRecord.degradedProfiles ?? errorRecord.runtimeReadiness?.degradedProfiles,
+    ),
     message: error instanceof Error ? error.message : String(error || 'Runtime config snapshot is not ready'),
   };
 }
