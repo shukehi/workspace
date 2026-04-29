@@ -47,6 +47,8 @@ For at least one config profile:
 - reload app after config publish
 - confirm runtime still boots from unified config path
 - confirm formulas/material catalog reads still work after refresh
+- for production-like smoke, set `API_KEY` and send `x-api-key`; see `docs/progress/CONFIG_CENTER_RELEASE_CLOSEOUT_2026-04-29.md`
+- when smoking a fresh DB, publish required mapping profiles before expecting `/api/runtime/config-snapshot` to return 200
 
 ## 6. Legacy retirement checks
 - confirm removed legacy routes are not expected by current UI
