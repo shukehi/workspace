@@ -54,6 +54,18 @@ test('config layout guard: supports header actions and inline workflow meta for 
   assert.match(profileHost, /主数据引用检查/);
   assert.match(profileHost, /Material Ref Paths/);
   assert.match(profileHost, /Supplier Ref Paths/);
+  assert.match(profileHost, /class="review-panel[^"]*"/);
+  assert.match(profileHost, /review-panel-summary/);
+  assert.match(profileHost, /<details[^>]*class="review-panel/);
+  assert.match(profileHost, /<summary class="review-panel-summary/);
+  assert.doesNotMatch(profileHost, /<details[^>]*open/);
+  assert.match(profileHost, /<Card data-issue-anchor="true" class="border-destructive\/40 bg-destructive\/5">[\s\S]*校验结果/);
+  assert.doesNotMatch(profileHost, /<details[^>]*>[\s\S]*?data-issue-anchor="true"[\s\S]*?<\/details>/);
+  const validationAnchor = profileHost.indexOf('data-issue-anchor="true"');
+  const firstSecondaryPanelOpen = profileHost.indexOf('<details');
+  assert.ok(validationAnchor > -1);
+  assert.ok(firstSecondaryPanelOpen > -1);
+  assert.ok(validationAnchor < firstSecondaryPanelOpen, 'validation panel should stay above secondary review panels');
   assert.match(profileHost, /v-if="actionsPosition === 'bottom'"/);
   assert.doesNotMatch(profileHost, /Button :disabled="editor\.isLoading\.value \|\| editor\.isSaving\.value \|\| clientIssues\.length > 0"/);
   assert.match(centerShell, /<slot name="header-right"><\/slot>/);
