@@ -16,7 +16,7 @@ import {
   Wrench,
   Warehouse
 } from 'lucide-vue-next';
-import { mainNavGroups, type NavGroup, type NavIconKey } from '@/config/nav';
+import { configCenterNavGroups, mainNavGroups, type NavGroup, type NavIconKey } from '@/config/nav';
 import { Separator } from '@/components/ui/separator';
 import packageJson from '../../package.json';
 
@@ -167,24 +167,59 @@ watch(
             :aria-hidden="!isGroupOpen(group.id)"
           >
             <div class="menu-group-panel-inner">
-              <router-link
-                v-for="item in group.items"
-                :key="item.href"
-                :to="item.href"
-                custom
-                v-slot="{ href, navigate }"
-              >
-                <a
-                  :href="href"
-                  class="menu-item"
-                  :class="isItemActive(item.href) ? 'menu-item-active' : ''"
-                  :aria-current="isItemActive(item.href) ? 'page' : undefined"
-                  @click="handleNavigate(navigate)"
+              <template v-if="group.id === 'config'">
+                <div
+                  v-for="intentGroup in configCenterNavGroups"
+                  :key="intentGroup.id"
+                  class="rounded-lg border border-border/60 bg-sidebar-accent/20 p-2"
                 >
-                  <component :is="resolveIcon(item.icon)" class="menu-item-icon" />
-                  <span class="truncate">{{ item.title }}</span>
-                </a>
-              </router-link>
+                  <div class="mb-1.5 px-1 leading-tight">
+                    <div class="text-xs font-semibold text-sidebar-foreground">{{ intentGroup.title }}</div>
+                    <div class="mt-0.5 text-[11px] text-muted-foreground">{{ intentGroup.operatorIntentLabel }}</div>
+                  </div>
+
+                  <router-link
+                    v-for="item in intentGroup.items"
+                    :key="item.href"
+                    :to="item.href"
+                    custom
+                    v-slot="{ href, navigate }"
+                  >
+                    <a
+                      :href="href"
+                      class="menu-item"
+                      :class="isItemActive(item.href) ? 'menu-item-active' : ''"
+                      :aria-current="isItemActive(item.href) ? 'page' : undefined"
+                      :title="item.operatorIntentDescription"
+                      @click="handleNavigate(navigate)"
+                    >
+                      <component :is="resolveIcon(item.icon)" class="menu-item-icon" />
+                      <span class="truncate">{{ item.title }}</span>
+                    </a>
+                  </router-link>
+                </div>
+              </template>
+
+              <template v-else>
+                <router-link
+                  v-for="item in group.items"
+                  :key="item.href"
+                  :to="item.href"
+                  custom
+                  v-slot="{ href, navigate }"
+                >
+                  <a
+                    :href="href"
+                    class="menu-item"
+                    :class="isItemActive(item.href) ? 'menu-item-active' : ''"
+                    :aria-current="isItemActive(item.href) ? 'page' : undefined"
+                    @click="handleNavigate(navigate)"
+                  >
+                    <component :is="resolveIcon(item.icon)" class="menu-item-icon" />
+                    <span class="truncate">{{ item.title }}</span>
+                  </a>
+                </router-link>
+              </template>
             </div>
           </div>
         </transition>
