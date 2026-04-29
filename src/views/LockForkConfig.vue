@@ -168,26 +168,6 @@ onMounted(editor.load);
     actions-position="header"
   >
 
-    <Card class="border-dashed bg-muted/20" data-operator-guide="true">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-sm">首屏维护顺序</CardTitle>
-        <CardDescription>先确认默认策略与规则试跑，再只把无法自动覆盖的内容写入例外行。</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-3 text-sm md:grid-cols-3">
-        <div class="rounded-md border bg-background px-3 py-2">
-          <div class="font-medium">默认策略</div>
-          <div class="mt-1 text-xs text-muted-foreground">优先复用系统默认与标准规则。</div>
-        </div>
-        <div class="rounded-md border bg-background px-3 py-2">
-          <div class="font-medium">规则试跑</div>
-          <div class="mt-1 text-xs text-muted-foreground">有试跑入口时先验证自动命中结果。</div>
-        </div>
-        <div class="rounded-md border bg-background px-3 py-2">
-          <div class="font-medium">例外行</div>
-          <div class="mt-1 text-xs text-muted-foreground">仅维护标准规则无法覆盖的人工例外。</div>
-        </div>
-      </CardContent>
-    </Card>
     <template #header-extra>
       <span v-if="hasUnsavedChanges" class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">未保存</span>
     </template>
