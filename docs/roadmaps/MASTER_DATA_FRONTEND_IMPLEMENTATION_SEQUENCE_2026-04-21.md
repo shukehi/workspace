@@ -20,7 +20,26 @@
 
 ---
 
-## 3. Phase 1：低风险页面瘦身
+## 3. 当前实现状态对齐（2026-04-29）
+
+> 本节仅对齐文档状态，来自当前代码只读核对；不代表本次改动包含 UI / API / schema / data 变更。
+
+| 阶段 | 当前状态 | 代码证据 | 备注 |
+| --- | --- | --- | --- |
+| Phase 1：低风险页面瘦身 | **已完成** | `src/features/master-data/components/MaterialAuditPanel.vue`、`MaterialSummaryCards.vue`、`MaterialDiagnosticsPanel.vue`、`SupplierAuditPanel.vue`、`SupplierSummaryCards.vue`、`SupplierDiagnosticsPanel.vue` 均存在，并已在 `src/views/MaterialManagement.vue` / `src/views/SupplierMaster.vue` 接入。 | 与本清单列出的 6 个低风险展示组件一致。 |
+| Phase 2：页面结构工作台化 | **已完成（按本清单范围）** | `MaterialListPanel.vue`、`MaterialRelationshipSection.vue`、`MaterialDetailPanel.vue`、`SupplierListPanel.vue`、`SupplierLinkedMaterialsPanel.vue`、`SupplierDetailPanel.vue` 均存在；两个页面均呈现“工作台”区，并维护 `materialId` / `supplierId` 与 `tab` 路由状态。 | 原清单中的 `MaterialLinked/RelationshipSection.vue` 在代码中落名为 `MaterialRelationshipSection.vue`。 |
+| Phase 3：编辑与修复流优化 | **部分完成 / 待封口** | `MaterialEditDialog.vue`、`SupplierEditDialog.vue` 已存在；Material 侧已有打开编辑、自动重连、跳转供应商详情入口；Supplier 侧已有查看关联物料、打开编辑、跳转物料详情入口。 | 还缺一份当前态的交互封口证据，确认“发现问题 → 定位对象 → 编辑/重连/查看关联对象”的路径已统一且无分散入口回退。 |
+| Phase 4：跨页统一与复用 | **部分完成 / 不宜视为关闭** | `MasterDataLifecyclePanel.vue`、`MasterDataDiagnosticsSummaryCards.vue`、`src/views/MasterDataDiagnostics.vue`、`src/views/MasterDataGovernance.vue` 已存在。 | 已新增统一诊断 / 治理入口与 lifecycle 复用；但 Summary / Audit / Diagnostics 仍是 Material / Supplier 各自组件，尚未抽成共用模式。 |
+
+### 对当前路线图的结论
+
+- **可以视为完成**：Phase 1，以及本清单明确列出的 Phase 2 组件拆分与列表 + 详情工作台结构。
+- **仍应保持 active roadmap**：Phase 3 的交互流封口与 Phase 4 的跨页复用评估；不要把整条 Master Data frontend workbenchization 误标为完成 / sealed。
+- **下一步最小安全前端 slice**：先做 Phase 3 的交互封口验证与轻量文档/测试补强，例如围绕“统一诊断或页面诊断项 → 对象详情 tab → 打开编辑 / 自动重连 / 查看关联对象”的路径补一条 guard 或 browser smoke 记录；继续避免 runtime / API / schema / data 变更。
+
+---
+
+## 4. Phase 1：低风险页面瘦身
 
 ### Material 页面
 1. `MaterialAuditPanel.vue`
@@ -40,7 +59,7 @@
 
 ---
 
-## 4. Phase 2：页面结构工作台化
+## 5. Phase 2：页面结构工作台化
 
 ### Material 页面
 7. `MaterialListPanel.vue`
@@ -59,7 +78,7 @@
 
 ---
 
-## 5. Phase 3：编辑与修复流优化
+## 6. Phase 3：编辑与修复流优化
 
 ### Material 页面
 13. `MaterialEditDialog.vue`
@@ -75,7 +94,7 @@
 
 ---
 
-## 6. Phase 4：跨页统一与复用
+## 7. Phase 4：跨页统一与复用
 
 17. 抽共用摘要卡模式
 18. 抽共用审计面板模式
@@ -89,7 +108,7 @@
 
 ---
 
-## 7. 每阶段检查项
+## 8. 每阶段检查项
 
 ### 代码检查
 - 页面主文件是否明显变薄
@@ -108,7 +127,7 @@
 
 ---
 
-## 8. 推荐执行顺序（最简版）
+## 9. 推荐执行顺序（最简版）
 
 ### 第一批（马上可做）
 - MaterialAuditPanel
@@ -130,6 +149,6 @@
 
 ---
 
-## 9. 一句话结论
+## 10. 一句话结论
 
 主数据层前端最稳的推进方式，是先拆 Summary / Diagnostics / Audit 三类低风险展示组件，再把页面逐步升级成真正的工作台结构。
