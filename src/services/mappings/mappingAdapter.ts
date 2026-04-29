@@ -34,6 +34,13 @@ const DEFAULT_HANDLE_THICKNESS_PACKS: Record<string, string> = {
   '9': '9公分配件包',
   '10': '10公分配件包',
 };
+export const DEFAULT_LOCK_FORK_HEIGHT_REFERENCE = defaults.DEFAULT_LOCK_FORK_HEIGHT_REFERENCE;
+export const DEFAULT_LOCK_FORK_HANGING_FEET = defaults.DEFAULT_LOCK_FORK_HANGING_FEET;
+
+export const LOCK_FORK_REFERENCE_DEFAULT_STRINGS = Object.freeze({
+  hangingFeetStandard: String(DEFAULT_LOCK_FORK_HANGING_FEET),
+  heightReference: String(DEFAULT_LOCK_FORK_HEIGHT_REFERENCE),
+});
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)

@@ -8,6 +8,7 @@ import {
     adaptLockForkHangingFeetRulesToRuleSet,
     adaptLockForkEdgeTypeRulesToRuleSet,
     adaptLockForkTypeRulesToRuleSet,
+    DEFAULT_LOCK_FORK_HANGING_FEET,
     executeRuleSet,
     normalizeLockMappingKey,
     resolveLockForkDimensionRuleWithRules,
@@ -240,7 +241,7 @@ export function extractLockForkData(orderList: LockForkOrderItem[], orderInfo: L
         const hangingFeetValue = hangingFeetResult.value;
         const hasHangingFeet = hangingFeetValue !== null;
         const hangingFeetAdjustment = hasHangingFeet
-            ? (adaptedLockForkMapping.hangingFeet?.standard || 35) - hangingFeetValue
+            ? (adaptedLockForkMapping.hangingFeet?.standard || DEFAULT_LOCK_FORK_HANGING_FEET) - hangingFeetValue
             : 0;
 
         const {

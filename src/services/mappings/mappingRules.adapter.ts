@@ -1,4 +1,7 @@
-import { adaptLockMapping } from '@/services/mappings/mappingAdapter';
+import {
+  adaptLockMapping,
+  DEFAULT_LOCK_FORK_HEIGHT_REFERENCE,
+} from '@/services/mappings/mappingAdapter';
 import type {
   CylinderAccessoryPackRule,
   CylinderMappingConfig,
@@ -455,7 +458,7 @@ export function adaptLockForkDimensionSelectionRulesToRuleSet(
 
   Object.entries(payload.highHeightRules || {}).forEach(([thicknessKey, rule]) => {
     const minHeight = Number(rule.minHeight || 0);
-    const heightReference = Number(rule.heightReference || payload.heightReference || 2050);
+    const heightReference = Number(rule.heightReference || payload.heightReference || DEFAULT_LOCK_FORK_HEIGHT_REFERENCE);
     pushRule('high_height', thicknessKey, thicknessKey, 'standard', [{ field: 'doorHeight', op: 'gte', value: minHeight }], heightReference);
     pushRule('high_height', thicknessKey, thicknessKey, 'withHangingFeet', [{ field: 'doorHeight', op: 'gte', value: minHeight }], heightReference);
   });

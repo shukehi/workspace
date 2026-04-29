@@ -18,6 +18,7 @@ import { refreshLockForkRuntime } from '@/services/configRuntime';
 import {
   adaptLockForkMapping,
   adaptLockForkTypeRulesToRuleSet,
+  LOCK_FORK_REFERENCE_DEFAULT_STRINGS,
   validateLockForkMapping,
 } from '@/services/mappings';
 import type {
@@ -26,7 +27,6 @@ import type {
   LockForkMappingConfig,
   LockForkTypeConfig
 } from '@/types/mapping';
-import { DEFAULT_HANGING_FEET_STANDARD, DEFAULT_HEIGHT_REFERENCE } from '@/shared/constants/business';
 import { CONFIG_ENDPOINTS } from '@/shared/constants/endpoints';
 
 // --- 类型定义 ---
@@ -39,8 +39,8 @@ type LockTypeRow = { id: string; name: string; category: string; nameModifier: s
 type EdgeTypeRow = { id: string; name: string; nameModifier: string; };
 type KeywordRow = { id: string; value: string; };
 
-const hangingFeetStandard = ref(DEFAULT_HANGING_FEET_STANDARD);
-const heightReference = ref(DEFAULT_HEIGHT_REFERENCE);
+const hangingFeetStandard = ref(LOCK_FORK_REFERENCE_DEFAULT_STRINGS.hangingFeetStandard);
+const heightReference = ref(LOCK_FORK_REFERENCE_DEFAULT_STRINGS.heightReference);
 const highHeightRules = ref<LockForkMappingConfig['highHeightRules']>({});
 const activeTab = ref<'base' | 'lockType' | 'edges' | 'suppliers'>('base');
 const baselineSnapshot = ref('');
@@ -174,8 +174,8 @@ onMounted(editor.load);
     <Card class="border-amber-300 bg-amber-50/60"><CardHeader><CardTitle>规则说明</CardTitle><CardDescription>10cm 门厚 T型 边型 内开门使用正常锁叉。</CardDescription></CardHeader></Card>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card><CardHeader><CardTitle>吊脚标准值</CardTitle></CardHeader><CardContent><Input v-model="hangingFeetStandard" :placeholder="DEFAULT_HANGING_FEET_STANDARD" /></CardContent></Card>
-      <Card><CardHeader><CardTitle>高度参考值</CardTitle></CardHeader><CardContent><Input v-model="heightReference" :placeholder="DEFAULT_HEIGHT_REFERENCE" /></CardContent></Card>
+      <Card><CardHeader><CardTitle>吊脚标准值</CardTitle></CardHeader><CardContent><Input v-model="hangingFeetStandard" :placeholder="LOCK_FORK_REFERENCE_DEFAULT_STRINGS.hangingFeetStandard" /></CardContent></Card>
+      <Card><CardHeader><CardTitle>高度参考值</CardTitle></CardHeader><CardContent><Input v-model="heightReference" :placeholder="LOCK_FORK_REFERENCE_DEFAULT_STRINGS.heightReference" /></CardContent></Card>
     </div>
 
     <div class="flex items-center gap-1 border-b overflow-x-auto pb-px">
