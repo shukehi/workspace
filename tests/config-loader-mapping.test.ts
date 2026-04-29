@@ -311,6 +311,37 @@ test('configLoader: handle loader normalizes payloads through adapter', async ()
 });
 
 
+test('configLoader: handle loader resolves empty ownership fields through shared defaults', async () => {
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+
+    if (url === '/api/config/profiles/handle/detail') {
+      return createResponse(true, {
+        success: true,
+        detail: {
+          publishedPayload: {
+            defaultSupplier: '   ',
+            unmatchedSupplier: '',
+            manualReviewLabel: null,
+            mappings: {},
+          },
+        },
+      }) as unknown as Response;
+    }
+
+    return createResponse(false, null) as unknown as Response;
+  }) as typeof fetch;
+
+  const loader = new ConfigLoaderService(new ApiWithStaticFallbackConfigRepository());
+  await loader.loadHandleMapping();
+
+  assert.equal(loader.getHandleMapping().defaultSupplier, '拉手供应商');
+  assert.equal(loader.getHandleMapping().unmatchedSupplier, '待人工处理');
+  assert.equal(loader.getHandleMapping().manualReviewLabel, '未匹配拉手(待人工处理)');
+  assert.equal(loader.getLoadSources().handle, 'api');
+});
+
+
 
 test('configLoader: loadAll prefers runtime snapshot when available', async () => {
   const repository: ConfigRepository & {

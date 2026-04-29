@@ -70,6 +70,18 @@ test('config source guard: lock runtime unit and label defaults stay in the shar
   assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_LOCK_SECONDARY_LABEL = '副锁'/);
 });
 
+
+test('config source guard: handle runtime ownership defaults stay in the shared adapter boundary', () => {
+  const handleExtractor = read('src/lib/erp-engine/extractors/handleExtractor.ts');
+
+  assert.equal(handleExtractor.includes("|| '拉手供应商'"), false);
+  assert.equal(handleExtractor.includes("|| '待人工处理'"), false);
+  assert.equal(handleExtractor.includes("|| '未匹配拉手(待人工处理)'"), false);
+  assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_HANDLE_SUPPLIER = '拉手供应商'/);
+  assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_HANDLE_UNMATCHED_SUPPLIER = '待人工处理'/);
+  assert.match(read('shared/mappings/mapping-adapter-core.mjs'), /DEFAULT_HANDLE_MANUAL_REVIEW_LABEL = '未匹配拉手\(待人工处理\)'/);
+});
+
 test('config source guard: legacy config endpoints stay isolated to repository and compatibility tests', () => {
   assert.deepEqual(
     rgFiles('/api/config/materials', ['src', 'tests']).sort(),

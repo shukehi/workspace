@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import {
   adaptPackagingMapping as adaptPackagingMappingFront,
   adaptCylinderMapping as adaptCylinderMappingFront,
+  adaptHandleMapping as adaptHandleMappingFront,
   adaptLockMapping as adaptLockMappingFront,
   adaptLockForkMapping as adaptLockForkMappingFront
 } from '../../src/services/mappings/mappingAdapter';
 import {
   validatePackagingMapping as validatePackagingMappingFront,
   validateCylinderMapping as validateCylinderMappingFront,
+  validateHandleMapping as validateHandleMappingFront,
   validateLockMapping as validateLockMappingFront,
   validateLockForkMapping as validateLockForkMappingFront
 } from '../../src/services/mappings/mappingValidator';
@@ -16,12 +18,14 @@ import {
 import {
   adaptPackagingMapping as adaptPackagingMappingBack,
   adaptCylinderMapping as adaptCylinderMappingBack,
+  adaptHandleMapping as adaptHandleMappingBack,
   adaptLockMapping as adaptLockMappingBack,
   adaptLockForkMapping as adaptLockForkMappingBack
 } from '../../server/services/mappings/mapping.adapter';
 import {
   validatePackagingMapping as validatePackagingMappingBack,
   validateCylinderMapping as validateCylinderMappingBack,
+  validateHandleMapping as validateHandleMappingBack,
   validateLockMapping as validateLockMappingBack,
   validateLockForkMapping as validateLockForkMappingBack
 } from '../../server/services/mappings/mapping.validator';
@@ -138,6 +142,28 @@ const lockSamples: unknown[] = [
   }
 ];
 
+const handleSamples: unknown[] = [
+  {
+    defaultSupplier: ' ',
+    unmatchedSupplier: '',
+    manualReviewLabel: null,
+    singleKeywords: ['单活'],
+    doubleKeywords: ['双活'],
+    mappings: {
+      'DJ-5868-1': { supplier: '迪江', vendorName: 'DJ-5868-1' }
+    }
+  },
+  {
+    defaultSupplier: '自定义拉手供应商',
+    unmatchedSupplier: '自定义待处理',
+    manualReviewLabel: '自定义复核标签',
+    thicknessAccessoryPacks: { '7': '7公分配件包' },
+    mappings: {
+      'PS-9015': { supplier: '迪江', vendorName: 'PS-9015', materialCode: 'HANDLE-001' }
+    }
+  }
+];
+
 function assertParity(
   sample: unknown,
   adaptFront: (value: unknown) => unknown,
@@ -193,6 +219,18 @@ test('lock-fork adapter/validator parity between frontend and backend', () => {
       adaptLockForkMappingBack,
       validateLockForkMappingFront,
       validateLockForkMappingBack
+    );
+  });
+});
+
+test('handle adapter/validator parity between frontend and backend', () => {
+  handleSamples.forEach((sample) => {
+    assertParity(
+      sample,
+      adaptHandleMappingFront,
+      adaptHandleMappingBack,
+      validateHandleMappingFront,
+      validateHandleMappingBack
     );
   });
 });

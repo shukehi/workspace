@@ -75,6 +75,54 @@ test('extractHandleData creates unmatched item for unknown mshd or mapping', () 
   assert.ok(extracted[0].remark.includes('待人工处理'));
 });
 
+
+test('extractHandleData resolves empty ownership fields through the mapping adapter', () => {
+  const rows = [
+    {
+      ls: 'DJ-5868-1',
+      xsbz: '单活',
+      remark: '',
+      mshd: '7',
+      qty: '1/2',
+    },
+    {
+      ls: '未知拉手A',
+      xsbz: '单活',
+      remark: '',
+      mshd: '7',
+      qty: '3/4',
+    },
+  ];
+
+  const mapping = {
+    defaultSupplier: '   ',
+    unmatchedSupplier: '',
+    manualReviewLabel: undefined,
+    singleKeywords: ['单活'],
+    doubleKeywords: ['双活'],
+    thicknessAccessoryPacks: {
+      '7': '7公分配件包',
+    },
+    mappings: {
+      'DJ-5868-1': {
+        supplier: '',
+        vendorName: 'DJ-5868-1',
+      },
+    },
+  };
+
+  const extracted = extractHandleData(rows as any[], { remark: '' }, mapping);
+  assert.equal(extracted.length, 2);
+
+  const matched = extracted.find((item) => item.type === 'DJ-5868-1 - 单活');
+  const manual = extracted.find((item) => item.type === '未匹配拉手(待人工处理)');
+  assert.ok(matched);
+  assert.ok(manual);
+  assert.equal(matched!.supplier, '拉手供应商');
+  assert.equal(manual!.supplier, '待人工处理');
+  assert.equal(manual!.quantity, 7);
+});
+
 test('extractHandleData preserves explicit zero on right quantity', () => {
   const rows = [{
     ls: 'DJ-5868-1',

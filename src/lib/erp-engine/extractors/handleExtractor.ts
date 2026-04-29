@@ -1,3 +1,4 @@
+import { adaptHandleMapping } from '@/services/mappings';
 import { parseQuantityPair } from '../parsers';
 import type { SourceOrderInfo, SourceOrderItemBase } from '../extractorTypes';
 
@@ -64,42 +65,21 @@ export function extractHandleData(orderList: HandleOrderItem[], orderInfo: Handl
         .replace(/\s+/g, '');
 
     const toText = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
-    const defaultSupplier = toText(HANDLE_MAPPING.defaultSupplier) || '拉手供应商';
-    const unmatchedSupplier = toText(HANDLE_MAPPING.unmatchedSupplier) || '待人工处理';
-    const manualReviewLabel = toText(HANDLE_MAPPING.manualReviewLabel) || '未匹配拉手(待人工处理)';
+    const adaptedHandleMapping = adaptHandleMapping(HANDLE_MAPPING);
+    const defaultSupplier = adaptedHandleMapping.defaultSupplier;
+    const unmatchedSupplier = adaptedHandleMapping.unmatchedSupplier;
+    const manualReviewLabel = adaptedHandleMapping.manualReviewLabel;
 
-    const singleKeywords = Array.isArray(HANDLE_MAPPING.singleKeywords) && HANDLE_MAPPING.singleKeywords.length > 0
-        ? HANDLE_MAPPING.singleKeywords.map((item: unknown) => toText(item)).filter(Boolean)
-        : ['单活'];
-    const doubleKeywords = Array.isArray(HANDLE_MAPPING.doubleKeywords) && HANDLE_MAPPING.doubleKeywords.length > 0
-        ? HANDLE_MAPPING.doubleKeywords.map((item: unknown) => toText(item)).filter(Boolean)
-        : ['双活'];
-    const exportCustomerKeywords = Array.isArray(HANDLE_MAPPING.exportCustomerKeywords) && HANDLE_MAPPING.exportCustomerKeywords.length > 0
-        ? HANDLE_MAPPING.exportCustomerKeywords.map((item: unknown) => toText(item)).filter(Boolean)
-        : ['三部'];
-    const defaultActivityForExport: 'single' | 'double' = toText(HANDLE_MAPPING.defaultActivityForExport) === 'single'
-        ? 'single'
-        : 'double';
-    const placeholderKeywords = Array.isArray(HANDLE_MAPPING.placeholderKeywords) && HANDLE_MAPPING.placeholderKeywords.length > 0
-        ? HANDLE_MAPPING.placeholderKeywords.map((item: unknown) => toText(item)).filter(Boolean)
-        : ['冲整体拉手孔', '拉手孔', '开拉手孔', '开孔', '打孔'];
-    const fallbackModelSources = Array.isArray(HANDLE_MAPPING.fallbackModelSources) && HANDLE_MAPPING.fallbackModelSources.length > 0
-        ? HANDLE_MAPPING.fallbackModelSources.map((item: unknown) => toText(item)).filter((item): item is 'remark' | 'xsbz' => item === 'remark' || item === 'xsbz')
-        : ['remark', 'xsbz'];
-
-    const thicknessAccessoryPacks = HANDLE_MAPPING.thicknessAccessoryPacks && typeof HANDLE_MAPPING.thicknessAccessoryPacks === 'object'
-        ? HANDLE_MAPPING.thicknessAccessoryPacks
-        : {
-            '5': '5公分配件包',
-            '7': '7公分配件包',
-            '9': '9公分配件包',
-            '10': '10公分配件包'
-        };
+    const singleKeywords = adaptedHandleMapping.singleKeywords;
+    const doubleKeywords = adaptedHandleMapping.doubleKeywords;
+    const exportCustomerKeywords = adaptedHandleMapping.exportCustomerKeywords;
+    const defaultActivityForExport = adaptedHandleMapping.defaultActivityForExport;
+    const placeholderKeywords = adaptedHandleMapping.placeholderKeywords;
+    const fallbackModelSources = adaptedHandleMapping.fallbackModelSources;
+    const thicknessAccessoryPacks = adaptedHandleMapping.thicknessAccessoryPacks;
 
     const normalizedMapping = new Map<string, { modelKey: string; entry: HandleMappingEntry }>();
-    const mappings = HANDLE_MAPPING.mappings && typeof HANDLE_MAPPING.mappings === 'object'
-        ? HANDLE_MAPPING.mappings
-        : {};
+    const mappings = adaptedHandleMapping.mappings;
     Object.entries(mappings).forEach(([rawKey, entry]) => {
         const normalized = normalizeHandleKey(rawKey);
         if (!normalized || !entry || typeof entry !== 'object') return;
