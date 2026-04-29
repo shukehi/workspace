@@ -263,6 +263,7 @@ test('config navigation guard: supplier master is exposed in config routes and n
 });
 
 test('config navigation guard: every Config Center route is grouped once by operator intent', () => {
+  const materialCatalogConfig = read('src/views/MaterialCatalogConfig.vue');
   const expectedConfigCenterRoutes = [
     '/material-master',
     '/config/suppliers',
@@ -310,9 +311,23 @@ test('config navigation guard: every Config Center route is grouped once by oper
   }
 
   const materialCatalogJsonFallback = groupedConfigCenterItems.find((item) => item.href === '/config/material-catalog');
+  const ruleExceptionRoutes = configCenterNavGroups
+    .find((group) => group.id === 'rule-exceptions')
+    ?.items.map((item) => item.href) ?? [];
+  const governanceAdminFallbackRoutes = configCenterNavGroups
+    .find((group) => group.id === 'governance-admin-fallback')
+    ?.items.map((item) => item.href) ?? [];
 
   assert.ok(materialCatalogJsonFallback);
   assert.match(materialCatalogJsonFallback.title, /JSON/);
   assert.match(materialCatalogJsonFallback.operatorIntentLabel, /高级管理员 JSON 兜底/);
   assert.match(materialCatalogJsonFallback.operatorIntentDescription, /高级管理员兜底/);
+  assert.equal(ruleExceptionRoutes.includes('/config/material-catalog'), false);
+  assert.equal(governanceAdminFallbackRoutes.includes('/config/material-catalog'), true);
+  assert.match(materialCatalogConfig, /title="物料目录 JSON 兜底"/);
+  assert.match(materialCatalogConfig, /高级管理员入口/);
+  assert.match(materialCatalogConfig, /日常物料维护请使用物料数据/);
+  assert.match(materialCatalogConfig, /高级管理员 JSON 兜底/);
+  assert.match(materialCatalogConfig, /常规新增、编辑、供应商归属和关系修复应优先在「物料数据」中完成/);
+  assert.match(materialCatalogConfig, /请仅在管理员兜底场景使用/);
 });
