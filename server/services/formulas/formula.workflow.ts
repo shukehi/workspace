@@ -294,6 +294,7 @@ export async function getFormulaDetail(formulaKey: string) {
 
     return {
         formula: toDetail(definition, payload),
+        latestRevision: latestRevision ? toRevisionMeta(latestRevision) : null,
         draftRevision: draftRevision ? toRevisionMeta(draftRevision) : null,
         publishedRevision: publishedRevision ? toRevisionMeta(publishedRevision) : null
     };

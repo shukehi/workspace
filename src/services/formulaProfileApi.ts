@@ -101,10 +101,11 @@ export const formulaProfileApi = {
 
   detail(formulaKey: string): Promise<{
     formula: FormulaDetail;
+    latestRevision: FormulaRevisionMeta | null;
     draftRevision: FormulaRevisionMeta | null;
     publishedRevision: FormulaRevisionMeta | null;
   }> {
-    return api.get<{ success: boolean; formula: FormulaDetail; draftRevision: FormulaRevisionMeta | null; publishedRevision: FormulaRevisionMeta | null }>(
+    return api.get<{ success: boolean; formula: FormulaDetail; latestRevision: FormulaRevisionMeta | null; draftRevision: FormulaRevisionMeta | null; publishedRevision: FormulaRevisionMeta | null }>(
       `/config/profiles/formulas/items/${encodeURIComponent(formulaKey)}`
     );
   },

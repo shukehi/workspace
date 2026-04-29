@@ -911,8 +911,20 @@ test('GET /api/config/profiles/formulas/detail returns collection-style read-onl
   assert.equal(body.success, true);
   assert.equal(body.detail.profile.code, 'formulas');
   assert.equal(body.detail.profile.workflowKind, 'collection');
+  assert.equal(body.detail.profile.capabilities.draft, false);
   assert.equal(body.detail.profile.capabilities.publish, false);
+  assert.equal(body.detail.profile.capabilities.rollback, false);
+  assert.equal(body.detail.profile.capabilities.revisions, false);
+  assert.equal(body.detail.latestRevision, null);
+  assert.equal(body.detail.draftRevision, null);
+  assert.equal(body.detail.publishedRevision, null);
   assert.equal(typeof body.detail.collection.total, 'number');
+  assert.equal(body.detail.collection.readOnly, true);
+  assert.equal(body.detail.collection.mutationScope, 'items');
+  assert.equal(body.detail.collection.revisionScope, 'items');
+  assert.equal(body.detail.collection.itemWorkflowCapabilities.draft, true);
+  assert.equal(body.detail.collection.itemWorkflowCapabilities.publish, true);
+  assert.equal(body.detail.collection.itemWorkflowCapabilities.revisions, true);
   assert.equal(typeof body.detail.publishedPayload, 'object');
 });
 
@@ -921,13 +933,14 @@ test('formulas profile rejects singleton draft/publish/rollback workflow actions
     { path: 'draft', method: 'PUT', body: { revision: 1, payload: {} } },
     { path: 'publish', method: 'POST', body: { fromRevision: 1 } },
     { path: 'rollback', method: 'POST', body: { targetRevision: 1 } },
+    { path: 'revisions', method: 'GET' },
   ];
 
   for (const action of unsupportedActions) {
     const res = await fetch(`${baseUrl}/api/config/profiles/formulas/${action.path}`, {
       method: action.method,
       headers: { 'Content-Type': 'application/json', 'x-operator': 'test-user' },
-      body: JSON.stringify(action.body),
+      body: action.body ? JSON.stringify(action.body) : undefined,
     });
     assert.equal(res.status, 405, `${action.path} should stay unsupported at profile level`);
     const body = await res.json();
@@ -1024,6 +1037,8 @@ test('formula profile item bridge supports list/detail/draft/publish/revisions',
   assert.equal(publishedDetailRes.status, 200);
   const publishedDetailBody = await publishedDetailRes.json();
   assert.equal(publishedDetailBody.success, true);
+  assert.equal(publishedDetailBody.latestRevision.revision, publishBody.revision.revision);
+  assert.equal(publishedDetailBody.latestRevision.state, 'published');
   assert.equal(publishedDetailBody.draftRevision, null);
   assert.equal(publishedDetailBody.publishedRevision.revision, publishBody.revision.revision);
   assert.equal(publishedDetailBody.publishedRevision.state, 'published');
@@ -1047,6 +1062,8 @@ test('formula profile item bridge supports list/detail/draft/publish/revisions',
   assert.equal(draftDetailRes.status, 200);
   const draftDetailBody = await draftDetailRes.json();
   assert.equal(draftDetailBody.success, true);
+  assert.equal(draftDetailBody.latestRevision.revision, secondDraftBody.revision.revision);
+  assert.equal(draftDetailBody.latestRevision.state, 'draft');
   assert.equal(draftDetailBody.draftRevision.revision, secondDraftBody.revision.revision);
   assert.equal(draftDetailBody.draftRevision.state, 'draft');
   assert.equal(draftDetailBody.publishedRevision.revision, publishBody.revision.revision);
