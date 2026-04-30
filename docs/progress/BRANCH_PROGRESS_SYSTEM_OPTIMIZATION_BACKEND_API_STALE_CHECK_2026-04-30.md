@@ -56,4 +56,4 @@ The migration is protected in `tests/db-migrations.test.ts` via `PROTECTED_MIGRA
 
 ## Recommendation
 
-Stop treating the 2026-03-18 P1 backend/API list as fresh implementation work. If the next slice must touch this lane, make it release verification only: confirm deployed `API_KEY`/`VITE_API_KEY` alignment and production `CORS_ORIGIN` values. Avoid frontend work, schema/data changes, dependency changes, or large order-query rewrites unless fresh failing evidence narrows the defect.
+Stop treating the 2026-03-18 P1 backend/API list as fresh implementation work. Release configuration verification is tracked in `docs/progress/RELEASE_CONFIGURATION_VERIFICATION_2026-04-30.md`. If this lane needs more work, make it environment-specific release smoke only: confirm deployed `API_KEY`/`VITE_API_KEY` alignment, production `CORS_ORIGIN`, and `PRINT_RENDER_BASE_URL` values. Avoid frontend work, schema/data changes, dependency changes, or large order-query rewrites unless fresh failing evidence narrows the defect.
