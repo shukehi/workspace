@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api } from '@/lib/api';
+import { api, isCanceledRequestError } from '@/lib/api';
 import {
     buildFacetCountsFromOrders,
     buildSummaryFromOrders,
@@ -123,10 +123,7 @@ export const useProcurementStore = defineStore('procurement', () => {
             serverPaginationEnabled.value = false;
         } catch (e: unknown) {
             // Ignore cancellation errors — they are intentional, not failures
-            if (e && typeof e === 'object' && 'name' in e) {
-                const name = (e as { name: string }).name;
-                if (name === 'AbortError' || name === 'CanceledError') return;
-            }
+            if (isCanceledRequestError(e) || (e as { name?: string })?.name === 'AbortError') return;
             const msg = (e as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error
                 ?? (e as { message?: string })?.message
                 ?? '获取订单失败';

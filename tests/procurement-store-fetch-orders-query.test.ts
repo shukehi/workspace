@@ -65,3 +65,21 @@ test('fetchOrders does not keep stale keyword/orderNo after filters are cleared'
   assert.equal('keyword' in paramsCalls[1], false);
   assert.equal('orderNo' in paramsCalls[1], false);
 });
+
+test('fetchOrders ignores shared API cancellation errors without surfacing a failure', async () => {
+  setActivePinia(createPinia());
+  const store = useProcurementStore();
+  const originalGet = api.get;
+
+  api.get = (async () => {
+    throw { code: 'ERR_CANCELED', message: 'request canceled' };
+  }) as any;
+
+  try {
+    await store.fetchOrders({ page: 1, pageSize: 20 } as any);
+  } finally {
+    api.get = originalGet;
+  }
+
+  assert.equal(store.loading, false);
+});
