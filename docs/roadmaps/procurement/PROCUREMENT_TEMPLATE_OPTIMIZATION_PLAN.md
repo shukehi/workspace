@@ -408,7 +408,8 @@
 - 第三阶段的“点击模板入口 -> 弹窗初始化 -> 业务类别校验”已经由 `tests/procurement-template-entry.e2e.test.ts` 和 `tests/procurement-dialogs.test.ts` 覆盖，不再是首要实现缺口。
 - 第四阶段打印 / PDF / 历史兼容已有多组单元与静态 guard 覆盖；其中历史旧单 fixture 矩阵已补到 `tests/print-doc-builder.test.ts`，覆盖包装、锁芯、锁叉、五金/配件等旧类别不会被模板迁移误套版式。
 - `/print-document` 已补一个历史 `锁叉` snapshot 的浏览器 smoke，确认旧单会走单数量打印列而不是误套左右数量模板。
-- 下一步如继续采购线，优先做 `/api/print/snapshots` / PDF 生成层的旧单 payload smoke，而不是继续改 UI 或重开模板/类别数据建模。
+- PDF 生成层已补同类旧单 payload smoke，确认 inline 旧单会先进入 transient snapshot，再通过 `/print-document?snapshotId=...` 渲染，文件名仍保留 `锁叉` 业务类别。
+- 下一步如继续采购线，优先做发布前手工浏览器/PDF spot check，而不是继续改 UI 或重开模板/类别数据建模。
 
 ## 回归验证清单
 

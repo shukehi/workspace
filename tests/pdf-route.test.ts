@@ -11,6 +11,7 @@ const routePath = _require.resolve('../server/routes/pdf')
 const originalServiceModule = _require(servicePath)
 
 let lastPdfCall: Record<string, unknown> | null = null
+let lastSnapshotPayload: any = null
 
 async function startServer() {
   const app = express()
@@ -38,6 +39,15 @@ function mockPdfService() {
     exports: {
       generatePurchaseOrderPDF: async (options: Record<string, unknown>) => {
         lastPdfCall = options
+        try {
+          const snapshotId = new URL(String(options.renderUrl || '')).searchParams.get('snapshotId')
+          if (snapshotId) {
+            const snapshotStore = _require('../server/services/printSnapshotStore') as typeof import('../server/services/printSnapshotStore')
+            lastSnapshotPayload = snapshotStore.getSnapshot(snapshotId)?.payload || null
+          }
+        } catch {
+          lastSnapshotPayload = null
+        }
         return Buffer.from('%PDF-1.4 mocked')
       }
     }
@@ -58,6 +68,7 @@ async function withMockedPdfRoute(run: (baseUrl: string) => Promise<void>) {
   mockPdfService()
   delete _require.cache[routePath]
   lastPdfCall = null
+  lastSnapshotPayload = null
 
   const started = await startServer()
   try {
@@ -103,6 +114,60 @@ test('POST /api/pdf/generate returns binary PDF with Content-Disposition header'
     assert.ok(renderUrl.searchParams.get('snapshotId'))
     assert.equal(renderUrl.searchParams.get('printMode'), 'signature')
     assert.equal(renderUrl.searchParams.get('embedded'), '1')
+  })
+})
+
+test('POST /api/pdf/generate stores legacy lock fork payload for print-document rendering', async () => {
+  await withMockedPdfRoute(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/pdf/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        poNumber: 'PO-LEGACY-PDF-LOCK-FORK',
+        category: '锁叉',
+        printMode: 'signature',
+        order: {
+          order_no: 'PO-LEGACY-PDF-LOCK-FORK',
+          supplier: '锁叉旧供应商',
+          category: '锁叉',
+          status: 'draft',
+          metadata: { customer_name: '历史客户' },
+          items: [
+            {
+              supplier: '锁叉旧供应商',
+              type: '单头锁叉 - 上头',
+              spec: '570*301 = 871',
+              quantity: 9,
+              unit: '个',
+              remark: '7CM 2100',
+            },
+          ],
+        },
+      }),
+    })
+
+    assert.equal(res.status, 200)
+    assert.equal(res.headers.get('content-type'), 'application/pdf')
+    assert.equal(
+      res.headers.get('content-disposition'),
+      'attachment; filename="%E9%94%81%E5%8F%89%E6%97%A7%E4%BE%9B%E5%BA%94%E5%95%86%20%E9%94%81%E5%8F%89%20PO-LEGACY-PDF-LOCK-FORK%20%E9%A2%90%E5%AE%B6%E9%87%87%E8%B4%AD%E8%AE%A2%E5%8D%95.pdf"',
+    )
+
+    assert.ok(lastPdfCall)
+    assert.equal(lastPdfCall.poNumber, 'PO-LEGACY-PDF-LOCK-FORK')
+    const renderUrl = new URL(lastPdfCall.renderUrl as string)
+    assert.equal(renderUrl.pathname, '/print-document')
+    assert.ok(renderUrl.searchParams.get('snapshotId'))
+    assert.equal(renderUrl.searchParams.get('printMode'), 'signature')
+    assert.equal(renderUrl.searchParams.get('embedded'), '1')
+    assert.equal(renderUrl.searchParams.get('pdf'), '1')
+
+    assert.equal(lastSnapshotPayload?.category, '锁叉')
+    assert.equal(lastSnapshotPayload?.poNumber, 'PO-LEGACY-PDF-LOCK-FORK')
+    assert.equal(lastSnapshotPayload?.order?.category, '锁叉')
+    assert.equal(lastSnapshotPayload?.order?.items?.[0]?.type, '单头锁叉 - 上头')
+    assert.equal(lastSnapshotPayload?.order?.items?.[0]?.quantity, 9)
+    assert.equal(lastSnapshotPayload?.order?.items?.[0]?.unit, '个')
   })
 })
 

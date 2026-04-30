@@ -18,11 +18,11 @@ Current call:
   tests.
 - **Print / PDF / historical compatibility:** substantially covered; a
   fixture-driven legacy print matrix now guards representative old categories
-  in `tests/print-doc-builder.test.ts`, and `/print-document` now has a
-  browser smoke for a legacy `锁叉` snapshot.
-- **Recommended next slice:** do not refactor Procurement UI now; if more
-  confidence is needed, extend server route/PDF snapshot coverage with the same
-  legacy-like payloads.
+  in `tests/print-doc-builder.test.ts`, `/print-document` has a browser smoke
+  for a legacy `锁叉` snapshot, and PDF generation now captures the same
+  legacy-like payload through its transient snapshot handoff.
+- **Recommended next slice:** do not refactor Procurement UI now; this line is
+  ready to pause unless release QA wants manual browser/PDF spot checks.
 
 ## Evidence map
 
@@ -52,12 +52,14 @@ historical print/browser confidence.”
 If Procurement remains the next active frontend lane, choose one of these small
 QA-only slices:
 
-1. **Route/PDF print smoke**
+1. **Release QA spot check**
    - the fixture-driven print-doc builder matrix now covers representative legacy
      categories at model level;
    - `/print-document` now has a browser smoke for a legacy `锁叉` snapshot;
-   - next confidence should move to `/api/print/snapshots` / PDF generation
-     using the same legacy-like payloads if needed.
+   - PDF generation now proves the legacy `锁叉` payload is stored in the
+     transient snapshot and rendered through `/print-document`;
+   - remaining confidence, if requested, should be manual browser/PDF spot checks
+     rather than more template UI implementation.
 2. **Manual/browser smoke note**
    - open `/procurement`;
    - click `双开门配件` and `通用配件` template entries;
