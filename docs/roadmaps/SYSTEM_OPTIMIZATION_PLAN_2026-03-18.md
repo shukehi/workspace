@@ -1,10 +1,12 @@
 # 系统优化计划
 
-**状态**：部分完成（11/13 已落地，2026-03-18；前端 stale-check 已刷新于 2026-04-30）
+**状态**：部分完成（2026-03-18 历史计划；前端与 P1 后端/API stale-check 已刷新于 2026-04-30）
 **日期**：2026-03-18
 **范围**：全系统架构审查，基于代码实际读取分析
 
 > 2026-04-30 前端 stale-check：本计划中的前端相关旧项已按当前代码重新核对。`src/lib/api.ts` 已通过 `VITE_API_KEY` 注入 `x-api-key`、统一解包 `{ success, data }`，并暴露取消请求识别；`src/stores/useProcurementStore.ts` 已对 `fetchOrders` 使用 `AbortController`、分页 `/orders` 参数和 `normalizeOrderListPayload`。因此 request race、API key header、采购订单响应 normalizer 与前端分页触点不再是新的前端实现入口；如需继续推进，应拆成后端/API 契约或发布验证任务，而不是重开 Config Center、Procurement 或 Master Data 前端实现。
+
+> 2026-04-30 P1 后端/API stale-check：P1-1 数据库级分页/过滤、P1-2 `/api` API key mount、P1-3 查询索引迁移、P1-4 CORS 明确 origin 默认值均已在当前代码中落地，并已补强 `/api/orders` auth、迁移索引名、CORS env focused guards。当前状态索引见 `docs/progress/BRANCH_PROGRESS_SYSTEM_OPTIMIZATION_BACKEND_API_STALE_CHECK_2026-04-30.md`；最小后续 lane 是发布配置验证，不是重开大规模后端重写。
 
 ---
 
@@ -52,6 +54,8 @@ async function findOrdersPaginated(where: WhereOptions, page: number, pageSize: 
 
 **2026-04-30 前端状态**：前端分页触点已完成。`useProcurementStore.fetchOrders(nextQuery)` 发送分页查询参数、读取 `normalizeOrderListPayload` 后维护 `ordersTotal` / `ordersPage` / `ordersPageSize` / `serverPaginationEnabled`，`fetchAllOrders` 也按页拉取。P1-1 的剩余判断应归入后端数据库级分页/索引证据，不应作为新的前端实现任务。
 
+**2026-04-30 后端/API 状态**：已完成。当前 `OrderService.getPaginatedOrders` 委托 `order.service.query.ts`，先通过 `getPaginatedOrderAggregates(query)` 计算全结果摘要/分面，再用 `findPaginatedOrderIds(query, page, pageSize)` 在 SQL 层应用 `WHERE`、`ORDER BY`、`LIMIT`、`OFFSET`，最后按分页 id 回读带 items 的订单。`buildOrderQuerySql` 已覆盖 status、category、supplier、createdDate/date range、orderNo、keyword、risk；因此旧文档中的“每次 getAllOrders + 内存 slice”路径对 `/orders` 分页查询已过期。证据见 `server/services/orders/order.service.ts`、`server/services/orders/order.service.query.ts`、`server/services/orders/order.repository.ts`，以及 `tests/order-service.test.ts` 中“DB-level filters and full-result aggregates aligned”的守卫。
+
 **执行步骤**：
 1. 在 `order.repository.ts` 新增 `findOrdersPaginated(where, page, pageSize)` 方法
 2. 在 `order.service.ts` 的 `getPaginatedOrders` 中将 `filterOrders` 逻辑转换为 `where` 条件
@@ -91,6 +95,8 @@ app.use('/api', apiKeyAuth, apiRouter);
 
 **2026-04-30 前端状态**：API key header 前端部分已完成。`src/lib/api.ts` 的 Axios 实例会在存在 `VITE_API_KEY` 时携带 `x-api-key`；前端无需新增实现。服务端认证覆盖率仍应由后端/API 发布验证单独确认。
 
+**2026-04-30 后端/API 状态**：已完成，发布时仍需确认环境变量。`server/routes/index.ts` 在挂载 `/api/config/profiles`、`/api/config/masters` 和聚合 `apiRoutes` 之前执行 `router.use(config.api.prefix, apiKeyAuth)`，因此 `/api` 前缀路由共享 API key guard。`apiKeyAuth` 在生产环境缺少 `API_KEY` 时返回 `SERVER_MISCONFIGURATION`，配置后对缺失/错误 `x-api-key` 返回 `UNAUTHORIZED`。证据见 `tests/api-key-auth.test.ts` 与 `tests/config-profile-auth-boundary.test.ts`。
+
 **执行步骤**：
 1. 在 `.env` 中添加 `API_KEY` 配置项
 2. 实现 `apiKeyAuth` 中间件
@@ -121,7 +127,9 @@ CREATE INDEX IF NOT EXISTS idx_order_items_material_id ON order_items(material_i
 CREATE INDEX IF NOT EXISTS idx_inventory_receipts_order_id ON inventory_receipts(order_id);
 ```
 
-**执行步骤**：新建迁移脚本 `server/db/migrations/add-indexes-2026-03-18.js`，在现有迁移系统中执行。
+**2026-04-30 后端/API 状态**：已完成并补充 focused guard。当前迁移 `server/db/migrations/20260318-006-add-query-indexes.ts` 已创建本节列出的全部索引：`idx_orders_status`、`idx_orders_category`、`idx_orders_supplier`、`idx_orders_source_contract_code`、`idx_orders_created_at`、`idx_order_items_order_id`、`idx_order_items_material_id`、`idx_inventory_receipts_order_id`。`tests/db-migrations.test.ts` 保护该迁移 id 不被删除，并断言这些索引名存在。
+
+**执行步骤**：已由 `server/db/migrations/20260318-006-add-query-indexes.ts` 落地；不要再新建重复迁移，除非发现当前迁移未在目标环境执行。
 
 ---
 
@@ -154,6 +162,8 @@ cors: {
 ```
 CORS_ORIGIN=http://192.168.1.100:5173
 ```
+
+**2026-04-30 后端/API 状态**：已完成并补充 focused guard。`server/config/env.ts` 默认 `origin` 为具体的 `http://localhost:5173`，配置 `CORS_ORIGIN` 时按逗号拆分并 trim，同时保持 `credentials: true`，旧的 `origin: '*' + credentials` 矛盾已过期。`tests/env-config-cors.test.ts` 覆盖默认值、多 origin 拆分与 `credentials: true`。后续只需发布配置验证，不应改运行时代码。
 
 ---
 

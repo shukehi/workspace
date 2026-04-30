@@ -180,6 +180,18 @@ test('initDB applies additive migrations onto legacy sqlite schema', async () =>
     assert.ok(inventoryMovements.source_id);
     assert.ok(inventoryMovements.source_line_key);
     const [orderIndexes] = await sequelize.query(`PRAGMA index_list('orders')`);
+    const [orderItemIndexes] = await sequelize.query(`PRAGMA index_list('order_items')`);
+    const [receiptIndexes] = await sequelize.query(`PRAGMA index_list('inventory_receipts')`);
+    const hasIndex = (rows: unknown, name: string) => (rows as Array<{ name: string }>).some((row) => row.name === name);
+
+    assert.equal(hasIndex(orderIndexes, 'idx_orders_status'), true);
+    assert.equal(hasIndex(orderIndexes, 'idx_orders_category'), true);
+    assert.equal(hasIndex(orderIndexes, 'idx_orders_supplier'), true);
+    assert.equal(hasIndex(orderIndexes, 'idx_orders_source_contract_code'), true);
+    assert.equal(hasIndex(orderIndexes, 'idx_orders_created_at'), true);
+    assert.equal(hasIndex(orderItemIndexes, 'idx_order_items_order_id'), true);
+    assert.equal(hasIndex(orderItemIndexes, 'idx_order_items_material_id'), true);
+    assert.equal(hasIndex(receiptIndexes, 'idx_inventory_receipts_order_id'), true);
     assert.equal(
       (orderIndexes as Array<{ name: string; unique: number }>).some((row) => row.name === 'idx_orders_order_no_unique' && Number(row.unique) === 1),
       true

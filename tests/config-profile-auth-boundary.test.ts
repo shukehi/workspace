@@ -63,6 +63,7 @@ test('runtime config profile and master routes reject missing API keys', async (
     const { baseUrl } = started;
 
     for (const route of [
+      '/api/orders',
       '/api/config/profiles/formulas/metadata',
       '/api/config/profiles/formulas/bom-recommendations',
       '/api/config/masters/suppliers',
