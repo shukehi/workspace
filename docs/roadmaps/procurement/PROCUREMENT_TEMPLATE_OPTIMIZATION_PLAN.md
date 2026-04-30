@@ -400,6 +400,15 @@
 - 继续覆盖更多历史旧单打印回归
 - 在 UI 第三阶段完成后，补“模板前置选择 + 业务类别二级选择”的端到端打印验证
 
+
+## 2026-04-30 覆盖状态补充
+
+`docs/progress/PROCUREMENT_TEMPLATE_UI_COVERAGE_AUDIT_2026-04-30.md` 对当前代码与测试重新核对后，结论如下：
+
+- 第三阶段的“点击模板入口 -> 弹窗初始化 -> 业务类别校验”已经由 `tests/procurement-template-entry.e2e.test.ts` 和 `tests/procurement-dialogs.test.ts` 覆盖，不再是首要实现缺口。
+- 第四阶段打印 / PDF / 历史兼容已有多组单元与静态 guard 覆盖；其中历史旧单 fixture 矩阵已补到 `tests/print-doc-builder.test.ts`，覆盖包装、锁芯、锁叉、五金/配件等旧类别不会被模板迁移误套版式。
+- 下一步如继续采购线，优先做 route/browser 层的打印 smoke（例如 `/print-document` 或 `/api/print/snapshots`），而不是继续改 UI 或重开模板/类别数据建模。
+
 ## 回归验证清单
 
 ### 录入
