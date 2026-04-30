@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { buildProcurementDocModel, PRINT_DOC_MAX_TABLE_WIDTH_PX } from '../src/features/procurement/printDocBuilder';
+
+function readJson(path: string) {
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
 
 test('buildProcurementDocModel groups packaging items by internal name and appends total row', () => {
   const doc = buildProcurementDocModel({
@@ -162,6 +167,177 @@ test('buildProcurementDocModel uses aggregate quantity column when order metadat
   assert.equal(doc.pages[0].rows[0].values.quantity, 5);
   assert.equal(doc.pages[0].rows[doc.pages[0].rows.length - 1].values.quantity, 5);
   assert.ok((doc.pages[0].columns.find((column) => column.key === 'remark')?.width || 0) > 160);
+});
+
+
+test('buildProcurementDocModel preserves legacy category print schemas without template metadata', () => {
+  const cases = [
+    {
+      category: '包装',
+      expectedCategory: 'packaging',
+      expectedColumns: ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark'],
+      item: {
+        supplier: '包装供应商',
+        internal_name: '内名-旧包装',
+        external_name: '外名-旧包装',
+        name: '包装箱A',
+        spec: 'P-旧',
+        mb: '左',
+        quantity_left: 2,
+        quantity_right: 1,
+        unit: '套',
+        remark: '包装备注不进明细',
+      },
+      expectedValues: {
+        productModelName: '包装箱A',
+        spec: 'P-旧',
+        mb: '左',
+        qtyLeft: 2,
+        qtyRight: 1,
+        remark: '',
+      },
+      expectedTotal: { qtyLeft: 2, qtyRight: 1 },
+    },
+    {
+      category: '锁芯',
+      expectedCategory: 'cylinder',
+      expectedColumns: ['no', 'type', 'eccentricity', 'quantity', 'unit', 'remark'],
+      item: { supplier: '锁芯供应商', type: '锁芯A', eccentricity: '35*60', quantity: 4, remark: '锁芯备注' },
+      expectedValues: { type: '锁芯A', eccentricity: '35*60', quantity: 4, unit: '套', remark: '锁芯备注' },
+      expectedTotal: { quantity: 4 },
+    },
+    {
+      category: '锁具',
+      expectedCategory: 'lockset',
+      expectedColumns: ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark'],
+      item: { supplier: '锁具供应商', type: '锁具A', spec: 'L-旧', quantity_left: 5, quantity_right: 6, remark: '锁具备注' },
+      expectedValues: { type: '锁具A', spec: 'L-旧', qtyLeft: 5, qtyRight: 6, unit: '套', remark: '锁具备注' },
+      expectedTotal: { qtyLeft: 5, qtyRight: 6 },
+    },
+    {
+      category: '拉手',
+      expectedCategory: 'handle',
+      expectedColumns: ['no', 'type', 'spec', 'qtyLeft', 'qtyRight', 'unit', 'remark'],
+      item: { supplier: '拉手供应商', type: '拉手A', spec: 'H-旧', quantity_left: 7, quantity_right: 8, remark: '拉手备注' },
+      expectedValues: { type: '拉手A', spec: 'H-旧', qtyLeft: 7, qtyRight: 8, unit: '付', remark: '拉手备注' },
+      expectedTotal: { qtyLeft: 7, qtyRight: 8 },
+    },
+    {
+      category: '锁叉',
+      expectedCategory: 'lock',
+      expectedColumns: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
+      item: { supplier: '锁叉供应商', type: '单头锁叉 - 上头', spec: '570*301 = 871', quantity: 9, remark: '7CM 2100' },
+      expectedValues: { type: '单头锁叉 - 上头', spec: '570*301 = 871', quantity: 9, unit: '个', remark: '7CM 2100' },
+      expectedTotal: { quantity: 9 },
+    },
+    {
+      category: '五金/配件',
+      expectedCategory: 'hardware',
+      expectedColumns: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
+      item: { supplier: '五金供应商', type: '配件A', spec: 'G-旧', quantity: 10, unit: '个', remark: '五金备注' },
+      expectedValues: { type: '配件A', spec: 'G-旧', quantity: 10, unit: '个', remark: '五金备注' },
+      expectedTotal: { quantity: 10 },
+    },
+    {
+      category: '历史未知类别',
+      expectedCategory: 'packaging',
+      expectedColumns: ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark'],
+      item: { supplier: '未知供应商', name: '未知包装', model: 'U-旧', qty: '11/12', mb: '右', remark: '未知备注' },
+      expectedValues: { productModelName: '未知包装', spec: 'U-旧', mb: '右', qtyLeft: 11, qtyRight: 12, remark: '' },
+      expectedTotal: { qtyLeft: 11, qtyRight: 12 },
+    },
+  ];
+
+  for (const testCase of cases) {
+    const doc = buildProcurementDocModel({
+      order: {
+        order_no: `PO-LEGACY-${testCase.expectedCategory}`,
+        category: testCase.category,
+        supplier: testCase.item.supplier,
+        metadata: { customer_name: '历史客户' },
+        items: [testCase.item],
+      },
+    });
+
+    assert.equal(doc.category, testCase.expectedCategory, testCase.category);
+    assert.equal(doc.pages[0].category, testCase.expectedCategory, testCase.category);
+    assert.deepEqual(doc.pages[0].columns.map((column) => column.key), testCase.expectedColumns, testCase.category);
+    assert.deepEqual(doc.pages[0].rows[0].values, { no: 1, ...testCase.expectedValues }, testCase.category);
+    assert.deepEqual(doc.pages[0].rows[doc.pages[0].rows.length - 1].values, {
+      __label: '合计',
+      __labelColspan: testCase.expectedColumns.includes('qtyLeft')
+        ? (testCase.expectedCategory === 'packaging' ? 4 : 3)
+        : testCase.expectedColumns.indexOf('quantity'),
+      ...testCase.expectedTotal,
+    }, testCase.category);
+  }
+});
+
+test('buildProcurementDocModel covers the historical print smoke matrix from fixture-derived legacy samples', () => {
+  const fixture = readJson('tests/fixtures/mapping-runtime-baseline.derived-cases.json');
+
+  const matrix = [
+    {
+      id: 'packaging-derived',
+      category: '包装',
+      expectedCategory: 'packaging',
+      expectedColumns: ['no', 'productModelName', 'spec', 'mb', 'qtyLeft', 'qtyRight', 'remark'],
+      sample: fixture.cases[0].sample.list[0],
+    },
+    {
+      id: 'cylinder-derived',
+      category: '锁芯',
+      expectedCategory: 'cylinder',
+      expectedColumns: ['no', 'type', 'eccentricity', 'quantity', 'unit', 'remark'],
+      sample: fixture.cases[0].expected.extracted.cylinders[0],
+    },
+    {
+      id: 'lock-fork-legacy',
+      category: '锁叉',
+      expectedCategory: 'lock',
+      expectedColumns: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
+      sample: {
+        supplier: '锁叉供应商',
+        type: '单头锁叉 - 上头',
+        spec: '570*301 = 871',
+        quantity: 9,
+        remark: '7CM 2100',
+      },
+    },
+    {
+      id: 'hardware-legacy',
+      category: '五金/配件',
+      expectedCategory: 'hardware',
+      expectedColumns: ['no', 'type', 'spec', 'quantity', 'unit', 'remark'],
+      sample: {
+        supplier: '五金供应商',
+        type: '配件A',
+        spec: 'G-旧',
+        quantity: 10,
+        unit: '个',
+        remark: '五金备注',
+      },
+    },
+  ] as const;
+
+  matrix.forEach((testCase) => {
+    const doc = buildProcurementDocModel({
+      category: testCase.category,
+      poNumber: `PO-HISTORICAL-${testCase.id}`,
+      order: {
+        category: testCase.category,
+        supplier: testCase.sample.supplier,
+        metadata: { customer_name: '历史客户' },
+        items: [testCase.sample],
+      },
+    });
+
+    assert.equal(doc.category, testCase.expectedCategory, testCase.id);
+    assert.equal(doc.pages[0].category, testCase.expectedCategory, testCase.id);
+    assert.deepEqual(doc.pages[0].columns.map((column) => column.key), testCase.expectedColumns, testCase.id);
+    assert.equal(doc.pages.length, 1, testCase.id);
+    assert.equal(doc.pages[0].rows.at(-1)?.values.__label, '合计', testCase.id);
+  });
 });
 
 test('buildProcurementDocModel prefers template schema over legacy category for unified accessory templates', () => {
