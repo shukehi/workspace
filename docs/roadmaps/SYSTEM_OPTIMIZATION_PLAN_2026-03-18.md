@@ -1,8 +1,10 @@
 # 系统优化计划
 
-**状态**：部分完成（11/13 已落地，2026-03-18）
+**状态**：部分完成（11/13 已落地，2026-03-18；前端 stale-check 已刷新于 2026-04-30）
 **日期**：2026-03-18
 **范围**：全系统架构审查，基于代码实际读取分析
+
+> 2026-04-30 前端 stale-check：本计划中的前端相关旧项已按当前代码重新核对。`src/lib/api.ts` 已通过 `VITE_API_KEY` 注入 `x-api-key`、统一解包 `{ success, data }`，并暴露取消请求识别；`src/stores/useProcurementStore.ts` 已对 `fetchOrders` 使用 `AbortController`、分页 `/orders` 参数和 `normalizeOrderListPayload`。因此 request race、API key header、采购订单响应 normalizer 与前端分页触点不再是新的前端实现入口；如需继续推进，应拆成后端/API 契约或发布验证任务，而不是重开 Config Center、Procurement 或 Master Data 前端实现。
 
 ---
 
@@ -48,6 +50,8 @@ async function findOrdersPaginated(where: WhereOptions, page: number, pageSize: 
 
 过滤条件（`category`、`status`、`supplier` 等）也应通过 Sequelize `where` 子句传入，而不是在内存中 `filterOrders`。
 
+**2026-04-30 前端状态**：前端分页触点已完成。`useProcurementStore.fetchOrders(nextQuery)` 发送分页查询参数、读取 `normalizeOrderListPayload` 后维护 `ordersTotal` / `ordersPage` / `ordersPageSize` / `serverPaginationEnabled`，`fetchAllOrders` 也按页拉取。P1-1 的剩余判断应归入后端数据库级分页/索引证据，不应作为新的前端实现任务。
+
 **执行步骤**：
 1. 在 `order.repository.ts` 新增 `findOrdersPaginated(where, page, pageSize)` 方法
 2. 在 `order.service.ts` 的 `getPaginatedOrders` 中将 `filterOrders` 逻辑转换为 `where` 条件
@@ -84,6 +88,8 @@ app.use('/api', apiKeyAuth, apiRouter);
 ```
 
 **方案 B（推荐，适合多用户场景）**：基于 JWT 的简单认证，区分只读和写操作权限。
+
+**2026-04-30 前端状态**：API key header 前端部分已完成。`src/lib/api.ts` 的 Axios 实例会在存在 `VITE_API_KEY` 时携带 `x-api-key`；前端无需新增实现。服务端认证覆盖率仍应由后端/API 发布验证单独确认。
 
 **执行步骤**：
 1. 在 `.env` 中添加 `API_KEY` 配置项
@@ -228,6 +234,8 @@ async function fetchOrders(nextQuery?: ProcurementOrderQuery) {
 }
 ```
 
+**2026-04-30 前端状态**：已完成。当前 `fetchOrders` 每次请求前都会 abort 上一个 `AbortController`，并将 `AbortError` / `CanceledError` 视为有意取消；`src/lib/api.ts` 同时提供 `isCanceledRequestError` 供其他调用点复用。该项不再是前端缺口。
+
 ---
 
 ### P2-4：API 响应结构不一致
@@ -253,6 +261,8 @@ export function singleResponse(data: unknown) {
 ```
 
 分阶段将现有端点迁移到统一格式，前端对应更新 normalizer。
+
+**2026-04-30 前端状态**：前端兼容 normalizer 已完成，统一服务端响应契约仍是独立 API/后端治理项。`src/lib/api.ts` 的 `normalizeApiEnvelope` 已兼容原始 payload 与 `{ success, data }`；采购订单列表由 `normalizeOrderListPayload` 统一处理 `rows/total/page/pageSize/summary/facets`，相关守护测试覆盖 `api-contract-compat` 与采购 store normalizer/query 行为。不要把 P2-4 当作新的前端实现入口，除非后续 API 契约迁移产生具体失败用例。
 
 ---
 
@@ -345,14 +355,14 @@ POST /orders/:id/stock-in // 实质也是更新状态
 
 | 编号 | 问题 | 优先级 | 预估工作量 | 影响范围 |
 |------|------|--------|-----------|---------|
-| P1-1 | 全量加载 + 内存分页 | 🔴 高 | 2-3天 | 生产性能 |
-| P1-2 | 缺少认证授权 | 🔴 高 | 1-2天 | 数据安全 |
+| P1-1 | 全量加载 + 内存分页 | 🔴 高 | 2-3天 | 生产性能；前端分页触点 2026-04-30 已核对完成，剩余为后端/DB 证据 |
+| P1-2 | 缺少认证授权 | 🔴 高 | 1-2天 | 数据安全；前端 `x-api-key` header 2026-04-30 已完成，服务端覆盖另验 |
 | P1-3 | 数据库缺少索引 | 🔴 高 | 0.5天 | 查询性能 |
 | P1-4 | CORS 配置矛盾 | 🔴 高 | 0.5天 | 跨域可用性 |
 | P2-1 | 兼容层命名混乱 | 🟡 中 | 3-5天 | 可维护性 |
 | P2-2 | PlainRecord 滥用 | 🟡 中 | 持续迭代 | 类型安全 |
-| P2-3 | 前端请求竞态 | 🟡 中 | 1天 | 数据准确性 |
-| P2-4 | API 响应格式不一致 | 🟡 中 | 2-3天 | 开发体验 |
+| P2-3 | 前端请求竞态 | 🟡 中 | 已完成 | `fetchOrders` AbortController + cancel handling 已落地 |
+| P2-4 | API 响应格式不一致 | 🟡 中 | 前端兼容已完成 | API 契约统一仍属后端/契约治理 |
 | P2-5 | OrderItem 字段语义 | 🟡 中 | 1天+迁移 | 代码可读性 |
 | P3-1 | 缺结构化日志 | 🟢 低 | 1天 | 可观测性 |
 | P3-2 | 状态转换 API 不统一 | 🟢 低 | 1天 | API 一致性 |
@@ -365,10 +375,10 @@ POST /orders/:id/stock-in // 实质也是更新状态
 
 本文档的问题均为当前代码实际存在的问题，与 `MAINTAINABILITY_SCALABILITY_REFACTOR_PLAN_2026-03-13.md` 中的结构治理方向互补：
 
-- **P1-1（分页性能）**：现有重构计划未覆盖，需新增任务
-- **P1-2（认证）**：现有重构计划未覆盖，需新增任务
+- **P1-1（分页性能）**：前端分页调用与状态维护已完成；若继续推进，只新增后端数据库级分页/索引验证任务
+- **P1-2（认证）**：前端 `x-api-key` header 已完成；若继续推进，只新增服务端认证覆盖/发布配置验证任务
 - **P1-3（索引）**：现有重构计划未覆盖，建议在 WEEK1 或 WEEK2 阶段完成
 - **P2-1（兼容层）**：已有 `COMPATIBILITY_SHELL_RETIREMENT_2026-03-13.md`，按该文档执行
 - **P2-2（类型安全）**：已有 `docs/archive/backend-ts/BACKEND_TYPESCRIPT_MIGRATION_STRATEGY_2026-03-13.md`，按该历史迁移文档执行
 
-建议将 P1-1、P1-2、P1-3、P1-4 作为独立任务插入当前重构执行索引（`REFACTOR_EXECUTION_INDEX_2026-03-13.md`）中，优先于其他结构治理工作完成。
+2026-04-30 前端结论：不要从本旧计划直接开启新的前端实现。若后续需要执行，应把 P1-1/P1-2/P1-3/P1-4 拆成后端、配置或发布验证任务，并以新的失败证据/测试用例重新立项。
