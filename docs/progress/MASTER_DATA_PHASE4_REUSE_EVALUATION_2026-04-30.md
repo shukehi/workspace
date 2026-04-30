@@ -4,7 +4,7 @@
 
 This is the docs/verification lane after the Phase 3 browser-smoke closeout in PR #67. It does **not** change runtime/API/schema/data and does **not** reopen Phase 3 repair-flow UI work.
 
-The purpose is to turn Phase 4 into an evidence-backed next slice: compare the Material and Supplier workbench Summary / Audit / Diagnostics surfaces, record what is already shared, and identify the smallest safe reuse candidate before any code extraction.
+The purpose was to turn Phase 4 into an evidence-backed slice. The audit-log list/card slice has since been extracted; this document now records the post-extraction status and keeps Summary / Diagnostics deliberately deferred.
 
 ## Current status
 
@@ -12,15 +12,15 @@ The purpose is to turn Phase 4 into an evidence-backed next slice: compare the M
 | --- | --- | --- | --- |
 | Existing shared master-data layer | Already shared | `MasterDataLifecyclePanel.vue`, `MasterDataDiagnosticsSummaryCards.vue`, `src/views/MasterDataDiagnostics.vue`, and `src/views/MasterDataGovernance.vue` are already tracked by the implementation sequence as Phase 4 partial completion. | Keep; do not rework in this slice. |
 | Summary cards | Similar layout, different domain contract | Material summary consumes `totalMaterials`, `linkedMaterialCount`, `unlinkedMaterialCount`, and `inactiveSupplierLinkedMaterialCount`; Supplier summary consumes `totalSuppliers`, `totalLinkedMaterials`, `inactiveLinkedSupplierCount`, and `suppliersWithUnlinkedMaterialsCount`. Both render a three-card grid, but labels and metric semantics are still page-specific. | Defer extraction until a generic card-row contract is designed and snapshot/guard coverage exists. |
-| Audit panels | Best small reuse candidate | Material and Supplier audit entries share `id/action/operator/createdAt/meta`; both render `最近审计记录`. Supplier adds a trend strip and shows 5 rows; Material shows 10 rows. | Candidate next slice: extract only the repeated audit-log list/card, keeping Supplier trend and per-page row limits as callers' responsibility. |
+| Audit panels | Implemented small reuse slice | `MasterDataAuditLogList.vue` now owns the presentational audit-log card/list. `MaterialAuditPanel.vue` still slices 10 rows, `SupplierAuditPanel.vue` still slices 5 rows and owns the Supplier trend strip. | Keep; do not broaden into Supplier trend or data fetching. |
 | Diagnostics panels | Divergent interaction contract | Material diagnostics takes `referenceCheck`, Material relationship-health samples, and emits `auto-relink` / `open-edit`; Supplier diagnostics takes Supplier relationship-health groups and emits `view-linked-materials` / `open-edit`. | Do not extract now; first document a shared issue-card vocabulary if more master-data object types appear. |
-| Tests / guards | Existing coverage is interaction/state-oriented | `tests/config-table-guard.test.ts` checks the current Material/Supplier component surfaces and labels; `tests/master-data-phase3-interaction-flow-guard.test.ts` locks route/action wiring; page-state tests cover Material and Supplier relationship/audit state. | Any future refactor must preserve these tests and add a focused guard for the new shared audit-log component. |
+| Tests / guards | Static guard added for audit extraction | `tests/master-data-audit-panel-guard.test.ts` proves both panels still render `最近审计记录`, keeps row limits caller-owned, and prevents the shared audit list from absorbing Supplier trend or Summary/Diagnostics concerns. | Future Summary/Diagnostics refactors need similarly focused guards before code changes. |
 
 ## Evidence notes
 
 - Material and Supplier workbench pages both import and mount their page-specific Summary and Diagnostics components: `src/views/MaterialManagement.vue` and `src/views/SupplierMaster.vue`.
 - The current Summary components are layout-compatible but not data-contract-compatible: `src/features/master-data/components/MaterialSummaryCards.vue` and `src/features/master-data/components/SupplierSummaryCards.vue` expose different health fields and domain labels.
-- The current Audit components share the audit-log row shape, but Supplier owns extra trend context: `src/features/master-data/components/MaterialAuditPanel.vue` and `src/features/master-data/components/SupplierAuditPanel.vue`.
+- The Audit components now share `src/features/master-data/components/MasterDataAuditLogList.vue`; Supplier still owns extra trend context in `SupplierAuditPanel.vue`.
 - The current Diagnostics components are intentionally page-specific because their inputs and action events differ: `MaterialDiagnosticsPanel.vue` handles material reference/relink groups, while `SupplierDiagnosticsPanel.vue` handles linked-material navigation and supplier edit actions.
 - Existing tests already provide reuse-safety guardrails:
   - `tests/config-table-guard.test.ts` asserts Material/Supplier component presence and visible labels.
@@ -29,14 +29,13 @@ The purpose is to turn Phase 4 into an evidence-backed next slice: compare the M
 
 ## Recommended next implementation slice
 
-If Phase 4 moves from evaluation into code, start with the **audit-log list/card extraction** only:
+No new Master Data implementation slice is recommended from this status pass. The prior smallest slice, **audit-log list/card extraction**, is already in place:
 
-1. Add a shared presentational component for the repeated audit-log list body (for example, a generic `MasterDataAuditLogList` / `MasterDataAuditLogCard` under `src/features/master-data/components/`).
-2. Keep the Supplier trend strip in `SupplierAuditPanel.vue` and keep row limits configurable at the caller level (`5` for Supplier, `10` for Material) so behavior stays unchanged.
-3. Add or extend a static guard test that proves Material and Supplier still render `最近审计记录`, preserve the Supplier trend strip, and keep their row limits explicit.
-4. Run `npm run type-check`, the targeted master-data tests, and the config-table guard before treating the extraction as complete.
+1. `MasterDataAuditLogList.vue` is the shared presentational component.
+2. Supplier trend rendering remains in `SupplierAuditPanel.vue`; row limits stay at the callers (`5` for Supplier, `10` for Material).
+3. `tests/master-data-audit-panel-guard.test.ts` protects those boundaries.
 
-Do **not** start with Summary or Diagnostics extraction unless the audit slice proves the shared-component seam is low-noise. Summary requires a generic metric-card contract, and Diagnostics has different event semantics that would be easy to over-abstract.
+Do **not** start with Summary or Diagnostics extraction unless a later audit proves a stable shared contract and adds focused guards first. Summary requires a generic metric-card contract, and Diagnostics has different event semantics that would be easy to over-abstract.
 
 ## Verification recorded for this docs lane
 

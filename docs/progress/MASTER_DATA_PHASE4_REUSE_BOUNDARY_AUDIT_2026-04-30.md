@@ -2,7 +2,7 @@
 
 ## Scope
 
-This is the worker-1 code/component boundary audit for the Phase 4 reuse evaluation after PR #67. It is docs-only: no runtime, API, schema, data, dependency, or Phase 3 UI changes were made.
+This was the worker-1 code/component boundary audit for the Phase 4 reuse evaluation after PR #67. A later small code slice extracted the audit-log list; this document is retained as boundary rationale and now records the post-extraction decision.
 
 Evaluated surfaces:
 
@@ -24,7 +24,7 @@ Evaluated surfaces:
 | Area | Evidence | Recommendation |
 | --- | --- | --- |
 | Summary cards | `MaterialSummaryCards.vue` and `SupplierSummaryCards.vue` have the same three-card visual skeleton: `<div class="grid gap-4 md:grid-cols-3">`, repeated `Card` / `CardContent`, label, numeric value, and helper text. Their data contracts differ (`totalMaterials`, `linkedMaterialCount`, material relationship counts vs `totalSuppliers`, `totalLinkedMaterials`, supplier relationship counts). `MasterDataDiagnosticsSummaryCards.vue` uses the same card idiom but a five-column diagnostics-specific summary. | **Defer.** A tiny `SummaryMetricCards` renderer is plausible later, but it should be introduced only with a component/render guard that preserves Chinese labels, color classes, and metric formulas. Current tests mostly assert strings and page-state computed values rather than rendering a generic card contract. |
-| Audit panels | `MaterialAuditPanel.vue` is a simple conditional list of up to 10 audit logs. `SupplierAuditPanel.vue` adds a trend card (`create`, `update`, `archive`, `latest`) and lists up to 5 logs. The common seam is the audit-log row/list body, while Supplier-specific trend context can remain outside the shared piece. | **Best next micro-slice.** Extract only the presentational audit-log list/card after adding a focused render/static guard; keep Supplier trend and per-page row limits in their current callers. |
+| Audit panels | `MasterDataAuditLogList.vue` now owns the shared presentational list/card. `MaterialAuditPanel.vue` keeps the 10-row slice, while `SupplierAuditPanel.vue` keeps the trend card (`create`, `update`, `archive`, `latest`) and the 5-row slice. | **Delivered micro-slice.** Keep the current boundary; do not move Supplier trend or row-limit ownership into the shared list. |
 | Diagnostics panels | `MaterialDiagnosticsPanel.vue` owns material reference-check display, supplier reference path samples, unlinked/inactive material groups, and emits `auto-relink` / `open-edit`. `SupplierDiagnosticsPanel.vue` owns inactive suppliers, suppliers-with-unlinked-materials, and emits `view-linked-materials` / `open-edit`. The props and actions are intentionally object-specific even though both use `Card` lists. | **Defer.** The shared abstraction would need a generalized issue-list/action schema, which is larger than a behavior-preserving Phase 4 micro-refactor. Keep the current explicit components until a tested common issue-card primitive is needed. |
 
 ## Ownership boundaries
@@ -50,11 +50,11 @@ Evaluated surfaces:
 
 Recommended next implementation slice, if the team chooses code after this docs/status run:
 
-1. Add a small rendering/static guard for the current Material and Supplier audit panels.
-2. Extract only a generic presentational audit-log list/card that accepts the existing `id/action/operator/createdAt/meta` row shape.
-3. Keep Supplier's trend strip in `SupplierAuditPanel.vue` and keep row limits configurable at the caller level (`5` for Supplier, `10` for Material).
+1. Keep `tests/master-data-audit-panel-guard.test.ts` as the boundary guard for the delivered audit-log list extraction.
+2. Keep `MasterDataAuditLogList.vue` presentational and limited to the existing `id/action/operator/createdAt/meta` row shape.
+3. Keep Supplier's trend strip in `SupplierAuditPanel.vue` and keep row limits at the caller level (`5` for Supplier, `10` for Material).
 4. Keep Summary and Diagnostics explicit until their shared contracts are covered by focused render guards.
 
 ## Closeout recommendation
 
-Do not refactor code in this run. Phase 4 should remain **partial / active**, with Audit log list/card extraction as the narrowest next implementation candidate and Summary/Diagnostics explicitly deferred. This preserves PR #67's Phase 3 browser-smoke closeout while giving the next Phase 4 slice a narrow, testable boundary.
+Phase 4 should remain **partial / active**, but the audit-log list/card extraction is no longer pending. Summary/Diagnostics remain explicitly deferred. This preserves PR #67's Phase 3 browser-smoke closeout and prevents a second Phase 4 abstraction without new evidence.

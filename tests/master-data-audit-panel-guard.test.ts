@@ -46,8 +46,19 @@ function hasCallerOwnedLimit(source: string, limit: number): boolean {
 test('master data audit panels keep audit list labels and caller-owned row limits', () => {
   const materialPanel = readComponent('MaterialAuditPanel.vue');
   const supplierPanel = readComponent('SupplierAuditPanel.vue');
+  const auditLogList = readComponent('MasterDataAuditLogList.vue');
   const materialPanelWithImports = collectLocalComponentSource('MaterialAuditPanel.vue');
   const supplierPanelWithImports = collectLocalComponentSource('SupplierAuditPanel.vue');
+
+  assert.ok(
+    componentImports(materialPanel).includes('MasterDataAuditLogList.vue'),
+    'material audit panel should consume the shared audit-log list extraction',
+  );
+  assert.ok(
+    componentImports(supplierPanel).includes('MasterDataAuditLogList.vue'),
+    'supplier audit panel should consume the shared audit-log list extraction',
+  );
+  assert.match(auditLogList, /v-for="log in auditLogs"/, 'shared audit-log list should own audit row rendering');
 
   assert.match(materialPanelWithImports, /最近审计记录/, 'material audit panel should still render the recent audit title');
   assert.match(supplierPanelWithImports, /最近审计记录/, 'supplier audit panel should still render the recent audit title');
