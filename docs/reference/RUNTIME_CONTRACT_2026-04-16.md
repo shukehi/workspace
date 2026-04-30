@@ -151,6 +151,13 @@
 
 ---
 
+
+### Release configuration verification
+
+See `docs/progress/RELEASE_CONFIGURATION_VERIFICATION_2026-04-30.md` for the current release config checklist. Production-like smoke must align backend `API_KEY` with frontend `VITE_API_KEY`, set explicit `CORS_ORIGIN` values for browser callers, and configure `PRINT_RENDER_BASE_URL` for PDF/print rendering.
+
+---
+
 ## 7. 当前最重要的运行时认知
 
 1. **前端并不是直接 mount**，而是先完成 config bootstrap
